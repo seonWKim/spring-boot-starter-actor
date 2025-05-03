@@ -15,5 +15,6 @@ public class GreetingService {
     public void hello() {
         ActorRefWrapper<ActorCreationBehavior> actorRefWrapper = service.getActorRefWrapper(
                 ActorCreationBehavior.BEAN_NAME, ActorRefWrapper.class);
+
     }
 }
