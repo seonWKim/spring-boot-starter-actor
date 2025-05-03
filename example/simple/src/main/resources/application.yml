@@ -2,14 +2,9 @@ spring:
   application:
     name: spring-pekko
 
-server:
-  port: 8080
-
-pekko:
-  name: spring-pekko-example
-  actor:
-    provider: local
-
-logging:
-  level:
-    org.apache.pekko: DEBUG
+actor:
+  pekko:
+    enabled: true
+    loglevel: DEBUG
+    actor:
+      provider: local

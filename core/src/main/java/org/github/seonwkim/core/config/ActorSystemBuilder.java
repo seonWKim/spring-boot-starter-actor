@@ -12,7 +12,7 @@ public interface ActorSystemBuilder {
 
     ActorSystemBuilder withRootBehavior(Supplier<Behavior<Void>> behavior);
 
-    ActorSystemBuilder withConfig(Map<String, Object> config);
+    ActorSystemBuilder withConfig(Map<String, String> config);
 
     ActorSystem<Void> build();
 }

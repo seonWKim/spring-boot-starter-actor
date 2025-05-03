@@ -1,5 +1,5 @@
 dependencies {
-	implementation(project(":core"))
+	implementation(project(":core-deprecated"))
 
 	implementation("org.springframework.boot:spring-boot-starter")
 	implementation("org.springframework.boot:spring-boot-starter-web")

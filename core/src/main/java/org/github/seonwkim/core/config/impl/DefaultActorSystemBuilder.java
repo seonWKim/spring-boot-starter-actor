@@ -8,16 +8,16 @@ import org.apache.pekko.actor.typed.ActorSystem;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.github.seonwkim.core.config.ActorSystemBuilder;
-import org.github.seonwkim.core.config.ConfigUtils;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigValueFactory;
 
 public class DefaultActorSystemBuilder implements ActorSystemBuilder {
 
     private String name = "spring-boot-actor-system";
     private Supplier<Behavior<Void>> behaviorSupplier = Behaviors::empty;
-    private Map<String, Object> configMap = Collections.emptyMap();
+    private Map<String, String> configMap = Collections.emptyMap();
 
     @Override
     public ActorSystemBuilder withName(String name) {
@@ -32,14 +32,14 @@ public class DefaultActorSystemBuilder implements ActorSystemBuilder {
     }
 
     @Override
-    public ActorSystemBuilder withConfig(Map<String, Object> config) {
+    public ActorSystemBuilder withConfig(Map<String, String> config) {
         this.configMap = config;
         return this;
     }
 
     @Override
     public ActorSystem<Void> build() {
-        Config config = ConfigFactory.parseMap(ConfigUtils.flatten(configMap))
+        Config config = ConfigFactory.parseMap(ConfigValueFactory.fromMap(configMap))
                 .withFallback(ConfigFactory.load());
 
         return ActorSystem.create(behaviorSupplier.get(), name, config);

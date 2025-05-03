@@ -14,7 +14,8 @@ import org.springframework.core.env.PropertySource;
 @ConfigurationProperties(prefix = "actor.pekko")
 public class PekkoProperties implements EnvironmentAware {
 
-    private final Map<String, Object> config = new HashMap<>();
+    private static final String PEKKO_CONFIG_PREFIX = "pekko.";
+    private final Map<String, String> config = new HashMap<>();
 
     @Override
     public void setEnvironment(Environment environment) {
@@ -31,14 +32,15 @@ public class PekkoProperties implements EnvironmentAware {
                     String key = String.valueOf(entry.getKey());
                     if (key.startsWith("actor.pekko.") && !key.equals("actor.pekko.enabled")) {
                         String strippedKey = key.substring("actor.pekko.".length());
-                        config.put(strippedKey, entry.getValue());
+                        String value = String.valueOf(entry.getValue());
+                        config.put(PEKKO_CONFIG_PREFIX + strippedKey, value);
                     }
                 }
             }
         }
     }
 
-    public Map<String, Object> getConfig() {
+    public Map<String, String> getConfig() {
         return Collections.unmodifiableMap(config);
     }
 }

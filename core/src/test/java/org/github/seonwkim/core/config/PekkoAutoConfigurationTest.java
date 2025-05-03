@@ -30,8 +30,8 @@ public class PekkoAutoConfigurationTest {
             DefaultActorSystemInstance systemInstance = context.getBean(DefaultActorSystemInstance.class);
             Config config = systemInstance.getRaw().settings().config();
 
-            assertEquals("INFO", config.getString("loglevel"));
-            assertEquals("local", config.getString("actor.provider"));
+            assertEquals("INFO", config.getString("pekko.loglevel"));
+            assertEquals("local", config.getString("pekko.actor.provider"));
         }
     }
 
