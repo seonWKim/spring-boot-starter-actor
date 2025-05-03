@@ -1,9 +1,9 @@
-package org.github.seonwkim.core.config;
+package org.github.seonwkim.core;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.typesafe.config.Config;
-import org.github.seonwkim.core.config.impl.DefaultActorSystemInstance;
+import org.github.seonwkim.core.impl.DefaultActorSystemInstance;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

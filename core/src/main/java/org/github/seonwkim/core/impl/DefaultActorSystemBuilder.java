@@ -1,4 +1,4 @@
-package org.github.seonwkim.core.config.impl;
+package org.github.seonwkim.core.impl;
 
 import java.util.Collections;
 import java.util.Map;
@@ -7,7 +7,7 @@ import java.util.function.Supplier;
 import org.apache.pekko.actor.typed.ActorSystem;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
-import org.github.seonwkim.core.config.ActorSystemBuilder;
+import org.github.seonwkim.core.ActorSystemBuilder;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;

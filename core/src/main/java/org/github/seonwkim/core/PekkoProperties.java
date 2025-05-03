@@ -1,4 +1,4 @@
-package org.github.seonwkim.core.config;
+package org.github.seonwkim.core;
 
 import java.util.Collections;
 import java.util.HashMap;

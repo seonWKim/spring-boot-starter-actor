@@ -1,8 +1,8 @@
-package org.github.seonwkim.core.config;
+package org.github.seonwkim.core;
 
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
-import org.github.seonwkim.core.config.impl.DefaultActorSystemBuilder;
-import org.github.seonwkim.core.config.impl.DefaultActorSystemInstance;
+import org.github.seonwkim.core.impl.DefaultActorSystemBuilder;
+import org.github.seonwkim.core.impl.DefaultActorSystemInstance;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;

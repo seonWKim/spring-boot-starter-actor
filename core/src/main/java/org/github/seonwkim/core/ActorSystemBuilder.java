@@ -1,4 +1,4 @@
-package org.github.seonwkim.core.config;
+package org.github.seonwkim.core;
 
 import java.util.Map;
 import java.util.function.Supplier;

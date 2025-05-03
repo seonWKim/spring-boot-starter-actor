@@ -1,9 +1,9 @@
-package org.github.seonwkim.core.config.impl;
+package org.github.seonwkim.core.impl;
 
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.ActorSystem;
 import org.apache.pekko.actor.typed.Behavior;
-import org.github.seonwkim.core.config.ActorSystemInstance;
+import org.github.seonwkim.core.ActorSystemInstance;
 
 public class DefaultActorSystemInstance implements ActorSystemInstance {
 

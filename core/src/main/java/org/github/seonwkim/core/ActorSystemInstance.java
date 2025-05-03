@@ -1,4 +1,4 @@
-package org.github.seonwkim.core.config;
+package org.github.seonwkim.core;
 
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.ActorSystem;
