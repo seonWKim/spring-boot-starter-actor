@@ -25,7 +25,6 @@ public class DefaultActorSystemInstance implements ActorSystemInstance {
 
     @Override
     public <T> ActorRef<T> spawn(Behavior<T> behavior, String name) {
-        // TODO
         return null;
     }
 }
