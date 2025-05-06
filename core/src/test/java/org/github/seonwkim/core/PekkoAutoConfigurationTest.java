@@ -12,6 +12,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.test.context.TestPropertySource;
 
 public class PekkoAutoConfigurationTest {
@@ -107,5 +109,40 @@ public class PekkoAutoConfigurationTest {
             DefaultActorSystemInstance systemInstance = context.getBean(DefaultActorSystemInstance.class);
             assertNotNull(systemInstance.getRaw());
         } 
+    }
+
+    static class CustomTestRootGuardian {
+        public static Behavior<RootGuardian.Command> create() {
+            return Behaviors.setup(ctx -> Behaviors.receive(RootGuardian.Command.class).build());
+        }
+    }
+
+    @Configuration
+    static class CustomOverrideConfiguration {
+        @Bean
+        public RootGuardianSupplierWrapper customRootGuardianSupplierWrapper() {
+            return new RootGuardianSupplierWrapper(CustomTestRootGuardian::create);
+        }
+    }
+
+    @Nested
+    @SpringBootTest(classes = { TestApp.class, CustomOverrideConfiguration.class })
+    @TestPropertySource(properties = {
+            "actor.pekko.enabled=true",
+            "actor.pekko.loglevel=INFO",
+            "actor.pekko.actor.provider=local"
+    })
+    class CustomRootGuardianSupplierWrapperTest {
+        @Test
+        void shouldUseCustomRootGuardian(ApplicationContext context) {
+            RootGuardianSupplierWrapper wrapper = context.getBean(RootGuardianSupplierWrapper.class);
+            assertNotNull(wrapper);
+
+            Behavior<RootGuardian.Command> behavior = wrapper.getSupplier().get();
+            assertNotNull(behavior);
+
+            assertEquals(CustomTestRootGuardian.create().getClass(), behavior.getClass(),
+                         "Expected custom RootGuardian behavior to be used");
+        }
     }
 }

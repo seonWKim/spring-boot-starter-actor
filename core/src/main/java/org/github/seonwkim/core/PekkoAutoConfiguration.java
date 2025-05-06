@@ -6,6 +6,7 @@ import java.util.Map;
 import org.apache.pekko.actor.typed.Behavior;
 import org.github.seonwkim.core.impl.DefaultActorSystemBuilder;
 import org.github.seonwkim.core.impl.DefaultActorSystemInstance;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationContext;
@@ -36,6 +37,7 @@ public class PekkoAutoConfiguration {
     }
 
     @Bean
+    @ConditionalOnMissingBean
     public RootGuardianSupplierWrapper rootGuardianSupplierWrapper(ActorTypeRegistry actorTypeRegistry) {
         return new RootGuardianSupplierWrapper(() -> RootGuardian.create(actorTypeRegistry));
     }
