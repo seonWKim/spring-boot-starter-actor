@@ -8,6 +8,7 @@ import org.apache.pekko.actor.typed.ActorSystem;
 import org.apache.pekko.actor.typed.Props;
 import org.apache.pekko.actor.typed.javadsl.AskPattern;
 import org.apache.pekko.cluster.ClusterEvent;
+import org.apache.pekko.cluster.sharding.typed.javadsl.ClusterSharding;
 import org.apache.pekko.cluster.typed.Cluster;
 import org.apache.pekko.cluster.typed.Subscribe;
 import org.github.seonwkim.core.behavior.ClusterEventBehavior;
@@ -19,25 +20,29 @@ import org.springframework.lang.Nullable;
 public class SpringActorSystem implements DisposableBean {
 
     private final ActorSystem<RootGuardian.Command> actorSystem;
-    @Nullable
-    private final Cluster cluster;
+    @Nullable private final Cluster cluster;
+    @Nullable private final ClusterSharding clusterSharding;
+
     private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(3); // configurable if needed
 
     public SpringActorSystem(ActorSystem<RootGuardian.Command> actorSystem) {
         this.actorSystem = actorSystem;
         this.cluster = null;
+        this.clusterSharding = null;
     }
 
     public SpringActorSystem(
             ActorSystem<RootGuardian.Command> actorSystem,
             Cluster cluster,
+            ClusterSharding clusterSharding,
             ApplicationEventPublisher publisher
     ) {
         this.actorSystem = actorSystem;
         this.cluster = cluster;
+        this.clusterSharding = clusterSharding;
+
         ActorRef<ClusterEvent.ClusterDomainEvent> listener = actorSystem.systemActorOf(
                 ClusterEventBehavior.create(publisher), "cluster-event-listener", Props.empty());
-
         cluster.subscriptions().tell(new Subscribe<>(listener, ClusterEvent.ClusterDomainEvent.class));
     }
 

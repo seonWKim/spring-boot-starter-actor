@@ -1,2 +1,2 @@
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-  org.github.seonwkim.core.PekkoAutoConfiguration,org.github.seonwkim.core.PekkoShardingAutoConfiguration
+  org.github.seonwkim.core.PekkoAutoConfiguration

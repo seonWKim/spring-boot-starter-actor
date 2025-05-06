@@ -5,12 +5,16 @@ import java.util.Map;
 import java.util.Objects;
 
 import org.apache.pekko.actor.typed.ActorSystem;
-import org.apache.pekko.cluster.sharding.ClusterSharding;
+import org.apache.pekko.cluster.sharding.typed.javadsl.ClusterSharding;
+import org.apache.pekko.cluster.sharding.typed.javadsl.Entity;
 import org.apache.pekko.cluster.typed.Cluster;
 import org.github.seonwkim.core.RootGuardian;
 import org.github.seonwkim.core.RootGuardianSupplierWrapper;
 import org.github.seonwkim.core.SpringActorSystem;
 import org.github.seonwkim.core.SpringActorSystemBuilder;
+import org.github.seonwkim.core.shard.ShardEnvelope;
+import org.github.seonwkim.core.shard.ShardedActor;
+import org.github.seonwkim.core.shard.ShardedActorRegistry;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.lang.Nullable;
 
@@ -24,6 +28,7 @@ public class DefaultSpringActorSystemBuilder implements SpringActorSystemBuilder
     private Map<String, Object> configMap = Collections.emptyMap();
     @Nullable
     private ApplicationEventPublisher applicationEventPublisher;
+    private ShardedActorRegistry shardedActorRegistry = ShardedActorRegistry.INSTANCE;
     private final String DEFAULT_SYSTEM_NAME = "system";
 
     @Override
@@ -46,12 +51,19 @@ public class DefaultSpringActorSystemBuilder implements SpringActorSystemBuilder
     }
 
     @Override
+    public SpringActorSystemBuilder withShardedActorRegistry(ShardedActorRegistry shardedActorRegistry) {
+        this.shardedActorRegistry = shardedActorRegistry;
+        return this;
+    }
+
+    @Override
     public SpringActorSystem build() {
         final Config config = ConfigFactory.parseMap(ConfigValueFactory.fromMap(configMap))
                                            .withFallback(ConfigFactory.load());
         final String name = config.hasPath("pekko.name") ? config.getString("pekko.name") : DEFAULT_SYSTEM_NAME;
 
-        final ActorSystem<RootGuardian.Command> actorSystem = ActorSystem.create(supplier.getSupplier().get(), name, config);
+        final ActorSystem<RootGuardian.Command> actorSystem = ActorSystem.create(supplier.getSupplier().get(),
+                                                                                 name, config);
         final boolean isClusterMode = Objects.equals(config.getString("pekko.actor.provider"), "cluster");
 
         if (!isClusterMode) {
@@ -61,7 +73,25 @@ public class DefaultSpringActorSystemBuilder implements SpringActorSystemBuilder
                 throw new IllegalArgumentException("ApplicationEventPublisher is not set");
             }
             final Cluster cluster = Cluster.get(actorSystem);
-            return new SpringActorSystem(actorSystem, cluster, applicationEventPublisher);
+            final ClusterSharding clusterSharding = ClusterSharding.get(actorSystem);
+            for (ShardedActor actor : shardedActorRegistry.getAll()) {
+                initShardedActor(clusterSharding, actor);
+            }
+            return new SpringActorSystem(
+                    actorSystem,
+                    cluster,
+                    clusterSharding,
+                    applicationEventPublisher
+            );
         }
+    }
+
+    private <T> void initShardedActor(
+            ClusterSharding sharding,
+            ShardedActor<T> actor
+    ) {
+        Entity<T, ShardEnvelope<T>> entity =
+                Entity.of(actor.typeKey(), actor::create).withMessageExtractor(actor.extractor());
+        sharding.init(entity);
     }
 }

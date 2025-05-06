@@ -5,6 +5,8 @@ import java.util.Map;
 
 import org.apache.pekko.actor.typed.Behavior;
 import org.github.seonwkim.core.impl.DefaultSpringActorSystemBuilder;
+import org.github.seonwkim.core.shard.ShardedActor;
+import org.github.seonwkim.core.shard.ShardedActorRegistry;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -13,7 +15,6 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.annotation.AnnotationUtils;
 
 @Configuration
 @EnableConfigurationProperties(PekkoProperties.class)
@@ -26,7 +27,8 @@ public class PekkoAutoConfiguration {
     public SpringActorSystemBuilder actorSystemBuilder(
             PekkoProperties properties,
             RootGuardianSupplierWrapper rootGuardianSupplierWrapper,
-            ApplicationEventPublisher applicationEventPublisher
+            ApplicationEventPublisher applicationEventPublisher,
+            ShardedActorRegistry shardedActorRegistry
             ) {
         return new DefaultSpringActorSystemBuilder()
                 .withConfig(properties.getConfig())
@@ -50,34 +52,30 @@ public class PekkoAutoConfiguration {
     @ConditionalOnMissingBean
     public ActorTypeRegistry actorTypeRegistry(ApplicationContext context) {
         ActorTypeRegistry registry = new ActorTypeRegistry();
-        Map<String, Object> actorBeans = context.getBeansWithAnnotation(SpringActor.class);
+        Map<String, SpringActor> actorBeans = context.getBeansOfType(SpringActor.class);
 
-        for (Object bean : actorBeans.values()) {
-            Class<?> actorClass = bean.getClass();
-            SpringActor annotation = AnnotationUtils.findAnnotation(actorClass, SpringActor.class);
+        for (SpringActor actorBean : actorBeans.values()) {
+            Class<?> actorClass = actorBean.getClass(); // likely a CGLIB proxy
+            Class<?> targetClass = findTargetClass(actorClass);
+            Class<?> commandClass = actorBean.commandClass();
 
-            // Determine the command class
-            Class<?> commandClass = (annotation != null && annotation.commandClass() != Void.class)
-                                    ? annotation.commandClass()
-                                    : findCommandClassByConvention(actorClass);
-
-            // Find static factory method with (String id) parameter
-            Method factoryMethod = findCreateMethod(actorClass);
+            Method factoryMethod = findCreateMethod(targetClass);
             if (factoryMethod == null) {
-                throw new IllegalStateException("No valid static create(String) method found in " + actorClass.getName());
+                throw new IllegalStateException("No valid static create(String) method found in " + targetClass.getName());
             }
 
             registry.register(commandClass, id -> {
                 try {
                     return (Behavior<?>) factoryMethod.invoke(null, id);
                 } catch (Exception e) {
-                    throw new RuntimeException("Failed to invoke create(id) on " + actorClass.getName(), e);
+                    throw new RuntimeException("Failed to invoke create(id) on " + targetClass.getName(), e);
                 }
             });
         }
 
         return registry;
     }
+
 
     private Method findCreateMethod(Class<?> clazz) {
         try {
@@ -90,12 +88,21 @@ public class PekkoAutoConfiguration {
         }
     }
 
-    private Class<?> findCommandClassByConvention(Class<?> actorClass) {
-        for (Class<?> nested : actorClass.getDeclaredClasses()) {
-            if (nested.getSimpleName().equals("Command")) {
-                return nested;
-            }
+    private Class<?> findTargetClass(Class<?> clazz) {
+        // Handles CGLIB proxy classes by finding the original user-defined class
+        while (clazz.getName().contains("$$")) {
+            clazz = clazz.getSuperclass();
         }
-        throw new IllegalStateException("Cannot infer command class for actor: " + actorClass.getName());
+        return clazz;
     }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public ShardedActorRegistry shardedActorRegistry(ApplicationContext ctx) {
+        ShardedActorRegistry registry = new ShardedActorRegistry();
+        Map<String, ShardedActor> beans = ctx.getBeansOfType(ShardedActor.class);
+        beans.values().forEach(registry::register);
+        return registry;
+    }
+
 }
