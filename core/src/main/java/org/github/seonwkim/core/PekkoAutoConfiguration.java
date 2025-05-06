@@ -33,7 +33,8 @@ public class PekkoAutoConfiguration {
         return new DefaultSpringActorSystemBuilder()
                 .withConfig(properties.getConfig())
                 .withRootGuardianSupplier(rootGuardianSupplierWrapper)
-                .withApplicationEventPublisher(applicationEventPublisher);
+                .withApplicationEventPublisher(applicationEventPublisher)
+                .withShardedActorRegistry(shardedActorRegistry);
     }
 
     @Bean

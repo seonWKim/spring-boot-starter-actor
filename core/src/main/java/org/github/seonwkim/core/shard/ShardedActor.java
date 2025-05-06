@@ -9,8 +9,6 @@ public interface ShardedActor<T> {
     // EntityTypeKey.create(actor.commandClass(), actor.commandClass().getSimpleName());
     EntityTypeKey<T> typeKey();
 
-    Class<T> commandClass();
-
     Behavior<T> create(EntityContext<T> ctx);
 
     ShardingMessageExtractor<ShardEnvelope<T>, T> extractor();
