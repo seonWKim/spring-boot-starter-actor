@@ -5,7 +5,14 @@ import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
 
+import org.apache.pekko.cluster.ClusterEvent.ClusterDomainEvent;
+import org.apache.pekko.cluster.ClusterEvent.MemberExited;
+import org.apache.pekko.cluster.ClusterEvent.MemberJoined;
+import org.apache.pekko.cluster.ClusterEvent.MemberUp;
+import org.github.seonwkim.core.behavior.ClusterEventBehavior.ClusterDomainWrappedEvent;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,8 +28,8 @@ public class ClusterEventBehaviorTest {
     private static ConfigurableApplicationContext context2;
     private static ConfigurableApplicationContext context3;
 
-    private static final int[] httpPorts = { 31433, 35975, 37325 };
-    private static final int[] arteryPorts = { 13201, 24382, 28387 };
+    private static final int[] httpPorts = { 30001, 30002, 30003 };
+    private static final int[] arteryPorts = { 40001, 40002, 40003 };
 
     @SpringBootApplication(scanBasePackages = "org.github.seonwkim.core")
     public static class ClusterTestApp {
@@ -33,24 +40,16 @@ public class ClusterEventBehaviorTest {
     }
 
     public static class ClusterEventCollector {
-        private final List<Object> events = new java.util.concurrent.CopyOnWriteArrayList<>();
+        private final List<Object> events = new CopyOnWriteArrayList<>();
 
         @org.springframework.context.event.EventListener
-        public void onMemberUp(ClusterEventBehavior.MemberUpEvent event) {
-            events.add(event);
+        public void onMemberUp(ClusterDomainWrappedEvent event) {
+            System.out.println("SOME EVENT: " + event);
+            events.add(event.getEvent());
         }
 
-        @org.springframework.context.event.EventListener
-        public void onMemberRemoved(ClusterEventBehavior.MemberRemovedEvent event) {
-            events.add(event);
-        }
-
-        public boolean hasEvent(Class<?> type) {
-            return events.stream().anyMatch(type::isInstance);
-        }
-
-        public int eventCount(Class<?> type) {
-            return (int) events.stream().filter(type::isInstance).count();
+        public int eventCount(Class<?> eventType) {
+            return (int) events.stream().filter(event -> event.getClass() == eventType).count();
         }
     }
 
@@ -89,20 +88,26 @@ public class ClusterEventBehaviorTest {
 
     @Test
     void clusterEventsShouldBePublished() {
-        ClusterEventCollector collector1 = context1.getBean(ClusterEventCollector.class);
+        ClusterEventCollector collector = context1.getBean(ClusterEventCollector.class);
 
         await().atMost(10, SECONDS)
-               .pollInterval(200, java.util.concurrent.TimeUnit.MILLISECONDS)
-               .until(() -> collector1.eventCount(ClusterEventBehavior.MemberUpEvent.class) >= 3);
+               .pollInterval(200, TimeUnit.MILLISECONDS)
+               .until(() -> collector.eventCount(MemberUp.class) >= 3);
 
-        assertTrue(collector1.eventCount(ClusterEventBehavior.MemberUpEvent.class) >= 3,
+        assertTrue(collector.eventCount(MemberUp.class) >= 3,
                    "Expected at least 3 MemberUp events");
     }
 
     @AfterEach
     void tearDown() {
-        context1.close();
-        context2.close();
-        context3.close();
+        if (context1.isActive()) {
+            context1.close();
+        }
+        if (context2.isActive()) {
+            context2.close();
+        }
+        if (context3.isActive()) {
+            context3.close();
+        }
     }
 }
