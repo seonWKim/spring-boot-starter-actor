@@ -9,7 +9,7 @@ import org.springframework.context.ApplicationEventPublisher;
 
 public interface SpringActorSystemBuilder {
 
-    SpringActorSystemBuilder withRootGuardianSupplier(Supplier<Behavior<Command>> supplier);
+    SpringActorSystemBuilder withRootGuardianSupplier(RootGuardianSupplierWrapper supplier);
 
     SpringActorSystemBuilder withConfig(Map<String, Object> config);
 

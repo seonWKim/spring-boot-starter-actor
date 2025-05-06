@@ -30,7 +30,7 @@ public class PekkoAutoConfiguration {
             ) {
         return new DefaultSpringActorSystemBuilder()
                 .withConfig(properties.getConfig())
-                .withRootGuardianSupplier(rootGuardianSupplierWrapper.getSupplier())
+                .withRootGuardianSupplier(rootGuardianSupplierWrapper)
                 .withApplicationEventPublisher(applicationEventPublisher);
     }
 

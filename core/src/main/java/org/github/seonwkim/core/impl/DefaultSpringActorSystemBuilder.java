@@ -3,12 +3,12 @@ package org.github.seonwkim.core.impl;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Supplier;
 
 import org.apache.pekko.actor.typed.ActorSystem;
-import org.apache.pekko.actor.typed.Behavior;
+import org.apache.pekko.cluster.sharding.ClusterSharding;
 import org.apache.pekko.cluster.typed.Cluster;
 import org.github.seonwkim.core.RootGuardian;
+import org.github.seonwkim.core.RootGuardianSupplierWrapper;
 import org.github.seonwkim.core.SpringActorSystem;
 import org.github.seonwkim.core.SpringActorSystemBuilder;
 import org.springframework.context.ApplicationEventPublisher;
@@ -20,15 +20,14 @@ import com.typesafe.config.ConfigValueFactory;
 
 public class DefaultSpringActorSystemBuilder implements SpringActorSystemBuilder {
 
-    private Supplier<Behavior<RootGuardian.Command>> supplier;
+    private RootGuardianSupplierWrapper supplier;
     private Map<String, Object> configMap = Collections.emptyMap();
     @Nullable
     private ApplicationEventPublisher applicationEventPublisher;
     private final String DEFAULT_SYSTEM_NAME = "system";
 
     @Override
-    public SpringActorSystemBuilder withRootGuardianSupplier(
-            Supplier<Behavior<RootGuardian.Command>> supplier) {
+    public SpringActorSystemBuilder withRootGuardianSupplier(RootGuardianSupplierWrapper supplier) {
         this.supplier = supplier;
         return this;
     }
@@ -40,7 +39,8 @@ public class DefaultSpringActorSystemBuilder implements SpringActorSystemBuilder
     }
 
     @Override
-    public SpringActorSystemBuilder withApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
+    public SpringActorSystemBuilder withApplicationEventPublisher(
+            ApplicationEventPublisher applicationEventPublisher) {
         this.applicationEventPublisher = applicationEventPublisher;
         return this;
     }
@@ -51,7 +51,7 @@ public class DefaultSpringActorSystemBuilder implements SpringActorSystemBuilder
                                            .withFallback(ConfigFactory.load());
         final String name = config.hasPath("pekko.name") ? config.getString("pekko.name") : DEFAULT_SYSTEM_NAME;
 
-        final ActorSystem<RootGuardian.Command> actorSystem = ActorSystem.create(supplier.get(), name, config);
+        final ActorSystem<RootGuardian.Command> actorSystem = ActorSystem.create(supplier.getSupplier().get(), name, config);
         final boolean isClusterMode = Objects.equals(config.getString("pekko.actor.provider"), "cluster");
 
         if (!isClusterMode) {
