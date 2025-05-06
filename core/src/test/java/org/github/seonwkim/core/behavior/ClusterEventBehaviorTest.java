@@ -8,9 +8,7 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.pekko.cluster.ClusterEvent.ClusterDomainEvent;
-import org.apache.pekko.cluster.ClusterEvent.MemberExited;
-import org.apache.pekko.cluster.ClusterEvent.MemberJoined;
+import org.apache.pekko.cluster.ClusterEvent.MemberLeft;
 import org.apache.pekko.cluster.ClusterEvent.MemberUp;
 import org.github.seonwkim.core.behavior.ClusterEventBehavior.ClusterDomainWrappedEvent;
 import org.junit.jupiter.api.AfterEach;
@@ -93,9 +91,14 @@ public class ClusterEventBehaviorTest {
         await().atMost(10, SECONDS)
                .pollInterval(200, TimeUnit.MILLISECONDS)
                .until(() -> collector.eventCount(MemberUp.class) >= 3);
+        assertTrue(collector.eventCount(MemberUp.class) >= 3, "Expected at least 3 MemberUp events");
 
-        assertTrue(collector.eventCount(MemberUp.class) >= 3,
-                   "Expected at least 3 MemberUp events");
+        context2.close();
+        context3.close();
+        await().atMost(10, SECONDS)
+               .pollInterval(200, TimeUnit.MILLISECONDS)
+               .until(() -> collector.eventCount(MemberLeft.class) >= 2);
+        assertTrue(collector.eventCount(MemberLeft.class) >= 2, "Expected at least 3 MemberLeft events");
     }
 
     @AfterEach

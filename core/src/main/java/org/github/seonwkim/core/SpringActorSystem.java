@@ -12,10 +12,11 @@ import org.apache.pekko.cluster.typed.Cluster;
 import org.apache.pekko.cluster.typed.Subscribe;
 import org.github.seonwkim.core.behavior.ClusterEventBehavior;
 import org.github.seonwkim.core.impl.DefaultRootGuardian;
+import org.springframework.beans.factory.DisposableBean;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.lang.Nullable;
 
-public class SpringActorSystem {
+public class SpringActorSystem implements DisposableBean {
 
     private final ActorSystem<RootGuardian.Command> actorSystem;
     @Nullable
@@ -74,5 +75,11 @@ public class SpringActorSystem {
                 timeout,
                 actorSystem.scheduler()
         ).thenApply(spawned -> new SpringActorRef<>(actorSystem.scheduler(), spawned.ref));
+    }
+
+    @Override
+    public void destroy() throws Exception {
+        actorSystem.terminate();
+        actorSystem.getWhenTerminated().toCompletableFuture().join();
     }
 }
