@@ -8,8 +8,14 @@ import reactor.core.publisher.Mono;
 @RestController
 public class HelloController {
 
+    private final HelloService helloService;
+
+    public HelloController(HelloService helloService) {
+        this.helloService = helloService;
+    }
+
     @GetMapping("/hello")
     public Mono<String> hello() {
-        return Mono.just("hello world");
+        return helloService.hello();
     }
 }
