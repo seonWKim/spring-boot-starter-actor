@@ -6,7 +6,7 @@ import com.typesafe.config.Config;
 
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
-import org.github.seonwkim.core.impl.DefaultActorSystemInstance;
+import org.github.seonwkim.core.impl.ActorSystemInstance;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -33,7 +33,7 @@ public class PekkoAutoConfigurationTest {
         @Test
         void shouldCreateActorSystem(org.springframework.context.ApplicationContext context) {
             assertTrue(context.containsBean("actorSystem"), "ActorSystem bean should exist");
-            DefaultActorSystemInstance systemInstance = context.getBean(DefaultActorSystemInstance.class);
+            ActorSystemInstance systemInstance = context.getBean(ActorSystemInstance.class);
             Config config = systemInstance.getRaw().settings().config();
 
             assertEquals("INFO", config.getString("pekko.loglevel"));
@@ -54,7 +54,7 @@ public class PekkoAutoConfigurationTest {
             assertFalse(context.containsBean("actorSystem"), "ActorSystem bean should NOT exist");
             assertThrows(
                     Exception.class,
-                    () -> context.getBean(DefaultActorSystemInstance.class),
+                    () -> context.getBean(ActorSystemInstance.class),
                     "Expected exception when accessing missing DefaultActorSystemInstance bean"
             );
         }
@@ -106,7 +106,7 @@ public class PekkoAutoConfigurationTest {
         void actorSystemShouldStart(ApplicationContext context) {
             assertTrue(context.containsBean("actorSystem"));
 
-            DefaultActorSystemInstance systemInstance = context.getBean(DefaultActorSystemInstance.class);
+            ActorSystemInstance systemInstance = context.getBean(ActorSystemInstance.class);
             assertNotNull(systemInstance.getRaw());
         } 
     }
