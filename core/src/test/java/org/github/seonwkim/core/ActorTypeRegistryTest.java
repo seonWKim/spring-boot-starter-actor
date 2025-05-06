@@ -41,7 +41,6 @@ public class ActorTypeRegistryTest {
     public void testRegisterAndRetrieveByStringKey() {
         registry.register(DummyActor.Command.class, DummyActor::create);
 
-        String key = DummyActor.class.getName();
         Behavior<DummyActor.Command> behavior = registry.createBehavior(DummyActor.Command.class, "custom-id");
 
         assertNotNull(behavior);
