@@ -4,17 +4,18 @@ import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.ActorSystem;
 import org.apache.pekko.actor.typed.Behavior;
 import org.github.seonwkim.core.ActorSystemInstance;
+import org.github.seonwkim.core.RootGuardian;
 
 public class DefaultActorSystemInstance implements ActorSystemInstance {
 
-    private final ActorSystem<Void> actorSystem;
+    private final ActorSystem<RootGuardian.Command> actorSystem;
 
-    public DefaultActorSystemInstance(ActorSystem<Void> actorSystem) {
+    public DefaultActorSystemInstance(ActorSystem<RootGuardian.Command> actorSystem) {
         this.actorSystem = actorSystem;
     }
 
     @Override
-    public ActorSystem<Void> getRaw() {
+    public ActorSystem<RootGuardian.Command> getRaw() {
         return actorSystem;
     }
 

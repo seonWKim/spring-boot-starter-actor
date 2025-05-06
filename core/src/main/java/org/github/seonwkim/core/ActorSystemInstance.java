@@ -5,7 +5,7 @@ import org.apache.pekko.actor.typed.ActorSystem;
 import org.apache.pekko.actor.typed.Behavior;
 
 public interface ActorSystemInstance {
-    ActorSystem<Void> getRaw();
+    ActorSystem<RootGuardian.Command> getRaw();
 
     void terminate();
 

@@ -6,8 +6,8 @@ import java.util.function.Supplier;
 
 import org.apache.pekko.actor.typed.ActorSystem;
 import org.apache.pekko.actor.typed.Behavior;
-import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.github.seonwkim.core.ActorSystemBuilder;
+import org.github.seonwkim.core.RootGuardian;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -15,8 +15,8 @@ import com.typesafe.config.ConfigValueFactory;
 
 public class DefaultActorSystemBuilder implements ActorSystemBuilder {
 
-    private String name = "spring-boot-actor-system";
-    private Supplier<Behavior<Void>> behaviorSupplier = Behaviors::empty;
+    private String name;
+    private Supplier<Behavior<RootGuardian.Command>> supplier;
     private Map<String, String> configMap = Collections.emptyMap();
 
     @Override
@@ -26,8 +26,8 @@ public class DefaultActorSystemBuilder implements ActorSystemBuilder {
     }
 
     @Override
-    public ActorSystemBuilder withRootBehavior(Supplier<Behavior<Void>> behaviorSupplier) {
-        this.behaviorSupplier = behaviorSupplier;
+    public ActorSystemBuilder withRootGuardianSupplier(Supplier<Behavior<RootGuardian.Command>> supplier) {
+        this.supplier = supplier;
         return this;
     }
 
@@ -38,10 +38,10 @@ public class DefaultActorSystemBuilder implements ActorSystemBuilder {
     }
 
     @Override
-    public ActorSystem<Void> build() {
+    public ActorSystem<RootGuardian.Command> build() {
         Config config = ConfigFactory.parseMap(ConfigValueFactory.fromMap(configMap))
-                .withFallback(ConfigFactory.load());
+                                     .withFallback(ConfigFactory.load());
 
-        return ActorSystem.create(behaviorSupplier.get(), name, config);
+        return ActorSystem.create(supplier.get(), name, config);
     }
 }
