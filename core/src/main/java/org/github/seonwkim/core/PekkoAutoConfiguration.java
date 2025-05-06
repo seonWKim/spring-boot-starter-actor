@@ -4,7 +4,7 @@ import java.lang.reflect.Method;
 import java.util.Map;
 
 import org.apache.pekko.actor.typed.Behavior;
-import org.github.seonwkim.core.impl.DefaultActorSystemBuilder;
+import org.github.seonwkim.core.impl.DefaultSpringActorSystemBuilder;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -21,18 +21,20 @@ import org.springframework.core.annotation.AnnotationUtils;
 public class PekkoAutoConfiguration {
 
     @Bean
-    public ActorSystemBuilder actorSystemBuilder(
+    @ConditionalOnMissingBean
+    public SpringActorSystemBuilder actorSystemBuilder(
             PekkoProperties properties,
             RootGuardianSupplierWrapper rootGuardianSupplierWrapper) {
-        return new DefaultActorSystemBuilder()
+        return new DefaultSpringActorSystemBuilder()
                 .withName("spring-boot-actor-system")
                 .withConfig(properties.getConfig())
                 .withRootGuardianSupplier(rootGuardianSupplierWrapper.getSupplier());
     }
 
     @Bean
-    public SpringActorSystem actorSystem(ActorSystemBuilder builder) {
-        return new SpringActorSystem(builder.build());
+    @ConditionalOnMissingBean
+    public SpringActorSystem actorSystem(SpringActorSystemBuilder builder) {
+        return builder.build();
     }
 
     @Bean
@@ -42,6 +44,7 @@ public class PekkoAutoConfiguration {
     }
 
     @Bean
+    @ConditionalOnMissingBean
     public ActorTypeRegistry actorTypeRegistry(ApplicationContext context) {
         ActorTypeRegistry registry = new ActorTypeRegistry();
         Map<String, Object> actorBeans = context.getBeansWithAnnotation(SpringActor.class);

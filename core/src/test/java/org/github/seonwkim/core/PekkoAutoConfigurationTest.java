@@ -78,7 +78,7 @@ public class PekkoAutoConfigurationTest {
             );
         }
     }
-    
+
     @Nested
     @SpringBootTest(classes = TestApp.class)
     @TestPropertySource(properties = {
@@ -107,7 +107,7 @@ public class PekkoAutoConfigurationTest {
 
             SpringActorSystem systemInstance = context.getBean(SpringActorSystem.class);
             assertNotNull(systemInstance.getRaw());
-        } 
+        }
     }
 
     static class CustomTestRootGuardian {
@@ -142,6 +142,22 @@ public class PekkoAutoConfigurationTest {
 
             assertEquals(CustomTestRootGuardian.create().getClass(), behavior.getClass(),
                          "Expected custom RootGuardian behavior to be used");
+        }
+    }
+
+    @Nested
+    @SpringBootTest(classes = { TestApp.class })
+    @TestPropertySource(properties = {
+            "actor.pekko.enabled=true",
+            "actor.pekko.loglevel=INFO",
+            "actor.pekko.actor.provider=cluster"
+    })
+    class ClusterConfigurationTest {
+        @Test
+        void clusterShouldBeConfigured(ApplicationContext context) {
+            SpringActorSystem springActorSystem = context.getBean(SpringActorSystem.class);
+            assertTrue(springActorSystem.isClusterMode());
+            assertNotNull(springActorSystem.getCluster());
         }
     }
 }
