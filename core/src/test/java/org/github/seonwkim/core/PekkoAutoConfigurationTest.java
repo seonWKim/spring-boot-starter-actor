@@ -1,8 +1,10 @@
 package org.github.seonwkim.core;
 
-import static org.junit.jupiter.api.Assertions.*;
-
-import com.typesafe.config.Config;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
@@ -13,7 +15,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.stereotype.Component;
 import org.springframework.test.context.TestPropertySource;
+
+import com.typesafe.config.Config;
 
 public class PekkoAutoConfigurationTest {
 
@@ -59,21 +64,22 @@ public class PekkoAutoConfigurationTest {
         }
     }
 
-    @SpringActor
-    static class TestHelloActor {
+    @Component
+    static class TestHelloActor implements SpringActor {
+        @Override
+        public Class<?> commandClass() {
+            return Command.class;
+        }
+
         public interface Command {}
 
         public static class SayHello implements TestHelloActor.Command {}
 
         public static Behavior<TestHelloActor.Command> create(String id) {
             return Behaviors.setup(ctx ->
-                                           Behaviors.receive(
-                                                            TestHelloActor.Command.class)
-                                                    .onMessage(
-                                                            TestHelloActor.SayHello.class, msg -> {
-                                                                System.out.println("Hello from " + id);
-                                                                return Behaviors.same();
-                                                            })
+                                           Behaviors.receive(TestHelloActor.Command.class)
+                                                    .onMessage(TestHelloActor.SayHello.class,
+                                                               msg -> Behaviors.same())
                                                     .build()
             );
         }
