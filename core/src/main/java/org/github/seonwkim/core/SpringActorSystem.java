@@ -50,10 +50,6 @@ public class SpringActorSystem implements DisposableBean {
         return cluster;
     }
 
-    public void terminate() {
-        actorSystem.terminate();
-    }
-
     public <T> CompletionStage<SpringActorRef<T>> spawn(Class<T> commandClass, String actorId) {
         return AskPattern.ask(
                 actorSystem,
