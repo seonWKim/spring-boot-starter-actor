@@ -12,10 +12,9 @@ public class ActorTypeRegistry {
     private final Map<Class<?>, String> classToKey = new HashMap<>();
 
     @SuppressWarnings("unchecked")
-    public <T> void register(Class<T> commandClass, Function<String, Behavior<T>> factory) {
+    public <T> void register(Class<T> commandClass, Function<String, Behavior<?>> factory) {
         String key = commandClass.getName();
-        Function<String, Behavior<?>> castedFactory =
-                (Function<String, Behavior<?>>) (Function<?, ?>) factory;
+        Function<String, Behavior<?>> castedFactory = factory;
 
         factories.put(key, castedFactory);
         classToKey.put(commandClass, key);
