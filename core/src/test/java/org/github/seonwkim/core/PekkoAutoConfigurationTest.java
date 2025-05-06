@@ -32,7 +32,7 @@ public class PekkoAutoConfigurationTest {
         @Test
         void shouldCreateActorSystem(org.springframework.context.ApplicationContext context) {
             assertTrue(context.containsBean("actorSystem"), "ActorSystem bean should exist");
-            ActorSystemInstance systemInstance = context.getBean(ActorSystemInstance.class);
+            SpringActorSystem systemInstance = context.getBean(SpringActorSystem.class);
             Config config = systemInstance.getRaw().settings().config();
 
             assertEquals("INFO", config.getString("pekko.loglevel"));
@@ -53,7 +53,7 @@ public class PekkoAutoConfigurationTest {
             assertFalse(context.containsBean("actorSystem"), "ActorSystem bean should NOT exist");
             assertThrows(
                     Exception.class,
-                    () -> context.getBean(ActorSystemInstance.class),
+                    () -> context.getBean(SpringActorSystem.class),
                     "Expected exception when accessing missing DefaultActorSystemInstance bean"
             );
         }
@@ -105,7 +105,7 @@ public class PekkoAutoConfigurationTest {
         void actorSystemShouldStart(ApplicationContext context) {
             assertTrue(context.containsBean("actorSystem"));
 
-            ActorSystemInstance systemInstance = context.getBean(ActorSystemInstance.class);
+            SpringActorSystem systemInstance = context.getBean(SpringActorSystem.class);
             assertNotNull(systemInstance.getRaw());
         } 
     }

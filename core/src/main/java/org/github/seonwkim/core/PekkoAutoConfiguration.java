@@ -31,8 +31,8 @@ public class PekkoAutoConfiguration {
     }
 
     @Bean
-    public ActorSystemInstance actorSystem(ActorSystemBuilder builder) {
-        return new ActorSystemInstance(builder.build());
+    public SpringActorSystem actorSystem(ActorSystemBuilder builder) {
+        return new SpringActorSystem(builder.build());
     }
 
     @Bean
