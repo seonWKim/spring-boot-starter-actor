@@ -6,7 +6,6 @@ import com.typesafe.config.Config;
 
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
-import org.github.seonwkim.core.impl.ActorSystemInstance;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

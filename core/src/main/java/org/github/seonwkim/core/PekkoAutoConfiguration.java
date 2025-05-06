@@ -5,7 +5,6 @@ import java.util.Map;
 
 import org.apache.pekko.actor.typed.Behavior;
 import org.github.seonwkim.core.impl.DefaultActorSystemBuilder;
-import org.github.seonwkim.core.impl.ActorSystemInstance;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
