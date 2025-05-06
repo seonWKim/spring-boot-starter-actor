@@ -4,7 +4,6 @@ import java.time.Duration;
 import java.util.concurrent.CompletionStage;
 
 import org.apache.pekko.actor.typed.ActorRef;
-import org.apache.pekko.actor.typed.ActorSystem;
 import org.apache.pekko.actor.typed.RecipientRef;
 import org.apache.pekko.actor.typed.Scheduler;
 import org.apache.pekko.actor.typed.javadsl.AskPattern;

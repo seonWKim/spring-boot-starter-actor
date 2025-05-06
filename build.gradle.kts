@@ -35,6 +35,7 @@ subprojects {
 
 		testImplementation("org.apache.pekko:pekko-actor-testkit-typed_3:1.1.3")
 		testImplementation("org.springframework.boot:spring-boot-starter-test")
+		testImplementation("org.awaitility:awaitility:4.3.0")
 		testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 	}
 

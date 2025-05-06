@@ -9,6 +9,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
@@ -24,11 +25,13 @@ public class PekkoAutoConfiguration {
     @ConditionalOnMissingBean
     public SpringActorSystemBuilder actorSystemBuilder(
             PekkoProperties properties,
-            RootGuardianSupplierWrapper rootGuardianSupplierWrapper) {
+            RootGuardianSupplierWrapper rootGuardianSupplierWrapper,
+            ApplicationEventPublisher applicationEventPublisher
+            ) {
         return new DefaultSpringActorSystemBuilder()
-                .withName("spring-boot-actor-system")
                 .withConfig(properties.getConfig())
-                .withRootGuardianSupplier(rootGuardianSupplierWrapper.getSupplier());
+                .withRootGuardianSupplier(rootGuardianSupplierWrapper.getSupplier())
+                .withApplicationEventPublisher(applicationEventPublisher);
     }
 
     @Bean

@@ -5,31 +5,43 @@ import java.util.concurrent.CompletionStage;
 
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.ActorSystem;
+import org.apache.pekko.actor.typed.Props;
 import org.apache.pekko.actor.typed.javadsl.AskPattern;
+import org.apache.pekko.cluster.ClusterEvent;
 import org.apache.pekko.cluster.typed.Cluster;
+import org.apache.pekko.cluster.typed.Subscribe;
+import org.github.seonwkim.core.behavior.ClusterEventBehavior;
 import org.github.seonwkim.core.impl.DefaultRootGuardian;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.lang.Nullable;
 
 public class SpringActorSystem {
 
     private final ActorSystem<RootGuardian.Command> actorSystem;
-    private final boolean isClusterMode;
     @Nullable
     private final Cluster cluster;
     private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(3); // configurable if needed
 
-    public SpringActorSystem(ActorSystem<RootGuardian.Command> actorSystem, boolean isClusterMode) {
+    public SpringActorSystem(ActorSystem<RootGuardian.Command> actorSystem) {
         this.actorSystem = actorSystem;
-        this.isClusterMode = isClusterMode;
-        this.cluster = isClusterMode ? Cluster.get(actorSystem) : null;
+        this.cluster = null;
+    }
+
+    public SpringActorSystem(
+            ActorSystem<RootGuardian.Command> actorSystem,
+            Cluster cluster,
+            ApplicationEventPublisher publisher
+    ) {
+        this.actorSystem = actorSystem;
+        this.cluster = cluster;
+        ActorRef<ClusterEvent.ClusterDomainEvent> listener = actorSystem.systemActorOf(
+                ClusterEventBehavior.create(publisher), "cluster-event-listener", Props.empty());
+
+        cluster.subscriptions().tell(new Subscribe<>(listener, ClusterEvent.ClusterDomainEvent.class));
     }
 
     public ActorSystem<RootGuardian.Command> getRaw() {
         return actorSystem;
-    }
-
-    public boolean isClusterMode() {
-        return isClusterMode;
     }
 
     @Nullable

@@ -156,7 +156,6 @@ public class PekkoAutoConfigurationTest {
         @Test
         void clusterShouldBeConfigured(ApplicationContext context) {
             SpringActorSystem springActorSystem = context.getBean(SpringActorSystem.class);
-            assertTrue(springActorSystem.isClusterMode());
             assertNotNull(springActorSystem.getCluster());
         }
     }
