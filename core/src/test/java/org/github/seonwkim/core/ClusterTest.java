@@ -1,4 +1,4 @@
-package org.github.seonwkim.core.behavior;
+package org.github.seonwkim.core;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.awaitility.Awaitility.await;
@@ -20,7 +20,7 @@ import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 
-public class ClusterEventBehaviorTest {
+public class ClusterTest {
 
     private static ConfigurableApplicationContext context1;
     private static ConfigurableApplicationContext context2;
