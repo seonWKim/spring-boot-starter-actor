@@ -32,7 +32,7 @@ public class SpringActorSystem {
                         new DefaultRootGuardian.SpawnActor<>(commandClass, actorId, replyTo),
                 DEFAULT_TIMEOUT,
                 actorSystem.scheduler()
-        ).thenApply(spawned -> new SpringActorRef<>(actorSystem, spawned.ref));
+        ).thenApply(spawned -> new SpringActorRef<>(actorSystem.scheduler(), spawned.ref));
     }
 
     public <T> CompletionStage<SpringActorRef<T>> spawn(
@@ -45,6 +45,6 @@ public class SpringActorSystem {
                         new DefaultRootGuardian.SpawnActor<>(commandClass, actorId, replyTo),
                 timeout,
                 actorSystem.scheduler()
-        ).thenApply(spawned -> new SpringActorRef<>(actorSystem, spawned.ref));
+        ).thenApply(spawned -> new SpringActorRef<>(actorSystem.scheduler(), spawned.ref));
     }
 }

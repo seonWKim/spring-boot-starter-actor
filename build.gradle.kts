@@ -33,6 +33,7 @@ subprojects {
 		implementation("org.apache.pekko:pekko-cluster-sharding-typed_3:1.1.3")
 		implementation("org.springframework.boot:spring-boot-starter")
 
+		testImplementation("org.apache.pekko:pekko-actor-testkit-typed_3:1.1.3")
 		testImplementation("org.springframework.boot:spring-boot-starter-test")
 		testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 	}
