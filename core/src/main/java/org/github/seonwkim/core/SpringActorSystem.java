@@ -9,6 +9,8 @@ import org.apache.pekko.actor.typed.Props;
 import org.apache.pekko.actor.typed.javadsl.AskPattern;
 import org.apache.pekko.cluster.ClusterEvent;
 import org.apache.pekko.cluster.sharding.typed.javadsl.ClusterSharding;
+import org.apache.pekko.cluster.sharding.typed.javadsl.EntityRef;
+import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
 import org.apache.pekko.cluster.typed.Cluster;
 import org.apache.pekko.cluster.typed.Subscribe;
 import org.github.seonwkim.core.behavior.ClusterEventBehavior;
@@ -78,8 +80,17 @@ public class SpringActorSystem implements DisposableBean {
         ).thenApply(spawned -> new SpringActorRef<>(actorSystem.scheduler(), spawned.ref));
     }
 
+    public <T> SpringShardedActorRef<T> entityRef(EntityTypeKey<T> entityTypeKey, String entityId) {
+        if (clusterSharding == null) {
+            throw new IllegalStateException("Cluster sharding not configured");
+        }
+
+        final EntityRef<T> entityRef = clusterSharding.entityRefFor(entityTypeKey, entityId);
+        return new SpringShardedActorRef<>(actorSystem.scheduler(), entityRef);
+    }
+
     @Override
-    public void destroy() throws Exception {
+    public void destroy() {
         actorSystem.terminate();
         actorSystem.getWhenTerminated().toCompletableFuture().join();
     }

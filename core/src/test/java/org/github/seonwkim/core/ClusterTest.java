@@ -2,16 +2,23 @@ package org.github.seonwkim.core;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.awaitility.Awaitility.await;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.pekko.cluster.ClusterEvent.MemberLeft;
 import org.apache.pekko.cluster.ClusterEvent.MemberUp;
+import org.apache.pekko.cluster.MemberStatus;
+import org.apache.pekko.cluster.typed.Cluster;
 import org.github.seonwkim.core.behavior.ClusterEventBehavior.ClusterDomainWrappedEvent;
+import org.github.seonwkim.core.fixture.TestShardedActor;
+import org.github.seonwkim.core.fixture.TestShardedActor.GetState;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.WebApplicationType;
@@ -35,6 +42,9 @@ public class ClusterTest {
         public ClusterEventCollector clusterEventCollector() {
             return new ClusterEventCollector();
         }
+
+        @Bean
+        public TestShardedActor testShardedActor() {return new TestShardedActor();}
     }
 
     public static class ClusterEventCollector {
@@ -42,7 +52,6 @@ public class ClusterTest {
 
         @org.springframework.context.event.EventListener
         public void onMemberUp(ClusterDomainWrappedEvent event) {
-            System.out.println("SOME EVENT: " + event);
             events.add(event.getEvent());
         }
 
@@ -57,16 +66,28 @@ public class ClusterTest {
                 "pekko://spring-pekko-example@127.0.0.1:%d,pekko://spring-pekko-example@127.0.0.1:%d,pekko://spring-pekko-example@127.0.0.1:%d",
                 arteryPorts[0], arteryPorts[1], arteryPorts[2]);
 
-        context1 = startContext(httpPorts[0], arteryPorts[0], seedNodes, "node1");
-        context2 = startContext(httpPorts[1], arteryPorts[1], seedNodes, "node2");
-        context3 = startContext(httpPorts[2], arteryPorts[2], seedNodes, "node3");
+        context1 = startContext(httpPorts[0], arteryPorts[0], seedNodes);
+        context2 = startContext(httpPorts[1], arteryPorts[1], seedNodes);
+        context3 = startContext(httpPorts[2], arteryPorts[2], seedNodes);
+    }
+
+    @AfterEach
+    void tearDown() {
+        if (context1.isActive()) {
+            context1.close();
+        }
+        if (context2.isActive()) {
+            context2.close();
+        }
+        if (context3.isActive()) {
+            context3.close();
+        }
     }
 
     private static ConfigurableApplicationContext startContext(
             int httpPort,
             int arteryPort,
-            String seedNodes,
-            String nodeId
+            String seedNodes
     ) {
         return new SpringApplicationBuilder(ClusterTestApp.class)
                 .web(WebApplicationType.NONE)
@@ -79,7 +100,9 @@ public class ClusterTest {
                         "actor.pekko.remote.artery.canonical.port=" + arteryPort,
                         "actor.pekko.cluster.name=cluster",
                         "actor.pekko.cluster.seed-nodes=" + seedNodes,
-                        "actor.pekko.cluster.downing-provider-class=org.apache.pekko.cluster.sbr.SplitBrainResolverProvider"
+                        "actor.pekko.cluster.downing-provider-class=org.apache.pekko.cluster.sbr.SplitBrainResolverProvider",
+                        "actor.pekko.actor.allow-java-serialization=on",
+                        "actor.pekko.actor.warn-about-java-serializer-usage=on"
                 )
                 .run();
     }
@@ -101,16 +124,38 @@ public class ClusterTest {
         assertTrue(collector.eventCount(MemberLeft.class) >= 2, "Expected at least 3 MemberLeft events");
     }
 
-    @AfterEach
-    void tearDown() {
-        if (context1.isActive()) {
-            context1.close();
-        }
-        if (context2.isActive()) {
-            context2.close();
-        }
-        if (context3.isActive()) {
-            context3.close();
-        }
+    @Test
+    void messagesShouldBeHandledAcrossShards() throws Exception {
+        SpringActorSystem system1 = context1.getBean(SpringActorSystem.class);
+        SpringActorSystem system2 = context2.getBean(SpringActorSystem.class);
+        SpringActorSystem system3 = context3.getBean(SpringActorSystem.class);
+        waitUntilClusterInitialized();
+
+        System.out.println("Cluster is configured 🚀");
+        SpringShardedActorRef<TestShardedActor.Command> sharedActor1 =
+                system1.entityRef(TestShardedActor.TYPE_KEY, "shared-entity");
+        SpringShardedActorRef<TestShardedActor.Command> sharedActor2 =
+                system2.entityRef(TestShardedActor.TYPE_KEY, "shared-entity");
+        SpringShardedActorRef<TestShardedActor.Command> sharedActor3 =
+                system3.entityRef(TestShardedActor.TYPE_KEY, "shared-entity");
+
+        sharedActor1.tell(new TestShardedActor.Ping("from shardedActor1"));
+        sharedActor2.tell(new TestShardedActor.Ping("from shardedActor2"));
+        sharedActor3.tell(new TestShardedActor.Ping("from shardedActor3"));
+
+        Thread.sleep(500); // wait for messages to be processed
+        TestShardedActor.State state = sharedActor1.ask(GetState::new, Duration.ofSeconds(3)).toCompletableFuture().get();
+        assertEquals(3, state.getMessageCount());
+    }
+
+    private void waitUntilClusterInitialized() {
+        Cluster cluster = context1.getBean(SpringActorSystem.class).getCluster();
+        // Wait until all 3 cluster nodes are UP
+        await().atMost(10, SECONDS)
+               .pollInterval(200, TimeUnit.MILLISECONDS)
+               .until(() -> {
+                   Assertions.assertNotNull(cluster);
+                   return cluster.state().members().filter(it -> it.status() == MemberStatus.up()).size() == 3;
+               });
     }
 }
