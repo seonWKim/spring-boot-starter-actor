@@ -33,9 +33,6 @@ public class ClusterTest {
     private static ConfigurableApplicationContext context2;
     private static ConfigurableApplicationContext context3;
 
-    private static final int[] httpPorts = { 30001, 30002, 30003 };
-    private static final int[] arteryPorts = { 40001, 40002, 40003 };
-
     @SpringBootApplication(scanBasePackages = "org.github.seonwkim.core")
     public static class ClusterTestApp {
         @Bean
@@ -59,9 +56,26 @@ public class ClusterTest {
             return (int) events.stream().filter(event -> event.getClass() == eventType).count();
         }
     }
+    private static final int BASE_HTTP_PORT = 30000;
+    private static final int BASE_ARTERY_PORT = 40000;
+    private static int portOffset = 0;
 
     @BeforeEach
     void setUp() {
+        final int[] httpPorts = {
+                BASE_HTTP_PORT + portOffset,
+                BASE_HTTP_PORT + portOffset + 1,
+                BASE_HTTP_PORT + portOffset + 2
+        };
+
+        final int[] arteryPorts = {
+                BASE_ARTERY_PORT + portOffset,
+                BASE_ARTERY_PORT + portOffset + 1,
+                BASE_ARTERY_PORT + portOffset + 2
+        };
+
+        portOffset += 3; // Increment offset so next test uses fresh ports
+
         String seedNodes = String.format(
                 "pekko://spring-pekko-example@127.0.0.1:%d,pekko://spring-pekko-example@127.0.0.1:%d,pekko://spring-pekko-example@127.0.0.1:%d",
                 arteryPorts[0], arteryPorts[1], arteryPorts[2]);
@@ -73,6 +87,7 @@ public class ClusterTest {
 
     @AfterEach
     void tearDown() {
+        System.out.println("Cluster shutting down 🚀");
         if (context1.isActive()) {
             context1.close();
         }
@@ -125,7 +140,7 @@ public class ClusterTest {
     }
 
     @Test
-    void messagesShouldBeHandledAcrossShards() throws Exception {
+    void sameShardedEntityHandlingMessages() throws Exception {
         SpringActorSystem system1 = context1.getBean(SpringActorSystem.class);
         SpringActorSystem system2 = context2.getBean(SpringActorSystem.class);
         SpringActorSystem system3 = context3.getBean(SpringActorSystem.class);
@@ -139,13 +154,38 @@ public class ClusterTest {
         SpringShardedActorRef<TestShardedActor.Command> sharedActor3 =
                 system3.entityRef(TestShardedActor.TYPE_KEY, "shared-entity");
 
-        sharedActor1.tell(new TestShardedActor.Ping("from shardedActor1"));
-        sharedActor2.tell(new TestShardedActor.Ping("from shardedActor2"));
-        sharedActor3.tell(new TestShardedActor.Ping("from shardedActor3"));
+        sharedActor1.tell(new TestShardedActor.Ping("hello shard1"));
+        sharedActor2.tell(new TestShardedActor.Ping("hello shard2"));
+        sharedActor3.tell(new TestShardedActor.Ping("hello shard3"));
 
         Thread.sleep(500); // wait for messages to be processed
         TestShardedActor.State state = sharedActor1.ask(GetState::new, Duration.ofSeconds(3)).toCompletableFuture().get();
         assertEquals(3, state.getMessageCount());
+    }
+
+    @Test
+    void differentShardedEntitiesHandlingMessages() throws Exception {
+        SpringActorSystem system1 = context1.getBean(SpringActorSystem.class);
+        SpringActorSystem system2 = context2.getBean(SpringActorSystem.class);
+        SpringActorSystem system3 = context3.getBean(SpringActorSystem.class);
+        waitUntilClusterInitialized();
+
+        System.out.println("Cluster is configured 🚀");
+        SpringShardedActorRef<TestShardedActor.Command> actor1 =
+                system1.entityRef(TestShardedActor.TYPE_KEY, "shared-entity-1");
+        SpringShardedActorRef<TestShardedActor.Command> actor2 =
+                system2.entityRef(TestShardedActor.TYPE_KEY, "shared-entity-2");
+        SpringShardedActorRef<TestShardedActor.Command> actor3 =
+                system3.entityRef(TestShardedActor.TYPE_KEY, "shared-entity-3");
+
+        actor1.tell(new TestShardedActor.Ping("hello shard1"));
+        actor2.tell(new TestShardedActor.Ping("hello shard2"));
+        actor3.tell(new TestShardedActor.Ping("hello shard3"));
+
+        Thread.sleep(500); // wait for messages to be processed
+        assertEquals(1, actor1.ask(GetState::new, Duration.ofSeconds(3)).toCompletableFuture().get().getMessageCount());
+        assertEquals(1, actor2.ask(GetState::new, Duration.ofSeconds(3)).toCompletableFuture().get().getMessageCount());
+        assertEquals(1, actor3.ask(GetState::new, Duration.ofSeconds(3)).toCompletableFuture().get().getMessageCount());
     }
 
     private void waitUntilClusterInitialized() {
