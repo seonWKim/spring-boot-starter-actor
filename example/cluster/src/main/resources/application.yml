@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: spring-pekko
+
+actor:
+  pekko:
+    enabled: true
+    loglevel: DEBUG
+    actor:
+      provider: local
