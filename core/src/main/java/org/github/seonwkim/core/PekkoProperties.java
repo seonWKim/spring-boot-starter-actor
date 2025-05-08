@@ -1,6 +1,5 @@
 package org.github.seonwkim.core;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -15,8 +14,6 @@ import org.springframework.boot.context.properties.source.ConfigurationPropertyN
 import org.springframework.context.EnvironmentAware;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.Environment;
-import org.springframework.core.env.MutablePropertySources;
-import org.springframework.core.env.PropertySource;
 import org.springframework.util.StringUtils;
 
 @ConfigurationProperties(prefix = "actor.pekko")
@@ -29,90 +26,50 @@ public class PekkoProperties implements EnvironmentAware {
 
     @Override
     public void setEnvironment(Environment environment) {
-        if (!(environment instanceof ConfigurableEnvironment)) {return;}
+        if (!(environment instanceof ConfigurableEnvironment)) {
+            return;
+        }
+        Binder binder = Binder.get(environment);
 
-        MutablePropertySources propertySources = ((ConfigurableEnvironment) environment).getPropertySources();
+        Map<String, Object> actorConfig = binder.bind(
+                ConfigurationPropertyName.of("spring.actor"),
+                Bindable.mapOf(String.class, Object.class)
+        ).orElse(Collections.emptyMap());
 
-        for (PropertySource<?> source : propertySources) {
-            Object rawSource = source.getSource();
-            if (rawSource instanceof Map<?, ?>) {
-                Map<?, ?> map = (Map<?, ?>) rawSource;
-                for (Map.Entry<?, ?> entry : map.entrySet()) {
-                    String key = String.valueOf(entry.getKey());
-                    if (key.startsWith(CONFIG_PREFIX) && !key.equals(CONFIG_PREFIX + "enabled")) {
-                        String subKey = key.substring(CONFIG_PREFIX.length()); // e.g. remote.artery.port
-                        Object value = entry.getValue();
-                        insertNestedValue(config, TARGET_PREFIX + subKey, value.toString());
-                    }
+        Map<String, Object> normalized = normalizeCommaSeparatedLists(actorConfig);
+        this.config.putAll(normalized);
+    }
+
+    public Map<String, Object> normalizeCommaSeparatedLists(Map<String, Object> input) {
+        Map<String, Object> normalized = new HashMap<>();
+
+        for (Map.Entry<String, Object> entry : input.entrySet()) {
+            String key = entry.getKey();
+            Object value = entry.getValue();
+
+            if (value instanceof Map) {
+                normalized.put(key, normalizeCommaSeparatedLists((Map<String, Object>) value));
+            } else if (value instanceof String) {
+                String str = ((String) value).trim();
+                if (looksLikeCommaSeparatedList(str)) {
+                    List<String> items = Arrays.stream(str.split(","))
+                                               .map(String::trim)
+                                               .filter(s -> !s.isEmpty())
+                                               .collect(Collectors.toList());
+                    normalized.put(key, items);
+                } else {
+                    normalized.put(key, str);
                 }
-            }
-        }
-    }
-
-
-//        MutablePropertySources propertySources = ((ConfigurableEnvironment) environment).getPropertySources();
-//        List<PropertySource<?>> sources = new ArrayList<>();
-//        propertySources.forEach(sources::add);
-//        Collections.reverse(sources);
-//
-//        for (PropertySource<?> source : sources) {
-//            Object rawSource = source.getSource();
-//            if (rawSource instanceof Map<?, ?>) {
-//                System.out.println(source);
-//                System.out.println(rawSource);
-//                Map<?, ?> map = (Map<?, ?>) rawSource;
-//                for (Map.Entry<?, ?> entry : map.entrySet()) {
-//                    String key = String.valueOf(entry.getKey());
-//                    if (key.startsWith("spring.actor.pekko.remote.artery.canonical.port")) {
-//                        System.out.println("FOUND!!");
-//                        System.out.println(entry.getValue());
-//                    }
-//                    if (key.startsWith(CONFIG_PREFIX) && !key.equals(CONFIG_PREFIX + "enabled")) {
-//                        String subKey = key.substring(CONFIG_PREFIX.length()); // e.g. remote.artery.port
-//                        Object value = entry.getValue();
-//                        insertNestedValue(config, TARGET_PREFIX + subKey, value.toString());
-//                    }
-//                }
-//                System.out.println("=========");
-//            }
-//        }
-
-    @SuppressWarnings("unchecked")
-    private void insertNestedValue(Map<String, Object> root, String fullKey, Object value) {
-        String[] parts = fullKey.split("\\.");
-        Map<String, Object> current = root;
-
-        for (int i = 0; i < parts.length - 1; i++) {
-            current = (Map<String, Object>) current.computeIfAbsent(parts[i], k -> new HashMap<>());
-        }
-
-        String lastKey = parts[parts.length - 1];
-
-        if (value instanceof String) {
-            final String strVal = ((String) value).trim();
-
-            if (looksLikeList(strVal)) {
-                List<String> values = Arrays.stream(strVal.split(","))
-                                            .map(String::trim)
-                                            .filter(s -> !s.isEmpty())
-                                            .collect(Collectors.toList());
-                current.put(lastKey, values);
-                return;
+            } else {
+                normalized.put(key, value);
             }
         }
 
-        current.put(lastKey, value);
+        return normalized;
     }
 
-    private boolean looksLikeList(String value) {
-        // Ignore blank
-        if (!StringUtils.hasText(value)) {return false;}
-
-        // If it starts and ends with brackets, treat as a list: [a, b, c]
-        if (value.startsWith("[") && value.endsWith("]")) {return true;}
-
-        // If it contains commas and isn't quoted, likely a list
-        return value.contains(",") && !value.startsWith("\"") && !value.endsWith("\"");
+    private boolean looksLikeCommaSeparatedList(String str) {
+        return str.contains(",") && !(str.startsWith("[") && str.endsWith("]"));
     }
 
     public Map<String, Object> getConfig() {
