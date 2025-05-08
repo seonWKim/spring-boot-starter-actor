@@ -108,16 +108,16 @@ public class ClusterTest {
                 .web(WebApplicationType.NONE)
                 .properties(
                         "server.port=" + httpPort,
-                        "actor.pekko.enabled=true",
-                        "actor.pekko.name=spring-pekko-example",
-                        "actor.pekko.actor.provider=cluster",
-                        "actor.pekko.remote.artery.canonical.hostname=127.0.0.1",
-                        "actor.pekko.remote.artery.canonical.port=" + arteryPort,
-                        "actor.pekko.cluster.name=cluster",
-                        "actor.pekko.cluster.seed-nodes=" + seedNodes,
-                        "actor.pekko.cluster.downing-provider-class=org.apache.pekko.cluster.sbr.SplitBrainResolverProvider",
-                        "actor.pekko.actor.allow-java-serialization=on",
-                        "actor.pekko.actor.warn-about-java-serializer-usage=on"
+                        "spring.actor.pekko.enabled=true",
+                        "spring.actor.pekko.name=spring-pekko-example",
+                        "spring.actor.pekko.actor.provider=cluster",
+                        "spring.actor.pekko.remote.artery.canonical.hostname=127.0.0.1",
+                        "spring.actor.pekko.remote.artery.canonical.port=" + arteryPort,
+                        "spring.actor.pekko.cluster.name=cluster",
+                        "spring.actor.pekko.cluster.seed-nodes=" + seedNodes,
+                        "spring.actor.pekko.cluster.downing-provider-class=org.apache.pekko.cluster.sbr.SplitBrainResolverProvider",
+                        "spring.actor.pekko.actor.allow-java-serialization=on",
+                        "spring.actor.pekko.actor.warn-about-java-serializer-usage=on"
                 )
                 .run();
     }

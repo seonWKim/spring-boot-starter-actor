@@ -18,7 +18,7 @@ import org.springframework.util.StringUtils;
 @ConfigurationProperties(prefix = "actor.pekko")
 public class PekkoProperties implements EnvironmentAware {
 
-    private static final String CONFIG_PREFIX = "actor.pekko.";
+    private static final String CONFIG_PREFIX = "spring.actor.pekko.";
     private static final String TARGET_PREFIX = "pekko.";
 
     private final Map<String, Object> config = new HashMap<>();

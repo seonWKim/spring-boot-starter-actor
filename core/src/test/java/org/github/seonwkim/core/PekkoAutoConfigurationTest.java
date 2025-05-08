@@ -28,9 +28,9 @@ public class PekkoAutoConfigurationTest {
     @Nested
     @SpringBootTest(classes = TestApp.class)
     @TestPropertySource(properties = {
-            "actor.pekko.enabled=true",
-            "actor.pekko.loglevel=INFO",
-            "actor.pekko.actor.provider=local"
+            "spring.actor.pekko.enabled=true",
+            "spring.actor.pekko.loglevel=INFO",
+            "spring.actor.pekko.actor.provider=local"
     })
     class WhenEnabled {
 
@@ -48,8 +48,8 @@ public class PekkoAutoConfigurationTest {
     @Nested
     @SpringBootTest(classes = TestApp.class)
     @TestPropertySource(properties = {
-            "actor.pekko.enabled=false",
-            "actor.pekko.loglevel=DEBUG"
+            "spring.actor.pekko.enabled=false",
+            "spring.actor.pekko.loglevel=DEBUG"
     })
     class WhenDisabled {
 
@@ -88,9 +88,9 @@ public class PekkoAutoConfigurationTest {
     @Nested
     @SpringBootTest(classes = TestApp.class)
     @TestPropertySource(properties = {
-            "actor.pekko.enabled=true",
-            "actor.pekko.loglevel=INFO",
-            "actor.pekko.actor.provider=local"
+            "spring.actor.pekko.enabled=true",
+            "spring.actor.pekko.loglevel=INFO",
+            "spring.actor.pekko.actor.provider=local"
     })
     class SpringActorDiscoveryTest {
         @Test
@@ -133,9 +133,9 @@ public class PekkoAutoConfigurationTest {
     @Nested
     @SpringBootTest(classes = { TestApp.class, CustomOverrideConfiguration.class })
     @TestPropertySource(properties = {
-            "actor.pekko.enabled=true",
-            "actor.pekko.loglevel=INFO",
-            "actor.pekko.actor.provider=local"
+            "spring.actor.pekko.enabled=true",
+            "spring.actor.pekko.loglevel=INFO",
+            "spring.actor.pekko.actor.provider=local"
     })
     class CustomRootGuardianSupplierWrapperTest {
         @Test
@@ -154,9 +154,9 @@ public class PekkoAutoConfigurationTest {
     @Nested
     @SpringBootTest(classes = { TestApp.class })
     @TestPropertySource(properties = {
-            "actor.pekko.enabled=true",
-            "actor.pekko.loglevel=INFO",
-            "actor.pekko.actor.provider=cluster"
+            "spring.actor.pekko.enabled=true",
+            "spring.actor.pekko.loglevel=INFO",
+            "spring.actor.pekko.actor.provider=cluster"
     })
     class ClusterConfigurationTest {
         @Test
