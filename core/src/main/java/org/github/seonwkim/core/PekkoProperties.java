@@ -1,5 +1,6 @@
 package org.github.seonwkim.core;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -8,6 +9,9 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.bind.Bindable;
+import org.springframework.boot.context.properties.bind.Binder;
+import org.springframework.boot.context.properties.source.ConfigurationPropertyName;
 import org.springframework.context.EnvironmentAware;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.Environment;
@@ -44,6 +48,34 @@ public class PekkoProperties implements EnvironmentAware {
             }
         }
     }
+
+
+//        MutablePropertySources propertySources = ((ConfigurableEnvironment) environment).getPropertySources();
+//        List<PropertySource<?>> sources = new ArrayList<>();
+//        propertySources.forEach(sources::add);
+//        Collections.reverse(sources);
+//
+//        for (PropertySource<?> source : sources) {
+//            Object rawSource = source.getSource();
+//            if (rawSource instanceof Map<?, ?>) {
+//                System.out.println(source);
+//                System.out.println(rawSource);
+//                Map<?, ?> map = (Map<?, ?>) rawSource;
+//                for (Map.Entry<?, ?> entry : map.entrySet()) {
+//                    String key = String.valueOf(entry.getKey());
+//                    if (key.startsWith("spring.actor.pekko.remote.artery.canonical.port")) {
+//                        System.out.println("FOUND!!");
+//                        System.out.println(entry.getValue());
+//                    }
+//                    if (key.startsWith(CONFIG_PREFIX) && !key.equals(CONFIG_PREFIX + "enabled")) {
+//                        String subKey = key.substring(CONFIG_PREFIX.length()); // e.g. remote.artery.port
+//                        Object value = entry.getValue();
+//                        insertNestedValue(config, TARGET_PREFIX + subKey, value.toString());
+//                    }
+//                }
+//                System.out.println("=========");
+//            }
+//        }
 
     @SuppressWarnings("unchecked")
     private void insertNestedValue(Map<String, Object> root, String fullKey, Object value) {
@@ -84,6 +116,8 @@ public class PekkoProperties implements EnvironmentAware {
     }
 
     public Map<String, Object> getConfig() {
+        System.out.println("HELLO!!!!!");
+        System.out.println(config);
         return Collections.unmodifiableMap(config);
     }
 }

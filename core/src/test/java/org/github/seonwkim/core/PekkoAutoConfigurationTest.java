@@ -28,7 +28,7 @@ public class PekkoAutoConfigurationTest {
     @Nested
     @SpringBootTest(classes = TestApp.class)
     @TestPropertySource(properties = {
-            "spring.actor.pekko.enabled=true",
+            "spring.actor-enabled=true",
             "spring.actor.pekko.loglevel=INFO",
             "spring.actor.pekko.actor.provider=local"
     })
@@ -48,7 +48,7 @@ public class PekkoAutoConfigurationTest {
     @Nested
     @SpringBootTest(classes = TestApp.class)
     @TestPropertySource(properties = {
-            "spring.actor.pekko.enabled=false",
+            "spring.actor-enabled=false",
             "spring.actor.pekko.loglevel=DEBUG"
     })
     class WhenDisabled {
@@ -88,7 +88,7 @@ public class PekkoAutoConfigurationTest {
     @Nested
     @SpringBootTest(classes = TestApp.class)
     @TestPropertySource(properties = {
-            "spring.actor.pekko.enabled=true",
+            "spring.actor-enabled=true",
             "spring.actor.pekko.loglevel=INFO",
             "spring.actor.pekko.actor.provider=local"
     })
@@ -133,7 +133,7 @@ public class PekkoAutoConfigurationTest {
     @Nested
     @SpringBootTest(classes = { TestApp.class, CustomOverrideConfiguration.class })
     @TestPropertySource(properties = {
-            "spring.actor.pekko.enabled=true",
+            "spring.actor-enabled=true",
             "spring.actor.pekko.loglevel=INFO",
             "spring.actor.pekko.actor.provider=local"
     })
@@ -154,7 +154,7 @@ public class PekkoAutoConfigurationTest {
     @Nested
     @SpringBootTest(classes = { TestApp.class })
     @TestPropertySource(properties = {
-            "spring.actor.pekko.enabled=true",
+            "spring.actor-enabled=true",
             "spring.actor.pekko.loglevel=INFO",
             "spring.actor.pekko.actor.provider=cluster"
     })

@@ -108,7 +108,7 @@ public class ClusterTest {
                 .web(WebApplicationType.NONE)
                 .properties(
                         "server.port=" + httpPort,
-                        "spring.actor.pekko.enabled=true",
+                        "spring.actor-enabled=true",
                         "spring.actor.pekko.name=spring-pekko-example",
                         "spring.actor.pekko.actor.provider=cluster",
                         "spring.actor.pekko.remote.artery.canonical.hostname=127.0.0.1",

@@ -18,7 +18,7 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 @EnableConfigurationProperties(PekkoProperties.class)
-@ConditionalOnProperty(prefix = "spring.actor.pekko", name = "enabled", havingValue = "true")
+@ConditionalOnProperty(prefix = "spring", name = "actor-enabled", havingValue = "true")
 @ComponentScan(basePackages = "org.github.seonwkim.core")
 public class PekkoAutoConfiguration {
 
