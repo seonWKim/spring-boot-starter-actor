@@ -8,8 +8,7 @@ import org.github.seonwkim.core.SpringActor;
 import org.springframework.stereotype.Component;
 
 @Component
-@SpringActor(commandClass = HelloActor.Command.class)
-public class HelloActor {
+public class HelloActor implements SpringActor {
 
     public interface Command {}
 
@@ -19,6 +18,11 @@ public class HelloActor {
         public SayHello(ActorRef<String> replyTo) {
             this.replyTo = replyTo;
         }
+    }
+
+    @Override
+    public Class<?> commandClass() {
+        return Command.class;
     }
 
     public static Behavior<Command> create(String id) {

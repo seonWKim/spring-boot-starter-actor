@@ -1,10 +1,10 @@
 package org.github.seonwkim.example;
 
 import java.time.Duration;
+import java.util.concurrent.CompletionStage;
 
-import org.github.seonwkim.core.SpringActorRef;
 import org.github.seonwkim.core.SpringActorSystem;
-import org.github.seonwkim.example.HelloActor.Command;
+import org.github.seonwkim.core.SpringShardedActorRef;
 import org.springframework.stereotype.Service;
 
 import reactor.core.publisher.Mono;
@@ -12,15 +12,20 @@ import reactor.core.publisher.Mono;
 @Service
 public class HelloService {
 
-    private final SpringActorRef<Command> helloActor;
+    private final SpringActorSystem springActorSystem;
 
     public HelloService(SpringActorSystem springActorSystem) {
-        this.helloActor = springActorSystem.spawn(HelloActor.Command.class, "default", Duration.ofSeconds(3))
-                                           .toCompletableFuture()
-                                           .join();
+        this.springActorSystem = springActorSystem;
     }
 
-    public Mono<String> hello() {
-        return Mono.fromCompletionStage(helloActor.ask(HelloActor.SayHello::new, Duration.ofSeconds(3)));
+    public Mono<String> hello(
+            String message,
+            String entityId
+    ) {
+        SpringShardedActorRef<HelloActor.Command> actorRef = springActorSystem.entityRef(HelloActor.TYPE_KEY,
+                                                                                         entityId);
+        CompletionStage<String> response = actorRef.ask(
+                replyTo -> new HelloActor.SayHello(replyTo, message), Duration.ofSeconds(3));
+        return Mono.fromCompletionStage(response);
     }
 }

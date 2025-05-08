@@ -1,50 +1,59 @@
 package org.github.seonwkim.example;
 
+import java.io.Serializable;
+
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
-import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
-import org.github.seonwkim.core.SpringActor;
+import org.apache.pekko.cluster.sharding.typed.ShardingMessageExtractor;
+import org.apache.pekko.cluster.sharding.typed.javadsl.EntityContext;
+import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
+import org.github.seonwkim.core.shard.DefaultShardingMessageExtractor;
+import org.github.seonwkim.core.shard.ShardEnvelope;
+import org.github.seonwkim.core.shard.ShardedActor;
 import org.springframework.stereotype.Component;
 
 @Component
-@SpringActor(commandClass = HelloActor.Command.class)
-public class HelloActor {
+public class HelloActor implements ShardedActor<HelloActor.Command> {
 
-    public interface Command {}
+    public static final EntityTypeKey<Command> TYPE_KEY = EntityTypeKey.create(Command.class, "HelloActor");
+
+    public interface Command extends Serializable {}
 
     public static class SayHello implements Command {
         public final ActorRef<String> replyTo;
+        public final String message;
 
-        public SayHello(ActorRef<String> replyTo) {
+        public SayHello(ActorRef<String> replyTo, String message) {
             this.replyTo = replyTo;
+            this.message = message;
         }
     }
 
-    public static Behavior<Command> create(String id) {
-        return Behaviors.setup(ctx -> new HelloActorBehavior(ctx, id).create());
+    @Override
+    public EntityTypeKey<Command> typeKey() {
+        return TYPE_KEY;
     }
 
-    // Inner class to isolate stateful behavior logic
-    private static class HelloActorBehavior {
-        private final ActorContext<Command> ctx;
-        private final String actorId;
+    @Override
+    public Behavior<Command> create(EntityContext<Command> ctx) {
+        return Behaviors.setup(
+                context ->
+                        Behaviors.receive(Command.class)
+                                 .onMessage(SayHello.class, msg -> {
+                                     final String nodeAddress = context.getSystem().address().toString();
+                                     final String entityId = ctx.getEntityId();
+                                     final String message = "Received from entity [" + entityId + "] on node [" + nodeAddress + "]";
+                                     msg.replyTo.tell(message);
+                                     context.getLog().info(message);
+                                     return Behaviors.same();
+                                 })
+                                 .build()
+        );
+    }
 
-        HelloActorBehavior(ActorContext<Command> ctx, String actorId) {
-            this.ctx = ctx;
-            this.actorId = actorId;
-        }
-
-        public Behavior<Command> create() {
-            return Behaviors.receive(Command.class)
-                            .onMessage(SayHello.class, this::onSayHello)
-                            .build();
-        }
-
-        private Behavior<Command> onSayHello(SayHello msg) {
-            ctx.getLog().info("Received SayHello for id={}", actorId);
-            msg.replyTo.tell("Hello from actor " + actorId);
-            return Behaviors.same();
-        }
+    @Override
+    public ShardingMessageExtractor<ShardEnvelope<Command>, Command> extractor() {
+        return new DefaultShardingMessageExtractor<>(3);
     }
 }
