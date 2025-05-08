@@ -14,14 +14,9 @@ import org.springframework.boot.context.properties.source.ConfigurationPropertyN
 import org.springframework.context.EnvironmentAware;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.Environment;
-import org.springframework.util.StringUtils;
 
 @ConfigurationProperties(prefix = "actor.pekko")
 public class PekkoProperties implements EnvironmentAware {
-
-    private static final String CONFIG_PREFIX = "spring.actor.pekko.";
-    private static final String TARGET_PREFIX = "pekko.";
-
     private final Map<String, Object> config = new HashMap<>();
 
     @Override
@@ -73,8 +68,6 @@ public class PekkoProperties implements EnvironmentAware {
     }
 
     public Map<String, Object> getConfig() {
-        System.out.println("HELLO!!!!!");
-        System.out.println(config);
         return Collections.unmodifiableMap(config);
     }
 }
