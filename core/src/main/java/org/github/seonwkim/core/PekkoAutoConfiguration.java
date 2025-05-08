@@ -105,5 +105,4 @@ public class PekkoAutoConfiguration {
         beans.values().forEach(registry::register);
         return registry;
     }
-
 }

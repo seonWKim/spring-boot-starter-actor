@@ -6,7 +6,6 @@ import org.apache.pekko.cluster.sharding.typed.javadsl.EntityContext;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
 
 public interface ShardedActor<T> {
-    // EntityTypeKey.create(actor.commandClass(), actor.commandClass().getSimpleName());
     EntityTypeKey<T> typeKey();
 
     Behavior<T> create(EntityContext<T> ctx);
