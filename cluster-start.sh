@@ -6,7 +6,7 @@ run_application() {
 
   ./gradlew example:cluster:bootRun \
     --args="--server.port=${port} \
-            --pekko.remote.artery.canonical.port=${pekko_port}" \
+            --spring.actor.pekko.remote.artery.canonical.port=${pekko_port}" \
     -PmainClass=org.github.seonwkim.example.SpringPekkoApplication \
     > "log_${port}.txt" 2>&1 &
 }

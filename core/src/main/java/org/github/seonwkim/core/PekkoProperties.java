@@ -38,7 +38,7 @@ public class PekkoProperties implements EnvironmentAware {
                     if (key.startsWith(CONFIG_PREFIX) && !key.equals(CONFIG_PREFIX + "enabled")) {
                         String subKey = key.substring(CONFIG_PREFIX.length()); // e.g. remote.artery.port
                         Object value = entry.getValue();
-                        insertNestedValue(config, TARGET_PREFIX + subKey, value);
+                        insertNestedValue(config, TARGET_PREFIX + subKey, value.toString());
                     }
                 }
             }
