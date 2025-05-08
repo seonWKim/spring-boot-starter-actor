@@ -22,27 +22,56 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
 
+/**
+ * Default implementation of the SpringActorSystemBuilder interface.
+ * This class builds SpringActorSystem instances with the configured settings.
+ * It supports both local and cluster modes.
+ */
 public class DefaultSpringActorSystemBuilder implements SpringActorSystemBuilder {
 
+    /** The root guardian supplier wrapper */
     private RootGuardianSupplierWrapper supplier;
+    /** The configuration map */
     private Map<String, Object> configMap = Collections.emptyMap();
+    /** The Spring application event publisher */
     @Nullable
     private ApplicationEventPublisher applicationEventPublisher;
+    /** The sharded actor registry */
     private ShardedActorRegistry shardedActorRegistry = ShardedActorRegistry.INSTANCE;
+    /** The default actor system name */
     private final String DEFAULT_SYSTEM_NAME = "system";
 
+    /**
+     * Sets the root guardian supplier for the actor system.
+     *
+     * @param supplier The root guardian supplier wrapper
+     * @return This builder for method chaining
+     */
     @Override
     public SpringActorSystemBuilder withRootGuardianSupplier(RootGuardianSupplierWrapper supplier) {
         this.supplier = supplier;
         return this;
     }
 
+    /**
+     * Sets the configuration for the actor system.
+     *
+     * @param config The configuration map
+     * @return This builder for method chaining
+     */
     @Override
     public SpringActorSystemBuilder withConfig(Map<String, Object> config) {
         this.configMap = config;
         return this;
     }
 
+    /**
+     * Sets the application event publisher for the actor system.
+     * This is required for cluster mode to publish cluster events.
+     *
+     * @param applicationEventPublisher The Spring application event publisher
+     * @return This builder for method chaining
+     */
     @Override
     public SpringActorSystemBuilder withApplicationEventPublisher(
             ApplicationEventPublisher applicationEventPublisher) {
@@ -50,12 +79,27 @@ public class DefaultSpringActorSystemBuilder implements SpringActorSystemBuilder
         return this;
     }
 
+    /**
+     * Sets the sharded actor registry for the actor system.
+     * This is used in cluster mode to register sharded actors.
+     *
+     * @param shardedActorRegistry The sharded actor registry
+     * @return This builder for method chaining
+     */
     @Override
     public SpringActorSystemBuilder withShardedActorRegistry(ShardedActorRegistry shardedActorRegistry) {
         this.shardedActorRegistry = shardedActorRegistry;
         return this;
     }
 
+    /**
+     * Builds a SpringActorSystem with the configured settings.
+     * This method creates either a local or cluster mode actor system based on the configuration.
+     * In cluster mode, it initializes all sharded actors from the registry.
+     *
+     * @return A new SpringActorSystem
+     * @throws IllegalArgumentException If in cluster mode and the application event publisher is not set
+     */
     @Override
     public SpringActorSystem build() {
         final Config config = ConfigFactory.parseMap(ConfigValueFactory.fromMap(configMap))
@@ -86,6 +130,14 @@ public class DefaultSpringActorSystemBuilder implements SpringActorSystemBuilder
         }
     }
 
+    /**
+     * Initializes a sharded actor with the given cluster sharding.
+     * This method creates an entity for the sharded actor and initializes it with the cluster sharding.
+     *
+     * @param sharding The cluster sharding
+     * @param actor The sharded actor to initialize
+     * @param <T> The type of messages that the actor can handle
+     */
     private <T> void initShardedActor(
             ClusterSharding sharding,
             ShardedActor<T> actor

@@ -15,10 +15,20 @@ import org.springframework.context.EnvironmentAware;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.Environment;
 
+/**
+ * Configuration properties for Pekko actor system.
+ * This class binds properties with the prefix "spring.actor" to a map and normalizes comma-separated lists.
+ */
 @ConfigurationProperties(prefix = "actor.pekko")
 public class PekkoProperties implements EnvironmentAware {
     private final Map<String, Object> config = new HashMap<>();
 
+    /**
+     * Sets the environment and binds properties with the prefix "spring.actor" to the config map.
+     * This method is called by Spring to inject the environment.
+     *
+     * @param environment The Spring environment
+     */
     @Override
     public void setEnvironment(Environment environment) {
         if (!(environment instanceof ConfigurableEnvironment)) {
@@ -35,6 +45,14 @@ public class PekkoProperties implements EnvironmentAware {
         this.config.putAll(normalized);
     }
 
+    /**
+     * Normalizes comma-separated lists in the input map.
+     * If a string value contains commas, it is split into a list of strings.
+     * This method recursively processes nested maps.
+     *
+     * @param input The input map to normalize
+     * @return A new map with normalized values
+     */
     public Map<String, Object> normalizeCommaSeparatedLists(Map<String, Object> input) {
         Map<String, Object> normalized = new HashMap<>();
 
@@ -67,6 +85,11 @@ public class PekkoProperties implements EnvironmentAware {
         return str.contains(",") && !(str.startsWith("[") && str.endsWith("]"));
     }
 
+    /**
+     * Returns an unmodifiable view of the configuration map.
+     *
+     * @return An unmodifiable map containing the configuration properties
+     */
     public Map<String, Object> getConfig() {
         return Collections.unmodifiableMap(config);
     }

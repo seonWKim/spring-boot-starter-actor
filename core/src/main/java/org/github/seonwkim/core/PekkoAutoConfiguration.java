@@ -16,12 +16,28 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 
+/**
+ * Spring Boot auto-configuration for Pekko actor system.
+ * This class sets up the actor system when the property "spring.actor-enabled" is set to "true".
+ * It provides beans for the actor system, actor system builder, root guardian, actor type registry,
+ * and sharded actor registry.
+ */
 @Configuration
 @EnableConfigurationProperties(PekkoProperties.class)
 @ConditionalOnProperty(prefix = "spring", name = "actor-enabled", havingValue = "true")
 @ComponentScan(basePackages = "org.github.seonwkim.core")
 public class PekkoAutoConfiguration {
 
+    /**
+     * Creates a SpringActorSystemBuilder bean with the given properties, root guardian supplier,
+     * application event publisher, and sharded actor registry.
+     *
+     * @param properties The Pekko properties
+     * @param rootGuardianSupplierWrapper The root guardian supplier wrapper
+     * @param applicationEventPublisher The application event publisher
+     * @param shardedActorRegistry The sharded actor registry
+     * @return A SpringActorSystemBuilder
+     */
     @Bean
     @ConditionalOnMissingBean
     public SpringActorSystemBuilder actorSystemBuilder(
@@ -37,18 +53,38 @@ public class PekkoAutoConfiguration {
                 .withShardedActorRegistry(shardedActorRegistry);
     }
 
+    /**
+     * Creates a SpringActorSystem bean using the given builder.
+     *
+     * @param builder The SpringActorSystemBuilder to use
+     * @return A SpringActorSystem
+     */
     @Bean
     @ConditionalOnMissingBean
     public SpringActorSystem actorSystem(SpringActorSystemBuilder builder) {
         return builder.build();
     }
 
+    /**
+     * Creates a RootGuardianSupplierWrapper bean that supplies a RootGuardian behavior.
+     *
+     * @param actorTypeRegistry The ActorTypeRegistry to use for creating the RootGuardian
+     * @return A RootGuardianSupplierWrapper
+     */
     @Bean
     @ConditionalOnMissingBean
     public RootGuardianSupplierWrapper rootGuardianSupplierWrapper(ActorTypeRegistry actorTypeRegistry) {
         return new RootGuardianSupplierWrapper(() -> RootGuardian.create(actorTypeRegistry));
     }
 
+    /**
+     * Creates an ActorTypeRegistry bean and registers all SpringActor beans in the application context.
+     * For each SpringActor, it finds the static create(String) method and registers it as a factory.
+     *
+     * @param context The Spring application context
+     * @return An ActorTypeRegistry with all SpringActor beans registered
+     * @throws IllegalStateException If a SpringActor doesn't have a valid static create(String) method
+     */
     @Bean
     @ConditionalOnMissingBean
     public ActorTypeRegistry actorTypeRegistry(ApplicationContext context) {
@@ -97,6 +133,12 @@ public class PekkoAutoConfiguration {
         return clazz;
     }
 
+    /**
+     * Creates a ShardedActorRegistry bean and registers all ShardedActor beans in the application context.
+     *
+     * @param ctx The Spring application context
+     * @return A ShardedActorRegistry with all ShardedActor beans registered
+     */
     @Bean
     @ConditionalOnMissingBean
     public ShardedActorRegistry shardedActorRegistry(ApplicationContext ctx) {

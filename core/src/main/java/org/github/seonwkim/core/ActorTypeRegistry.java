@@ -6,12 +6,22 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
-// TODO: fix name, ActorTypeRegistry or ActorRegistry
+/**
+ * Registry for actor types that allows registering actor factories and creating actor behaviors.
+ * This class maintains a mapping between command classes and their corresponding actor behavior factories.
+ */
 public class ActorTypeRegistry {
 
     private final Map<String, Function<String, Behavior<?>>> factories = new HashMap<>();
     private final Map<Class<?>, String> classToKey = new HashMap<>();
 
+    /**
+     * Registers a factory function for creating actor behaviors for a specific command class.
+     *
+     * @param commandClass The class of commands that the actor can handle
+     * @param factory The factory function that creates a behavior for the actor given an ID
+     * @param <T> The type of commands that the actor can handle
+     */
     @SuppressWarnings("unchecked")
     public <T> void register(Class<T> commandClass, Function<String, Behavior<?>> factory) {
         String key = commandClass.getName();
@@ -21,6 +31,15 @@ public class ActorTypeRegistry {
         classToKey.put(commandClass, key);
     }
 
+    /**
+     * Creates a behavior for a given command class and ID.
+     *
+     * @param commandClass The class of commands that the actor can handle
+     * @param id The ID of the actor
+     * @param <T> The type of commands that the actor can handle
+     * @return A behavior for the actor
+     * @throws IllegalArgumentException If no factory is registered for the command class
+     */
     @SuppressWarnings("unchecked")
     public <T> Behavior<T> createBehavior(Class<T> commandClass, String id) {
         String key = classToKey.get(commandClass);
