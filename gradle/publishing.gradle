@@ -7,8 +7,8 @@ publishing {
     publications {
         mavenJava(MavenPublication) {
             from components.java
-            groupId = 'org.github.seonwkim'
-            artifactId = 'spring-boot-actor-core'
+            groupId = project.group.toString()
+            artifactId = 'spring-boot-starter-actor'
             version = project.version.toString()
 
             pom {
