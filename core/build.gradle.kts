@@ -1,3 +1,11 @@
+plugins {
+	`java-library`
+	`maven-publish`
+	signing
+}
+
+apply(from = "$rootDir/gradle/publishing.gradle")
+
 dependencies {
 	implementation("org.apache.pekko:pekko-actor-typed_3")
 	implementation("org.apache.pekko:pekko-cluster-typed_3")

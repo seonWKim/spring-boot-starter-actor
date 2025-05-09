@@ -1,4 +1,4 @@
-rootProject.name = "spring-pekko"
+rootProject.name = "spring-boot-actor-starter"
 
 include("core")
 include("example:simple")

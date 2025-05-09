@@ -5,9 +5,6 @@ plugins {
 	id("com.diffplug.spotless") version "6.13.0"
 }
 
-group = "org.github.seonwkim"
-version = "0.0.1-SNAPSHOT"
-
 java {
 	sourceCompatibility = JavaVersion.VERSION_1_8
 	targetCompatibility = JavaVersion.VERSION_1_8
@@ -15,6 +12,11 @@ java {
 
 repositories {
 	mavenCentral()
+}
+
+allprojects {
+	group = "org.github.seonwkim"
+	version = "0.0.1-SNAPSHOT"
 }
 
 subprojects {
