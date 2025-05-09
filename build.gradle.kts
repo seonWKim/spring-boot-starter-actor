@@ -17,7 +17,7 @@ repositories {
 
 allprojects {
 	group = "io.github.seonwkim"
-	version = "0.0.2"
+	version = "0.0.1"
 }
 
 subprojects {
@@ -29,25 +29,6 @@ subprojects {
 
 	repositories {
 		mavenCentral()
-	}
-
-	extensions.configure<PublishingExtension>("publishing") {
-		publications {
-			register<MavenPublication>("gpr") {
-				from(components["java"])
-				artifactId = "spring-boot-actor-starter"
-			}
-		}
-		repositories {
-			maven {
-				name = "GitHubPackages"
-				url = uri("https://maven.pkg.github.com/seonwkim/spring-boot-actor-starter")
-				credentials {
-					username = project.findProperty("gpr.user") as String? ?: System.getenv("GITHUB_USERNAME")
-					password = project.findProperty("gpr.key") as String? ?: System.getenv("GITHUB_TOKEN")
-				}
-			}
-		}
 	}
 
 	dependencies {
