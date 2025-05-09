@@ -14,6 +14,9 @@ java {
 	targetCompatibility = JavaVersion.VERSION_11
 }
 
+val pekkoVersion = "1.1.3"
+extra["pekkoVersion"] = pekkoVersion
+
 repositories {
 	mavenCentral()
 }
@@ -76,12 +79,14 @@ subprojects {
 	}
 
 	dependencies {
-		implementation("org.apache.pekko:pekko-actor-typed_3:1.1.3")
-		implementation("org.apache.pekko:pekko-cluster-typed_3:1.1.3")
-		implementation("org.apache.pekko:pekko-cluster-sharding-typed_3:1.1.3")
+		val pekko = rootProject.extra["pekkoVersion"] as String
+
+		implementation("org.apache.pekko:pekko-actor-typed_3:${pekko}")
+		implementation("org.apache.pekko:pekko-cluster-typed_3:${pekko}")
+		implementation("org.apache.pekko:pekko-cluster-sharding-typed_3:${pekko}")
 		implementation("org.springframework.boot:spring-boot-starter")
 
-		testImplementation("org.apache.pekko:pekko-actor-testkit-typed_3:1.1.3")
+		testImplementation("org.apache.pekko:pekko-actor-testkit-typed_3:${pekko}")
 		testImplementation("org.springframework.boot:spring-boot-starter-test")
 		testImplementation("org.awaitility:awaitility:4.3.0")
 		testRuntimeOnly("org.junit.platform:junit-platform-launcher")
