@@ -1,5 +1,6 @@
 plugins {
 	java
+	`maven-publish`
 	id("org.springframework.boot") version "2.7.0"
 	id("io.spring.dependency-management") version "1.1.7"
 	id("com.diffplug.spotless") version "6.13.0"
@@ -15,8 +16,8 @@ repositories {
 }
 
 allprojects {
-	group = "org.github.seonwkim"
-	version = "0.0.1-SNAPSHOT"
+	group = "io.github.seonwkim"
+	version = "0.0.2"
 }
 
 subprojects {
@@ -24,9 +25,29 @@ subprojects {
 	apply(plugin = "org.springframework.boot")
 	apply(plugin = "io.spring.dependency-management")
 	apply(plugin = "com.diffplug.spotless")
+	apply(plugin = "maven-publish")
 
 	repositories {
 		mavenCentral()
+	}
+
+	extensions.configure<PublishingExtension>("publishing") {
+		publications {
+			register<MavenPublication>("gpr") {
+				from(components["java"])
+				artifactId = "spring-boot-actor-starter"
+			}
+		}
+		repositories {
+			maven {
+				name = "GitHubPackages"
+				url = uri("https://maven.pkg.github.com/seonwkim/spring-boot-actor-starter")
+				credentials {
+					username = project.findProperty("gpr.user") as String? ?: System.getenv("GITHUB_USERNAME")
+					password = project.findProperty("gpr.key") as String? ?: System.getenv("GITHUB_TOKEN")
+				}
+			}
+		}
 	}
 
 	dependencies {
