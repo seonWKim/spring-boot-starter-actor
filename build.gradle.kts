@@ -2,6 +2,7 @@ import com.vanniktech.maven.publish.SonatypeHost
 
 plugins {
 	java
+	`java-library`
 	id("org.springframework.boot") version "2.7.0"
 	id("io.spring.dependency-management") version "1.1.7"
 	id("com.diffplug.spotless") version "6.13.0"
@@ -24,6 +25,7 @@ allprojects {
 
 subprojects {
 	apply(plugin = "java")
+	apply(plugin = "java-library")
 	apply(plugin = "org.springframework.boot")
 	apply(plugin = "io.spring.dependency-management")
 	apply(plugin = "com.diffplug.spotless")
