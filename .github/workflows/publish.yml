@@ -23,15 +23,15 @@ jobs:
           echo "🔐 Checking required secrets..."
           [[ -n "$ORG_GRADLE_PROJECT_mavenCentralUsername" ]] || { echo "❌ MAVEN_CENTRAL_USERNAME not set"; exit 1; }
           [[ -n "$ORG_GRADLE_PROJECT_mavenCentralPassword" ]] || { echo "❌ MAVEN_CENTRAL_PASSWORD not set"; exit 1; }
-          [[ -n "$ORG_GRADLE_PROJECT_signingSecretKey" ]] || { echo "❌ SIGNING_SECRET_KEY not set"; exit 1; }
-          [[ -n "$ORG_GRADLE_PROJECT_signingPassword" ]] || { echo "❌ SIGNING_PASSWORD not set"; exit 1; }
+          [[ -n "$ORG_GRADLE_PROJECT_signingInMemoryKey" ]] || { echo "❌ SIGNING_SECRET_KEY not set"; exit 1; }
+          [[ -n "$ORG_GRADLE_PROJECT_signingInMemoryKeyPassword" ]] || { echo "❌ SIGNING_PASSWORD not set"; exit 1; }
           echo "✅ All required secrets are present."
 
         env:
           ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
           ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
-          ORG_GRADLE_PROJECT_signingSecretKey: ${{ secrets.SIGNING_SECRET_KEY }}
-          ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.SIGNING_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_SECRET_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
 
       - name: 🚀 Publish to Maven Central (in-memory GPG)
         run: |
@@ -42,5 +42,5 @@ jobs:
         env:
           ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
           ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
-          ORG_GRADLE_PROJECT_signingSecretKey: ${{ secrets.SIGNING_SECRET_KEY }}
-          ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.SIGNING_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_SECRET_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
