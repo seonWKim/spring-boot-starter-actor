@@ -211,7 +211,6 @@ public class HelloActor implements SpringActor {
         return Behaviors.setup(ctx -> new HelloActorBehavior(ctx, id).create());
     }
 
-    // Inner class to isolate stateful behavior logic
     private static class HelloActorBehavior {
         private final ActorContext<Command> ctx;
         private final String actorId;
@@ -262,7 +261,3 @@ The project includes two example applications:
 
 1. **Simple Example**: Demonstrates using actors in local mode
 2. **Cluster Example**: Demonstrates using actors in a clustered environment
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
