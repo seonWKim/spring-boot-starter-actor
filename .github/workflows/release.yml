@@ -1,0 +1,92 @@
+name: Bump Project Version
+
+on:
+  workflow_dispatch:
+    inputs:
+      bumpType:
+        description: 'Select version bump type'
+        required: true
+        default: 'hotfix'
+        type: choice
+        options:
+          - hotfix
+          - minor
+          - major
+
+jobs:
+  bump-version:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write  # required to push and merge
+
+    steps:
+      - name: 📥 Checkout main branch
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: 🧪 Extract current version
+        id: get_version
+        run: |
+          echo "🔍 Reading version from settings.gradle.kts..."
+          version=$(grep 'projectVersion' settings.gradle.kts | sed -E 's/.*"([0-9]+\.[0-9]+\.[0-9]+)".*/\1/')
+          echo "Current version: $version"
+          echo "version=$version" >> $GITHUB_OUTPUT
+
+      - name: 🔢 Calculate new version
+        id: bump
+        run: |
+          current=${{ steps.get_version.outputs.version }}
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$current"
+
+          case "${{ github.event.inputs.bumpType }}" in
+            major)
+              MAJOR=$((MAJOR + 1))
+              MINOR=0
+              PATCH=0
+              ;;
+            minor)
+              MINOR=$((MINOR + 1))
+              PATCH=0
+              ;;
+            hotfix)
+              PATCH=$((PATCH + 1))
+              ;;
+          esac
+
+          NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+          echo "🆕 New version will be $NEW_VERSION"
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+      - name: 🌱 Create release branch
+        run: |
+          git checkout -b release/${{ steps.bump.outputs.new_version }}
+
+      - name: 📝 Update version in settings.gradle.kts
+        run: |
+          sed -i -E "s/(projectVersion\\s*=\\s*\")[0-9]+\\.[0-9]+\\.[0-9]+(\".*)/\\1${{ steps.bump.outputs.new_version }}\\2/" settings.gradle.kts
+          git diff settings.gradle.kts
+
+      - name: ✅ Commit version bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add settings.gradle.kts
+          git commit -m "chore: bump version to ${{ steps.bump.outputs.new_version }}"
+
+      - name: 🚀 Push release branch
+        run: |
+          git push origin release/${{ steps.bump.outputs.new_version }}
+
+      - name: 🔀 Merge into main
+        run: |
+          git checkout main
+          git pull origin main
+          git merge --no-ff release/${{ steps.bump.outputs.new_version }} -m "Merge release/${{ steps.bump.outputs.new_version }} into main"
+          git push origin main
+
+      - name: 🧹 Delete release branch
+        run: |
+          git push origin --delete release/${{ steps.bump.outputs.new_version }}
