@@ -22,8 +22,8 @@ repositories {
 }
 
 allprojects {
-	group = "io.github.seonwkim"
-	version = rootProject.extra["projectVersion"] as String
+	group = project.findProperty("group") as String
+	version = project.findProperty("version") as String
 }
 
 subprojects {
@@ -40,16 +40,16 @@ subprojects {
 
 	mavenPublishing {
 		coordinates(
-			groupId = project.group.toString(),
-			artifactId = rootProject.name,
-			version = project.version.toString()
+			groupId = project.findProperty("group") as String,
+			artifactId = project.findProperty("artifactId") as String,
+			version = project.findProperty("version") as String
 		)
 
 		pom {
-			name.set("Spring Boot Starter Actor")
-			description.set("A library that integrates Spring Boot with the actor model using Pekko.")
+			name.set(project.findProperty("pomName") as String)
+			description.set(project.findProperty("pomDescription") as String)
+			url.set(project.findProperty("pomUrl") as String)
 			inceptionYear.set("2025")
-			url.set("https://github.com/seonwkim/spring-boot-starter-actor")
 
 			licenses {
 				license {
@@ -60,16 +60,16 @@ subprojects {
 
 			developers {
 				developer {
-					id.set("seonwkim")
-					name.set("Seon Woo Kim")
-					email.set("seonwoo960000.kim@gmail.com")
+					id.set(project.findProperty("pomDeveloperId") as String)
+					name.set(project.findProperty("pomDeveloperName") as String)
+					email.set(project.findProperty("pomDeveloperEmail") as String)
 				}
 			}
 
 			scm {
 				connection.set("scm:git:git://github.com/seonwkim/spring-boot-starter-actor.git")
 				developerConnection.set("scm:git:ssh://github.com/seonwkim/spring-boot-starter-actor.git")
-				url.set("https://github.com/seonwkim/spring-boot-starter-actor")
+				url.set(project.findProperty("pomUrl") as String)
 			}
 		}
 
