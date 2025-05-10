@@ -37,7 +37,19 @@ This project aims to bring together the best of both worlds:
 
 Add the dependency to your project:
 
-// TODO 
+```gradle
+// Gradle
+implementation 'io.github.seonwkim:spring-boot-starter-actor:0.0.3'
+```
+
+```xml
+<!-- Maven -->
+<dependency>
+    <groupId>io.github.seonwkim</groupId>
+    <artifactId>spring-boot-starter-actor</artifactId>
+    <version>0.0.3</version>
+</dependency>
+```
 
 ## Usage
 
@@ -86,9 +98,93 @@ spring:
         seed-nodes:
           - pekko://your-application-name@127.0.0.1:2551
           - pekko://your-application-name@127.0.0.1:2552
+          - pekko://your-application-name@127.0.0.1:2553
         downing-provider-class: org.apache.pekko.cluster.sbr.SplitBrainResolverProvider
 ```
 Make sure your `spring.actor.pekko.name` and the cluster's name and seed node hostnames are the same.  
+
+### Sharded Entities
+
+Sharded entities allow you to distribute actor instances across a cluster. This is useful for stateful actors that need to be distributed for scalability and fault tolerance.
+
+To create a sharded actor:
+
+```java
+@Component
+public class MyShardedActor implements ShardedActor<MyShardedActor.Command> {
+
+    // Define a type key for this actor type
+    public static final EntityTypeKey<Command> TYPE_KEY = EntityTypeKey.create(Command.class, "MyShardedActor");
+
+    // Define the command interface
+    public interface Command extends Serializable {}
+
+    // Define command messages
+    public static class DoSomething implements Command {
+        public final ActorRef<String> replyTo;
+        public final String data;
+
+        public DoSomething(ActorRef<String> replyTo, String data) {
+            this.replyTo = replyTo;
+            this.data = data;
+        }
+    }
+
+    @Override
+    public EntityTypeKey<Command> typeKey() {
+        return TYPE_KEY;
+    }
+
+    @Override
+    public Behavior<Command> create(EntityContext<Command> ctx) {
+        return Behaviors.setup(
+                context ->
+                        Behaviors.receive(Command.class)
+                                 .onMessage(DoSomething.class, msg -> {
+                                     // The entityId identifies this specific entity instance
+                                     final String entityId = ctx.getEntityId();
+                                     msg.replyTo.tell("Processed by entity " + entityId + ": " + msg.data);
+                                     return Behaviors.same();
+                                 })
+                                 .build()
+        );
+    }
+
+    @Override
+    public ShardingMessageExtractor<ShardEnvelope<Command>, Command> extractor() {
+        return new DefaultShardingMessageExtractor<>(3);
+    }
+}
+```
+
+To use a sharded actor in a service:
+
+```java
+@Service
+public class MyService {
+
+    private final SpringActorSystem springActorSystem;
+
+    public MyService(SpringActorSystem springActorSystem) {
+        this.springActorSystem = springActorSystem;
+    }
+
+    public Mono<String> processData(String data, String entityId) {
+        // Get a reference to the sharded actor with the specified entityId
+        SpringShardedActorRef<MyShardedActor.Command> actorRef = 
+            springActorSystem.entityRef(MyShardedActor.TYPE_KEY, entityId);
+
+        // Send a message to the actor and get a response
+        CompletionStage<String> response = actorRef.ask(
+                replyTo -> new MyShardedActor.DoSomething(replyTo, data), 
+                Duration.ofSeconds(3));
+
+        return Mono.fromCompletionStage(response);
+    }
+}
+```
+
+The `entityId` parameter determines which entity instance will handle the message. Messages with the same entityId will always be routed to the same actor instance, ensuring that state is maintained correctly.
 
 ### Creating an Actor
 
