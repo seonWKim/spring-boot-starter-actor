@@ -73,6 +73,12 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          if git diff --quiet; then
+            echo "⚠️ No changes to commit."
+            exit 0
+          fi
+          
           git add settings.gradle.kts
           git commit -m "chore: bump version to ${{ steps.bump.outputs.new_version }}"
 
