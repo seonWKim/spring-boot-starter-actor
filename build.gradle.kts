@@ -23,7 +23,7 @@ repositories {
 
 allprojects {
 	group = "io.github.seonwkim"
-	version = "0.0.3"
+	version = "0.0.4"
 }
 
 subprojects {
