@@ -71,18 +71,6 @@ public class UserActor implements SpringActor {
         });
     }
 
-    /**
-     * Creates a behavior for a user actor with the given session and object mapper.
-     * This method is used for testing or direct creation.
-     *
-     * @param session The WebSocket session
-     * @param mapper The object mapper for JSON serialization
-     * @return A behavior for the actor
-     */
-    public static Behavior<ChatRoomActor.ChatEvent> create(WebSocketSession session, ObjectMapper mapper) {
-        return Behaviors.setup(context -> new UserActorBehavior(context, session, mapper).create());
-    }
-
     // Inner class to isolate stateful behavior logic
     private static class UserActorBehavior {
         private final ActorContext<ChatRoomActor.ChatEvent> context;
