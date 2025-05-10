@@ -7,19 +7,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.bind.Bindable;
 import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.boot.context.properties.source.ConfigurationPropertyName;
 import org.springframework.context.EnvironmentAware;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.Environment;
+import org.springframework.stereotype.Component;
 
 /**
  * Configuration properties for Pekko actor system.
  * This class binds properties with the prefix "spring.actor" to a map and normalizes comma-separated lists.
  */
-@ConfigurationProperties(prefix = "actor.pekko")
+@Component
 public class PekkoProperties implements EnvironmentAware {
     private final Map<String, Object> config = new HashMap<>();
 

@@ -23,7 +23,6 @@ import org.springframework.context.annotation.Configuration;
  * and sharded actor registry.
  */
 @Configuration
-@EnableConfigurationProperties(PekkoProperties.class)
 @ConditionalOnProperty(prefix = "spring", name = "actor-enabled", havingValue = "true")
 @ComponentScan(basePackages = "io.github.seonwkim.core")
 public class PekkoAutoConfiguration {
