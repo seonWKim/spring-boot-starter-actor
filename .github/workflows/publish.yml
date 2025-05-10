@@ -30,7 +30,7 @@ jobs:
             exit 1
           fi
 
-      - name: ☕ Set up Java 11
+      - name: ☕ Set up Java 17
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
@@ -54,11 +54,8 @@ jobs:
 
       - name: 🚀 Publish to Maven Central (in-memory GPG)
         run: |
-          echo "📦 Running ./gradlew :core:publishAndReleaseToMavenCentral..."
-          ./gradlew :core:publishAndReleaseToMavenCentral --no-configuration-cache
-          
           echo "📦 Running ./gradlew :core-boot3:publishAndReleaseToMavenCentral..."
-          ./gradlew :core-boot3:publishAndReleaseToMavenCentral --no-configuration-cache
+          ./gradlew :core-boot3:publishAndReleaseToMavenCentral --no-configuration-cache -Dorg.gradle.unsafe.ignoreUntrackedBuildDependencies=true
 
           echo "✅ Publish completed successfully."
 
