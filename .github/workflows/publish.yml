@@ -2,6 +2,9 @@ name: Publish to Maven Central
 
 on:
   workflow_dispatch:
+  push:
+    tags:
+      - 'v*'  # Only trigger on version tags like v0.0.5
 
 jobs:
   publish:
