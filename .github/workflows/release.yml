@@ -88,6 +88,8 @@ jobs:
           git push origin release/${{ steps.bump.outputs.new_version }}
 
       - name: 🔀 Merge into main
+        enc:
+          GH_TOKEN: ${{ secrets.DEPLOY_GITHUB_TOKEN }}
         run: |
           git checkout main
           git pull origin main
