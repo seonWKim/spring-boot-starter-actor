@@ -55,7 +55,8 @@ public class UserActor implements SpringActor {
      * @param id The ID of the actor
      * @return A behavior for the actor
      */
-    public static Behavior<ChatRoomActor.ChatEvent> create(String id) {
+    @Override
+    public Behavior<ChatRoomActor.ChatEvent> create(String id) {
         return Behaviors.setup(context -> {
             context.getLog().info("Creating user actor with ID: {}", id);
             // Extract the user ID from the actor ID (removing "user-" prefix)

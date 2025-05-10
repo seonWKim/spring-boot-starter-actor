@@ -79,11 +79,10 @@ public class PekkoAutoConfiguration {
 
     /**
      * Creates an ActorTypeRegistry bean and registers all SpringActor beans in the application context.
-     * For each SpringActor, it finds the static create(String) method and registers it as a factory.
+     * For each SpringActor, it registers the create method from the SpringActor interface.
      *
      * @param context The Spring application context
      * @return An ActorTypeRegistry with all SpringActor beans registered
-     * @throws IllegalStateException If a SpringActor doesn't have a valid static create(String) method
      */
     @Bean
     @ConditionalOnMissingBean
@@ -92,45 +91,18 @@ public class PekkoAutoConfiguration {
         Map<String, SpringActor> actorBeans = context.getBeansOfType(SpringActor.class);
 
         for (SpringActor actorBean : actorBeans.values()) {
-            Class<?> actorClass = actorBean.getClass(); // likely a CGLIB proxy
-            Class<?> targetClass = findTargetClass(actorClass);
             Class<?> commandClass = actorBean.commandClass();
-
-            Method factoryMethod = findCreateMethod(targetClass);
-            if (factoryMethod == null) {
-                throw new IllegalStateException("No valid static create(String) method found in " + targetClass.getName());
-            }
 
             registry.register(commandClass, id -> {
                 try {
-                    return (Behavior<?>) factoryMethod.invoke(null, id);
+                    return actorBean.create(id);
                 } catch (Exception e) {
-                    throw new RuntimeException("Failed to invoke create(id) on " + targetClass.getName(), e);
+                    throw new RuntimeException("Failed to invoke create(id) on " + actorBean.getClass().getName(), e);
                 }
             });
         }
 
         return registry;
-    }
-
-
-    private Method findCreateMethod(Class<?> clazz) {
-        try {
-            Method m = clazz.getMethod("create", String.class);
-            if (!Behavior.class.isAssignableFrom(m.getReturnType())) return null;
-            if (!java.lang.reflect.Modifier.isStatic(m.getModifiers())) return null;
-            return m;
-        } catch (NoSuchMethodException e) {
-            return null;
-        }
-    }
-
-    private Class<?> findTargetClass(Class<?> clazz) {
-        // Handles CGLIB proxy classes by finding the original user-defined class
-        while (clazz.getName().contains("$$")) {
-            clazz = clazz.getSuperclass();
-        }
-        return clazz;
     }
 
     /**

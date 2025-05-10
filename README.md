@@ -213,7 +213,8 @@ public class HelloActor implements SpringActor {
         return Command.class;
     }
 
-    public static Behavior<Command> create(String id) {
+    @Override
+    public Behavior<Command> create(String id) {
         return Behaviors.setup(ctx -> new HelloActorBehavior(ctx, id).create());
     }
 

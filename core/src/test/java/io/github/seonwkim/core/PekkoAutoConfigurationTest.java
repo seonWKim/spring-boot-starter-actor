@@ -75,7 +75,8 @@ public class PekkoAutoConfigurationTest {
 
         public static class SayHello implements TestHelloActor.Command {}
 
-        public static Behavior<TestHelloActor.Command> create(String id) {
+        @Override
+        public Behavior<TestHelloActor.Command> create(String id) {
             return Behaviors.setup(ctx ->
                                            Behaviors.receive(TestHelloActor.Command.class)
                                                     .onMessage(TestHelloActor.SayHello.class,

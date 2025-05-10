@@ -11,14 +11,12 @@ import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import io.github.seonwkim.core.ActorTypeRegistryTest.DummyActor.Command;
+
 public class ActorTypeRegistryTest {
 
     public static class DummyActor {
         interface Command {}
-
-        public static Behavior<Command> create(String id) {
-            return Behaviors.receive(Command.class).onMessage(Command.class, msg -> Behaviors.same()).build();
-        }
     }
 
     private ActorTypeRegistry registry;
@@ -30,7 +28,9 @@ public class ActorTypeRegistryTest {
 
     @Test
     public void testRegisterAndRetrieveByClass() {
-        registry.register(DummyActor.Command.class, DummyActor::create);
+        registry.register(DummyActor.Command.class, (id) -> Behaviors.receive(Command.class)
+                                                             .onMessage(Command.class, msg -> Behaviors.same())
+                                                             .build());
 
         Behavior<DummyActor.Command> behavior = registry.createBehavior(DummyActor.Command.class,
                                                                         UUID.randomUUID().toString());
@@ -39,7 +39,9 @@ public class ActorTypeRegistryTest {
 
     @Test
     public void testRegisterAndRetrieveByStringKey() {
-        registry.register(DummyActor.Command.class, DummyActor::create);
+        registry.register(DummyActor.Command.class,  (id) -> Behaviors.receive(Command.class)
+                                                                      .onMessage(Command.class, msg -> Behaviors.same())
+                                                                      .build());
 
         Behavior<DummyActor.Command> behavior = registry.createBehavior(DummyActor.Command.class, "custom-id");
 
