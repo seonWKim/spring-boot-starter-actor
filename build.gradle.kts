@@ -1,112 +1,98 @@
 import com.vanniktech.maven.publish.SonatypeHost
 
 plugins {
-	java
-	`java-library`
-	id("org.springframework.boot") version "2.7.0"
-	id("io.spring.dependency-management") version "1.1.7"
-	id("com.diffplug.spotless") version "6.13.0"
-	id("com.vanniktech.maven.publish") version "0.31.0"
+    java
+    `java-library`
+    id("com.diffplug.spotless") version "6.13.0"
+    id("com.vanniktech.maven.publish") version "0.31.0"
 }
-
-java {
-	sourceCompatibility = JavaVersion.VERSION_11
-	targetCompatibility = JavaVersion.VERSION_11
-}
-
-val pekkoVersion = "1.1.3"
-extra["pekkoVersion"] = pekkoVersion
 
 repositories {
-	mavenCentral()
+    mavenCentral()
 }
 
 allprojects {
-	group = project.findProperty("group") as String
-	version = project.findProperty("version") as String
+    group = project.findProperty("group") as String
+    version = project.findProperty("version") as String
 }
 
 subprojects {
-	apply(plugin = "java")
-	apply(plugin = "java-library")
-	apply(plugin = "org.springframework.boot")
-	apply(plugin = "io.spring.dependency-management")
-	apply(plugin = "com.diffplug.spotless")
-	apply(plugin = "com.vanniktech.maven.publish")
+    apply(plugin = "java")
+    apply(plugin = "java-library")
+    apply(plugin = "com.diffplug.spotless")
+    apply(plugin = "com.vanniktech.maven.publish")
 
-	repositories {
-		mavenCentral()
-	}
+    repositories {
+        mavenCentral()
+    }
 
-	mavenPublishing {
-		coordinates(
-			groupId = project.findProperty("group") as String,
-			artifactId = project.findProperty("artifactId") as String,
-			version = project.findProperty("version") as String
-		)
+    mavenPublishing {
+        val isBoot3 = project.name.endsWith("boot3")
+        coordinates(
+            groupId = project.findProperty("group") as String,
+            artifactId = (if (isBoot3) project.findProperty("artifactId-boot3") else project.findProperty("artifactId")) as String,
+            version = project.findProperty("version") as String
+        )
 
-		pom {
-			name.set(project.findProperty("pomName") as String)
-			description.set(project.findProperty("pomDescription") as String)
-			url.set(project.findProperty("pomUrl") as String)
-			inceptionYear.set("2025")
+        pom {
+            name.set(project.findProperty("pomName") as String)
+            description.set(project.findProperty("pomDescription") as String)
+            url.set(project.findProperty("pomUrl") as String)
+            inceptionYear.set("2025")
 
-			licenses {
-				license {
-					name.set("The Apache License, Version 2.0")
-					url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
-				}
-			}
+            licenses {
+                license {
+                    name.set("The Apache License, Version 2.0")
+                    url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
+                }
+            }
 
-			developers {
-				developer {
-					id.set(project.findProperty("pomDeveloperId") as String)
-					name.set(project.findProperty("pomDeveloperName") as String)
-					email.set(project.findProperty("pomDeveloperEmail") as String)
-				}
-			}
+            developers {
+                developer {
+                    id.set(project.findProperty("pomDeveloperId") as String)
+                    name.set(project.findProperty("pomDeveloperName") as String)
+                    email.set(project.findProperty("pomDeveloperEmail") as String)
+                }
+            }
 
-			scm {
-				connection.set("scm:git:git://github.com/seonwkim/spring-boot-starter-actor.git")
-				developerConnection.set("scm:git:ssh://github.com/seonwkim/spring-boot-starter-actor.git")
-				url.set(project.findProperty("pomUrl") as String)
-			}
-		}
+            scm {
+                connection.set("scm:git:git://github.com/seonwkim/spring-boot-starter-actor.git")
+                developerConnection.set("scm:git:ssh://github.com/seonwkim/spring-boot-starter-actor.git")
+                url.set(project.findProperty("pomUrl") as String)
+            }
+        }
 
-		publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
+        publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
+        signAllPublications()
+    }
 
-		signAllPublications()
-	}
+    val pekkoVersion = "1.1.3"
+    dependencies {
+        constraints {
+            api("org.apache.pekko:pekko-actor-typed_3:$pekkoVersion")
+            api("org.apache.pekko:pekko-cluster-typed_3:$pekkoVersion")
+            api("org.apache.pekko:pekko-cluster-sharding-typed_3:$pekkoVersion")
+        }
 
-	dependencies {
-		constraints {
-			api("org.apache.pekko:pekko-actor-typed_3:$pekkoVersion")
-			api("org.apache.pekko:pekko-cluster-typed_3:$pekkoVersion")
-			api("org.apache.pekko:pekko-cluster-sharding-typed_3:$pekkoVersion")
-		}
+        implementation("org.apache.pekko:pekko-actor-typed_3:$pekkoVersion")
+        implementation("org.apache.pekko:pekko-cluster-typed_3:$pekkoVersion")
+        implementation("org.apache.pekko:pekko-cluster-sharding-typed_3:$pekkoVersion")
 
-		implementation("org.apache.pekko:pekko-actor-typed_3:$pekkoVersion")
-		implementation("org.apache.pekko:pekko-cluster-typed_3:$pekkoVersion")
-		implementation("org.apache.pekko:pekko-cluster-sharding-typed_3:$pekkoVersion")
-		implementation("org.springframework.boot:spring-boot-starter")
+        testImplementation("org.apache.pekko:pekko-actor-testkit-typed_3:$pekkoVersion")
+        testImplementation("org.awaitility:awaitility:4.3.0")
+    }
 
-		testImplementation("org.apache.pekko:pekko-actor-testkit-typed_3:$pekkoVersion")
-		testImplementation("org.springframework.boot:spring-boot-starter-test")
-		testImplementation("org.awaitility:awaitility:4.3.0")
-		testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-	}
-
-	tasks.withType<Test> {
-		useJUnitPlatform()
-	}
+    tasks.withType<Test> {
+        useJUnitPlatform()
+    }
 }
 
 spotless {
-	java {
-		target("**/*.java")
-		targetExclude(layout.buildDirectory.dir("**/*.java").get().asFile)
-		removeUnusedImports()
-		googleJavaFormat("1.7") // or use eclipse().configFile("path/to/eclipse-format.xml")
-		indentWithTabs(2)
-	}
+    java {
+        target("**/*.java")
+        targetExclude(layout.buildDirectory.dir("**/*.java").get().asFile)
+        removeUnusedImports()
+        googleJavaFormat("1.7") // or use eclipse().configFile("path/to/eclipse-format.xml")
+        indentWithTabs(2)
+    }
 }
