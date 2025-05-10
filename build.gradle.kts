@@ -23,7 +23,7 @@ repositories {
 
 allprojects {
 	group = "io.github.seonwkim"
-	version = "0.0.1"
+	version = "0.0.3"
 }
 
 subprojects {
@@ -41,7 +41,7 @@ subprojects {
 	mavenPublishing {
 		coordinates(
 			groupId = project.group.toString(),
-			artifactId = rootProject.name + "-" + project.name,
+			artifactId = rootProject.name,
 			version = project.version.toString()
 		)
 
@@ -79,14 +79,18 @@ subprojects {
 	}
 
 	dependencies {
-		val pekko = rootProject.extra["pekkoVersion"] as String
+		constraints {
+			api("org.apache.pekko:pekko-actor-typed_3:$pekkoVersion")
+			api("org.apache.pekko:pekko-cluster-typed_3:$pekkoVersion")
+			api("org.apache.pekko:pekko-cluster-sharding-typed_3:$pekkoVersion")
+		}
 
-		implementation("org.apache.pekko:pekko-actor-typed_3:${pekko}")
-		implementation("org.apache.pekko:pekko-cluster-typed_3:${pekko}")
-		implementation("org.apache.pekko:pekko-cluster-sharding-typed_3:${pekko}")
+		implementation("org.apache.pekko:pekko-actor-typed_3:$pekkoVersion")
+		implementation("org.apache.pekko:pekko-cluster-typed_3:$pekkoVersion")
+		implementation("org.apache.pekko:pekko-cluster-sharding-typed_3:$pekkoVersion")
 		implementation("org.springframework.boot:spring-boot-starter")
 
-		testImplementation("org.apache.pekko:pekko-actor-testkit-typed_3:${pekko}")
+		testImplementation("org.apache.pekko:pekko-actor-testkit-typed_3:$pekkoVersion")
 		testImplementation("org.springframework.boot:spring-boot-starter-test")
 		testImplementation("org.awaitility:awaitility:4.3.0")
 		testRuntimeOnly("org.junit.platform:junit-platform-launcher")
