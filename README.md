@@ -4,7 +4,9 @@
   <img src="./logo.png" alt="Library Logo" width="200"/>
 </p>
 
-![Demo](chat.gif)
+<div style="border: 2px solid #ccc; display: inline-block; border-radius: 8px; overflow: hidden;">
+  <img src="chat.gif" alt="Demo"/>
+</div>
 
 A library that integrates Spring Boot with the actor model using [Pekko](https://pekko.apache.org/) (an open-source, community-driven fork of Akka).
 
