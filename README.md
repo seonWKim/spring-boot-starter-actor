@@ -1,4 +1,4 @@
-# Spring Boot Actor Starter
+# Spring Boot Starter Actor  
 
 <p align="center">
   <img src="./logo.png" alt="Library Logo" width="200"/>
