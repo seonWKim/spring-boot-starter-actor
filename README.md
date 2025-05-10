@@ -275,3 +275,11 @@ $ sh cluster-start.sh
 # stop cluster 
 $ sh cluster-stop.sh  
 ```
+3. **Chat Example**: Demonstrates using actors in a chatting application
+```shell
+# start cluster 
+$ sh chat-start.sh 
+
+# stop cluster 
+$ sh cluster-stop.sh  
+```
