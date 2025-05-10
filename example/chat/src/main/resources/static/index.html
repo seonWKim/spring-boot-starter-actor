@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spring Actor Chat</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .hidden {
+            display: none;
+        }
+        #chat-container {
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 10px;
+            margin-top: 20px;
+        }
+        #messages {
+            height: 300px;
+            overflow-y: auto;
+            border: 1px solid #eee;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        .message {
+            margin-bottom: 5px;
+            padding: 5px;
+            border-radius: 5px;
+        }
+        .system {
+            background-color: #f0f0f0;
+            color: #666;
+        }
+        .user {
+            background-color: #e6f7ff;
+        }
+        .other {
+            background-color: #f9f9f9;
+        }
+        input[type="text"], button {
+            padding: 8px;
+            margin: 5px 0;
+        }
+        input[type="text"] {
+            width: 70%;
+        }
+        button {
+            width: 25%;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>Spring Actor Chat</h1>
+    
+    <div id="connection-status">Connecting...</div>
+    
+    <div id="join-form">
+        <h2>Join a Chat Room</h2>
+        <input type="text" id="room-id" placeholder="Enter room ID" value="room1">
+        <button id="join-button">Join Room</button>
+    </div>
+    
+    <div id="chat-container" class="hidden">
+        <h2>Chat Room: <span id="current-room"></span></h2>
+        <div id="messages"></div>
+        <div id="message-form">
+            <input type="text" id="message-input" placeholder="Type your message...">
+            <button id="send-button">Send</button>
+        </div>
+        <button id="leave-button">Leave Room</button>
+    </div>
+    
+    <script>
+        // DOM elements
+        const connectionStatus = document.getElementById('connection-status');
+        const joinForm = document.getElementById('join-form');
+        const roomIdInput = document.getElementById('room-id');
+        const joinButton = document.getElementById('join-button');
+        const chatContainer = document.getElementById('chat-container');
+        const currentRoom = document.getElementById('current-room');
+        const messagesContainer = document.getElementById('messages');
+        const messageInput = document.getElementById('message-input');
+        const sendButton = document.getElementById('send-button');
+        const leaveButton = document.getElementById('leave-button');
+        
+        // WebSocket connection
+        let socket;
+        let userId;
+        let roomId;
+        
+        // Initialize WebSocket connection
+        function connect() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws/chat`;
+            
+            socket = new WebSocket(wsUrl);
+            
+            socket.onopen = function() {
+                connectionStatus.textContent = 'Connected';
+                connectionStatus.style.color = 'green';
+            };
+            
+            socket.onclose = function() {
+                connectionStatus.textContent = 'Disconnected';
+                connectionStatus.style.color = 'red';
+                setTimeout(connect, 3000); // Try to reconnect after 3 seconds
+            };
+            
+            socket.onerror = function(error) {
+                console.error('WebSocket error:', error);
+                connectionStatus.textContent = 'Error connecting';
+                connectionStatus.style.color = 'red';
+            };
+            
+            socket.onmessage = function(event) {
+                const message = JSON.parse(event.data);
+                handleMessage(message);
+            };
+        }
+        
+        // Handle incoming messages
+        function handleMessage(message) {
+            console.log('Received message:', message);
+            
+            switch (message.type) {
+                case 'connected':
+                    userId = message.userId;
+                    addSystemMessage(`Connected with user ID: ${userId}`);
+                    break;
+                    
+                case 'joined':
+                    roomId = message.roomId;
+                    currentRoom.textContent = roomId;
+                    joinForm.classList.add('hidden');
+                    chatContainer.classList.remove('hidden');
+                    addSystemMessage(`You joined room: ${roomId}`);
+                    break;
+                    
+                case 'left':
+                    joinForm.classList.remove('hidden');
+                    chatContainer.classList.add('hidden');
+                    addSystemMessage(`You left room: ${message.roomId}`);
+                    break;
+                    
+                case 'user_joined':
+                    addSystemMessage(`User ${message.userId} joined the room`);
+                    break;
+                    
+                case 'user_left':
+                    addSystemMessage(`User ${message.userId} left the room`);
+                    break;
+                    
+                case 'message':
+                    if (message.userId === userId) {
+                        addUserMessage(message.message);
+                    } else {
+                        addOtherMessage(message.userId, message.message);
+                    }
+                    break;
+                    
+                case 'error':
+                    addSystemMessage(`Error: ${message.message}`);
+                    break;
+                    
+                default:
+                    console.warn('Unknown message type:', message.type);
+            }
+        }
+        
+        // Add a system message to the chat
+        function addSystemMessage(text) {
+            const messageElement = document.createElement('div');
+            messageElement.className = 'message system';
+            messageElement.textContent = text;
+            messagesContainer.appendChild(messageElement);
+            scrollToBottom();
+        }
+        
+        // Add a user message to the chat
+        function addUserMessage(text) {
+            const messageElement = document.createElement('div');
+            messageElement.className = 'message user';
+            messageElement.textContent = `You: ${text}`;
+            messagesContainer.appendChild(messageElement);
+            scrollToBottom();
+        }
+        
+        // Add another user's message to the chat
+        function addOtherMessage(userId, text) {
+            const messageElement = document.createElement('div');
+            messageElement.className = 'message other';
+            messageElement.textContent = `${userId}: ${text}`;
+            messagesContainer.appendChild(messageElement);
+            scrollToBottom();
+        }
+        
+        // Scroll to the bottom of the messages container
+        function scrollToBottom() {
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+        
+        // Join a chat room
+        function joinRoom() {
+            const roomIdValue = roomIdInput.value.trim();
+            if (!roomIdValue) {
+                alert('Please enter a room ID');
+                return;
+            }
+            
+            socket.send(JSON.stringify({
+                type: 'join',
+                roomId: roomIdValue
+            }));
+        }
+        
+        // Leave the current chat room
+        function leaveRoom() {
+            socket.send(JSON.stringify({
+                type: 'leave'
+            }));
+        }
+        
+        // Send a message to the chat room
+        function sendMessage() {
+            const messageText = messageInput.value.trim();
+            if (!messageText) {
+                return;
+            }
+            
+            socket.send(JSON.stringify({
+                type: 'message',
+                message: messageText
+            }));
+            
+            messageInput.value = '';
+        }
+        
+        // Event listeners
+        joinButton.addEventListener('click', joinRoom);
+        leaveButton.addEventListener('click', leaveRoom);
+        sendButton.addEventListener('click', sendMessage);
+        
+        messageInput.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        });
+        
+        // Initialize the connection
+        connect();
+    </script>
+</body>
+</html>
