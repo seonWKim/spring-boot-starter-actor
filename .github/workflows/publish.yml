@@ -8,27 +8,39 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: 📦 Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up JDK
+      - name: ☕ Set up Java 11
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
           java-version: 11
           cache: gradle
 
-      - name: Set up GPG
+      - name: 🧪 Check required secrets
         run: |
-          echo "$SIGNING_SECRET_KEY" | base64 --decode > /tmp/signing-key.gpg
-          gpg --batch --import /tmp/signing-key.gpg
-          gpg --export-secret-keys --output secring.gpg
+          echo "🔐 Checking required secrets..."
+          [[ -n "$ORG_GRADLE_PROJECT_mavenCentralUsername" ]] || { echo "❌ MAVEN_CENTRAL_USERNAME not set"; exit 1; }
+          [[ -n "$ORG_GRADLE_PROJECT_mavenCentralPassword" ]] || { echo "❌ MAVEN_CENTRAL_PASSWORD not set"; exit 1; }
+          [[ -n "$ORG_GRADLE_PROJECT_signingSecretKey" ]] || { echo "❌ SIGNING_SECRET_KEY not set"; exit 1; }
+          [[ -n "$ORG_GRADLE_PROJECT_signingPassword" ]] || { echo "❌ SIGNING_PASSWORD not set"; exit 1; }
+          echo "✅ All required secrets are present."
 
-      - name: Publish to Maven Central
-        run: ./gradlew publish --no-daemon --stacktrace
         env:
           ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
           ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
-          ORG_GRADLE_PROJECT_signingKeyId: ${{ secrets.SIGNING_KEY_ID }}
+          ORG_GRADLE_PROJECT_signingSecretKey: ${{ secrets.SIGNING_SECRET_KEY }}
           ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.SIGNING_PASSWORD }}
-          ORG_GRADLE_PROJECT_signingSecretKeyRingFile: ${{ github.workspace }}/secring.gpg
+
+      - name: 🚀 Publish to Maven Central (in-memory GPG)
+        run: |
+          echo "📦 Running ./gradlew publish..."
+          ./gradlew :core:publishAndReleaseToMavenCentra --no-configuration-cache
+          echo "✅ Publish completed successfully."
+
+        env:
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingSecretKey: ${{ secrets.SIGNING_SECRET_KEY }}
+          ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.SIGNING_PASSWORD }}
