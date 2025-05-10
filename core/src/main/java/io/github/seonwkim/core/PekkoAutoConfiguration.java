@@ -1,20 +1,18 @@
 package io.github.seonwkim.core;
 
-import java.lang.reflect.Method;
 import java.util.Map;
 
-import org.apache.pekko.actor.typed.Behavior;
-import io.github.seonwkim.core.impl.DefaultSpringActorSystemBuilder;
-import io.github.seonwkim.core.shard.ShardedActor;
-import io.github.seonwkim.core.shard.ShardedActorRegistry;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+
+import io.github.seonwkim.core.impl.DefaultSpringActorSystemBuilder;
+import io.github.seonwkim.core.shard.ShardedActor;
+import io.github.seonwkim.core.shard.ShardedActorRegistry;
 
 /**
  * Spring Boot auto-configuration for Pekko actor system.

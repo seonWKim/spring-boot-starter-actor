@@ -27,12 +27,14 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
-val generatedJavaDir = layout.buildDirectory.dir("generated/java")
-val generatedResourceDir = layout.buildDirectory.dir("generated/resources")
+val clearCoreBoot3Sources by tasks.registering(Delete::class) {
+    delete(
+        "src/main/java", "src/main/resources",
+        "src/test/java", "src/test/resources"
+    )
+}
 
-val generateJava by tasks.registering(Copy::class) {
-    from("../core/src/main/java")
-    into(generatedJavaDir)
+fun CopySpec.replaceJavaxWithJakarta() {
     filteringCharset = "UTF-8"
     filter { line: String ->
         line.replace("javax.validation", "jakarta.validation")
@@ -40,26 +42,52 @@ val generateJava by tasks.registering(Copy::class) {
     }
 }
 
-val generateResource by tasks.registering(Copy::class) {
+val syncJavaToBoot3 by tasks.registering(Copy::class) {
+    group = "boot3-porting"
+    description = "Copy and transform main Java sources from `core`."
+
+    dependsOn(clearCoreBoot3Sources)
+    from("../core/src/main/java")
+    into("src/main/java")
+    replaceJavaxWithJakarta()
+}
+
+val syncResourcesToBoot3 by tasks.registering(Copy::class) {
+    group = "boot3-porting"
+    description = "Copy main resources from `core`."
+
+    dependsOn(clearCoreBoot3Sources)
     from("../core/src/main/resources")
-    into(generatedResourceDir)
+    into("src/main/resources")
 }
 
-sourceSets {
-    named("main") {
-        java {
-            srcDir(generatedJavaDir)
-        }
-        resources {
-            srcDir(generatedResourceDir)
-        }
-    }
+val syncTestJavaToBoot3 by tasks.registering(Copy::class) {
+    group = "boot3-porting"
+    description = "Copy and transform test Java sources from `core`."
+
+    dependsOn(clearCoreBoot3Sources)
+    from("../core/src/test/java")
+    into("src/test/java")
+    replaceJavaxWithJakarta()
 }
 
-tasks.named<JavaCompile>("compileJava") {
-    dependsOn(generateJava)
+val syncTestResourcesToBoot3 by tasks.registering(Copy::class) {
+    group = "boot3-porting"
+    description = "Copy test resources from `core`."
+
+    dependsOn(clearCoreBoot3Sources)
+    from("../core/src/test/resources")
+    into("src/test/resources")
 }
 
-tasks.named<ProcessResources>("processResources") {
-    dependsOn(generateResource)
+val syncAllBoot3Sources by tasks.registering {
+    group = "boot3-porting"
+    description = "Sync all source and test files from `core` to `core-boot3`."
+
+    dependsOn(
+        syncJavaToBoot3,
+        syncResourcesToBoot3,
+        syncTestJavaToBoot3,
+        syncTestResourcesToBoot3
+    )
 }
