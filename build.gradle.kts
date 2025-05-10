@@ -27,9 +27,10 @@ subprojects {
     }
 
     mavenPublishing {
+        val isBoot3 = project.name.endsWith("boot3")
         coordinates(
             groupId = project.findProperty("group") as String,
-            artifactId = project.findProperty("artifactId") as String,
+            artifactId = (if (isBoot3) project.findProperty("artifactId-boot3") else project.findProperty("artifactId")) as String,
             version = project.findProperty("version") as String
         )
 
