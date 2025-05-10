@@ -23,7 +23,7 @@ repositories {
 
 allprojects {
 	group = "io.github.seonwkim"
-	version = "0.0.4"
+	version = rootProject.extra["projectVersion"] as String
 }
 
 subprojects {
