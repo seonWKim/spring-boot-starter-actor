@@ -1,4 +1,4 @@
-name: Bump Project Version
+name: Create New Release Version
 
 on:
   workflow_dispatch:
