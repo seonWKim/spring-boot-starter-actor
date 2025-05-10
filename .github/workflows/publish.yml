@@ -55,7 +55,7 @@ jobs:
       - name: 🚀 Publish to Maven Central (in-memory GPG)
         run: |
           echo "📦 Running ./gradlew :core-boot3:publishAndReleaseToMavenCentral..."
-          ./gradlew :core-boot3:publishAndReleaseToMavenCentral --no-configuration-cache -Dorg.gradle.unsafe.ignoreUntrackedBuildDependencies=true
+          ./gradlew :core-boot3:publishAndReleaseToMavenCentral --no-configuration-cache
 
           echo "✅ Publish completed successfully."
 

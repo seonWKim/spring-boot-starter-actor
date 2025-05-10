@@ -13,6 +13,7 @@ repositories {
 }
 
 java {
+    withSourcesJar()
     sourceCompatibility = JavaVersion.VERSION_17
     targetCompatibility = JavaVersion.VERSION_17
 }
@@ -29,32 +30,30 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
-val generatedJavaDir = layout.buildDirectory.dir("generated/java")
-val generatedResourceDir = layout.buildDirectory.dir("generated/resources")
+val generatedJavaDirFile = layout.buildDirectory.dir("generated/java").get().asFile
+val generatedResourceDirFile = layout.buildDirectory.dir("generated/resources").get().asFile
 
 val generateJava by tasks.registering(Copy::class) {
     from("../core/src/main/java")
-    into(generatedJavaDir)
+    into(generatedJavaDirFile)
     filteringCharset = "UTF-8"
     filter { line: String ->
         line.replace("javax.validation", "jakarta.validation")
             .replace("javax.annotation", "jakarta.annotation")
     }
+    outputs.dir(generatedJavaDirFile)
 }
 
 val generateResource by tasks.registering(Copy::class) {
     from("../core/src/main/resources")
-    into(generatedResourceDir)
+    into(generatedResourceDirFile)
+    outputs.dir(generatedResourceDirFile)
 }
 
 sourceSets {
     named("main") {
-        java {
-            srcDir(generatedJavaDir)
-        }
-        resources {
-            srcDir(generatedResourceDir)
-        }
+        java.srcDir(generatedJavaDirFile)
+        resources.srcDir(generatedResourceDirFile)
     }
 }
 
@@ -66,6 +65,12 @@ tasks.named<ProcessResources>("processResources") {
     dependsOn(generateResource)
 }
 
-tasks.named("classes") {
+tasks.named<Jar>("sourcesJar") {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
     dependsOn(generateJava, generateResource)
+    from(generatedJavaDirFile)
+    from(generatedResourceDirFile)
+    inputs.dir(generatedJavaDirFile)
+    inputs.dir(generatedResourceDirFile)
 }
