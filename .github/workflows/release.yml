@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-      contents: write  # required to push and merge
+      contents: write  # needed to push, merge, and delete branches
 
     steps:
       - name: 📥 Checkout main branch
@@ -27,11 +27,11 @@ jobs:
           ref: main
           fetch-depth: 0
 
-      - name: 🧪 Extract current version
+      - name: 🧪 Extract current version from gradle.properties
         id: get_version
         run: |
-          echo "🔍 Reading version from settings.gradle.kts..."
-          version=$(grep 'projectVersion' settings.gradle.kts | sed -E 's/.*"([0-9]+\.[0-9]+\.[0-9]+)".*/\1/')
+          echo "🔍 Reading version from gradle.properties..."
+          version=$(grep '^version=' gradle.properties | cut -d'=' -f2)
           echo "Current version: $version"
           echo "version=$version" >> $GITHUB_OUTPUT
 
@@ -64,10 +64,12 @@ jobs:
         run: |
           git checkout -b release/${{ steps.bump.outputs.new_version }}
 
-      - name: 📝 Update version in settings.gradle.kts
+      - name: 📝 Update version in gradle.properties
         run: |
-          sed -i -E "s/(projectVersion\\s*=\\s*\")[0-9]+\\.[0-9]+\\.[0-9]+(\".*)/\\1${{ steps.bump.outputs.new_version }}\\2/" settings.gradle.kts
-          git diff settings.gradle.kts
+          echo "✏️ Updating gradle.properties version..."
+          sed -i.bak -E "s/^version=[0-9]+\.[0-9]+\.[0-9]+/version=${{ steps.bump.outputs.new_version }}/" gradle.properties
+          rm gradle.properties.bak
+          git diff gradle.properties
 
       - name: ✅ Commit version bump
         run: |
@@ -79,7 +81,7 @@ jobs:
             exit 0
           fi
           
-          git add settings.gradle.kts
+          git add gradle.properties
           git commit -m "chore: bump version to ${{ steps.bump.outputs.new_version }}"
 
       - name: 🚀 Push release branch
