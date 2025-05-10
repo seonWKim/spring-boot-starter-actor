@@ -15,6 +15,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 import org.springframework.test.context.TestPropertySource;
 
@@ -126,6 +127,7 @@ public class PekkoAutoConfigurationTest {
     @Configuration
     static class CustomOverrideConfiguration {
         @Bean
+        @Primary
         public RootGuardianSupplierWrapper customRootGuardianSupplierWrapper() {
             return new RootGuardianSupplierWrapper(CustomTestRootGuardian::create);
         }

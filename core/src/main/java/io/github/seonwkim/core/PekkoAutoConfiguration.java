@@ -36,7 +36,7 @@ public class PekkoAutoConfiguration {
      * @return A SpringActorSystemBuilder
      */
     @Bean
-    @ConditionalOnMissingBean
+    @ConditionalOnMissingBean(SpringActorSystemBuilder.class)
     public SpringActorSystemBuilder actorSystemBuilder(
             PekkoProperties properties,
             RootGuardianSupplierWrapper rootGuardianSupplierWrapper,
@@ -57,7 +57,7 @@ public class PekkoAutoConfiguration {
      * @return A SpringActorSystem
      */
     @Bean
-    @ConditionalOnMissingBean
+    @ConditionalOnMissingBean(SpringActorSystem.class)
     public SpringActorSystem actorSystem(SpringActorSystemBuilder builder) {
         return builder.build();
     }
@@ -69,7 +69,7 @@ public class PekkoAutoConfiguration {
      * @return A RootGuardianSupplierWrapper
      */
     @Bean
-    @ConditionalOnMissingBean
+    @ConditionalOnMissingBean(RootGuardianSupplierWrapper.class)
     public RootGuardianSupplierWrapper rootGuardianSupplierWrapper(ActorTypeRegistry actorTypeRegistry) {
         return new RootGuardianSupplierWrapper(() -> RootGuardian.create(actorTypeRegistry));
     }
@@ -82,7 +82,7 @@ public class PekkoAutoConfiguration {
      * @return An ActorTypeRegistry with all SpringActor beans registered
      */
     @Bean
-    @ConditionalOnMissingBean
+    @ConditionalOnMissingBean(ActorTypeRegistry.class)
     public ActorTypeRegistry actorTypeRegistry(ApplicationContext context) {
         ActorTypeRegistry registry = new ActorTypeRegistry();
         Map<String, SpringActor> actorBeans = context.getBeansOfType(SpringActor.class);
@@ -109,7 +109,7 @@ public class PekkoAutoConfiguration {
      * @return A ShardedActorRegistry with all ShardedActor beans registered
      */
     @Bean
-    @ConditionalOnMissingBean
+    @ConditionalOnMissingBean(ShardedActorRegistry.class)
     public ShardedActorRegistry shardedActorRegistry(ApplicationContext ctx) {
         ShardedActorRegistry registry = new ShardedActorRegistry();
         Map<String, ShardedActor> beans = ctx.getBeansOfType(ShardedActor.class);
