@@ -54,8 +54,12 @@ jobs:
 
       - name: 🚀 Publish to Maven Central (in-memory GPG)
         run: |
-          echo "📦 Running ./gradlew publish..."
-          ./gradlew :core:publishAndReleaseToMavenCentra --no-configuration-cache
+          echo "📦 Running ./gradlew :core:publishAndReleaseToMavenCentral..."
+          ./gradlew :core:publishAndReleaseToMavenCentral --no-configuration-cache
+          
+          echo "📦 Running ./gradlew :core-boot3:publishAndReleaseToMavenCentral..."
+          ./gradlew :core-boot3:publishAndReleaseToMavenCentral --no-configuration-cache
+
           echo "✅ Publish completed successfully."
 
         env:
