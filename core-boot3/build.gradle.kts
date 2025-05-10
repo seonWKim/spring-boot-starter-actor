@@ -13,7 +13,6 @@ repositories {
 }
 
 java {
-    withSourcesJar()
     sourceCompatibility = JavaVersion.VERSION_17
     targetCompatibility = JavaVersion.VERSION_17
 }
@@ -65,4 +64,8 @@ tasks.named<JavaCompile>("compileJava") {
 
 tasks.named<ProcessResources>("processResources") {
     dependsOn(generateResource)
+}
+
+tasks.named("classes") {
+    dependsOn(generateJava, generateResource)
 }
