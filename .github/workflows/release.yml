@@ -91,6 +91,9 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.DEPLOY_GITHUB_TOKEN }}
         run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}
           git checkout main
           git pull origin main
           git merge --no-ff release/${{ steps.bump.outputs.new_version }} -m "Merge release/${{ steps.bump.outputs.new_version }} into main"
