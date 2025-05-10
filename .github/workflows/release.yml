@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-      contents: write  # needed to push, merge, and delete branches
+      contents: write  # needed to push, merge, delete, tag
 
     steps:
       - name: 📥 Checkout main branch
@@ -32,7 +32,6 @@ jobs:
         run: |
           echo "🔍 Reading version from gradle.properties..."
           version=$(grep '^version=' gradle.properties | cut -d'=' -f2)
-          echo "Current version: $version"
           echo "version=$version" >> $GITHUB_OUTPUT
 
       - name: 🔢 Calculate new version
@@ -57,7 +56,7 @@ jobs:
           esac
 
           NEW_VERSION="$MAJOR.$MINOR.$PATCH"
-          echo "🆕 New version will be $NEW_VERSION"
+          echo "🆕 New version: $NEW_VERSION"
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
 
       - name: 🌱 Create release branch
@@ -66,7 +65,7 @@ jobs:
 
       - name: 📝 Update version in gradle.properties
         run: |
-          echo "✏️ Updating gradle.properties version..."
+          echo "✏️ Updating gradle.properties..."
           sed -i.bak -E "s/^version=[0-9]+\.[0-9]+\.[0-9]+/version=${{ steps.bump.outputs.new_version }}/" gradle.properties
           rm gradle.properties.bak
           git diff gradle.properties
@@ -75,12 +74,12 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          
+
           if git diff --quiet; then
             echo "⚠️ No changes to commit."
             exit 0
           fi
-          
+
           git add gradle.properties
           git commit -m "chore: bump version to ${{ steps.bump.outputs.new_version }}"
 
@@ -94,6 +93,13 @@ jobs:
           git pull origin main
           git merge --no-ff release/${{ steps.bump.outputs.new_version }} -m "Merge release/${{ steps.bump.outputs.new_version }} into main"
           git push origin main
+
+      - name: 🔖 Create Git tag v<version>
+        run: |
+          TAG_NAME="v${{ steps.bump.outputs.new_version }}"
+          echo "🏷 Creating tag $TAG_NAME"
+          git tag $TAG_NAME
+          git push origin $TAG_NAME
 
       - name: 🧹 Delete release branch
         run: |
