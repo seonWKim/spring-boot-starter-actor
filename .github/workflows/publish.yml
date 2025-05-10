@@ -15,6 +15,20 @@ jobs:
     steps:
       - name: 📦 Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # ensure full history so we can resolve any tag
+          ref: ${{ github.event.inputs.tag }}
+
+      - name: 🔍 Validate tag exists
+        run: |
+          echo "🔎 Verifying that tag '${{ github.event.inputs.tag }}' exists..."
+          git fetch --tags
+          if git rev-parse "${{ github.event.inputs.tag }}" >/dev/null 2>&1; then
+            echo "✅ Tag found."
+          else
+            echo "❌ Tag '${{ github.event.inputs.tag }}' does not exist."
+            exit 1
+          fi
 
       - name: ☕ Set up Java 11
         uses: actions/setup-java@v3
