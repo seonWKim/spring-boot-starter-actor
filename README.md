@@ -1,5 +1,9 @@
 # Spring Boot Actor Starter
 
+<p align="center">
+  <img src="./logo.png" alt="Library Logo" width="200"/>
+</p>
+
 A library that integrates Spring Boot with the actor model using [Pekko](https://pekko.apache.org/) (an open-source, community-driven fork of Akka).
 
 ## What is this project about?
