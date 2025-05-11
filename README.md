@@ -47,7 +47,7 @@ Add the dependency to your project:
 
 ```gradle
 // Gradle
-implementation 'io.github.seonwkim:spring-boot-starter-actor:0.0.3'
+implementation 'io.github.seonwkim:spring-boot-starter-actor:0.0.10'
 ```
 
 ```xml
@@ -55,7 +55,7 @@ implementation 'io.github.seonwkim:spring-boot-starter-actor:0.0.3'
 <dependency>
     <groupId>io.github.seonwkim</groupId>
     <artifactId>spring-boot-starter-actor</artifactId>
-    <version>0.0.3</version>
+    <version>0.0.10</version>
 </dependency>
 ```
 
