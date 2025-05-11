@@ -1,6 +1,6 @@
 spring:
   application:
-    name: spring-pekko
+    name: spring-pekko-synchronization
   actor-enabled: true
   actor:
     pekko:
@@ -22,11 +22,38 @@ spring:
           - pekko://spring-pekko-example@127.0.0.1:2553
         downing-provider-class: org.apache.pekko.cluster.sbr.SplitBrainResolverProvider
 
+  # Database configuration
+  datasource:
+    url: jdbc:mysql://localhost:3306/counter_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: root
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  # JPA configuration
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL8Dialect
+    show-sql: true
+
+  # Redis configuration
+  redis:
+    host: localhost
+    port: 6379
+
+  # Initialize schema
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+
 server:
   port: 8080
 
-
-
 logging:
   level:
-    org.apache.pekko: DEBUG
+    org.apache.pekko: INFO
+    io.github.seonwkim.example: DEBUG
+    org.springframework.data: INFO

@@ -15,8 +15,15 @@ dependencies {
 
 	implementation("org.springframework.boot:spring-boot-starter")
 	implementation("org.springframework.boot:spring-boot-starter-webflux")
+	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
+	implementation("org.springframework.boot:spring-boot-starter-data-redis")
 
-	implementation("org.springframework.boot:spring-boot-starter")
+	// MySQL
+	implementation("mysql:mysql-connector-java:8.0.33")
+
+	// Redis
+	implementation("org.redisson:redisson-spring-boot-starter:3.23.5")
+
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
