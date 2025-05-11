@@ -27,7 +27,6 @@ spring:
     url: jdbc:mysql://localhost:3306/counter_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
     username: root
     password: root
-    driver-class-name: com.mysql.cj.jdbc.Driver
 
   # JPA configuration
   jpa:
@@ -39,9 +38,10 @@ spring:
     show-sql: true
 
   # Redis configuration
-  redis:
-    host: localhost
-    port: 6379
+  data:
+    redis:
+      host: localhost
+      port: 6379
 
   # Initialize schema
   sql:

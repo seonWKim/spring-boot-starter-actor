@@ -10,13 +10,13 @@ kill_application() {
     echo "No process running on port $port"
   fi
 
-  log_file="log_${port}.txt"
-  if [ -f "$log_file" ]; then
-    rm "$log_file"
-    echo "Removed file $log_file"
-  else
-    echo "No log file $log_file found"
-  fi
+  # Remove any matching log files
+  for file in log_*_"$port".txt; do
+    if [ -f "$file" ]; then
+      rm "$file"
+      echo "🧹 Removed file $file"
+    fi
+  done
 }
 
 kill_application 8080
