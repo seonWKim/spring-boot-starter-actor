@@ -34,4 +34,5 @@ Thank you for considering contributing to Spring Boot Starter Actor! This docume
 - [ ] Implement metrics and monitoring hooks
 
 ### Additional TODOs
+- [ ] Serialization best practices 
 - [ ] Add performance benchmarks for critical components
