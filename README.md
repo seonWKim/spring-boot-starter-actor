@@ -274,7 +274,7 @@ The project includes two example applications:
 4. 
 ```shell
 # start chat/cluster 
-$ sh cluster-start.sh <chat|cluster> io.github.seonwkim.example.SpringPekkoApplication 8080 2551 3
+$ sh cluster-start.sh <chat|cluster|synchronization> io.github.seonwkim.example.SpringPekkoApplication 8080 2551 3
 
 # stop cluster 
 $ sh cluster-stop.sh  

@@ -42,7 +42,7 @@ public class CounterController {
      * @param counterId The ID of the counter to increment
      * @return A Mono containing the new counter value
      */
-    @PostMapping("/db/{counterId}/increment")
+    @GetMapping("/db/{counterId}/increment")
     public Mono<Long> incrementDbCounter(@PathVariable String counterId) {
         return dbCounterService.increment(counterId);
     }
@@ -64,7 +64,7 @@ public class CounterController {
      * @param counterId The ID of the counter to increment
      * @return A Mono containing the new counter value
      */
-    @PostMapping("/redis/{counterId}/increment")
+    @GetMapping("/redis/{counterId}/increment")
     public Mono<Long> incrementRedisCounter(@PathVariable String counterId) {
         return redisCounterService.increment(counterId);
     }
@@ -86,7 +86,7 @@ public class CounterController {
      * @param counterId The ID of the counter to increment
      * @return A Mono containing the new counter value
      */
-    @PostMapping("/actor/{counterId}/increment")
+    @GetMapping("/actor/{counterId}/increment")
     public Mono<Long> incrementActorCounter(@PathVariable String counterId) {
         return actorCounterService.increment(counterId);
     }
