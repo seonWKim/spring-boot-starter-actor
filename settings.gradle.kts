@@ -5,5 +5,6 @@ include(":core-boot3")
 
 include(":example:chat")
 include(":example:cluster")
+include(":example:observability")
 include(":example:simple")
 include(":example:synchronization")

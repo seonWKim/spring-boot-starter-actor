@@ -19,6 +19,7 @@ dependencies {
 	api("org.apache.pekko:pekko-actor-typed_3")
 	api("org.apache.pekko:pekko-cluster-typed_3")
 	api("org.apache.pekko:pekko-cluster-sharding-typed_3")
+	api("org.apache.pekko:pekko-cluster-metrics_3")
 	api("org.springframework.boot:spring-boot-starter")
 
 	testImplementation("org.springframework.boot:spring-boot-starter-test")

@@ -8,6 +8,7 @@ import org.apache.pekko.actor.typed.ActorSystem;
 import org.apache.pekko.actor.typed.Props;
 import org.apache.pekko.actor.typed.javadsl.AskPattern;
 import org.apache.pekko.cluster.ClusterEvent;
+import org.apache.pekko.cluster.metrics.ClusterMetricsExtension;
 import org.apache.pekko.cluster.sharding.typed.javadsl.ClusterSharding;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityRef;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
@@ -15,6 +16,8 @@ import org.apache.pekko.cluster.typed.Cluster;
 import org.apache.pekko.cluster.typed.Subscribe;
 import io.github.seonwkim.core.behavior.ClusterEventBehavior;
 import io.github.seonwkim.core.impl.DefaultRootGuardian;
+
+import org.slf4j.Logger;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.lang.Nullable;
@@ -29,6 +32,8 @@ public class SpringActorSystem implements DisposableBean {
     private final ActorSystem<RootGuardian.Command> actorSystem;
     @Nullable private final Cluster cluster;
     @Nullable private final ClusterSharding clusterSharding;
+    @Nullable private final ClusterMetricsExtension clusterMetricsExtension;
+
 
     private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(3); // configurable if needed
 
@@ -41,6 +46,7 @@ public class SpringActorSystem implements DisposableBean {
         this.actorSystem = actorSystem;
         this.cluster = null;
         this.clusterSharding = null;
+        this.clusterMetricsExtension = null;
     }
 
     /**
@@ -61,6 +67,7 @@ public class SpringActorSystem implements DisposableBean {
         this.actorSystem = actorSystem;
         this.cluster = cluster;
         this.clusterSharding = clusterSharding;
+        this.clusterMetricsExtension = ClusterMetricsExtension.get(actorSystem);
 
         ActorRef<ClusterEvent.ClusterDomainEvent> listener = actorSystem.systemActorOf(
                 ClusterEventBehavior.create(publisher), "cluster-event-listener", Props.empty());
@@ -77,6 +84,15 @@ public class SpringActorSystem implements DisposableBean {
     }
 
     /**
+     * Returns the underlying Pekko ActorSystem's Logger.
+     *
+     * @return The Logger
+     */
+    public Logger getLogger() {
+        return actorSystem.log();
+    }
+
+    /**
      * Returns the Pekko Cluster if this SpringActorSystem is in cluster mode.
      *
      * @return The Pekko Cluster, or null if this SpringActorSystem is in local mode
@@ -84,6 +100,16 @@ public class SpringActorSystem implements DisposableBean {
     @Nullable
     public Cluster getCluster() {
         return cluster;
+    }
+
+    /**
+     * Returns the Pekko Cluster Metrics Extension if this SpringActorSystem is in cluster mode.
+     *
+     * @return The Pekko Cluster Metrics Extension, or null if this SpringActorSystem is in local mode
+     */
+    @Nullable
+    public ClusterMetricsExtension getClusterMetricsExtension() {
+        return clusterMetricsExtension;
     }
 
     /**

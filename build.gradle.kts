@@ -72,11 +72,13 @@ subprojects {
             api("org.apache.pekko:pekko-actor-typed_3:$pekkoVersion")
             api("org.apache.pekko:pekko-cluster-typed_3:$pekkoVersion")
             api("org.apache.pekko:pekko-cluster-sharding-typed_3:$pekkoVersion")
+            api("org.apache.pekko:pekko-cluster-metrics_3:$pekkoVersion")
         }
 
         implementation("org.apache.pekko:pekko-actor-typed_3:$pekkoVersion")
         implementation("org.apache.pekko:pekko-cluster-typed_3:$pekkoVersion")
         implementation("org.apache.pekko:pekko-cluster-sharding-typed_3:$pekkoVersion")
+        implementation("org.apache.pekko:pekko-cluster-metrics_3:$pekkoVersion")
 
         testImplementation("org.apache.pekko:pekko-actor-testkit-typed_3:$pekkoVersion")
         testImplementation("org.awaitility:awaitility:4.3.0")
