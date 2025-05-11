@@ -46,15 +46,25 @@ This project aims to bring together the best of both worlds:
 Add the dependency to your project:
 
 ```gradle
-// Gradle
+// Gradle(spring boot 2.7.x) 
 implementation 'io.github.seonwkim:spring-boot-starter-actor:0.0.10'
+
+// Gradle(spring boot 3.2.x) 
+implementation 'io.github.seonwkim:spring-boot-starter-actor_3:0.0.10'
 ```
 
 ```xml
-<!-- Maven -->
+<!-- Maven(spring boot 2.7.x) -->
 <dependency>
     <groupId>io.github.seonwkim</groupId>
     <artifactId>spring-boot-starter-actor</artifactId>
+    <version>0.0.10</version>
+</dependency>
+  
+<!-- Maven(spring boot 3.2.x) -->
+<dependency>
+    <groupId>io.github.seonwkim</groupId>
+    <artifactId>spring-boot-starter-actor_3</artifactId>
     <version>0.0.10</version>
 </dependency>
 ```
