@@ -69,16 +69,15 @@ subprojects {
     val pekkoVersion = "1.1.3"
     dependencies {
         constraints {
-            api("org.apache.pekko:pekko-actor-typed_3:$pekkoVersion")
-            api("org.apache.pekko:pekko-cluster-typed_3:$pekkoVersion")
-            api("org.apache.pekko:pekko-cluster-sharding-typed_3:$pekkoVersion")
+            api("org.apache.pekko:pekko-bom_3:$pekkoVersion")
         }
 
-        implementation("org.apache.pekko:pekko-actor-typed_3:$pekkoVersion")
-        implementation("org.apache.pekko:pekko-cluster-typed_3:$pekkoVersion")
-        implementation("org.apache.pekko:pekko-cluster-sharding-typed_3:$pekkoVersion")
+        implementation(platform("org.apache.pekko:pekko-bom_3:$pekkoVersion"))
+        implementation("org.apache.pekko:pekko-cluster-typed_3")
+        implementation("org.apache.pekko:pekko-cluster-sharding-typed_3")
+        implementation("org.apache.pekko:pekko-serialization-jackson_3")
 
-        testImplementation("org.apache.pekko:pekko-actor-testkit-typed_3:$pekkoVersion")
+        testImplementation("org.apache.pekko:pekko-actor-testkit-typed_3")
         testImplementation("org.awaitility:awaitility:4.3.0")
     }
 
