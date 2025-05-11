@@ -2,7 +2,6 @@
 CREATE TABLE IF NOT EXISTS counter (
     counter_id VARCHAR(255) NOT NULL,
     value      BIGINT       NOT NULL,
-    version    BIGINT       NOT NULL,
     PRIMARY KEY (counter_id)
 )
     ENGINE = InnoDB;

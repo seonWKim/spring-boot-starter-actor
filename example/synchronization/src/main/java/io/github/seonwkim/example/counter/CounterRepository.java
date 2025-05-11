@@ -13,17 +13,18 @@ import java.util.Optional;
  * Repository for accessing Counter entities in the database.
  * Provides methods for finding, saving, and locking counters.
  */
-@Repository
 public interface CounterRepository extends JpaRepository<Counter, String> {
 
     /**
-     * Finds a counter by its ID with a pessimistic write lock.
-     * This ensures that only one thread can access the counter at a time.
+     * Finds a counter by its ID using a native SQL query with a FOR UPDATE lock.
+     * This ensures that the row is locked for writing during the transaction.
      *
-     * @param counterId The ID of the counter to find
-     * @return An Optional containing the counter if found, or empty if not found
+     * @param counterId The ID of the counter to lock
+     * @return An Optional containing the counter if found
      */
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT c FROM Counter c WHERE c.counterId = :counterId")
+    @Query(
+            value = "SELECT * FROM counter WHERE counter_id = :counterId FOR UPDATE",
+            nativeQuery = true
+    )
     Optional<Counter> findByIdWithLock(@Param("counterId") String counterId);
 }

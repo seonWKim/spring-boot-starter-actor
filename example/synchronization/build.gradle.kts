@@ -17,6 +17,7 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-webflux")
 	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
 	implementation("org.springframework.boot:spring-boot-starter-data-redis-reactive")
+	implementation("org.springdoc:springdoc-openapi-webflux-ui:1.7.0")
 
 	// MySQL
 	runtimeOnly("com.mysql:mysql-connector-j:8.0.33")

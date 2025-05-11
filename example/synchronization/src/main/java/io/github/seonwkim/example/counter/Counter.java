@@ -4,11 +4,9 @@ import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
-import javax.persistence.Version;
 
 /**
  * JPA entity representing a counter in the database.
- * Uses optimistic locking with a version column.
  */
 @Entity
 @Table(name = "counter")
@@ -20,10 +18,6 @@ public class Counter {
 
     @Column(name = "value", nullable = false)
     private long value;
-
-    @Version
-    @Column(name = "version")
-    private long version;
 
     /**
      * Default constructor required by JPA.
@@ -76,24 +70,6 @@ public class Counter {
      */
     public void setValue(long value) {
         this.value = value;
-    }
-
-    /**
-     * Gets the version.
-     *
-     * @return The version
-     */
-    public long getVersion() {
-        return version;
-    }
-
-    /**
-     * Sets the version.
-     *
-     * @param version The version
-     */
-    public void setVersion(long version) {
-        this.version = version;
     }
 
     /**
