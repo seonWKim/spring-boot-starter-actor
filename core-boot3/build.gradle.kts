@@ -15,10 +15,19 @@ java {
     targetCompatibility = JavaVersion.VERSION_17
 }
 
+dependencyManagement {
+    imports {
+        // pekko-serialization-jackson_3 require minimum 2.17.3 version of jackson
+        mavenBom("com.fasterxml.jackson:jackson-bom:2.17.3")
+    }
+}
+
 dependencies {
     api("org.apache.pekko:pekko-actor-typed_3")
     api("org.apache.pekko:pekko-cluster-typed_3")
     api("org.apache.pekko:pekko-cluster-sharding-typed_3")
+    api("org.apache.pekko:pekko-serialization-jackson_3")
+
     api("org.springframework.boot:spring-boot-starter")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
