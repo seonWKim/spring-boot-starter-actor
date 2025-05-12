@@ -1,4 +1,4 @@
-# Spring Boot Starter Actor  
+# Spring Boot Starter Actor
 
 <p align="center">
   <img src="./logo.png" alt="Library Logo" width="200"/>
@@ -8,21 +8,28 @@
   <img src="chat.gif" alt="Demo"/>
 </div>
 
-A library that integrates Spring Boot with the actor model using [Pekko](https://pekko.apache.org/) (an open-source, community-driven fork of Akka).
+A library that integrates Spring Boot with the actor model using [Pekko](https://pekko.apache.org/) (an
+open-source, community-driven fork of Akka).
 
 ## What is this project about?
 
-This project bridges the gap between Spring Boot and the actor model, allowing developers to build stateful applications using familiar Spring Boot patterns while leveraging the power of the actor model for managing state and concurrency.
+This project bridges the gap between Spring Boot and the actor model, allowing developers to build stateful
+applications using familiar Spring Boot patterns while leveraging the power of the actor model for managing
+state and concurrency.
 
 ### Why?
 
-Many use Java with Spring (usually Spring Boot). Modern programming guides recommend building stateless architectures. But sometimes, stateful features are needed, such as in chat applications where the server needs to know where clients in the same chatroom are located.
+Many use Java with Spring (usually Spring Boot). Modern programming guides recommend building stateless
+architectures. But sometimes, stateful features are needed, such as in chat applications where the server needs
+to know where clients in the same chatroom are located.
 
 The actor model is a well-known programming model suited for stateful applications:
+
 - Encapsulate logic into actors
 - Communicate by sending messages between them
 
 This project aims to bring together the best of both worlds:
+
 - Spring Boot's ease of use and extensive ecosystem
 - The actor model's natural approach to encapsulation and state management
 
@@ -56,16 +63,16 @@ implementation 'io.github.seonwkim:spring-boot-starter-actor_3:0.0.10'
 ```xml
 <!-- Maven(spring boot 2.7.x) -->
 <dependency>
-    <groupId>io.github.seonwkim</groupId>
-    <artifactId>spring-boot-starter-actor</artifactId>
-    <version>0.0.10</version>
+  <groupId>io.github.seonwkim</groupId>
+  <artifactId>spring-boot-starter-actor</artifactId>
+  <version>0.0.10</version>
 </dependency>
-  
-<!-- Maven(spring boot 3.2.x) -->
+
+  <!-- Maven(spring boot 3.2.x) -->
 <dependency>
-    <groupId>io.github.seonwkim</groupId>
-    <artifactId>spring-boot-starter-actor_3</artifactId>
-    <version>0.0.10</version>
+<groupId>io.github.seonwkim</groupId>
+<artifactId>spring-boot-starter-actor_3</artifactId>
+<version>0.0.10</version>
 </dependency>
 ```
 
@@ -119,15 +126,18 @@ spring:
           - pekko://your-application-name@127.0.0.1:2553
         downing-provider-class: org.apache.pekko.cluster.sbr.SplitBrainResolverProvider
 ```
-Make sure your `spring.actor.pekko.name` and the cluster's name and seed node hostnames are the same.  
+
+Make sure your `spring.actor.pekko.name` and the cluster's name and seed node hostnames are the same.
 
 ### Sharded Entities
 
-Sharded entities allow you to distribute actor instances across a cluster. This is useful for stateful actors that need to be distributed for scalability and fault tolerance.
+Sharded entities allow you to distribute actor instances across a cluster. This is useful for stateful actors
+that need to be distributed for scalability and fault tolerance.
 
 To create a sharded actor:
 
 ```java
+
 @Component
 public class MyShardedActor implements ShardedActor<MyShardedActor.Command> {
 
@@ -135,14 +145,18 @@ public class MyShardedActor implements ShardedActor<MyShardedActor.Command> {
     public static final EntityTypeKey<Command> TYPE_KEY = EntityTypeKey.create(Command.class, "MyShardedActor");
 
     // Define the command interface
-    public interface Command extends Serializable {}
+    public interface Command extends JsonSerializable {}
 
     // Define command messages
     public static class DoSomething implements Command {
         public final ActorRef<String> replyTo;
         public final String data;
 
-        public DoSomething(ActorRef<String> replyTo, String data) {
+        @JsonCreator
+        public DoSomething(
+                @JsonProperty("replyTo") ActorRef<String> replyTo,
+                @JsonProperty("data") String data
+        ) {
             this.replyTo = replyTo;
             this.data = data;
         }
@@ -178,6 +192,7 @@ public class MyShardedActor implements ShardedActor<MyShardedActor.Command> {
 To use a sharded actor in a service:
 
 ```java
+
 @Service
 public class MyService {
 
@@ -189,12 +204,12 @@ public class MyService {
 
     public Mono<String> processData(String data, String entityId) {
         // Get a reference to the sharded actor with the specified entityId
-        SpringShardedActorRef<MyShardedActor.Command> actorRef = 
-            springActorSystem.entityRef(MyShardedActor.TYPE_KEY, entityId);
+        SpringShardedActorRef<MyShardedActor.Command> actorRef =
+                springActorSystem.entityRef(MyShardedActor.TYPE_KEY, entityId);
 
         // Send a message to the actor and get a response
         CompletionStage<String> response = actorRef.ask(
-                replyTo -> new MyShardedActor.DoSomething(replyTo, data), 
+                replyTo -> new MyShardedActor.DoSomething(replyTo, data),
                 Duration.ofSeconds(3));
 
         return Mono.fromCompletionStage(response);
@@ -202,11 +217,13 @@ public class MyService {
 }
 ```
 
-The `entityId` parameter determines which entity instance will handle the message. Messages with the same entityId will always be routed to the same actor instance, ensuring that state is maintained correctly.
+The `entityId` parameter determines which entity instance will handle the message. Messages with the same
+entityId will always be routed to the same actor instance, ensuring that state is maintained correctly.
 
 ### Creating an Actor
 
 ```java
+
 @Component
 public class HelloActor implements SpringActor {
 
@@ -257,6 +274,7 @@ public class HelloActor implements SpringActor {
 ### Using the Actor in a Service
 
 ```java
+
 @Service
 public class HelloService {
 
@@ -281,7 +299,8 @@ The project includes two example applications:
 1. **Simple Example**: Demonstrates using actors in local mode
 2. **Cluster Example**: Demonstrates using actors in a clustered environment
 3. **Chat Example**: Demonstrates using actors in a chatting application
-4. 
+4.
+
 ```shell
 # start chat/cluster 
 $ sh cluster-start.sh <chat|cluster|synchronization> io.github.seonwkim.example.SpringPekkoApplication 8080 2551 3

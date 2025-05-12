@@ -4,17 +4,21 @@ import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
+import org.apache.pekko.cluster.sharding.typed.ShardingMessageExtractor;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityContext;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
-import org.apache.pekko.cluster.sharding.typed.ShardingMessageExtractor;
-import io.github.seonwkim.core.shard.ShardedActor;
-import io.github.seonwkim.core.shard.ShardEnvelope;
-import io.github.seonwkim.core.shard.DefaultShardingMessageExtractor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.io.Serializable;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import io.github.seonwkim.core.serialization.JsonSerializable;
+import io.github.seonwkim.core.shard.DefaultShardingMessageExtractor;
+import io.github.seonwkim.core.shard.ShardEnvelope;
+import io.github.seonwkim.core.shard.ShardedActor;
+
 
 /**
  * Actor that handles counter operations in a sharded environment.
@@ -31,7 +35,7 @@ public class CounterActor implements ShardedActor<CounterActor.Command> {
     /**
      * Base interface for all commands that can be sent to the counter actor.
      */
-    public interface Command extends Serializable {}
+    public interface Command extends JsonSerializable {}
 
     /**
      * Command to increment the counter and get the new value.
@@ -39,7 +43,8 @@ public class CounterActor implements ShardedActor<CounterActor.Command> {
     public static class Increment implements Command {
         public final ActorRef<Long> replyTo;
 
-        public Increment(ActorRef<Long> replyTo) {
+        @JsonCreator
+        public Increment(@JsonProperty("replyTo") ActorRef<Long> replyTo) {
             this.replyTo = replyTo;
         }
     }
@@ -50,7 +55,8 @@ public class CounterActor implements ShardedActor<CounterActor.Command> {
     public static class GetValue implements Command {
         public final ActorRef<Long> replyTo;
 
-        public GetValue(ActorRef<Long> replyTo) {
+        @JsonCreator
+        public GetValue(@JsonProperty("replyTo") ActorRef<Long> replyTo) {
             this.replyTo = replyTo;
         }
     }

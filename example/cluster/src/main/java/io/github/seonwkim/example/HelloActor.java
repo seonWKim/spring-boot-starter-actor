@@ -1,17 +1,20 @@
 package io.github.seonwkim.example;
 
-import java.io.Serializable;
-
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.apache.pekko.cluster.sharding.typed.ShardingMessageExtractor;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityContext;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
+import org.springframework.stereotype.Component;
+
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import io.github.seonwkim.core.serialization.JsonSerializable;
 import io.github.seonwkim.core.shard.DefaultShardingMessageExtractor;
 import io.github.seonwkim.core.shard.ShardEnvelope;
 import io.github.seonwkim.core.shard.ShardedActor;
-import org.springframework.stereotype.Component;
 
 /**
  * Actor that handles hello messages in a cluster environment.
@@ -26,7 +29,7 @@ public class HelloActor implements ShardedActor<HelloActor.Command> {
     /**
      * Base interface for all commands that can be sent to the hello actor.
      */
-    public interface Command extends Serializable {}
+    public interface Command extends JsonSerializable {}
 
     /**
      * Command to say hello and get a response.
@@ -35,7 +38,11 @@ public class HelloActor implements ShardedActor<HelloActor.Command> {
         public final ActorRef<String> replyTo;
         public final String message;
 
-        public SayHello(ActorRef<String> replyTo, String message) {
+        @JsonCreator
+        public SayHello(
+                @JsonProperty("replyTo") ActorRef<String> replyTo,
+                @JsonProperty("message") String message
+        ) {
             this.replyTo = replyTo;
             this.message = message;
         }
@@ -50,6 +57,7 @@ public class HelloActor implements ShardedActor<HelloActor.Command> {
      * Creates the behavior for this actor when it's started.
      *
      * @param ctx The entity context containing information about this entity
+     *
      * @return The behavior for the actor
      */
     @Override
@@ -63,7 +71,9 @@ public class HelloActor implements ShardedActor<HelloActor.Command> {
                                      final String entityId = ctx.getEntityId();
 
                                      // Create a response message with node and entity information
-                                     final String message = "Received from entity [" + entityId + "] on node [" + nodeAddress + "]";
+                                     final String message =
+                                             "Received from entity [" + entityId + "] on node [" + nodeAddress
+                                             + "]";
 
                                      // Send the response back to the caller
                                      msg.replyTo.tell(message);

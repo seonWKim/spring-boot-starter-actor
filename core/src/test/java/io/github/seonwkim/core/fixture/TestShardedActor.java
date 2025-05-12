@@ -1,6 +1,5 @@
 package io.github.seonwkim.core.fixture;
 
-import java.io.Serializable;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.pekko.actor.typed.ActorRef;
@@ -42,10 +41,11 @@ public class TestShardedActor implements ShardedActor<TestShardedActor.Command> 
         }
     }
 
-    public static class State implements Serializable {
+    public static class State implements JsonSerializable {
         private final int messageCount;
 
-        public State(int messageCount) {
+        @JsonCreator
+        public State(@JsonProperty("messageCount") int messageCount) {
             this.messageCount = messageCount;
         }
 

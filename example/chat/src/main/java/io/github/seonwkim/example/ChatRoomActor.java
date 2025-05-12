@@ -1,6 +1,5 @@
 package io.github.seonwkim.example;
 
-import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -10,10 +9,15 @@ import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.apache.pekko.cluster.sharding.typed.ShardingMessageExtractor;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityContext;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
+import org.springframework.stereotype.Component;
+
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import io.github.seonwkim.core.serialization.JsonSerializable;
 import io.github.seonwkim.core.shard.DefaultShardingMessageExtractor;
 import io.github.seonwkim.core.shard.ShardEnvelope;
 import io.github.seonwkim.core.shard.ShardedActor;
-import org.springframework.stereotype.Component;
 
 /**
  * Actor that manages a chat room.
@@ -28,7 +32,7 @@ public class ChatRoomActor implements ShardedActor<ChatRoomActor.Command> {
     /**
      * Base interface for all commands that can be sent to the chat room actor.
      */
-    public interface Command extends Serializable {}
+    public interface Command extends JsonSerializable {}
 
     /**
      * Command to join a chat room.
@@ -37,7 +41,10 @@ public class ChatRoomActor implements ShardedActor<ChatRoomActor.Command> {
         public final String userId;
         public final ActorRef<ChatEvent> userRef;
 
-        public JoinRoom(String userId, ActorRef<ChatEvent> userRef) {
+        @JsonCreator
+        public JoinRoom(
+                @JsonProperty("userId") String userId,
+                @JsonProperty("userRef") ActorRef<ChatEvent> userRef) {
             this.userId = userId;
             this.userRef = userRef;
         }
@@ -49,7 +56,8 @@ public class ChatRoomActor implements ShardedActor<ChatRoomActor.Command> {
     public static class LeaveRoom implements Command {
         public final String userId;
 
-        public LeaveRoom(String userId) {
+        @JsonCreator
+        public LeaveRoom(@JsonProperty("userId") String userId) {
             this.userId = userId;
         }
     }
@@ -61,7 +69,11 @@ public class ChatRoomActor implements ShardedActor<ChatRoomActor.Command> {
         public final String userId;
         public final String message;
 
-        public SendMessage(String userId, String message) {
+        @JsonCreator
+        public SendMessage(
+                @JsonProperty("userId") String userId,
+                @JsonProperty("message") String message
+        ) {
             this.userId = userId;
             this.message = message;
         }
@@ -70,7 +82,7 @@ public class ChatRoomActor implements ShardedActor<ChatRoomActor.Command> {
     /**
      * Base interface for all events that can be sent from the chat room actor to clients.
      */
-    public interface ChatEvent extends Serializable {}
+    public interface ChatEvent extends JsonSerializable {}
 
     /**
      * Event sent when a user joins the room.
@@ -79,7 +91,11 @@ public class ChatRoomActor implements ShardedActor<ChatRoomActor.Command> {
         public final String userId;
         public final String roomId;
 
-        public UserJoined(String userId, String roomId) {
+        @JsonCreator
+        public UserJoined(
+                @JsonProperty("userId") String userId,
+                @JsonProperty("roomId") String roomId
+        ) {
             this.userId = userId;
             this.roomId = roomId;
         }
@@ -92,7 +108,11 @@ public class ChatRoomActor implements ShardedActor<ChatRoomActor.Command> {
         public final String userId;
         public final String roomId;
 
-        public UserLeft(String userId, String roomId) {
+        @JsonCreator
+        public UserLeft(
+                @JsonProperty("userId") String userId,
+                @JsonProperty("roomId") String roomId
+        ) {
             this.userId = userId;
             this.roomId = roomId;
         }
@@ -106,7 +126,11 @@ public class ChatRoomActor implements ShardedActor<ChatRoomActor.Command> {
         public final String message;
         public final String roomId;
 
-        public MessageReceived(String userId, String message, String roomId) {
+        @JsonCreator
+        public MessageReceived(
+                @JsonProperty("userId") String userId,
+                @JsonProperty("message") String message,
+                @JsonProperty("roomId") String roomId) {
             this.userId = userId;
             this.message = message;
             this.roomId = roomId;
@@ -131,40 +155,41 @@ public class ChatRoomActor implements ShardedActor<ChatRoomActor.Command> {
      *
      * @param roomId The ID of the chat room
      * @param connectedUsers Map of user IDs to their actor references
+     *
      * @return The behavior for the chat room
      */
     private Behavior<Command> chatRoom(String roomId, Map<String, ActorRef<ChatEvent>> connectedUsers) {
         return Behaviors.receive(Command.class)
-                .onMessage(JoinRoom.class, msg -> {
-                    // Add the user to the connected users
-                    connectedUsers.put(msg.userId, msg.userRef);
-                    
-                    // Notify all users that a new user has joined
-                    UserJoined event = new UserJoined(msg.userId, roomId);
-                    broadcastEvent(connectedUsers, event);
-                    
-                    return chatRoom(roomId, connectedUsers);
-                })
-                .onMessage(LeaveRoom.class, msg -> {
-                    // Remove the user from connected users
-                    connectedUsers.remove(msg.userId);
-                    
-                    // Notify all users that a user has left
-                    UserLeft event = new UserLeft(msg.userId, roomId);
-                    broadcastEvent(connectedUsers, event);
-                    
-                    return chatRoom(roomId, connectedUsers);
-                })
-                .onMessage(SendMessage.class, msg -> {
-                    // Create a message received event
-                    MessageReceived event = new MessageReceived(msg.userId, msg.message, roomId);
-                    
-                    // Broadcast the message to all connected users
-                    broadcastEvent(connectedUsers, event);
-                    
-                    return Behaviors.same();
-                })
-                .build();
+                        .onMessage(JoinRoom.class, msg -> {
+                            // Add the user to the connected users
+                            connectedUsers.put(msg.userId, msg.userRef);
+
+                            // Notify all users that a new user has joined
+                            UserJoined event = new UserJoined(msg.userId, roomId);
+                            broadcastEvent(connectedUsers, event);
+
+                            return chatRoom(roomId, connectedUsers);
+                        })
+                        .onMessage(LeaveRoom.class, msg -> {
+                            // Remove the user from connected users
+                            connectedUsers.remove(msg.userId);
+
+                            // Notify all users that a user has left
+                            UserLeft event = new UserLeft(msg.userId, roomId);
+                            broadcastEvent(connectedUsers, event);
+
+                            return chatRoom(roomId, connectedUsers);
+                        })
+                        .onMessage(SendMessage.class, msg -> {
+                            // Create a message received event
+                            MessageReceived event = new MessageReceived(msg.userId, msg.message, roomId);
+
+                            // Broadcast the message to all connected users
+                            broadcastEvent(connectedUsers, event);
+
+                            return Behaviors.same();
+                        })
+                        .build();
     }
 
     /**

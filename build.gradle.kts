@@ -95,3 +95,24 @@ spotless {
         indentWithTabs(2)
     }
 }
+
+val runCoreTest = tasks.register<Exec>("runCoreTest") {
+    commandLine("./gradlew", ":core:test")
+}
+
+val syncBoot3Sources = tasks.register<Exec>("syncBoot3Sources") {
+    commandLine("./gradlew", ":core-boot3:syncAllBoot3Sources")
+}
+
+val runCoreBoot3Test = tasks.register<Exec>("runCoreBoot3Test") {
+    commandLine("./gradlew", ":core-boot3:test")
+}
+
+tasks.register("runTest") {
+    group = "verification"
+    description = "Run core and core-boot3 tests step-by-step"
+
+    dependsOn(runCoreTest)
+    dependsOn(syncBoot3Sources)
+    dependsOn(runCoreBoot3Test)
+}
