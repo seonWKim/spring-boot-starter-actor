@@ -1,4 +1,3 @@
 package io.github.seonwkim.core.serialization;
 
-public interface CborSerializable {
-}
+public interface CborSerializable {}
