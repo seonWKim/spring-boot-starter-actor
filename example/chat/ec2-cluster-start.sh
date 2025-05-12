@@ -1,9 +1,19 @@
 #!/bin/bash
 
 # Script to start the chat application on EC2 instances
+# Example: Let's say you have 3 EC2 hosts — HOST1, HOST2, and HOST3
+# Replace HOST1/HOST2/HOST3 with the actual public DNS names or IP addresses of your EC2 instances
+
+# On HOST1
+# bash example/chat/ec2-cluster-start.sh spring-pekko-example HOST1 2551 8080 HOST1:2551 HOST2:2551 HOST3:2551
+
+# On HOST2
+# bash example/chat/ec2-cluster-start.sh spring-pekko-example HOST2 2551 8080 HOST1:2551 HOST2:2551 HOST3:2551
+
+# On HOST3
+# bash example/chat/ec2-cluster-start.sh spring-pekko-example HOST3 2551 8080 HOST1:2551 HOST2:2551 HOST3:2551
 
 # Check if required arguments are provided
-# sh example/chat/ec2-cluster-start.sh spring-pekko-example 127.0.0.1 2551 8080 127.0.0.1:2551 127.0.0.1:2552 127.0.0.1:2553
 if [ $# -lt 7 ]; then
   echo "Usage: $0 <system-name> <current-ip> <pekko-port> <server-port> <ec2-1> <ec2-2> <ec2-3>"
   echo "Example: $0 spring-pekko-example 10.0.0.0.1 2551 8080 10.0.0.1:2551 10.0.0.2:2552 10.0.0.3:2553"
