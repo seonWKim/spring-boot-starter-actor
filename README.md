@@ -53,6 +53,14 @@ This project aims to bring together the best of both worlds:
 Add the dependency to your project:
 
 ```gradle
+// Manually overwrite spring managed jackson dependency 
+dependencyManagement {
+	imports {
+		// pekko-serialization-jackson_3 require minimum 2.17.3 version of jackson
+		mavenBom("com.fasterxml.jackson:jackson-bom:2.17.3")
+	}
+}
+
 // Gradle(spring boot 2.7.x) 
 implementation 'io.github.seonwkim:spring-boot-starter-actor:0.0.10'
 
@@ -61,6 +69,19 @@ implementation 'io.github.seonwkim:spring-boot-starter-actor_3:0.0.10'
 ```
 
 ```xml
+<dependencyManagement>
+  <dependencies>
+    <!-- Override Spring Boot's jackson-bom with 2.17.3 -->
+    <dependency>
+      <groupId>com.fasterxml.jackson</groupId>
+      <artifactId>jackson-bom</artifactId>
+      <version>2.17.3</version>
+      <type>pom</type>
+      <scope>import</scope>
+    </dependency>
+  </dependencies>
+</dependencyManagement>
+
 <!-- Maven(spring boot 2.7.x) -->
 <dependency>
   <groupId>io.github.seonwkim</groupId>
@@ -303,7 +324,6 @@ The project includes two example applications:
 1. **Simple Example**: Demonstrates using actors in local mode
 2. **Cluster Example**: Demonstrates using actors in a clustered environment
 3. **Chat Example**: Demonstrates using actors in a chatting application
-4.
 
 ```shell
 # start chat/cluster 
