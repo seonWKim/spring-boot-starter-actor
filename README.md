@@ -76,6 +76,10 @@ implementation 'io.github.seonwkim:spring-boot-starter-actor_3:0.0.10'
 </dependency>
 ```
 
+To view the latest versions, refer to the following: 
+- [spring-boot-starter-actor](https://central.sonatype.com/artifact/io.github.seonwkim/spring-boot-starter-actor-core)
+- [spring-boot-starter-actor_3](https://central.sonatype.com/artifact/io.github.seonwkim/spring-boot-starter-actor_3)
+
 ## Usage
 
 ### Enable Actor Support
