@@ -1,6 +1,7 @@
 package io.github.seonwkim.core.impl;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
@@ -102,12 +103,12 @@ public class DefaultSpringActorSystemBuilder implements SpringActorSystemBuilder
      */
     @Override
     public SpringActorSystem build() {
-        final Config config = ConfigFactory.parseMap(ConfigValueFactory.fromMap(configMap))
+        final Config config = ConfigFactory.parseMap(ConfigValueFactory.fromMap(applyDefaultSerializers(configMap)))
                                            .withFallback(ConfigFactory.load());
         final String name = config.hasPath("pekko.name") ? config.getString("pekko.name") : DEFAULT_SYSTEM_NAME;
 
-        final ActorSystem<RootGuardian.Command> actorSystem = ActorSystem.create(supplier.getSupplier().get(),
-                                                                                 name, config);
+        final ActorSystem<RootGuardian.Command> actorSystem =
+                ActorSystem.create(supplier.getSupplier().get(), name, config);
         final boolean isClusterMode = Objects.equals(config.getString("pekko.actor.provider"), "cluster");
 
         if (!isClusterMode) {
@@ -128,6 +129,36 @@ public class DefaultSpringActorSystemBuilder implements SpringActorSystemBuilder
                     applicationEventPublisher
             );
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> applyDefaultSerializers(Map<String, Object> configMap) {
+        final Map<String, Object> result = new HashMap<>(configMap);
+
+        final String jacksonJsonSerializerName = "jackson-json";
+        final String jacksonCborSerializerName = "jackson-cbor";
+
+        // Default serializers
+        final Map<String, Object> defaultSerializers = new HashMap<>();
+        defaultSerializers.put(jacksonJsonSerializerName, "org.apache.pekko.serialization.jackson.JacksonJsonSerializer");
+        defaultSerializers.put(jacksonCborSerializerName, "org.apache.pekko.serialization.jackson.JacksonCborSerializer");
+
+        // Default bindings
+        final Map<String, Object> defaultBindings = new HashMap<>();
+        defaultBindings.put("io.github.seonwkim.core.serialization.JsonSerializable", jacksonJsonSerializerName);
+        defaultBindings.put("io.github.seonwkim.core.serialization.CborSerializable", jacksonCborSerializerName);
+
+        // Get or create pekko.actor.serializers
+        Map<String, Object> pekko = (Map<String, Object>) result.computeIfAbsent("pekko", k -> new HashMap<>());
+        Map<String, Object> actor = (Map<String, Object>) pekko.computeIfAbsent("actor", k -> new HashMap<>());
+        Map<String, Object> serializers = (Map<String, Object>) actor.computeIfAbsent("serializers", k -> new HashMap<>());
+        Map<String, Object> bindings = (Map<String, Object>) actor.computeIfAbsent("serialization-bindings", k -> new HashMap<>());
+
+        // Merge without overwriting existing entries
+        defaultSerializers.forEach(serializers::putIfAbsent);
+        defaultBindings.forEach(bindings::putIfAbsent);
+
+        return result;
     }
 
     /**

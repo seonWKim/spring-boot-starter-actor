@@ -9,6 +9,11 @@ import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.apache.pekko.cluster.sharding.typed.ShardingMessageExtractor;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityContext;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
+
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import io.github.seonwkim.core.serialization.JsonSerializable;
 import io.github.seonwkim.core.shard.DefaultShardingMessageExtractor;
 import io.github.seonwkim.core.shard.ShardEnvelope;
 import io.github.seonwkim.core.shard.ShardedActor;
@@ -17,12 +22,13 @@ public class TestShardedActor implements ShardedActor<TestShardedActor.Command> 
     public static final EntityTypeKey<Command> TYPE_KEY = EntityTypeKey.create(Command.class,
                                                                                "TestShardedActor");
 
-    public interface Command extends Serializable {}
+    public interface Command extends JsonSerializable {}
 
     public static class Ping implements Command {
         public final String message;
 
-        public Ping(String message) {
+        @JsonCreator
+        public Ping(@JsonProperty("message") String message) {
             this.message = message;
         }
     }
@@ -30,7 +36,8 @@ public class TestShardedActor implements ShardedActor<TestShardedActor.Command> 
     public static class GetState implements Command {
         private final ActorRef<State> replyTo;
 
-        public GetState(ActorRef<State> replyTo) {
+        @JsonCreator
+        public GetState(@JsonProperty("replyTo") ActorRef<State> replyTo) {
             this.replyTo = replyTo;
         }
     }

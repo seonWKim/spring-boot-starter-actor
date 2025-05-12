@@ -116,7 +116,7 @@ public class ClusterTest {
                         "spring.actor.pekko.cluster.name=cluster",
                         "spring.actor.pekko.cluster.seed-nodes=" + seedNodes,
                         "spring.actor.pekko.cluster.downing-provider-class=org.apache.pekko.cluster.sbr.SplitBrainResolverProvider",
-                        "spring.actor.pekko.actor.allow-java-serialization=on",
+                        "spring.actor.pekko.actor.allow-java-serialization=off",
                         "spring.actor.pekko.actor.warn-about-java-serializer-usage=on"
                 )
                 .run();

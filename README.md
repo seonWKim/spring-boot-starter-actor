@@ -105,7 +105,7 @@ spring:
       name: your-application-name
       actor:
         provider: cluster
-        allow-java-serialization: on
+        allow-java-serialization: off
       remote:
         artery:
           canonical:

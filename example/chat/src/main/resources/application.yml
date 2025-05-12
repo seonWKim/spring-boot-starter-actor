@@ -7,8 +7,8 @@ spring:
       name: spring-pekko-example
       actor:
         provider: cluster
-        allow-java-serialization: on
-        warn-about-java-serializer-usage: off
+        allow-java-serialization: off
+        warn-about-java-serializer-usage: on
       remote:
         artery:
           canonical:
