@@ -11,6 +11,16 @@
 A library that integrates Spring Boot with the actor model using [Pekko](https://pekko.apache.org/) (an
 open-source, community-driven fork of Akka).
 
+Try it out by running the following command in your terminal:
+
+```shell
+# Start 3 chat application instances on ports 8080, 8081, and 8082. Then visit localhost:<port>
+$ sh cluster-start.sh chat io.github.seonwkim.example.SpringPekkoApplication 8080 2551 3
+
+# Stop the cluster
+$ sh cluster-stop.sh
+```
+
 ## What is this project about?
 
 This project bridges the gap between Spring Boot and the actor model, allowing developers to build stateful
