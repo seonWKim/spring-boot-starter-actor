@@ -28,3 +28,9 @@ server:
 logging:
   level:
     org.apache.pekko: DEBUG
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: pekko-cluster

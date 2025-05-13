@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Usage:
-# ./cluster-start.sh <module> <mainClass> <basePort> <basePekkoPort> <instanceCount>
+# sh cluster-start-with-jmx.sh chat io.github.seonwkim.example.SpringPekkoApplication 8080 2551 3 9091
 
 set -e
 
