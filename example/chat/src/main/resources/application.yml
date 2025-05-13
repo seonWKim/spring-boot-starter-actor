@@ -23,8 +23,14 @@ spring:
         downing-provider-class: org.apache.pekko.cluster.sbr.SplitBrainResolverProvider
 
 server:
-  port: 8080
+  port: 8083
 
 logging:
   level:
     org.apache.pekko: DEBUG
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: pekko-cluster-state, pekko-cluster-metrics

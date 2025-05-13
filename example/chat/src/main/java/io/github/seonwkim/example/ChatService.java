@@ -57,7 +57,7 @@ public class ChatService {
 		SpringShardedActorRef<ChatRoomActor.Command> roomRef =
 				actorSystem.entityRef(ChatRoomActor.TYPE_KEY, roomId);
 
-		roomRef.tell(new ChatRoomActor.JoinRoom(userId, userRef));
+		roomRef.tell(new ChatRoomActor.JoinRoom2(userId, userRef));
 		userRooms.put(userId, roomId);
 	}
 
