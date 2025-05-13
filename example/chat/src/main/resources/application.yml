@@ -13,7 +13,7 @@ spring:
         artery:
           canonical:
             hostname: 127.0.0.1
-            port: 2554
+            port: 2551
       cluster:
         name: spring-pekko-example
         seed-nodes:
@@ -33,4 +33,4 @@ management:
   endpoints:
     web:
       exposure:
-        include: pekko-cluster
+        include: pekko-cluster-state, pekko-cluster-metrics
