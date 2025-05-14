@@ -1,14 +1,12 @@
 package io.github.seonwkim.example;
 
+import io.github.seonwkim.core.SpringActorSystem;
+import io.github.seonwkim.core.SpringShardedActorRef;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-
 import org.apache.pekko.actor.typed.ActorRef;
 import org.springframework.stereotype.Service;
 import org.springframework.web.socket.WebSocketSession;
-
-import io.github.seonwkim.core.SpringActorSystem;
-import io.github.seonwkim.core.SpringShardedActorRef;
 
 /**
  * Service that handles interactions with chat rooms. It serves as an intermediary between WebSocket
