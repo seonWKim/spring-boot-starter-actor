@@ -43,19 +43,6 @@ public class ChatRoomActor implements ShardedActor<ChatRoomActor.Command> {
 		}
 	}
 
-	public static class JoinRoom2 implements Command {
-		public final String userId;
-		public final ActorRef<ChatEvent> userRef;
-
-		@JsonCreator
-		public JoinRoom2(
-				@JsonProperty("userId") String userId,
-				@JsonProperty("userRef") ActorRef<ChatEvent> userRef) {
-			this.userId = userId;
-			this.userRef = userRef;
-		}
-	}
-
 	/** Command to leave a chat room. */
 	public static class LeaveRoom implements Command {
 		public final String userId;
@@ -150,18 +137,6 @@ public class ChatRoomActor implements ShardedActor<ChatRoomActor.Command> {
 		return Behaviors.receive(Command.class)
 				.onMessage(
 						JoinRoom.class,
-						msg -> {
-							// Add the user to the connected users
-							connectedUsers.put(msg.userId, msg.userRef);
-
-							// Notify all users that a new user has joined
-							UserJoined event = new UserJoined(msg.userId, roomId);
-							broadcastEvent(connectedUsers, event);
-
-							return chatRoom(roomId, connectedUsers);
-						})
-				.onMessage(
-						JoinRoom2.class,
 						msg -> {
 							// Add the user to the connected users
 							connectedUsers.put(msg.userId, msg.userRef);
