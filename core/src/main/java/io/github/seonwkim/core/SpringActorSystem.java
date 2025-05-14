@@ -6,6 +6,7 @@ import java.time.Duration;
 import java.util.concurrent.CompletionStage;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.ActorSystem;
+import org.apache.pekko.actor.typed.MailboxSelector;
 import org.apache.pekko.actor.typed.Props;
 import org.apache.pekko.actor.typed.javadsl.AskPattern;
 import org.apache.pekko.cluster.ClusterEvent;
@@ -99,7 +100,8 @@ public class SpringActorSystem implements DisposableBean {
 		return AskPattern.ask(
 						actorSystem,
 						(ActorRef<DefaultRootGuardian.Spawned<T>> replyTo) ->
-								new DefaultRootGuardian.SpawnActor<>(commandClass, actorId, replyTo),
+								new DefaultRootGuardian.SpawnActor<>(
+										commandClass, actorId, replyTo, MailboxSelector.defaultMailbox()),
 						DEFAULT_TIMEOUT,
 						actorSystem.scheduler())
 				.thenApply(spawned -> new SpringActorRef<>(actorSystem.scheduler(), spawned.ref));
@@ -121,7 +123,36 @@ public class SpringActorSystem implements DisposableBean {
 		return AskPattern.ask(
 						actorSystem,
 						(ActorRef<DefaultRootGuardian.Spawned<T>> replyTo) ->
-								new DefaultRootGuardian.SpawnActor<>(commandClass, actorId, replyTo),
+								new DefaultRootGuardian.SpawnActor<>(
+										commandClass,
+										actorId,
+										replyTo,
+										MailboxSelector.defaultMailbox()),
+						timeout,
+						actorSystem.scheduler())
+				.thenApply(spawned -> new SpringActorRef<>(actorSystem.scheduler(), spawned.ref));
+	}
+
+	/**
+	 * Spawns a new actor with the given command class, actor ID, and timeout. This method asks the
+	 * root guardian to create a new actor and returns a CompletionStage that will be completed with a
+	 * SpringActorRef to the new actor.
+	 *
+	 * @param commandClass The class of commands that the actor can handle
+	 * @param actorId The ID of the actor
+	 * @param timeout The maximum time to wait for the actor to be created
+	 * @param mailboxSelector The mailbox configuration to use for the actor, such as a bounded or
+	 *     unbounded mailbox, which can affect throughput and message prioritization behavior.
+	 * @param <T> The type of commands that the actor can handle
+	 * @return A CompletionStage that will be completed with a SpringActorRef to the new actor
+	 */
+	public <T> CompletionStage<SpringActorRef<T>> spawn(
+			Class<T> commandClass, String actorId, Duration timeout, MailboxSelector mailboxSelector) {
+		return AskPattern.ask(
+						actorSystem,
+						(ActorRef<DefaultRootGuardian.Spawned<T>> replyTo) ->
+								new DefaultRootGuardian.SpawnActor<>(
+										commandClass, actorId, replyTo, mailboxSelector),
 						timeout,
 						actorSystem.scheduler())
 				.thenApply(spawned -> new SpringActorRef<>(actorSystem.scheduler(), spawned.ref));

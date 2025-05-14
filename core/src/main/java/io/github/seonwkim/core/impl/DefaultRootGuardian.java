@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.Map;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
+import org.apache.pekko.actor.typed.MailboxSelector;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 
@@ -29,6 +30,8 @@ public class DefaultRootGuardian implements RootGuardian {
 		public final String actorId;
 		/** The actor reference to reply to with the spawned actor reference */
 		public final ActorRef<Spawned<T>> replyTo;
+		/** The mailbox selector to use * */
+		public final MailboxSelector mailboxSelector;
 
 		/**
 		 * Creates a new SpawnActor command.
@@ -37,10 +40,15 @@ public class DefaultRootGuardian implements RootGuardian {
 		 * @param actorId The ID of the actor
 		 * @param replyTo The actor reference to reply to with the spawned actor reference
 		 */
-		public SpawnActor(Class<T> commandClass, String actorId, ActorRef<Spawned<T>> replyTo) {
+		public SpawnActor(
+				Class<T> commandClass,
+				String actorId,
+				ActorRef<Spawned<T>> replyTo,
+				MailboxSelector mailboxSelector) {
 			this.commandClass = commandClass;
 			this.actorId = actorId;
 			this.replyTo = replyTo;
+			this.mailboxSelector = mailboxSelector;
 		}
 	}
 
@@ -122,7 +130,7 @@ public class DefaultRootGuardian implements RootGuardian {
 			ref = (ActorRef<T>) actorRefs.get(key);
 		} else {
 			Behavior<T> behavior = registry.createBehavior(msg.commandClass, msg.actorId);
-			ref = ctx.spawn(behavior, key);
+			ref = ctx.spawn(behavior, key, msg.mailboxSelector);
 			actorRefs.put(key, ref);
 		}
 
