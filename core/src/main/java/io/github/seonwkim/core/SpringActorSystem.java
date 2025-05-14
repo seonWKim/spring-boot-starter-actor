@@ -1,9 +1,8 @@
 package io.github.seonwkim.core;
 
-import io.github.seonwkim.core.behavior.ClusterEventBehavior;
-import io.github.seonwkim.core.impl.DefaultRootGuardian;
 import java.time.Duration;
 import java.util.concurrent.CompletionStage;
+
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.ActorSystem;
 import org.apache.pekko.actor.typed.MailboxSelector;
@@ -18,6 +17,10 @@ import org.apache.pekko.cluster.typed.Subscribe;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.lang.Nullable;
+
+import io.github.seonwkim.core.behavior.ClusterEventBehavior;
+import io.github.seonwkim.core.impl.DefaultRootGuardian;
+import io.github.seonwkim.core.impl.DefaultRootGuardian.StopResult;
 
 /**
  * A wrapper around Pekko's ActorSystem that provides methods for spawning actors and getting entity
@@ -153,6 +156,47 @@ public class SpringActorSystem implements DisposableBean {
 						timeout,
 						actorSystem.scheduler())
 				.thenApply(spawned -> new SpringActorRef<>(actorSystem.scheduler(), spawned.ref));
+	}
+
+	/**
+	 * Asynchronously stops a previously spawned actor identified by its command class and actor ID.
+	 *
+	 * <p>If the actor exists and is currently active, it will be gracefully stopped. If the actor
+	 * does not exist or has already been passivated or stopped, the returned {@link CompletionStage}
+	 * will still complete successfully with a {@link StopResult} response indicating
+	 * the request was acknowledged.
+	 *
+	 * @param commandClass The class of commands that the actor can handle
+	 * @param actorId The ID of the actor to stop
+	 * @param <T> The type of commands that the actor can handle
+	 * @return A {@link CompletionStage} that completes when the stop command has been processed
+	 */
+	public <T> CompletionStage<StopResult> stop(Class<T> commandClass, String actorId) {
+		return AskPattern.ask(actorSystem,
+								 (ActorRef<DefaultRootGuardian.StopResult> replyTo) ->
+										 new DefaultRootGuardian.StopActor<>(commandClass, actorId, replyTo),
+								 DEFAULT_TIMEOUT,
+								 actorSystem.scheduler());
+	}
+
+	/**
+	 * Stops a previously spawned actor identified by its command class and actor ID. This method
+	 * sends a {@link DefaultRootGuardian.StopActor} command to the root guardian, which is
+	 * responsible for managing the lifecycle of actors within the system.
+	 *
+	 * <p>If the actor exists and is currently active, it will be gracefully stopped. If the actor
+	 * does not exist or has already been passivated or stopped, this call is a no-op.
+	 *
+	 * @param commandClass The class of commands that the actor can handle
+	 * @param actorId The ID of the actor to stop
+	 * @param <T> The type of commands that the actor can handle
+	 */
+	public <T> CompletionStage<StopResult> stop(Class<T> commandClass, String actorId, Duration timeout) {
+		return AskPattern.ask(actorSystem,
+							  (ActorRef<DefaultRootGuardian.StopResult> replyTo) ->
+									  new DefaultRootGuardian.StopActor<>(commandClass, actorId, replyTo),
+							  timeout,
+							  actorSystem.scheduler());
 	}
 
 	/**

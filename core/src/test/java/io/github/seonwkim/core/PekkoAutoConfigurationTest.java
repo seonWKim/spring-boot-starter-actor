@@ -6,7 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.typesafe.config.Config;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.junit.jupiter.api.Nested;
@@ -14,11 +13,13 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 import org.springframework.test.context.TestPropertySource;
+
+import com.typesafe.config.Config;
+
+import io.github.seonwkim.test.CustomOverrideConfiguration;
+import io.github.seonwkim.test.CustomTestRootGuardian;
 
 public class PekkoAutoConfigurationTest {
 
@@ -36,7 +37,7 @@ public class PekkoAutoConfigurationTest {
 	class WhenEnabled {
 
 		@Test
-		void shouldCreateActorSystem(org.springframework.context.ApplicationContext context) {
+		void shouldCreateActorSystem(ApplicationContext context) {
 			assertTrue(context.containsBean("actorSystem"), "ActorSystem bean should exist");
 			SpringActorSystem systemInstance = context.getBean(SpringActorSystem.class);
 			Config config = systemInstance.getRaw().settings().config();
@@ -53,7 +54,7 @@ public class PekkoAutoConfigurationTest {
 	class WhenDisabled {
 
 		@Test
-		void shouldNotCreateActorSystem(org.springframework.context.ApplicationContext context) {
+		void shouldNotCreateActorSystem(ApplicationContext context) {
 			assertFalse(context.containsBean("actorSystem"), "ActorSystem bean should NOT exist");
 			assertThrows(
 					Exception.class,
@@ -111,21 +112,6 @@ public class PekkoAutoConfigurationTest {
 
 			SpringActorSystem systemInstance = context.getBean(SpringActorSystem.class);
 			assertNotNull(systemInstance.getRaw());
-		}
-	}
-
-	static class CustomTestRootGuardian {
-		public static Behavior<RootGuardian.Command> create() {
-			return Behaviors.setup(ctx -> Behaviors.receive(RootGuardian.Command.class).build());
-		}
-	}
-
-	@Configuration
-	static class CustomOverrideConfiguration {
-		@Bean
-		@Primary
-		public RootGuardianSupplierWrapper customRootGuardianSupplierWrapper() {
-			return new RootGuardianSupplierWrapper(CustomTestRootGuardian::create);
 		}
 	}
 

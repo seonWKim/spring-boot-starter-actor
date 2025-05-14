@@ -41,6 +41,8 @@ public class DefaultRootGuardian implements RootGuardian {
 		 * @param commandClass The class of commands that the actor can handle
 		 * @param actorId The ID of the actor
 		 * @param replyTo The actor reference to reply to with the spawned actor reference
+		 * @param mailboxSelector The mailboxSelector
+		 * @param isClusterSingleton Whether the actor should be cluster singleton
 		 */
 		public SpawnActor(
 				Class<T> commandClass,
@@ -58,26 +60,29 @@ public class DefaultRootGuardian implements RootGuardian {
 
 	/**
 	 * Sends a command to stop an existing actor managed by the actor management system.
-	 * <p>
-	 * This command is typically handled by a parent or manager actor responsible for the lifecycle
-	 * of child actors. The actor identified by {@code actorId} and capable of handling {@code commandClass}
-	 * messages will be stopped gracefully if it exists.
+	 *
+	 * <p>This command is typically handled by a parent or manager actor responsible for the lifecycle
+	 * of child actors. The actor identified by {@code actorId} and capable of handling {@code
+	 * commandClass} messages will be stopped gracefully if it exists.
 	 *
 	 * @param <T> The type of command that the target actor can handle
 	 */
 	public static class StopActor<T> implements Command {
 		public final Class<T> commandClass;
 		public final String actorId;
+		private final ActorRef<StopResult> replyTo;
 
 		/**
 		 * Creates a new StopActor command.
 		 *
 		 * @param commandClass The class of commands that the actor can handle
 		 * @param actorId The ID of the actor to be stopped
+		 * @param replyTo The actor reference to reply to with the spawned actor reference
 		 */
-		public StopActor(Class<T> commandClass, String actorId) {
+		public StopActor(Class<T> commandClass, String actorId, ActorRef<StopResult> replyTo) {
 			this.commandClass = commandClass;
 			this.actorId = actorId;
+			this.replyTo = replyTo;
 		}
 	}
 
@@ -100,6 +105,12 @@ public class DefaultRootGuardian implements RootGuardian {
 			this.ref = ref;
 		}
 	}
+
+	public static interface StopResult extends Command {}
+
+	public static class Stopped implements StopResult {}
+	public static class ActorNotFound implements StopResult {}
+
 
 	/**
 	 * Creates a new DefaultRootGuardian behavior with the given actor type registry.
@@ -139,8 +150,8 @@ public class DefaultRootGuardian implements RootGuardian {
 		return Behaviors.setup(
 				ctx ->
 						Behaviors.receive(Command.class)
-								.onMessage(SpawnActor.class, this::handleSpawnActor)
-								.onMessage(StopActor.class, msg -> handleStopActor(ctx, msg))
+								.onMessage(SpawnActor.class, msg -> handleSpawnActor(msg))
+								.onMessage(StopActor.class, msg -> handleStopActor((StopActor<?>) msg))
 								.build());
 	}
 
@@ -171,14 +182,16 @@ public class DefaultRootGuardian implements RootGuardian {
 	}
 
 	@SuppressWarnings("unchecked")
-	public <T> Behavior<RootGuardian.Command> handleStopActor(
-			ActorContext<T> context, StopActor<T> msg) {
+	public <T> Behavior<RootGuardian.Command> handleStopActor(StopActor<T> msg) {
 		String key = buildActorKey(msg.commandClass, msg.actorId);
 
 		final ActorRef<T> actorRef = (ActorRef<T>) actorRefs.get(key);
 		if (actorRef != null) {
 			actorRefs.remove(key);
-			context.stop(actorRef);
+			ctx.stop(actorRef);
+			msg.replyTo.tell(new Stopped());
+		} else {
+			msg.replyTo.tell(new ActorNotFound());
 		}
 
 		return Behaviors.same();
