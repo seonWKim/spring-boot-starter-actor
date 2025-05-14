@@ -20,7 +20,7 @@ import org.springframework.lang.Nullable;
 
 import io.github.seonwkim.core.behavior.ClusterEventBehavior;
 import io.github.seonwkim.core.impl.DefaultRootGuardian;
-import io.github.seonwkim.core.impl.DefaultRootGuardian.StopResult;
+import io.github.seonwkim.core.RootGuardian.StopResult;
 
 /**
  * A wrapper around Pekko's ActorSystem that provides methods for spawning actors and getting entity

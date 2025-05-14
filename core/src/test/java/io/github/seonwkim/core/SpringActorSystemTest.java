@@ -16,8 +16,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.test.context.TestPropertySource;
 
 import io.github.seonwkim.core.SpringActorSystemTest.TestHelloActor.SayHello;
-import io.github.seonwkim.core.impl.DefaultRootGuardian.ActorNotFound;
-import io.github.seonwkim.core.impl.DefaultRootGuardian.Stopped;
+import io.github.seonwkim.core.RootGuardian.ActorNotFound;
+import io.github.seonwkim.core.RootGuardian.Stopped;
 
 class SpringActorSystemTest {
 
