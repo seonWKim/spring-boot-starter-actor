@@ -6,7 +6,6 @@ import java.util.HashMap;
 import java.util.Map;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
-import org.apache.pekko.actor.typed.MailboxSelector;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 
@@ -16,61 +15,6 @@ import org.apache.pekko.actor.typed.javadsl.Behaviors;
  * to them.
  */
 public class DefaultRootGuardian implements RootGuardian {
-
-	/**
-	 * Command to spawn a new actor. This command is sent to the root guardian to create a new actor
-	 * of the specified type with the given ID.
-	 *
-	 * @param <T> The type of messages that the actor can handle
-	 */
-	public static class SpawnActor<T> implements Command {
-		/** The class of commands that the actor can handle */
-		public final Class<T> commandClass;
-		/** The ID of the actor */
-		public final String actorId;
-		/** The actor reference to reply to with the spawned actor reference */
-		public final ActorRef<Spawned<T>> replyTo;
-		/** The mailbox selector to use * */
-		public final MailboxSelector mailboxSelector;
-
-		/**
-		 * Creates a new SpawnActor command.
-		 *
-		 * @param commandClass The class of commands that the actor can handle
-		 * @param actorId The ID of the actor
-		 * @param replyTo The actor reference to reply to with the spawned actor reference
-		 */
-		public SpawnActor(
-				Class<T> commandClass,
-				String actorId,
-				ActorRef<Spawned<T>> replyTo,
-				MailboxSelector mailboxSelector) {
-			this.commandClass = commandClass;
-			this.actorId = actorId;
-			this.replyTo = replyTo;
-			this.mailboxSelector = mailboxSelector;
-		}
-	}
-
-	/**
-	 * Response message containing a reference to a spawned actor. This message is sent in response to
-	 * a SpawnActor command.
-	 *
-	 * @param <T> The type of messages that the actor can handle
-	 */
-	public static class Spawned<T> {
-		/** The reference to the spawned actor */
-		public final ActorRef<T> ref;
-
-		/**
-		 * Creates a new Spawned message with the given actor reference.
-		 *
-		 * @param ref The reference to the spawned actor
-		 */
-		public Spawned(ActorRef<T> ref) {
-			this.ref = ref;
-		}
-	}
 
 	/**
 	 * Creates a new DefaultRootGuardian behavior with the given actor type registry.
@@ -107,9 +51,12 @@ public class DefaultRootGuardian implements RootGuardian {
 	 * @return A behavior for this DefaultRootGuardian
 	 */
 	private Behavior<Command> behavior() {
-		return Behaviors.receive(Command.class)
-				.onMessage(SpawnActor.class, this::handleSpawnActor)
-				.build();
+		return Behaviors.setup(
+				ctx ->
+						Behaviors.receive(Command.class)
+								.onMessage(SpawnActor.class, msg -> handleSpawnActor(msg))
+								.onMessage(StopActor.class, msg -> handleStopActor((StopActor<?>) msg))
+								.build());
 	}
 
 	/**
@@ -135,6 +82,31 @@ public class DefaultRootGuardian implements RootGuardian {
 		}
 
 		msg.replyTo.tell(new Spawned<>(ref));
+		return Behaviors.same();
+	}
+
+	/**
+	 * Handles a StopActor command by stopping an actor and removing its reference. If an actor with
+	 * the given command class and ID exists, it is stopped and a Stopped message is sent to the
+	 * reply-to actor. Otherwise, an ActorNotFound message is sent.
+	 *
+	 * @param msg The StopActor command
+	 * @param <T> The type of messages that the actor can handle
+	 * @return The same behavior, as this handler doesn't change the behavior
+	 */
+	@SuppressWarnings("unchecked")
+	public <T> Behavior<RootGuardian.Command> handleStopActor(StopActor<T> msg) {
+		String key = buildActorKey(msg.commandClass, msg.actorId);
+
+		final ActorRef<T> actorRef = (ActorRef<T>) actorRefs.get(key);
+		if (actorRef != null) {
+			actorRefs.remove(key);
+			ctx.stop(actorRef);
+			msg.replyTo.tell(new Stopped());
+		} else {
+			msg.replyTo.tell(new ActorNotFound());
+		}
+
 		return Behaviors.same();
 	}
 

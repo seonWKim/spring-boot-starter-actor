@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Bean;
  * Boot application.
  */
 @SpringBootApplication
-public class ChatApplication {
+public class SpringPekkoApplication {
 
 	/**
 	 * Main method to start the application.
@@ -18,7 +18,7 @@ public class ChatApplication {
 	 * @param args Command line arguments
 	 */
 	public static void main(String[] args) {
-		SpringApplication.run(ChatApplication.class, args);
+		SpringApplication.run(SpringPekkoApplication.class, args);
 	}
 
 	/**

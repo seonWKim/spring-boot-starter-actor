@@ -1,0 +1,22 @@
+### START PROMETHEUS ###
+# docker run -d \
+#  --name spring-pekko-prometheus \
+#  -p 9090:9090 \
+#  -v "$PWD/example/chat/prometheus.yml:/etc/prometheus/prometheus.yml" \
+#  prom/prometheus
+
+### STOP PROMETHEUS ###
+# docker stop spring-pekko-prometheus
+# docker rm spring-pekko-prometheus
+
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'spring-pekko-cluster'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets:
+          - '127.0.0.1:8080'
+          - '127.0.0.1:8081'
+          - '127.0.0.1:8082'

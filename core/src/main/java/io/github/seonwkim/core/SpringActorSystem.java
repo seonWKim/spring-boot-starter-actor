@@ -1,5 +1,6 @@
 package io.github.seonwkim.core;
 
+import io.github.seonwkim.core.RootGuardian.StopResult;
 import io.github.seonwkim.core.behavior.ClusterEventBehavior;
 import io.github.seonwkim.core.impl.DefaultRootGuardian;
 import java.time.Duration;
@@ -101,7 +102,7 @@ public class SpringActorSystem implements DisposableBean {
 						actorSystem,
 						(ActorRef<DefaultRootGuardian.Spawned<T>> replyTo) ->
 								new DefaultRootGuardian.SpawnActor<>(
-										commandClass, actorId, replyTo, MailboxSelector.defaultMailbox()),
+										commandClass, actorId, replyTo, MailboxSelector.defaultMailbox(), false),
 						DEFAULT_TIMEOUT,
 						actorSystem.scheduler())
 				.thenApply(spawned -> new SpringActorRef<>(actorSystem.scheduler(), spawned.ref));
@@ -124,10 +125,7 @@ public class SpringActorSystem implements DisposableBean {
 						actorSystem,
 						(ActorRef<DefaultRootGuardian.Spawned<T>> replyTo) ->
 								new DefaultRootGuardian.SpawnActor<>(
-										commandClass,
-										actorId,
-										replyTo,
-										MailboxSelector.defaultMailbox()),
+										commandClass, actorId, replyTo, MailboxSelector.defaultMailbox(), false),
 						timeout,
 						actorSystem.scheduler())
 				.thenApply(spawned -> new SpringActorRef<>(actorSystem.scheduler(), spawned.ref));
@@ -152,10 +150,58 @@ public class SpringActorSystem implements DisposableBean {
 						actorSystem,
 						(ActorRef<DefaultRootGuardian.Spawned<T>> replyTo) ->
 								new DefaultRootGuardian.SpawnActor<>(
-										commandClass, actorId, replyTo, mailboxSelector),
+										commandClass, actorId, replyTo, mailboxSelector, false),
 						timeout,
 						actorSystem.scheduler())
 				.thenApply(spawned -> new SpringActorRef<>(actorSystem.scheduler(), spawned.ref));
+	}
+
+	/**
+	 * Asynchronously stops a previously spawned actor identified by its command class and actor ID.
+	 *
+	 * <p>If the actor exists and is currently active, it will be gracefully stopped. If the actor
+	 * does not exist or has already been passivated or stopped, the returned {@link CompletionStage}
+	 * will still complete successfully with a {@link StopResult} response indicating the request was
+	 * acknowledged.
+	 *
+	 * @param commandClass The class of commands that the actor can handle
+	 * @param actorId The ID of the actor to stop
+	 * @param <T> The type of commands that the actor can handle
+	 * @return A {@link CompletionStage} that completes when the stop command has been processed
+	 */
+	public <T> CompletionStage<StopResult> stop(Class<T> commandClass, String actorId) {
+		return AskPattern.ask(
+				actorSystem,
+				(ActorRef<DefaultRootGuardian.StopResult> replyTo) ->
+						new DefaultRootGuardian.StopActor<>(commandClass, actorId, replyTo),
+				DEFAULT_TIMEOUT,
+				actorSystem.scheduler());
+	}
+
+	/**
+	 * Asynchronously stops a previously spawned actor identified by its command class and actor ID,
+	 * with a custom timeout. This method sends a {@link DefaultRootGuardian.StopActor} command to the
+	 * root guardian, which is responsible for managing the lifecycle of actors within the system.
+	 *
+	 * <p>If the actor exists and is currently active, it will be gracefully stopped. If the actor
+	 * does not exist or has already been passivated or stopped, the returned {@link CompletionStage}
+	 * will still complete successfully with a {@link StopResult} response indicating the request was
+	 * acknowledged.
+	 *
+	 * @param commandClass The class of commands that the actor can handle
+	 * @param actorId The ID of the actor to stop
+	 * @param timeout The maximum time to wait for the stop operation to complete
+	 * @param <T> The type of commands that the actor can handle
+	 * @return A {@link CompletionStage} that completes when the stop command has been processed
+	 */
+	public <T> CompletionStage<StopResult> stop(
+			Class<T> commandClass, String actorId, Duration timeout) {
+		return AskPattern.ask(
+				actorSystem,
+				(ActorRef<DefaultRootGuardian.StopResult> replyTo) ->
+						new DefaultRootGuardian.StopActor<>(commandClass, actorId, replyTo),
+				timeout,
+				actorSystem.scheduler());
 	}
 
 	/**
