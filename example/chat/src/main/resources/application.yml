@@ -30,7 +30,10 @@ logging:
     org.apache.pekko: DEBUG
 
 management:
+  metrics:
+    tags:
+      application: spring-pekko-example
   endpoints:
     web:
       exposure:
-        include: pekko-cluster-state, pekko-cluster-metrics
+        include: prometheus, pekko-cluster-state, pekko-cluster-metrics
