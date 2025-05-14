@@ -74,6 +74,7 @@ public class MetricsUtils {
 		if (cluster == null) {
 			return Collections.emptyList();
 		}
+
 		return IteratorUtils.fromIterable(cluster.state().getMembers());
 	}
 
@@ -83,8 +84,8 @@ public class MetricsUtils {
 
 	public static long getUpCount(SpringActorSystem springActorSystem) {
 		return getMembers(springActorSystem).stream()
-											.filter(m -> m.status().equals(MemberStatus.up()))
-											.count();
+				.filter(m -> m.status().equals(MemberStatus.up()))
+				.count();
 	}
 
 	public static long getUnreachableCount(SpringActorSystem springActorSystem) {

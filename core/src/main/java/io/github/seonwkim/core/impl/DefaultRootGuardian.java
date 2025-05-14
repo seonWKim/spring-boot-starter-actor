@@ -32,6 +32,8 @@ public class DefaultRootGuardian implements RootGuardian {
 		public final ActorRef<Spawned<T>> replyTo;
 		/** The mailbox selector to use * */
 		public final MailboxSelector mailboxSelector;
+		/** Whether the ActorRef should be cluster singleton * */
+		public final Boolean isClusterSingleton;
 
 		/**
 		 * Creates a new SpawnActor command.
@@ -44,11 +46,38 @@ public class DefaultRootGuardian implements RootGuardian {
 				Class<T> commandClass,
 				String actorId,
 				ActorRef<Spawned<T>> replyTo,
-				MailboxSelector mailboxSelector) {
+				MailboxSelector mailboxSelector,
+				Boolean isClusterSingleton) {
 			this.commandClass = commandClass;
 			this.actorId = actorId;
 			this.replyTo = replyTo;
 			this.mailboxSelector = mailboxSelector;
+			this.isClusterSingleton = isClusterSingleton;
+		}
+	}
+
+	/**
+	 * Sends a command to stop an existing actor managed by the actor management system.
+	 * <p>
+	 * This command is typically handled by a parent or manager actor responsible for the lifecycle
+	 * of child actors. The actor identified by {@code actorId} and capable of handling {@code commandClass}
+	 * messages will be stopped gracefully if it exists.
+	 *
+	 * @param <T> The type of command that the target actor can handle
+	 */
+	public static class StopActor<T> implements Command {
+		public final Class<T> commandClass;
+		public final String actorId;
+
+		/**
+		 * Creates a new StopActor command.
+		 *
+		 * @param commandClass The class of commands that the actor can handle
+		 * @param actorId The ID of the actor to be stopped
+		 */
+		public StopActor(Class<T> commandClass, String actorId) {
+			this.commandClass = commandClass;
+			this.actorId = actorId;
 		}
 	}
 
@@ -107,9 +136,12 @@ public class DefaultRootGuardian implements RootGuardian {
 	 * @return A behavior for this DefaultRootGuardian
 	 */
 	private Behavior<Command> behavior() {
-		return Behaviors.receive(Command.class)
-				.onMessage(SpawnActor.class, this::handleSpawnActor)
-				.build();
+		return Behaviors.setup(
+				ctx ->
+						Behaviors.receive(Command.class)
+								.onMessage(SpawnActor.class, this::handleSpawnActor)
+								.onMessage(StopActor.class, msg -> handleStopActor(ctx, msg))
+								.build());
 	}
 
 	/**
@@ -135,6 +167,20 @@ public class DefaultRootGuardian implements RootGuardian {
 		}
 
 		msg.replyTo.tell(new Spawned<>(ref));
+		return Behaviors.same();
+	}
+
+	@SuppressWarnings("unchecked")
+	public <T> Behavior<RootGuardian.Command> handleStopActor(
+			ActorContext<T> context, StopActor<T> msg) {
+		String key = buildActorKey(msg.commandClass, msg.actorId);
+
+		final ActorRef<T> actorRef = (ActorRef<T>) actorRefs.get(key);
+		if (actorRef != null) {
+			actorRefs.remove(key);
+			context.stop(actorRef);
+		}
+
 		return Behaviors.same();
 	}
 

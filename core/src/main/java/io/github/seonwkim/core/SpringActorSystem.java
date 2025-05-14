@@ -101,7 +101,7 @@ public class SpringActorSystem implements DisposableBean {
 						actorSystem,
 						(ActorRef<DefaultRootGuardian.Spawned<T>> replyTo) ->
 								new DefaultRootGuardian.SpawnActor<>(
-										commandClass, actorId, replyTo, MailboxSelector.defaultMailbox()),
+										commandClass, actorId, replyTo, MailboxSelector.defaultMailbox(), false),
 						DEFAULT_TIMEOUT,
 						actorSystem.scheduler())
 				.thenApply(spawned -> new SpringActorRef<>(actorSystem.scheduler(), spawned.ref));
@@ -124,10 +124,7 @@ public class SpringActorSystem implements DisposableBean {
 						actorSystem,
 						(ActorRef<DefaultRootGuardian.Spawned<T>> replyTo) ->
 								new DefaultRootGuardian.SpawnActor<>(
-										commandClass,
-										actorId,
-										replyTo,
-										MailboxSelector.defaultMailbox()),
+										commandClass, actorId, replyTo, MailboxSelector.defaultMailbox(), false),
 						timeout,
 						actorSystem.scheduler())
 				.thenApply(spawned -> new SpringActorRef<>(actorSystem.scheduler(), spawned.ref));
@@ -152,7 +149,7 @@ public class SpringActorSystem implements DisposableBean {
 						actorSystem,
 						(ActorRef<DefaultRootGuardian.Spawned<T>> replyTo) ->
 								new DefaultRootGuardian.SpawnActor<>(
-										commandClass, actorId, replyTo, mailboxSelector),
+										commandClass, actorId, replyTo, mailboxSelector, false),
 						timeout,
 						actorSystem.scheduler())
 				.thenApply(spawned -> new SpringActorRef<>(actorSystem.scheduler(), spawned.ref));
