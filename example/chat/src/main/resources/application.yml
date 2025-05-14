@@ -36,4 +36,4 @@ management:
   endpoints:
     web:
       exposure:
-        include: prometheus, pekko-cluster-state, pekko-cluster-metrics
+        include: prometheus, pekko-cluster-state

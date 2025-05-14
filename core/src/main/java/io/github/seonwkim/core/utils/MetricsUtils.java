@@ -68,4 +68,38 @@ public class MetricsUtils {
 
 		return metrics;
 	}
+
+	public static List<Member> getMembers(SpringActorSystem springActorSystem) {
+		final Cluster cluster = springActorSystem.getCluster();
+		if (cluster == null) {
+			return Collections.emptyList();
+		}
+		return IteratorUtils.fromIterable(cluster.state().getMembers());
+	}
+
+	public static long getMemberCount(SpringActorSystem springActorSystem) {
+		return getMembers(springActorSystem).size();
+	}
+
+	public static long getUpCount(SpringActorSystem springActorSystem) {
+		return getMembers(springActorSystem).stream()
+											.filter(m -> m.status().equals(MemberStatus.up()))
+											.count();
+	}
+
+	public static long getUnreachableCount(SpringActorSystem springActorSystem) {
+		final Cluster cluster = springActorSystem.getCluster();
+		if (cluster == null) {
+			return 0;
+		}
+		return cluster.state().getUnreachable().size();
+	}
+
+	public static Set<String> getSelfRoles(SpringActorSystem springActorSystem) {
+		final Cluster cluster = springActorSystem.getCluster();
+		if (cluster == null) {
+			return Collections.emptySet();
+		}
+		return cluster.selfMember().getRoles();
+	}
 }
