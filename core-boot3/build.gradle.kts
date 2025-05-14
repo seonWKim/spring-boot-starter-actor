@@ -100,3 +100,15 @@ val syncAllBoot3Sources by tasks.registering {
         syncTestResourcesToBoot3
     )
 }
+
+tasks.named<JavaCompile>("compileJava") {
+    dependsOn(syncAllBoot3Sources)
+}
+
+tasks.named<ProcessResources>("processResources") {
+    dependsOn(syncAllBoot3Sources)
+}
+
+tasks.withType<Test> {
+    dependsOn(syncAllBoot3Sources)
+}

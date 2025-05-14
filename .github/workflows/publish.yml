@@ -85,9 +85,6 @@ jobs:
 
       - name: 🚀 Publish to Maven Central (core-boot3)
         run: |
-          echo "📦 Running ./gradlew :core-boot3:syncAllBoot3Sources..."
-          ./gradlew :core-boot3:syncAllBoot3Sources
-          
           echo "📦 Running ./gradlew :core-boot3:test..."
           ./gradlew :core-boot3:test
           
