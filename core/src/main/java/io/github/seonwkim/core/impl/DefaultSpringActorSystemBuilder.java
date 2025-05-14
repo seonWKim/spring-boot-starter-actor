@@ -129,6 +129,14 @@ public class DefaultSpringActorSystemBuilder implements SpringActorSystemBuilder
 		}
 	}
 
+	/**
+	 * Applies default serializers to the configuration map. This method adds Jackson JSON and CBOR
+	 * serializers to the configuration if they are not already present. It also adds default
+	 * serialization bindings for JsonSerializable and CborSerializable interfaces.
+	 *
+	 * @param configMap The original configuration map
+	 * @return A new configuration map with default serializers applied
+	 */
 	@SuppressWarnings("unchecked")
 	private Map<String, Object> applyDefaultSerializers(Map<String, Object> configMap) {
 		final Map<String, Object> result = new HashMap<>(configMap);

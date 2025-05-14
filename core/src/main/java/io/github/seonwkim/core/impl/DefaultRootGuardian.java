@@ -85,6 +85,15 @@ public class DefaultRootGuardian implements RootGuardian {
 		return Behaviors.same();
 	}
 
+	/**
+	 * Handles a StopActor command by stopping an actor and removing its reference. If an actor with
+	 * the given command class and ID exists, it is stopped and a Stopped message is sent to the
+	 * reply-to actor. Otherwise, an ActorNotFound message is sent.
+	 *
+	 * @param msg The StopActor command
+	 * @param <T> The type of messages that the actor can handle
+	 * @return The same behavior, as this handler doesn't change the behavior
+	 */
 	@SuppressWarnings("unchecked")
 	public <T> Behavior<RootGuardian.Command> handleStopActor(StopActor<T> msg) {
 		String key = buildActorKey(msg.commandClass, msg.actorId);

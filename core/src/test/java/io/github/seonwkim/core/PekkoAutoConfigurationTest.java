@@ -6,6 +6,9 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.typesafe.config.Config;
+import io.github.seonwkim.test.CustomOverrideConfiguration;
+import io.github.seonwkim.test.CustomTestRootGuardian;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.junit.jupiter.api.Nested;
@@ -15,11 +18,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 import org.springframework.test.context.TestPropertySource;
-
-import com.typesafe.config.Config;
-
-import io.github.seonwkim.test.CustomOverrideConfiguration;
-import io.github.seonwkim.test.CustomTestRootGuardian;
 
 public class PekkoAutoConfigurationTest {
 

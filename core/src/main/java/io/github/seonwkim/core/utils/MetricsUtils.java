@@ -14,7 +14,13 @@ import org.apache.pekko.cluster.typed.Cluster;
 /** Utility class for retrieving metrics and state information from the Apache Pekko cluster. */
 public class MetricsUtils {
 
-	/** Retrieves the current cluster state as a structured map, including: */
+	/**
+	 * Retrieves the current cluster state as a structured map, including member addresses, statuses,
+	 * roles, and self-node information.
+	 *
+	 * @param springActorSystem The SpringActorSystem to get cluster state from
+	 * @return A map containing cluster state information, or an empty map if not in cluster mode
+	 */
 	public static Map<String, Object> getClusterState(SpringActorSystem springActorSystem) {
 		final Cluster cluster = springActorSystem.getCluster();
 		if (cluster == null) {
@@ -69,6 +75,12 @@ public class MetricsUtils {
 		return metrics;
 	}
 
+	/**
+	 * Retrieves a list of all members in the cluster.
+	 *
+	 * @param springActorSystem The SpringActorSystem to get cluster members from
+	 * @return A list of all members in the cluster, or an empty list if not in cluster mode
+	 */
 	public static List<Member> getMembers(SpringActorSystem springActorSystem) {
 		final Cluster cluster = springActorSystem.getCluster();
 		if (cluster == null) {
@@ -78,6 +90,12 @@ public class MetricsUtils {
 		return IteratorUtils.fromIterable(cluster.state().getMembers());
 	}
 
+	/**
+	 * Returns the total number of members in the cluster.
+	 *
+	 * @param springActorSystem The SpringActorSystem to get the member count from
+	 * @return The number of members in the cluster, or 0 if not in cluster mode
+	 */
 	public static long getMemberCount(SpringActorSystem springActorSystem) {
 		return getMembers(springActorSystem).size();
 	}

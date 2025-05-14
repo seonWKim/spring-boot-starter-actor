@@ -1,7 +1,6 @@
 package io.github.seonwkim.core;
 
 import io.github.seonwkim.core.impl.DefaultRootGuardian;
-
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.MailboxSelector;
@@ -18,6 +17,10 @@ public interface RootGuardian {
 	 */
 	interface Command {}
 
+	/**
+	 * Interface for results of stopping an actor. Implementations of this interface are returned in
+	 * response to a StopActor command.
+	 */
 	interface StopResult extends Command {}
 
 	/**
@@ -71,8 +74,11 @@ public interface RootGuardian {
 	 * @param <T> The type of command that the target actor can handle
 	 */
 	class StopActor<T> implements Command {
+		/** The class of commands that the actor can handle */
 		public final Class<T> commandClass;
+		/** The ID of the actor to be stopped */
 		public final String actorId;
+		/** The actor reference to reply to with the stop result */
 		public final ActorRef<StopResult> replyTo;
 
 		/**
@@ -80,7 +86,7 @@ public interface RootGuardian {
 		 *
 		 * @param commandClass The class of commands that the actor can handle
 		 * @param actorId The ID of the actor to be stopped
-		 * @param replyTo The actor reference to reply to with the spawned actor reference
+		 * @param replyTo The actor reference to reply to with the stop result
 		 */
 		public StopActor(Class<T> commandClass, String actorId, ActorRef<StopResult> replyTo) {
 			this.commandClass = commandClass;
@@ -109,8 +115,16 @@ public interface RootGuardian {
 		}
 	}
 
+	/**
+	 * Response message indicating that an actor was successfully stopped. This message is sent in
+	 * response to a StopActor command when the actor is found and stopped.
+	 */
 	class Stopped implements StopResult {}
 
+	/**
+	 * Response message indicating that an actor was not found and could not be stopped. This message
+	 * is sent in response to a StopActor command when the actor is not found.
+	 */
 	class ActorNotFound implements StopResult {}
 
 	/**
