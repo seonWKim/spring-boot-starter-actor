@@ -8,12 +8,12 @@ import org.springframework.boot.actuate.endpoint.annotation.ReadOperation;
 import org.springframework.stereotype.Component;
 
 @Component
-@Endpoint(id = "pekko-cluster-state")
-public class PekkoClusterStateEndpoint {
+@Endpoint(id = "actor-cluster-state")
+public class ActorClusterStateEndpoint {
 
 	private final SpringActorSystem springActorSystem;
 
-	public PekkoClusterStateEndpoint(SpringActorSystem springActorSystem) {
+	public ActorClusterStateEndpoint(SpringActorSystem springActorSystem) {
 		this.springActorSystem = springActorSystem;
 	}
 
