@@ -34,12 +34,10 @@ public class DbCounterService implements CounterService {
 	 * to ensure synchronization. The blocking logic is delegated to a boundedElastic scheduler.
 	 *
 	 * @param counterId The ID of the counter to increment
-	 * @return A Mono containing the new counter value after increment
 	 */
 	@Override
-	public Mono<Long> increment(String counterId) {
-		return Mono.fromCallable(() -> incrementInternal(counterId))
-				.subscribeOn(Schedulers.boundedElastic());
+	public void increment(String counterId) {
+		incrementInternal(counterId);
 	}
 
 	/**

@@ -35,10 +35,9 @@ public class ActorCounterService implements CounterService {
 	 * synchronization.
 	 *
 	 * @param counterId The ID of the counter to increment
-	 * @return A Mono containing the new counter value after increment
 	 */
 	@Override
-	public Mono<Long> increment(String counterId) {
+	public void increment(String counterId) {
 		logger.debug("Incrementing counter with ID: {}", counterId);
 
 		// Get a reference to the sharded actor for this counter
@@ -46,13 +45,7 @@ public class ActorCounterService implements CounterService {
 				springActorSystem.entityRef(CounterActor.TYPE_KEY, counterId);
 
 		// Send an increment message to the actor and get the response
-		CompletionStage<Long> response =
-				actorRef.ask(replyTo -> new CounterActor.Increment(replyTo), TIMEOUT);
-
-		return Mono.fromCompletionStage(response)
-				.doOnSuccess(
-						newValue ->
-								logger.debug("Counter with ID: {} incremented to: {}", counterId, newValue));
+		actorRef.tell(new CounterActor.Increment());
 	}
 
 	/**

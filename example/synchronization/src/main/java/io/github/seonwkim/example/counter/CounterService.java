@@ -13,9 +13,8 @@ public interface CounterService {
 	 * ensure consistency.
 	 *
 	 * @param counterId The ID of the counter to increment
-	 * @return A Mono containing the new counter value after increment
 	 */
-	Mono<Long> increment(String counterId);
+	void increment(String counterId);
 
 	/**
 	 * Gets the current value of the counter.

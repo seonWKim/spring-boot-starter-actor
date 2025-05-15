@@ -35,12 +35,9 @@ public class CounterActor implements ShardedActor<CounterActor.Command> {
 
 	/** Command to increment the counter and get the new value. */
 	public static class Increment implements Command {
-		public final ActorRef<Long> replyTo;
 
 		@JsonCreator
-		public Increment(@JsonProperty("replyTo") ActorRef<Long> replyTo) {
-			this.replyTo = replyTo;
-		}
+		public Increment() {}
 	}
 
 	/** Command to get the current value of the counter. */
@@ -111,7 +108,6 @@ public class CounterActor implements ShardedActor<CounterActor.Command> {
 		private Behavior<Command> onIncrement(Increment msg) {
 			logger.debug("Incrementing counter with ID: {}", counterId);
 			value++;
-			msg.replyTo.tell(value);
 			logger.debug("Counter with ID: {} incremented to: {}", counterId, value);
 			return Behaviors.same();
 		}

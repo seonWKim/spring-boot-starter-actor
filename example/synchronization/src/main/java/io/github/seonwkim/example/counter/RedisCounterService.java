@@ -42,58 +42,46 @@ public class RedisCounterService implements CounterService {
 	 * ensure synchronization.
 	 *
 	 * @param counterId The ID of the counter to increment
-	 * @return A Mono containing the new counter value after increment
 	 */
 	@Override
-	public Mono<Long> increment(String counterId) {
+	public void increment(String counterId) {
 		logger.debug("Incrementing counter with ID: {}", counterId);
 
 		String counterKey = COUNTER_KEY_PREFIX + counterId;
 		String lockKey = LOCK_KEY_PREFIX + counterId;
-		String lockValue = UUID.randomUUID().toString();
 
-		// Try to acquire the lock using SETNX (SET if Not eXists)
-		return valueOps
+		valueOps
 				.setIfAbsent(lockKey, 1L, LOCK_TIMEOUT)
-				.flatMap(
-						locked -> {
-							if (!locked) {
-								logger.warn("Failed to acquire lock for counter: {}", counterId);
-								return Mono.error(
-										new RuntimeException("Failed to acquire lock for counter: " + counterId));
-							}
+				.flatMap(locked -> {
+					if (!locked) {
+						logger.warn("Failed to acquire lock for counter: {}", counterId);
+						return Mono.error(new RuntimeException("Failed to acquire lock for counter: " + counterId));
+					}
 
-							// Increment the counter atomically
-							return valueOps
-									.increment(counterKey)
-									.doOnSuccess(
-											newValue ->
-													logger.debug(
-															"Counter with ID: {} incremented to: {}", counterId, newValue))
-									.doFinally(
-											signalType -> {
-												// Release the lock
-												redisTemplate
-														.delete(lockKey)
-														.subscribe(
-																deleted -> {
-																	if (deleted > 0) {
-																		logger.debug("Released lock for counter: {}", counterId);
-																	} else {
-																		logger.warn(
-																				"Failed to release lock for counter: {}", counterId);
-																	}
-																});
-											});
-						})
+					return valueOps
+							.increment(counterKey)
+							.doOnSuccess(newValue ->
+												 logger.debug("Counter with ID: {} incremented to: {}", counterId, newValue))
+							.doFinally(signalType ->
+											   redisTemplate
+													   .delete(lockKey)
+													   .subscribe(deleted -> {
+														   if (deleted > 0) {
+															   logger.debug("Released lock for counter: {}", counterId);
+														   } else {
+															   logger.warn("Failed to release lock for counter: {}", counterId);
+														   }
+													   }));
+				})
 				.retryWhen(
 						Retry.backoff(MAX_RETRIES, RETRY_DELAY)
-								.doBeforeRetry(
-										retrySignal ->
-												logger.debug(
-														"Retrying lock acquisition for counter: {}, attempt: {}",
-														counterId,
-														retrySignal.totalRetries() + 1)));
+							 .doBeforeRetry(retrySignal ->
+													logger.debug("Retrying lock acquisition for counter: {}, attempt: {}",
+																 counterId, retrySignal.totalRetries() + 1)))
+				.subscribe(
+						null,  // onNext is ignored since we don't need the result
+						error -> logger.error("Error while incrementing counter: {}", counterId, error)
+				);
 	}
 
 	/**
