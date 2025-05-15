@@ -1,5 +1,6 @@
 # Chat Example
 
+![Chat Demo](../chat.gif)
 This guide demonstrates how to build a real-time chat application using Spring Boot Starter Actor without introducing third-party middleware.
 
 ## Overview
