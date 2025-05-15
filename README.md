@@ -1,8 +1,6 @@
-# Spring Boot Starter Actor
+<img src="./logo.png" alt="Library Logo" width="200"/>
 
-<p align="center">
-  <img src="./logo.png" alt="Library Logo" width="200"/>
-</p>
+# Spring Boot Starter Actor
 
 <div style="border: 2px solid #ccc; display: inline-block; border-radius: 8px; overflow: hidden;">
   <img src="chat.gif" alt="Demo"/>
