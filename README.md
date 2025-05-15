@@ -1,8 +1,6 @@
-# Spring Boot Starter Actor
+<img src="docs/docs/logo.png" alt="Library Logo" width="200"/>
 
-<p align="center">
-  <img src="./logo.png" alt="Library Logo" width="200"/>
-</p>
+# Spring Boot Starter Actor
 
 <div style="border: 2px solid #ccc; display: inline-block; border-radius: 8px; overflow: hidden;">
   <img src="chat.gif" alt="Demo"/>
@@ -55,7 +53,7 @@ This project aims to bring together the best of both worlds:
 
 ### Prerequisites
 
-- Java 8 or higher
+- Java 11 or higher
 - Spring Boot 2.x or 3.x
 
 ### Installation
@@ -72,10 +70,10 @@ dependencyManagement {
 }
 
 // Gradle(spring boot 2.7.x) 
-implementation 'io.github.seonwkim:spring-boot-starter-actor:0.0.10'
+implementation 'io.github.seonwkim:spring-boot-starter-actor:0.0.14'
 
 // Gradle(spring boot 3.2.x) 
-implementation 'io.github.seonwkim:spring-boot-starter-actor_3:0.0.10'
+implementation 'io.github.seonwkim:spring-boot-starter-actor_3:0.0.14'
 ```
 
 ```xml
@@ -96,14 +94,14 @@ implementation 'io.github.seonwkim:spring-boot-starter-actor_3:0.0.10'
 <dependency>
   <groupId>io.github.seonwkim</groupId>
   <artifactId>spring-boot-starter-actor</artifactId>
-  <version>0.0.10</version>
+  <version>0.0.14</version>
 </dependency>
 
-  <!-- Maven(spring boot 3.2.x) -->
+<!-- Maven(spring boot 3.2.x) -->
 <dependency>
-<groupId>io.github.seonwkim</groupId>
-<artifactId>spring-boot-starter-actor_3</artifactId>
-<version>0.0.10</version>
+  <groupId>io.github.seonwkim</groupId>
+  <artifactId>spring-boot-starter-actor_3</artifactId>
+  <version>0.0.14</version>
 </dependency>
 ```
 

@@ -29,6 +29,8 @@ dependencies {
 	api("org.apache.pekko:pekko-serialization-jackson_3")
 
 	api("org.springframework.boot:spring-boot-starter")
+	// TODO: I'm not sure to provide aop as default dependency, but for now it seems ok
+	api("org.springframework.boot:spring-boot-starter-aop")
 
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testImplementation("org.apache.pekko:pekko-actor-testkit-typed_3")
