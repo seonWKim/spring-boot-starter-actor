@@ -3,7 +3,6 @@ name: Publish Website
 on:
   push:
     branches:
-      - master
       - main
 
 permissions:

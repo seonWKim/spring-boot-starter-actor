@@ -56,6 +56,10 @@ implementation 'io.github.seonwkim:spring-boot-starter-actor_3:0.0.14'
 </dependency>
 ```
 
+To view the latest versions, refer to the following:
+- [spring-boot-starter-actor](https://central.sonatype.com/artifact/io.github.seonwkim/spring-boot-starter-actor)
+- [spring-boot-starter-actor_3](https://central.sonatype.com/artifact/io.github.seonwkim/spring-boot-starter-actor_3)
+
 ## Basic Configuration
 
 Spring Boot Starter Actor uses Spring Boot's auto-configuration to set up the actor system. By default, it will create a local actor system with sensible defaults.
