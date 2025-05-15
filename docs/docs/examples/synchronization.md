@@ -13,6 +13,11 @@ The synchronization example shows how to:
 
 This example demonstrates why using actors for synchronization is cheap and efficient compared to other approaches.
 
+## Source Code
+
+You can find the complete source code for this example on GitHub:
+[https://github.com/seonWKim/spring-boot-starter-actor/tree/main/example/synchronization](https://github.com/seonWKim/spring-boot-starter-actor/tree/main/example/synchronization)
+
 ## Key Components
 
 The example implements a counter service using three different synchronization approaches:
@@ -20,6 +25,8 @@ The example implements a counter service using three different synchronization a
 1. **Database Locking**: Uses database transactions and locks
 2. **Redis Locking**: Uses Redis for distributed locking
 3. **Actor-Based Synchronization**: Uses actors for message-based synchronization
+
+Let's examine each approach to understand their differences and trade-offs.
 
 ### Counter Entity
 
@@ -40,6 +47,114 @@ public class Counter {
 
     public long increment() {
         return ++value;
+    }
+}
+```
+
+### Database Synchronization
+
+`DbCounterService` uses database transactions and pessimistic locking to ensure synchronized access to counters:
+
+```java
+@Service
+public class DbCounterService implements CounterService {
+    private final CounterRepository counterRepository;
+    private final CustomTransactionTemplate customTransactionTemplate;
+
+    public DbCounterService(
+            CounterRepository counterRepository, 
+            CustomTransactionTemplate customTransactionTemplate) {
+        this.counterRepository = counterRepository;
+        this.customTransactionTemplate = customTransactionTemplate;
+    }
+
+    @Override
+    public void increment(String counterId) {
+        incrementInternal(counterId);
+    }
+
+    @Override
+    public Mono<Long> getValue(String counterId) {
+        return Mono.fromCallable(() -> getValueInternal(counterId))
+                .subscribeOn(Schedulers.boundedElastic());
+    }
+
+    public Long incrementInternal(String counterId) {
+        return customTransactionTemplate.runInTransaction(
+                () -> {
+                    // Find counter with lock or create new one
+                    Counter counter =
+                            counterRepository
+                                    .findByIdWithLock(counterId)
+                                    .orElseGet(
+                                            () -> {
+                                                return counterRepository.save(new Counter(counterId, 0));
+                                            });
+
+                    // Increment and save
+                    long newValue = counter.increment();
+                    counterRepository.save(counter);
+
+                    return newValue;
+                });
+    }
+
+    public Long getValueInternal(String counterId) {
+        return counterRepository.findById(counterId).map(Counter::getValue).orElse(0L);
+    }
+}
+```
+
+### Redis Synchronization
+
+`RedisCounterService` uses Redis distributed locking to ensure synchronized access to counters:
+
+```java
+@Service
+public class RedisCounterService implements CounterService {
+    private static final String COUNTER_KEY_PREFIX = "counter:";
+    private static final String LOCK_KEY_PREFIX = "counter:lock:";
+    private static final Duration LOCK_TIMEOUT = Duration.ofSeconds(2);
+    private static final Duration RETRY_DELAY = Duration.ofMillis(100);
+    private static final int MAX_RETRIES = 50; // 5 seconds total retry time
+
+    private final ReactiveRedisTemplate<String, Long> redisTemplate;
+    private final ReactiveValueOperations<String, Long> valueOps;
+
+    public RedisCounterService(ReactiveRedisTemplate<String, Long> redisTemplate) {
+        this.redisTemplate = redisTemplate;
+        this.valueOps = redisTemplate.opsForValue();
+    }
+
+    @Override
+    public void increment(String counterId) {
+        String counterKey = COUNTER_KEY_PREFIX + counterId;
+        String lockKey = LOCK_KEY_PREFIX + counterId;
+
+        valueOps
+                .setIfAbsent(lockKey, 1L, LOCK_TIMEOUT)
+                .flatMap(locked -> {
+                    if (!locked) {
+                        // Failed to acquire lock, retry
+                        return Mono.error(new RuntimeException("Failed to acquire lock"));
+                    }
+
+                    return valueOps
+                            .increment(counterKey)
+                            .doFinally(signalType ->
+                                       // Release lock when done
+                                       redisTemplate.delete(lockKey).subscribe());
+                })
+                .retryWhen(
+                        Retry.backoff(MAX_RETRIES, RETRY_DELAY))
+                .subscribe();
+    }
+
+    @Override
+    public Mono<Long> getValue(String counterId) {
+        String counterKey = COUNTER_KEY_PREFIX + counterId;
+        // Get the counter value or return 0 if it doesn't exist
+        return valueOps.get(counterKey).defaultIfEmpty(0L);
     }
 }
 ```

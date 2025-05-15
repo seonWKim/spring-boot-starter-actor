@@ -12,6 +12,11 @@ The simple example shows how to:
 
 This example is a great starting point for understanding the core concepts of the actor model and how Spring Boot Starter Actor makes it easy to use actors in your Spring applications.
 
+## Source Code
+
+You can find the complete source code for this example on GitHub:
+[https://github.com/seonWKim/spring-boot-starter-actor/tree/main/example/simple](https://github.com/seonWKim/spring-boot-starter-actor/tree/main/example/simple)
+
 ## Key Components
 
 ### HelloActor
@@ -28,35 +33,35 @@ This example is a great starting point for understanding the core concepts of th
 public class HelloActor implements SpringActor {
     // Command interface and message types
     public interface Command {}
-    
+
     public static class SayHello implements Command {
         public final ActorRef<String> replyTo;
-        
+
         public SayHello(ActorRef<String> replyTo) {
             this.replyTo = replyTo;
         }
     }
-    
+
     @Override
     public Class<?> commandClass() {
         return Command.class;
     }
-    
+
     @Override
     public Behavior<Command> create(String id) {
         return Behaviors.setup(ctx -> new HelloActorBehavior(ctx, id).create());
     }
-    
+
     // Actor behavior implementation
     private static class HelloActorBehavior {
         // Implementation details...
-        
+
         public Behavior<Command> create() {
             return Behaviors.receive(Command.class)
                     .onMessage(SayHello.class, this::onSayHello)
                     .build();
         }
-        
+
         private Behavior<Command> onSayHello(SayHello msg) {
             // Send response
             msg.replyTo.tell("Hello from actor " + actorId);
@@ -78,7 +83,7 @@ public class HelloActor implements SpringActor {
 @Service
 public class HelloService {
     private final SpringActorRef<Command> helloActor;
-    
+
     public HelloService(SpringActorSystem springActorSystem) {
         // Spawn a single actor with the name "default"
         this.helloActor = springActorSystem
@@ -86,7 +91,7 @@ public class HelloService {
                 .toCompletableFuture()
                 .join();
     }
-    
+
     public Mono<String> hello() {
         // Send a SayHello message to the actor and convert the response to a Mono
         return Mono.fromCompletionStage(
@@ -107,11 +112,11 @@ public class HelloService {
 @RestController
 public class HelloController {
     private final HelloService helloService;
-    
+
     public HelloController(HelloService helloService) {
         this.helloService = helloService;
     }
-    
+
     @GetMapping("/hello")
     public Mono<String> hello() {
         return helloService.hello();

@@ -13,6 +13,11 @@ The cluster example shows how to:
 
 This example demonstrates the power of the actor model for building scalable, distributed applications with Spring Boot.
 
+## Source Code
+
+You can find the complete source code for this example on GitHub:
+[https://github.com/seonWKim/spring-boot-starter-actor/tree/main/example/cluster](https://github.com/seonWKim/spring-boot-starter-actor/tree/main/example/cluster)
+
 ## Key Components
 
 ### HelloActor
@@ -29,14 +34,14 @@ This example demonstrates the power of the actor model for building scalable, di
 public class HelloActor implements ShardedActor<HelloActor.Command> {
     public static final EntityTypeKey<Command> TYPE_KEY =
             EntityTypeKey.create(Command.class, "HelloActor");
-    
+
     // Command interface and message types
     public interface Command extends JsonSerializable {}
-    
+
     public static class SayHello implements Command {
         public final ActorRef<String> replyTo;
         public final String message;
-        
+
         @JsonCreator
         public SayHello(
                 @JsonProperty("replyTo") ActorRef<String> replyTo,
@@ -45,12 +50,12 @@ public class HelloActor implements ShardedActor<HelloActor.Command> {
             this.message = message;
         }
     }
-    
+
     @Override
     public EntityTypeKey<Command> typeKey() {
         return TYPE_KEY;
     }
-    
+
     @Override
     public Behavior<Command> create(EntityContext<Command> ctx) {
         return Behaviors.setup(
@@ -62,19 +67,19 @@ public class HelloActor implements ShardedActor<HelloActor.Command> {
                                             // Get information about the current node and entity
                                             final String nodeAddress = context.getSystem().address().toString();
                                             final String entityId = ctx.getEntityId();
-                                            
+
                                             // Create a response message with node and entity information
                                             final String message =
                                                     "Received from entity [" + entityId + "] on node [" + nodeAddress + "]";
-                                            
+
                                             // Send the response back to the caller
                                             msg.replyTo.tell(message);
-                                            
+
                                             return Behaviors.same();
                                         })
                                 .build());
     }
-    
+
     @Override
     public ShardingMessageExtractor<ShardEnvelope<Command>, Command> extractor() {
         return new DefaultShardingMessageExtractor<>(3);
@@ -94,20 +99,20 @@ public class HelloActor implements ShardedActor<HelloActor.Command> {
 @Service
 public class HelloService {
     private final SpringActorSystem springActorSystem;
-    
+
     public HelloService(SpringActorSystem springActorSystem) {
         this.springActorSystem = springActorSystem;
     }
-    
+
     public Mono<String> hello(String message, String entityId) {
         // Get a reference to the actor entity
         SpringShardedActorRef<HelloActor.Command> actorRef =
                 springActorSystem.entityRef(HelloActor.TYPE_KEY, entityId);
-        
+
         // Send the message to the actor and get the response
         CompletionStage<String> response =
                 actorRef.ask(replyTo -> new HelloActor.SayHello(replyTo, message), Duration.ofSeconds(3));
-        
+
         // Convert the CompletionStage to a Mono for reactive programming
         return Mono.fromCompletionStage(response);
     }
@@ -126,11 +131,11 @@ public class HelloService {
 @RestController
 public class HelloController {
     private final HelloService helloService;
-    
+
     public HelloController(HelloService helloService) {
         this.helloService = helloService;
     }
-    
+
     @GetMapping("/hello")
     public Mono<String> hello(@RequestParam String message, @RequestParam String entityId) {
         return helloService.hello(message, entityId);

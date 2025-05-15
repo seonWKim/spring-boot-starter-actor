@@ -13,6 +13,11 @@ The chat example shows how to:
 
 This example demonstrates how Spring Boot Starter Actor can be used to build real-world applications efficiently without relying on additional infrastructure components.
 
+## Source Code
+
+You can find the complete source code for this example on GitHub:
+[https://github.com/seonWKim/spring-boot-starter-actor/tree/main/example/chat](https://github.com/seonWKim/spring-boot-starter-actor/tree/main/example/chat)
+
 ## Key Components
 
 ### ChatRoomActor
@@ -24,55 +29,55 @@ This example demonstrates how Spring Boot Starter Actor can be used to build rea
 public class ChatRoomActor implements ShardedActor<ChatRoomActor.Command> {
     public static final EntityTypeKey<Command> TYPE_KEY =
             EntityTypeKey.create(Command.class, "ChatRoomActor");
-    
+
     // Command interface and message types
     public interface Command extends JsonSerializable {}
-    
+
     public static class JoinRoom implements Command {
         public final String userId;
         public final ActorRef<ChatEvent> userRef;
-        
+
         // Constructor and properties...
     }
-    
+
     public static class LeaveRoom implements Command {
         public final String userId;
-        
+
         // Constructor and properties...
     }
-    
+
     public static class SendMessage implements Command {
         public final String userId;
         public final String message;
-        
+
         // Constructor and properties...
     }
-    
+
     // Event interface and event types
     public interface ChatEvent extends JsonSerializable {}
-    
+
     public static class UserJoined implements ChatEvent {
         public final String userId;
         public final String roomId;
-        
+
         // Constructor and properties...
     }
-    
+
     public static class UserLeft implements ChatEvent {
         public final String userId;
         public final String roomId;
-        
+
         // Constructor and properties...
     }
-    
+
     public static class MessageReceived implements ChatEvent {
         public final String userId;
         public final String message;
         public final String roomId;
-        
+
         // Constructor and properties...
     }
-    
+
     @Override
     public Behavior<Command> create(EntityContext<Command> ctx) {
         return Behaviors.setup(
@@ -81,46 +86,46 @@ public class ChatRoomActor implements ShardedActor<ChatRoomActor.Command> {
                     return chatRoom(roomId, new HashMap<>());
                 });
     }
-    
+
     private Behavior<Command> chatRoom(
             String roomId, Map<String, ActorRef<ChatEvent>> connectedUsers) {
         return Behaviors.receive(Command.class)
                 .onMessage(JoinRoom.class, msg -> {
                     // Add the user to the connected users
                     connectedUsers.put(msg.userId, msg.userRef);
-                    
+
                     // Notify all users that a new user has joined
                     UserJoined event = new UserJoined(msg.userId, roomId);
                     broadcastEvent(connectedUsers, event);
-                    
+
                     return chatRoom(roomId, connectedUsers);
                 })
                 .onMessage(LeaveRoom.class, msg -> {
                     // Remove the user from connected users
                     connectedUsers.remove(msg.userId);
-                    
+
                     // Notify all users that a user has left
                     UserLeft event = new UserLeft(msg.userId, roomId);
                     broadcastEvent(connectedUsers, event);
-                    
+
                     return chatRoom(roomId, connectedUsers);
                 })
                 .onMessage(SendMessage.class, msg -> {
                     // Create a message received event
                     MessageReceived event = new MessageReceived(msg.userId, msg.message, roomId);
-                    
+
                     // Broadcast the message to all connected users
                     broadcastEvent(connectedUsers, event);
-                    
+
                     return Behaviors.same();
                 })
                 .build();
     }
-    
+
     private void broadcastEvent(Map<String, ActorRef<ChatEvent>> connectedUsers, ChatEvent event) {
         connectedUsers.values().forEach(userRef -> userRef.tell(event));
     }
-    
+
     // Other ShardedActor implementation methods...
 }
 ```
@@ -134,19 +139,19 @@ public class UserActor {
     private final String userId;
     private final WebSocketSession session;
     private final ObjectMapper objectMapper;
-    
+
     public UserActor(String userId, WebSocketSession session, ObjectMapper objectMapper) {
         this.userId = userId;
         this.session = session;
         this.objectMapper = objectMapper;
     }
-    
+
     public Behavior<ChatRoomActor.ChatEvent> create() {
         return Behaviors.receive(ChatRoomActor.ChatEvent.class)
                 .onMessage(ChatRoomActor.ChatEvent.class, this::onChatEvent)
                 .build();
     }
-    
+
     private Behavior<ChatRoomActor.ChatEvent> onChatEvent(ChatRoomActor.ChatEvent event) {
         try {
             // Convert the event to JSON and send it to the WebSocket
@@ -170,55 +175,55 @@ public class ChatService {
     private final SpringActorSystem springActorSystem;
     private final ObjectMapper objectMapper;
     private final Map<String, ActorRef<ChatRoomActor.ChatEvent>> userActors = new ConcurrentHashMap<>();
-    
+
     public ChatService(SpringActorSystem springActorSystem, ObjectMapper objectMapper) {
         this.springActorSystem = springActorSystem;
         this.objectMapper = objectMapper;
     }
-    
+
     public void handleUserConnection(String userId, WebSocketSession session) {
         // Create a user actor for this connection
         ActorRef<ChatRoomActor.ChatEvent> userActor = springActorSystem.spawn(
                 new UserActor(userId, session, objectMapper).create(),
                 userId);
-        
+
         // Store the user actor reference
         userActors.put(userId, userActor);
     }
-    
+
     public void handleUserDisconnection(String userId) {
         // Remove the user actor reference
         userActors.remove(userId);
     }
-    
+
     public void joinRoom(String userId, String roomId) {
         // Get the user actor reference
         ActorRef<ChatRoomActor.ChatEvent> userActor = userActors.get(userId);
-        
+
         if (userActor != null) {
             // Get a reference to the chat room actor
             SpringShardedActorRef<ChatRoomActor.Command> roomActor =
                     springActorSystem.entityRef(ChatRoomActor.TYPE_KEY, roomId);
-            
+
             // Send a join room message to the chat room actor
             roomActor.tell(new ChatRoomActor.JoinRoom(userId, userActor));
         }
     }
-    
+
     public void leaveRoom(String userId, String roomId) {
         // Get a reference to the chat room actor
         SpringShardedActorRef<ChatRoomActor.Command> roomActor =
                 springActorSystem.entityRef(ChatRoomActor.TYPE_KEY, roomId);
-        
+
         // Send a leave room message to the chat room actor
         roomActor.tell(new ChatRoomActor.LeaveRoom(userId));
     }
-    
+
     public void sendMessage(String userId, String roomId, String message) {
         // Get a reference to the chat room actor
         SpringShardedActorRef<ChatRoomActor.Command> roomActor =
                 springActorSystem.entityRef(ChatRoomActor.TYPE_KEY, roomId);
-        
+
         // Send a message to the chat room actor
         roomActor.tell(new ChatRoomActor.SendMessage(userId, message));
     }
@@ -234,39 +239,39 @@ public class ChatService {
 public class ChatWebSocketHandler extends TextWebSocketHandler {
     private final ChatService chatService;
     private final ObjectMapper objectMapper;
-    
+
     public ChatWebSocketHandler(ChatService chatService, ObjectMapper objectMapper) {
         this.chatService = chatService;
         this.objectMapper = objectMapper;
     }
-    
+
     @Override
     public void afterConnectionEstablished(WebSocketSession session) {
         // Extract user ID from session attributes
         String userId = (String) session.getAttributes().get("userId");
-        
+
         // Register the user with the chat service
         chatService.handleUserConnection(userId, session);
     }
-    
+
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
         // Extract user ID from session attributes
         String userId = (String) session.getAttributes().get("userId");
-        
+
         // Unregister the user from the chat service
         chatService.handleUserDisconnection(userId);
     }
-    
+
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
         // Extract user ID from session attributes
         String userId = (String) session.getAttributes().get("userId");
-        
+
         // Parse the message
         JsonNode jsonNode = objectMapper.readTree(message.getPayload());
         String type = jsonNode.get("type").asText();
-        
+
         switch (type) {
             case "join":
                 String roomId = jsonNode.get("roomId").asText();
