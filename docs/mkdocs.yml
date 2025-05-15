@@ -1,5 +1,5 @@
 site_name: spring-boot-starter-actor
-site_url: https://seonwkim.github.io/spring-boot-starter-actor-website
+site_url: https://seonwkim.github.io/spring-boot-starter-actor
 theme:
   name: material
   palette:
