@@ -33,6 +33,12 @@ nav:
   - Guides:
     - Actor Registration and Messaging: guides/actor-registration-messaging.md
     - Sharded Actors: guides/sharded-actors.md
+  - Examples:
+    - Overview: examples/index.md
+    - Simple: examples/simple.md
+    - Cluster: examples/cluster.md
+    - Synchronization: examples/synchronization.md
+    - Chat: examples/chat.md
   - API Reference: api-reference.md
 
 extra_css:

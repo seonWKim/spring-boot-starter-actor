@@ -4,7 +4,7 @@ This guide explains how to register actors, spawn them, and send messages using 
 
 ## Registering Actors
 
-In spring-boot-starter-actor, actors are registered as Spring components. This allows them to be automatically
+In Spring Boot Starter Actor, actors are registered as Spring components. This allows them to be automatically
 discovered and managed by the Spring container.
 
 ### Creating a Simple Actor
