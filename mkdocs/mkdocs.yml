@@ -1,5 +1,8 @@
 site_name: spring-boot-starter-actor
 site_url: https://seonwkim.github.io/spring-boot-starter-actor
+repo_url: https://github.com/seonWKim/spring-boot-starter-actor
+repo_name: GitHub
+edit_uri: edit/main/mkdocs/docs/
 theme:
   name: material
   palette:
