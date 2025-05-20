@@ -22,8 +22,8 @@ tasks.register<Jar>("agentJar") {
     
     manifest {
         attributes(
-            "Premain-Class" to "io.github.seonwkim.metrics.ActorMetricsAgent",
-            "Agent-Class" to "io.github.seonwkim.metrics.ActorMetricsAgent",
+            "Premain-Class" to "io.github.seonwkim.metrics.MetricsAgent",
+            "Agent-Class" to "io.github.seonwkim.metrics.MetricsAgent",
             "Can-Redefine-Classes" to "true",
             "Can-Retransform-Classes" to "true",
             "Implementation-Title" to "Actor Metrics Agent",
