@@ -23,10 +23,3 @@ dependencies {
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
-
-// Adding metrics as java agents
-tasks.named<org.springframework.boot.gradle.tasks.run.BootRun>("bootRun") {
-	jvmArgs = listOf(
-		"-javaagent:${rootProject.projectDir}/metrics/build/libs/metrics-${rootProject.version}-agent.jar"
-	)
-}

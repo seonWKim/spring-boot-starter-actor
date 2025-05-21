@@ -15,7 +15,7 @@ public class ActorInstrumentationEventListener {
         void onExit(long startTime, Throwable throwable);
     }
 
-    public void register(InvokeAdviceEventListener listener) {
+    public static void register(InvokeAdviceEventListener listener) {
         invokeAdviceEventListeners.add(listener);
     }
 
