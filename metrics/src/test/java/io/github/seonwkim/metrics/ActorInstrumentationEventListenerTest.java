@@ -46,6 +46,37 @@ class ActorInstrumentationEventListenerTest {
         assertTrue(onExitCalled.get(), "onExit should have been called");
     }
 
+    @Test
+    void systemInvokeAdviceTest() {
+        AtomicBoolean onEnterCalled = new AtomicBoolean(false);
+        AtomicBoolean onExitCalled = new AtomicBoolean(false);
+
+        var listener = new ActorInstrumentationEventListener.SystemInvokeAdviceEventListener() {
+            @Override
+            public void onEnter(Object systemMessage) {
+                onEnterCalled.set(true);
+            }
+
+            @Override
+            public void onExit(long startTime, Throwable throwable) {
+                onExitCalled.set(true);
+            }
+        };
+        ActorInstrumentationEventListener.register(listener);
+
+        TestActorSystem actorSystem = new TestActorSystem();
+
+        assertDoesNotThrow(() -> {
+            actorSystem
+                    .spawn(TestHelloActor.Command.class, "instrumented-" + UUID.randomUUID(), TestHelloActor.create(), Duration.ofSeconds(3))
+                    .toCompletableFuture()
+                    .get(3, TimeUnit.SECONDS);
+        });
+
+        assertTrue(onEnterCalled.get(), "onEnter should have been called");
+        assertTrue(onExitCalled.get(), "onExit should have been called");
+    }
+
     static class TestHelloActor {
         public interface Command {}
 

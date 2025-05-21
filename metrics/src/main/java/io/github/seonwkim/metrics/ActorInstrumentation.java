@@ -15,6 +15,8 @@ public class ActorInstrumentation {
                 .transform((builder, typeDescription, classLoader, module, pd) -> builder
                         .visit(Advice.to(ActorInstrumentation.InvokeAdvice.class)
                                      .on(ElementMatchers.named("invoke")))
+                        .visit(Advice.to(ActorInstrumentation.SystemInvokeAdvice.class)
+                                     .on(ElementMatchers.named("systemInvoke")))
                 ).installOn(instrumentation);
     }
 
@@ -30,6 +32,21 @@ public class ActorInstrumentation {
         public static void onExit(@Advice.Enter long startTime,
                                   @Advice.Thrown Throwable throwable) {
             ActorInstrumentationEventListener.invokeAdviceOnExit(startTime, throwable);
+        }
+    }
+
+    public static class SystemInvokeAdvice {
+
+        @Advice.OnMethodEnter
+        public static long onEnter(@Advice.Argument(0) Object systemMessage) {
+            ActorInstrumentationEventListener.systemInvokeAdviceOnEnter(systemMessage);
+            return System.nanoTime();
+        }
+
+        @Advice.OnMethodExit(onThrowable = Throwable.class)
+        public static void onExit(@Advice.Enter long startTime,
+                                  @Advice.Thrown Throwable throwable) {
+            ActorInstrumentationEventListener.systemInvokeAdviceOnExit(startTime, throwable);
         }
     }
 }
