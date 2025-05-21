@@ -23,13 +23,11 @@ class ActorInstrumentationEventListenerTest {
         var listener = new ActorInstrumentationEventListener.InvokeAdviceEventListener() {
             @Override
             public void onEnter(Envelope envelope) {
-                System.out.println(">>> onEnter called");
                 onEnterCalled.set(true);
             }
 
             @Override
             public void onExit(long startTime, Throwable throwable) {
-                System.out.println(">>> onExit called");
                 onExitCalled.set(true);
             }
         };
