@@ -117,3 +117,30 @@ $ sh cluster-start.sh chat io.github.seonwkim.example.SpringPekkoApplication 808
 # Stop the cluster
 $ sh cluster-stop.sh
 ```
+
+## Metrics and Monitoring
+
+The library includes a metrics module for monitoring actor performance and a ready-to-use monitoring stack based on Prometheus and Grafana.
+
+### Running the Monitoring Stack
+
+1. Start the chat application cluster:
+```shell
+$ sh cluster-start.sh chat io.github.seonwkim.example.SpringPekkoApplication 8080 2551 3
+```
+
+2. Start the monitoring stack:
+```shell
+$ cd scripts/monitoring && docker-compose up -d
+```
+
+3. Access the monitoring dashboards:
+   - Prometheus: http://localhost:9090
+   - Grafana: http://localhost:3000 (username: admin, password: admin)
+
+4. Shutdown the monitoring stack when done:
+```shell
+$ cd scripts/monitoring && docker-compose down -v
+```
+
+The monitoring setup provides dashboards for visualizing actor metrics, including message processing times and message counts by type.

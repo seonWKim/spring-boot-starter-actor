@@ -1,39 +1,100 @@
 package io.github.seonwkim.example;
 
-import io.github.seonwkim.core.SpringActorSystem;
-import io.github.seonwkim.core.utils.MetricsUtils;
-import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.Tags;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+
 import javax.annotation.PostConstruct;
+
+import org.apache.pekko.dispatch.Envelope;
 import org.springframework.stereotype.Component;
 
-/** Registers cluster metrics from the cluster system to Micrometer. */
+import io.github.seonwkim.metrics.ActorInstrumentationEventListener;
+import io.github.seonwkim.metrics.ActorInstrumentationEventListener.InvokeAdviceEventListener;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
+
+/**
+ * Exports metrics from the actor system to Micrometer for monitoring.
+ * 
+ * This component registers an event listener with the actor instrumentation system
+ * to capture timing and count metrics for specific actor message types. The metrics
+ * are then exported to Prometheus via Spring Boot Actuator's Prometheus endpoint.
+ * 
+ * The metrics collected include:
+ * - Time spent processing each message type (timer)
+ * - Count of messages processed by type (counter)
+ */
 @Component
 public class ActorClusterMetricsExporter {
 
-	private final SpringActorSystem springActorSystem;
-	private final MeterRegistry registry;
+    /** The Micrometer registry used to register and manage metrics */
+    private final MeterRegistry registry;
 
-	public ActorClusterMetricsExporter(SpringActorSystem springActorSystem, MeterRegistry registry) {
-		this.springActorSystem = springActorSystem;
-		this.registry = registry;
-	}
+    /** Map of message type names to timers measuring processing duration */
+    ConcurrentHashMap<String, Timer> invokeTimers = new ConcurrentHashMap<>();
 
-	@PostConstruct
-	public void registerMetrics() {
-		Tags tags = Tags.of("application", "spring-pekko");
-		registry.gauge(
-				"actor_cluster_members_total", tags, springActorSystem, MetricsUtils::getMemberCount);
-		registry.gauge("actor_cluster_members_up", tags, springActorSystem, MetricsUtils::getUpCount);
-		registry.gauge(
-				"actor_cluster_members_unreachable",
-				tags,
-				springActorSystem,
-				MetricsUtils::getUnreachableCount);
-		registry.gauge(
-				"actor_cluster_self_roles_count",
-				tags,
-				springActorSystem,
-				s -> MetricsUtils.getSelfRoles(s).size());
-	}
+    /** Map of message type names to counters tracking message frequency */
+    ConcurrentHashMap<String, Counter> invokeCounters = new ConcurrentHashMap<>();
+
+    /** 
+     * Set of message classes that we want to collect metrics for.
+     * Only messages of these types will be measured and counted.
+     */
+    private final Set<Class<?>> targetClasses = Set.of(
+            ChatRoomActor.JoinRoom.class,
+            ChatRoomActor.LeaveRoom.class,
+            ChatRoomActor.SendMessage.class,
+            ChatRoomActor.ChatEvent.class,
+            ChatRoomActor.UserJoined.class,
+            ChatRoomActor.UserLeft.class
+    );
+
+    public ActorClusterMetricsExporter(MeterRegistry registry) {
+        this.registry = registry;
+    }
+
+    @PostConstruct
+    public void registerMetrics() {
+        ActorInstrumentationEventListener.register(new InvokeAdviceEventListener() {
+            @Override
+            public void onEnter(Envelope envelope) {}
+
+            @Override
+            public void onExit(Envelope envelope, long startTime, Throwable throwable) {
+                if (!targetClasses.contains(envelope.message().getClass())) {
+                    return;
+                }
+
+                String messageType = envelopeMessageTypeSafe(envelope);
+                Timer timer = invokeTimers.computeIfAbsent(messageType, mt ->
+                        Timer.builder("pekko.actorcell.invoke.timer")
+                             .description("Time spent in ActorCell.invoke(Envelope)")
+                             .tags("messageType", mt)
+                             .register(registry)
+                );
+
+                Counter counter = invokeCounters.computeIfAbsent(messageType, mt ->
+                        Counter.builder("pekko.actorcell.invoke.count")
+                               .description("Count of messages processed by ActorCell.invoke")
+                               .tags("messageType", mt)
+                               .register(registry)
+                );
+
+                long duration = System.nanoTime() - startTime;
+                timer.record(duration, TimeUnit.NANOSECONDS);
+                counter.increment();
+            }
+
+            private String envelopeMessageTypeSafe(Envelope envelope) {
+                try {
+                    Object msg = envelope.message();
+                    return msg != null ? msg.getClass().getSimpleName() : "null";
+                } catch (Throwable t) {
+                    return "unknown";
+                }
+            }
+        });
+    }
 }
