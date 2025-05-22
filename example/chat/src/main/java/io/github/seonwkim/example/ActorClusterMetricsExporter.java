@@ -15,13 +15,33 @@ import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 
+/**
+ * Exports metrics from the actor system to Micrometer for monitoring.
+ * 
+ * This component registers an event listener with the actor instrumentation system
+ * to capture timing and count metrics for specific actor message types. The metrics
+ * are then exported to Prometheus via Spring Boot Actuator's Prometheus endpoint.
+ * 
+ * The metrics collected include:
+ * - Time spent processing each message type (timer)
+ * - Count of messages processed by type (counter)
+ */
 @Component
 public class ActorClusterMetricsExporter {
 
+    /** The Micrometer registry used to register and manage metrics */
     private final MeterRegistry registry;
+
+    /** Map of message type names to timers measuring processing duration */
     ConcurrentHashMap<String, Timer> invokeTimers = new ConcurrentHashMap<>();
+
+    /** Map of message type names to counters tracking message frequency */
     ConcurrentHashMap<String, Counter> invokeCounters = new ConcurrentHashMap<>();
 
+    /** 
+     * Set of message classes that we want to collect metrics for.
+     * Only messages of these types will be measured and counted.
+     */
     private final Set<Class<?>> targetClasses = Set.of(
             ChatRoomActor.JoinRoom.class,
             ChatRoomActor.LeaveRoom.class,
