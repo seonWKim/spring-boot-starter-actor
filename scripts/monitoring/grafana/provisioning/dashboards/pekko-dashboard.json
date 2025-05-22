@@ -18,121 +18,242 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 1,
-  "links": [ ],
-  "liveNow": false,
+  "id": 2,
+  "links": [],
   "panels": [
     {
-      "title": "Actor Message Count (invoke)",
-      "type": "timeseries",
       "datasource": "Prometheus",
-      "targets": [
-        {
-          "expr": "pekko_actorcell_invoke_count",
-          "legendFormat": "{{messageType}}",
-          "refId": "A"
-        }
-      ],
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
-          "displayName": "Messages"
-        }
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "fieldMinMax": false,
+          "mappings": [],
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "__systemRef": "hideSeriesFrom",
+            "matcher": {
+              "id": "byNames",
+              "options": {
+                "mode": "exclude",
+                "names": [
+                  "Value"
+                ],
+                "prefix": "All except:",
+                "readOnly": true
+              }
+            },
+            "properties": [
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": true
+                }
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 8,
         "w": 12,
         "x": 0,
         "y": 0
-      }
-    },
-    {
-      "title": "System Message Count (systemInvoke)",
-      "type": "timeseries",
-      "datasource": "Prometheus",
+      },
+      "id": 1,
+      "options": {
+        "legend": {
+          "calcs": [
+            "min",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "sortBy": "Min",
+          "sortDesc": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.0.0+security-01",
       "targets": [
         {
-          "expr": "pekko_actorcell_systemInvoke_count",
+          "editorMode": "code",
+          "expr": "sort_desc(sum by (messageType) (rate(pekko_actorcell_invoke_count_total[1m])))",
           "legendFormat": "{{messageType}}",
+          "range": true,
           "refId": "A"
         }
       ],
+      "title": "Actor Message Count (invoke) Per Minute",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
-          "displayName": "System Msgs"
-        }
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "axisSoftMin": 1,
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
       },
       "gridPos": {
         "h": 8,
         "w": 12,
         "x": 12,
         "y": 0
-      }
-    },
-    {
-      "title": "Actor Message Latency (invoke)",
-      "type": "timeseries",
-      "datasource": "Prometheus",
+      },
+      "id": 2,
+      "options": {
+        "legend": {
+          "calcs": [
+            "min",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.0.0+security-01",
       "targets": [
         {
-          "expr": "rate(pekko_actorcell_invoke_timer_sum[1m]) / rate(pekko_actorcell_invoke_timer_count[1m])",
-          "legendFormat": "avg latency (invoke)",
+          "editorMode": "code",
+          "expr": "sort_desc(\nsum by (messageType) (\n  rate(pekko_actorcell_invoke_timer_seconds_sum[1m])\n)\n/\nsum by (messageType) (\n  rate(pekko_actorcell_invoke_timer_seconds_count[1m])\n)\n)",
+          "interval": "",
+          "legendFormat": "{{messageType}}",
+          "range": true,
           "refId": "A"
         }
       ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "s",
-          "displayName": "Latency (s)"
-        }
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 8
-      }
-    },
-    {
-      "title": "System Message Latency (systemInvoke)",
-      "type": "timeseries",
-      "datasource": "Prometheus",
-      "targets": [
-        {
-          "expr": "rate(pekko_actorcell_systemInvoke_timer_sum[1m]) / rate(pekko_actorcell_systemInvoke_timer_count[1m])",
-          "legendFormat": "avg latency (systemInvoke)",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "s",
-          "displayName": "Latency (s)"
-        }
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 8
-      }
+      "title": "Actor Message Latency (invoke) Per Second",
+      "type": "timeseries"
     }
   ],
+  "preload": false,
   "refresh": "5s",
-  "schemaVersion": 38,
-  "style": "dark",
+  "schemaVersion": 41,
+  "tags": [],
   "templating": {
-    "list": [ ]
+    "list": []
   },
   "time": {
     "from": "now-15m",
     "to": "now"
   },
-  "timepicker": { },
+  "timepicker": {},
   "timezone": "",
   "title": "Pekko Actors Dashboard",
   "uid": "pekko-actors",
-  "version": 1,
-  "weekStart": ""
+  "version": 1
 }
