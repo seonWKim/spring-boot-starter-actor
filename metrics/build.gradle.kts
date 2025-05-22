@@ -9,8 +9,8 @@ java {
 }
 
 dependencies {
-    implementation("net.bytebuddy:byte-buddy:1.14.3")
-    implementation("net.bytebuddy:byte-buddy-agent:1.14.3")
+    implementation("net.bytebuddy:byte-buddy")
+    implementation("net.bytebuddy:byte-buddy-agent")
 
     testImplementation("org.apache.pekko:pekko-actor-typed_3")
     testImplementation("org.apache.pekko:pekko-cluster-typed_3")

@@ -67,9 +67,12 @@ subprojects {
     }
 
     val pekkoVersion = "1.1.3"
+    val bytebuddyVersion = "1.12.10"
     dependencies {
         constraints {
             api("org.apache.pekko:pekko-bom_3:$pekkoVersion")
+            api("net.bytebuddy:byte-buddy:$bytebuddyVersion")
+            api("net.bytebuddy:byte-buddy-agent:$bytebuddyVersion")
         }
 
         implementation(platform("org.apache.pekko:pekko-bom_3:$pekkoVersion"))
