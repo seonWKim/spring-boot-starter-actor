@@ -37,8 +37,8 @@ public class ActorInstrumentation {
     public static class InvokeAdvice {
 
         @Advice.OnMethodEnter
-        public static long onEnter(@Advice.Argument(0) Object envelope) {
-            ActorInstrumentationEventListener.invokeAdviceOnEnter((Envelope) envelope);
+        public static long onEnter(@Advice.Argument(0) Envelope envelope) {
+            ActorInstrumentationEventListener.invokeAdviceOnEnter(envelope);
             return System.nanoTime();
         }
 
