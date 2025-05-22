@@ -27,7 +27,7 @@ class ActorInstrumentationEventListenerTest {
             }
 
             @Override
-            public void onExit(long startTime, Throwable throwable) {
+            public void onExit(Envelope envelope, long startTime, Throwable throwable) {
                 onExitCalled.set(true);
             }
         };
@@ -37,7 +37,8 @@ class ActorInstrumentationEventListenerTest {
 
         assertDoesNotThrow(() -> {
             actorSystem
-                    .spawn(TestHelloActor.Command.class, "instrumented-" + UUID.randomUUID(), TestHelloActor.create(), Duration.ofSeconds(3))
+                    .spawn(TestHelloActor.Command.class, "instrumented-" + UUID.randomUUID(),
+                           TestHelloActor.create(), Duration.ofSeconds(3))
                     .toCompletableFuture()
                     .get(3, TimeUnit.SECONDS);
         });
@@ -58,7 +59,7 @@ class ActorInstrumentationEventListenerTest {
             }
 
             @Override
-            public void onExit(long startTime, Throwable throwable) {
+            public void onExit(Object systemMessage, long startTime, Throwable throwable) {
                 onExitCalled.set(true);
             }
         };
@@ -68,7 +69,8 @@ class ActorInstrumentationEventListenerTest {
 
         assertDoesNotThrow(() -> {
             actorSystem
-                    .spawn(TestHelloActor.Command.class, "instrumented-" + UUID.randomUUID(), TestHelloActor.create(), Duration.ofSeconds(3))
+                    .spawn(TestHelloActor.Command.class, "instrumented-" + UUID.randomUUID(),
+                           TestHelloActor.create(), Duration.ofSeconds(3))
                     .toCompletableFuture()
                     .get(3, TimeUnit.SECONDS);
         });

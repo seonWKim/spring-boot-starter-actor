@@ -37,30 +37,36 @@ public class ActorInstrumentation {
     public static class InvokeAdvice {
 
         @Advice.OnMethodEnter
-        public static long onEnter(@Advice.Argument(0) Envelope envelope) {
+        public static long onEnter(@Advice.Argument(0) Envelope envelope,
+                                   @Advice.Local("envelopRef") Envelope envelopeRef) {
             ActorInstrumentationEventListener.invokeAdviceOnEnter(envelope);
+            envelopeRef = envelope;
             return System.nanoTime();
         }
 
         @Advice.OnMethodExit(onThrowable = Throwable.class)
-        public static void onExit(@Advice.Enter long startTime,
+        public static void onExit(@Advice.Local("envelopRef") Envelope envelopeRef,
+                                  @Advice.Enter long startTime,
                                   @Advice.Thrown Throwable throwable) {
-            ActorInstrumentationEventListener.invokeAdviceOnExit(startTime, throwable);
+            ActorInstrumentationEventListener.invokeAdviceOnExit(envelopeRef, startTime, throwable);
         }
     }
 
     public static class SystemInvokeAdvice {
 
         @Advice.OnMethodEnter
-        public static long onEnter(@Advice.Argument(0) Object systemMessage) {
+        public static long onEnter(@Advice.Argument(0) Object systemMessage,
+                                   @Advice.Local("systemMessageRef") Object systemMessageRef) {
             ActorInstrumentationEventListener.systemInvokeAdviceOnEnter(systemMessage);
+            systemMessageRef = systemMessage;
             return System.nanoTime();
         }
 
         @Advice.OnMethodExit(onThrowable = Throwable.class)
-        public static void onExit(@Advice.Enter long startTime,
+        public static void onExit(@Advice.Local("systemMessageRef") Object systemMessageRef,
+                                  @Advice.Enter long startTime,
                                   @Advice.Thrown Throwable throwable) {
-            ActorInstrumentationEventListener.systemInvokeAdviceOnExit(startTime, throwable);
+            ActorInstrumentationEventListener.systemInvokeAdviceOnExit(systemMessageRef, startTime, throwable);
         }
     }
 }

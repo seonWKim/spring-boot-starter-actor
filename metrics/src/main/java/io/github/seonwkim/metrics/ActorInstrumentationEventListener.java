@@ -14,13 +14,13 @@ public class ActorInstrumentationEventListener {
     public interface InvokeAdviceEventListener {
         void onEnter(Envelope envelope);
 
-        void onExit(long startTime, Throwable throwable);
+        void onExit(Envelope envelope, long startTime, Throwable throwable);
     }
 
     public interface SystemInvokeAdviceEventListener {
         void onEnter(Object systemMessage);
 
-        void onExit(long startTime, Throwable throwable);
+        void onExit(Object systemMessage, long startTime, Throwable throwable);
     }
 
     public static void register(InvokeAdviceEventListener listener) {
@@ -35,15 +35,15 @@ public class ActorInstrumentationEventListener {
         invokeAdviceEventListeners.forEach(it -> it.onEnter(envelope));
     }
 
-    public static void invokeAdviceOnExit(long startTime, Throwable throwable) {
-        invokeAdviceEventListeners.forEach(it -> it.onExit(startTime, throwable));
+    public static void invokeAdviceOnExit(Envelope envelope, long startTime, Throwable throwable) {
+        invokeAdviceEventListeners.forEach(it -> it.onExit(envelope, startTime, throwable));
     }
 
     public static void systemInvokeAdviceOnEnter(Object systemMessage) {
         systemInvokeAdviceEventListeners.forEach(it -> it.onEnter(systemMessage));
     }
 
-    public static void systemInvokeAdviceOnExit(long startTime, Throwable throwable) {
-        systemInvokeAdviceEventListeners.forEach(it -> it.onExit(startTime, throwable));
+    public static void systemInvokeAdviceOnExit(Object systemMessage, long startTime, Throwable throwable) {
+        systemInvokeAdviceEventListeners.forEach(it -> it.onExit(systemMessage, startTime, throwable));
     }
 }
