@@ -59,15 +59,16 @@ public class ActorClusterMetricsExporter {
     public void registerMetrics() {
         ActorInstrumentationEventListener.register(new InvokeAdviceEventListener() {
             @Override
-            public void onEnter(Envelope envelope) {}
+            public void onEnter(Object envelope) {}
 
             @Override
-            public void onExit(Envelope envelope, long startTime, Throwable throwable) {
-                if (!targetClasses.contains(envelope.message().getClass())) {
+            public void onExit(Object envelope, long startTime) {
+                Envelope envelope1 = (Envelope) envelope;
+                if (!targetClasses.contains(envelope1.message().getClass())) {
                     return;
                 }
 
-                String messageType = envelopeMessageTypeSafe(envelope);
+                String messageType = envelopeMessageTypeSafe(envelope1);
                 Timer timer = invokeTimers.computeIfAbsent(messageType, mt ->
                         Timer.builder("pekko.actorcell.invoke.timer")
                              .description("Time spent in ActorCell.invoke(Envelope)")

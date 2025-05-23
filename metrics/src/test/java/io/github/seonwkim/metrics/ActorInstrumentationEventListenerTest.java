@@ -10,7 +10,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
-import org.apache.pekko.dispatch.Envelope;
 import org.junit.jupiter.api.Test;
 
 class ActorInstrumentationEventListenerTest {
@@ -22,12 +21,12 @@ class ActorInstrumentationEventListenerTest {
 
         var listener = new ActorInstrumentationEventListener.InvokeAdviceEventListener() {
             @Override
-            public void onEnter(Envelope envelope) {
+            public void onEnter(Object envelope) {
                 onEnterCalled.set(true);
             }
 
             @Override
-            public void onExit(Envelope envelope, long startTime, Throwable throwable) {
+            public void onExit(Object envelope, long startTime) {
                 onExitCalled.set(true);
             }
         };
@@ -48,18 +47,18 @@ class ActorInstrumentationEventListenerTest {
     }
 
     @Test
-    void systemInvokeAdviceTest() {
+    void invokeAllAdviceTest() {
         AtomicBoolean onEnterCalled = new AtomicBoolean(false);
         AtomicBoolean onExitCalled = new AtomicBoolean(false);
 
-        var listener = new ActorInstrumentationEventListener.SystemInvokeAdviceEventListener() {
+        var listener = new ActorInstrumentationEventListener.InvokeAllAdviceEventListener() {
             @Override
-            public void onEnter(Object systemMessage) {
+            public void onEnter(Object messages) {
                 onEnterCalled.set(true);
             }
 
             @Override
-            public void onExit(Object systemMessage, long startTime, Throwable throwable) {
+            public void onExit(Object messages, long startTime) {
                 onExitCalled.set(true);
             }
         };
