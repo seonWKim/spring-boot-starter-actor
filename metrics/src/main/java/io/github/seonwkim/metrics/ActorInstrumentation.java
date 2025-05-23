@@ -2,8 +2,6 @@ package io.github.seonwkim.metrics;
 
 import java.lang.instrument.Instrumentation;
 
-import org.apache.pekko.dispatch.Envelope;
-
 import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.agent.builder.AgentBuilder.Transformer;
 import net.bytebuddy.asm.Advice;
@@ -27,46 +25,45 @@ public class ActorInstrumentation {
                                     TypeDescription typeDescription,
                                     ClassLoader classLoader,
                                     JavaModule module) {
-            return builder.visit(Advice.to(ActorInstrumentation.InvokeAdvice.class)
-                                       .on(ElementMatchers.named("invoke")))
-                          .visit(Advice.to(ActorInstrumentation.SystemInvokeAdvice.class)
-                                       .on(ElementMatchers.named("systemInvoke")));
+            return builder
+                    .visit(Advice.to(ActorInstrumentation.InvokeAdvice.class)
+                                 .on(ElementMatchers.named("invoke")))
+                    .visit(Advice.to(ActorInstrumentation.InvokeAllAdvice.class)
+                                 .on(ElementMatchers.named("invokeAll$1")));
         }
     }
 
     public static class InvokeAdvice {
 
-        @Advice.OnMethodEnter
-        public static long onEnter(@Advice.Argument(0) Envelope envelope,
-                                   @Advice.Local("envelopRef") Envelope envelopeRef) {
+        @Advice.OnMethodEnter(suppress = Throwable.class)
+        public static long onEnter(@Advice.Argument(0) Object envelope,
+                                   @Advice.Local("envelopRef") Object envelopeRef) {
             ActorInstrumentationEventListener.invokeAdviceOnEnter(envelope);
             envelopeRef = envelope;
             return System.nanoTime();
         }
 
         @Advice.OnMethodExit(onThrowable = Throwable.class)
-        public static void onExit(@Advice.Local("envelopRef") Envelope envelopeRef,
-                                  @Advice.Enter long startTime,
-                                  @Advice.Thrown Throwable throwable) {
-            ActorInstrumentationEventListener.invokeAdviceOnExit(envelopeRef, startTime, throwable);
+        public static void onExit(@Advice.Local("envelopRef") Object envelopeRef,
+                                  @Advice.Enter long startTime) {
+            ActorInstrumentationEventListener.invokeAdviceOnExit(envelopeRef, startTime);
         }
     }
 
-    public static class SystemInvokeAdvice {
+    public static class InvokeAllAdvice {
 
-        @Advice.OnMethodEnter
-        public static long onEnter(@Advice.Argument(0) Object systemMessage,
-                                   @Advice.Local("systemMessageRef") Object systemMessageRef) {
-            ActorInstrumentationEventListener.systemInvokeAdviceOnEnter(systemMessage);
-            systemMessageRef = systemMessage;
+        @Advice.OnMethodEnter(suppress = Throwable.class)
+        public static long onEnter(@Advice.Argument(0) Object messages,
+                                   @Advice.Local("messagesRef") Object messagesRef) {
+            ActorInstrumentationEventListener.invokeAllAdviceOnEnter(messages);
+            messagesRef = messages;
             return System.nanoTime();
         }
 
         @Advice.OnMethodExit(onThrowable = Throwable.class)
-        public static void onExit(@Advice.Local("systemMessageRef") Object systemMessageRef,
-                                  @Advice.Enter long startTime,
-                                  @Advice.Thrown Throwable throwable) {
-            ActorInstrumentationEventListener.systemInvokeAdviceOnExit(systemMessageRef, startTime, throwable);
+        public static void onExit(@Advice.Local("messagesRef") Object messagesRef,
+                                  @Advice.Enter long startTime) {
+            ActorInstrumentationEventListener.invokeAllAdviceOnExit(messagesRef, startTime);
         }
     }
 }
