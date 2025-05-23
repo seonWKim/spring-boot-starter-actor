@@ -2,6 +2,11 @@ package io.github.seonwkim.metrics;
 
 import java.lang.instrument.Instrumentation;
 
+import net.bytebuddy.agent.builder.AgentBuilder;
+import net.bytebuddy.matcher.ElementMatchers;
+
+import io.github.seonwkim.metrics.ActorInstrumentation.ActorInstrumentationTransformer;
+
 /**
  * Java agent for instrumenting actor classes to collect metrics.
  * This agent uses ByteBuddy to intercept method calls on actor classes
@@ -16,7 +21,10 @@ public class MetricsAgent {
      * @param instrumentation Instrumentation instance
      */
     public static void premain(String arguments, Instrumentation instrumentation) {
-        ActorInstrumentation.install(instrumentation);
+        AgentBuilder agentBuilder = new AgentBuilder.Default();
+        agentBuilder = ActorInstrumentation.decorate(agentBuilder);
+
+        agentBuilder.installOn(instrumentation);
     }
 
     /**

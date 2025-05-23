@@ -1,7 +1,5 @@
 package io.github.seonwkim.metrics;
 
-import java.lang.instrument.Instrumentation;
-
 import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.agent.builder.AgentBuilder.Transformer;
 import net.bytebuddy.asm.Advice;
@@ -11,12 +9,10 @@ import net.bytebuddy.matcher.ElementMatchers;
 import net.bytebuddy.utility.JavaModule;
 
 public class ActorInstrumentation {
-    public static void install(Instrumentation instrumentation) {
-        AgentBuilder agentBuilder = new AgentBuilder.Default()
+    public static AgentBuilder decorate(AgentBuilder builder) {
+        return builder
                 .type(ElementMatchers.named("org.apache.pekko.actor.ActorCell"))
                 .transform(new ActorInstrumentationTransformer());
-
-        agentBuilder.installOn(instrumentation);
     }
 
     public static class ActorInstrumentationTransformer implements Transformer {
