@@ -1,7 +1,6 @@
 package io.github.seonwkim.example.counter;
 
 import java.time.Duration;
-import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.ReactiveRedisTemplate;
@@ -52,36 +51,45 @@ public class RedisCounterService implements CounterService {
 
 		valueOps
 				.setIfAbsent(lockKey, 1L, LOCK_TIMEOUT)
-				.flatMap(locked -> {
-					if (!locked) {
-						logger.warn("Failed to acquire lock for counter: {}", counterId);
-						return Mono.error(new RuntimeException("Failed to acquire lock for counter: " + counterId));
-					}
+				.flatMap(
+						locked -> {
+							if (!locked) {
+								logger.warn("Failed to acquire lock for counter: {}", counterId);
+								return Mono.error(
+										new RuntimeException("Failed to acquire lock for counter: " + counterId));
+							}
 
-					return valueOps
-							.increment(counterKey)
-							.doOnSuccess(newValue ->
-												 logger.debug("Counter with ID: {} incremented to: {}", counterId, newValue))
-							.doFinally(signalType ->
-											   redisTemplate
-													   .delete(lockKey)
-													   .subscribe(deleted -> {
-														   if (deleted > 0) {
-															   logger.debug("Released lock for counter: {}", counterId);
-														   } else {
-															   logger.warn("Failed to release lock for counter: {}", counterId);
-														   }
-													   }));
-				})
+							return valueOps
+									.increment(counterKey)
+									.doOnSuccess(
+											newValue ->
+													logger.debug(
+															"Counter with ID: {} incremented to: {}", counterId, newValue))
+									.doFinally(
+											signalType ->
+													redisTemplate
+															.delete(lockKey)
+															.subscribe(
+																	deleted -> {
+																		if (deleted > 0) {
+																			logger.debug("Released lock for counter: {}", counterId);
+																		} else {
+																			logger.warn(
+																					"Failed to release lock for counter: {}", counterId);
+																		}
+																	}));
+						})
 				.retryWhen(
 						Retry.backoff(MAX_RETRIES, RETRY_DELAY)
-							 .doBeforeRetry(retrySignal ->
-													logger.debug("Retrying lock acquisition for counter: {}, attempt: {}",
-																 counterId, retrySignal.totalRetries() + 1)))
+								.doBeforeRetry(
+										retrySignal ->
+												logger.debug(
+														"Retrying lock acquisition for counter: {}, attempt: {}",
+														counterId,
+														retrySignal.totalRetries() + 1)))
 				.subscribe(
-						null,  // onNext is ignored since we don't need the result
-						error -> logger.error("Error while incrementing counter: {}", counterId, error)
-				);
+						null, // onNext is ignored since we don't need the result
+						error -> logger.error("Error while incrementing counter: {}", counterId, error));
 	}
 
 	/**
