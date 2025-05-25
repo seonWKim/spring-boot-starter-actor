@@ -45,7 +45,7 @@ The actor model is a programming paradigm that:
 Add the dependency to your project:
 
 ```gradle
-// Manually overwrite spring managed jackson dependency 
+// Manually overwrite spring managed jackson dependency if you are using spring-boot-starter-actor 
 dependencyManagement {
 	imports {
 		// pekko-serialization-jackson_3 require minimum 2.17.3 version of jackson
