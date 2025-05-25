@@ -28,7 +28,7 @@ dependencies {
     api("org.apache.pekko:pekko-cluster-sharding-typed_3")
     api("org.apache.pekko:pekko-serialization-jackson_3")
 
-    api("org.springframework.boot:spring-boot-starter")
+    implementation("org.springframework.boot:spring-boot-starter")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.apache.pekko:pekko-actor-testkit-typed_3")

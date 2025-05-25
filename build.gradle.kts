@@ -70,17 +70,15 @@ subprojects {
     val bytebuddyVersion = "1.12.10"
     dependencies {
         constraints {
-            api("org.apache.pekko:pekko-bom_3:$pekkoVersion")
-            api("net.bytebuddy:byte-buddy:$bytebuddyVersion")
-            api("net.bytebuddy:byte-buddy-agent:$bytebuddyVersion")
+            implementation("org.apache.pekko:pekko-actor-typed_3:${pekkoVersion}")
+            implementation("org.apache.pekko:pekko-cluster-typed_3:$pekkoVersion")
+            implementation("org.apache.pekko:pekko-cluster-sharding-typed_3:$pekkoVersion")
+            implementation("org.apache.pekko:pekko-serialization-jackson_3:$pekkoVersion")
+            implementation("net.bytebuddy:byte-buddy:$bytebuddyVersion")
+            implementation("net.bytebuddy:byte-buddy-agent:$bytebuddyVersion")
         }
 
-        implementation(platform("org.apache.pekko:pekko-bom_3:$pekkoVersion"))
-        implementation("org.apache.pekko:pekko-cluster-typed_3")
-        implementation("org.apache.pekko:pekko-cluster-sharding-typed_3")
-        implementation("org.apache.pekko:pekko-serialization-jackson_3")
-
-        testImplementation("org.apache.pekko:pekko-actor-testkit-typed_3")
+        testImplementation("org.apache.pekko:pekko-actor-testkit-typed_3:$pekkoVersion")
         testImplementation("org.awaitility:awaitility:4.3.0")
     }
 
