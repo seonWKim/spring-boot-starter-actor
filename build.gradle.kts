@@ -66,17 +66,16 @@ subprojects {
         signAllPublications()
     }
 
-    val pekkoVersion = "1.1.3"
-    val bytebuddyVersion = "1.12.10"
+    val pekkoVersion: String by project
+    val bytebuddyVersion: String by project
+
     dependencies {
-        constraints {
-            implementation("org.apache.pekko:pekko-actor-typed_3:${pekkoVersion}")
-            implementation("org.apache.pekko:pekko-cluster-typed_3:$pekkoVersion")
-            implementation("org.apache.pekko:pekko-cluster-sharding-typed_3:$pekkoVersion")
-            implementation("org.apache.pekko:pekko-serialization-jackson_3:$pekkoVersion")
-            implementation("net.bytebuddy:byte-buddy:$bytebuddyVersion")
-            implementation("net.bytebuddy:byte-buddy-agent:$bytebuddyVersion")
-        }
+        implementation("org.apache.pekko:pekko-actor-typed_3:${pekkoVersion}")
+        implementation("org.apache.pekko:pekko-cluster-typed_3:${pekkoVersion}")
+        implementation("org.apache.pekko:pekko-cluster-sharding-typed_3:${pekkoVersion}")
+        implementation("org.apache.pekko:pekko-serialization-jackson_3:${pekkoVersion}")
+        implementation("net.bytebuddy:byte-buddy:${bytebuddyVersion}")
+        implementation("net.bytebuddy:byte-buddy-agent:${bytebuddyVersion}")
 
         testImplementation("org.apache.pekko:pekko-actor-testkit-typed_3:$pekkoVersion")
         testImplementation("org.awaitility:awaitility:4.3.0")
