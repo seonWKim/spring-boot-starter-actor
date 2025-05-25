@@ -15,6 +15,15 @@ java {
     targetCompatibility = JavaVersion.VERSION_17
 }
 
+// Not for maven publishing purposes
+// pekko-serialization-jackson_3 require minimum 2.17.3 version of jackson, but spring-boot-starter-test
+// brings a lower version of jackson, so we have to force the higher version
+dependencyManagement {
+    imports {
+        mavenBom("com.fasterxml.jackson:jackson-bom:2.17.3")
+    }
+}
+
 val pekkoVersion: String by project
 dependencies {
     api("org.apache.pekko:pekko-actor-typed_3:$pekkoVersion")
