@@ -5,23 +5,13 @@ import io.github.seonwkim.core.shard.ShardedActor;
 import io.github.seonwkim.core.shard.ShardedActorRegistry;
 import java.util.Map;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
 
-/**
- * Spring Boot auto-configuration for Pekko actor system. This class sets up the actor system when
- * the property "spring.actor-enabled" is set to "true". It provides beans for the actor system,
- * actor system builder, root guardian, actor type registry, and sharded actor registry.
- */
 @Configuration
-@ConditionalOnProperty(prefix = "spring", name = "actor-enabled", havingValue = "true")
-@Import({PekkoConfiguration.class})
-public class PekkoAutoConfiguration {
-
+public class PekkoConfiguration {
 	/**
 	 * Creates a SpringActorSystemBuilder bean with the given properties, root guardian supplier,
 	 * application event publisher, and sharded actor registry.
