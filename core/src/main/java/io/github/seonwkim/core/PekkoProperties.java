@@ -18,7 +18,6 @@ import org.springframework.stereotype.Component;
  * Configuration properties for Pekko actor system. This class binds properties with the prefix
  * "spring.actor" to a map and normalizes comma-separated lists.
  */
-@Component
 public class PekkoProperties implements EnvironmentAware {
 	private final Map<String, Object> config = new HashMap<>();
 

@@ -1,7 +1,6 @@
 spring:
   application:
     name: spring-pekko
-  actor-enabled: true
   actor:
     pekko:
       name: spring-pekko-example

@@ -73,7 +73,6 @@ You can configure the actor system using application properties(or yaml):
 spring:
   application:
     name: spring-pekko
-  actor-enabled: true
   actor:
     pekko:
       actor:

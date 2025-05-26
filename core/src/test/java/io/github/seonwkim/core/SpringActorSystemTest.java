@@ -59,7 +59,6 @@ class SpringActorSystemTest {
 	@SpringBootTest(classes = TestApp.class)
 	@TestPropertySource(
 			properties = {
-				"spring.actor-enabled=true",
 				"spring.actor.pekko.loglevel=INFO",
 				"spring.actor.pekko.actor.provider=local"
 			})

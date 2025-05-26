@@ -132,7 +132,6 @@ The simple example uses the default configuration for Spring Boot Starter Actor,
 spring:
   application:
     name: spring-pekko
-  actor-enabled: true
   actor:
     pekko:
       actor:

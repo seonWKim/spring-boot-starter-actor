@@ -151,7 +151,6 @@ The cluster example requires additional configuration to set up the actor cluste
 spring:
   application:
     name: spring-pekko
-  actor-enabled: true
   actor:
     pekko:
       actor:

@@ -95,11 +95,8 @@ To view the latest versions, refer to the following:
 
 ### Basic Configuration
 
-Enable actor support in your `application.yml`:
-
 ```yaml
 spring:
-  actor-enabled: true
   actor:
     pekko:
       actor:

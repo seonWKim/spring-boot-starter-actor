@@ -5,11 +5,14 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 
+import io.github.seonwkim.core.EnableActorSupport;
+
 /**
  * Main application class for the chat example. This class serves as the entry point for the Spring
  * Boot application.
  */
 @SpringBootApplication
+@EnableActorSupport
 public class SpringPekkoApplication {
 
 	/**

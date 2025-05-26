@@ -24,7 +24,6 @@ Before you can use sharded actors, you need to set up a Pekko cluster. Add the f
 spring:
   application:
     name: spring-pekko
-  actor-enabled: true
   actor:
     pekko:
       name: spring-pekko-example

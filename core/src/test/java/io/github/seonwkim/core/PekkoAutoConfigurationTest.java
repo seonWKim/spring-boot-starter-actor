@@ -1,14 +1,9 @@
 package io.github.seonwkim.core;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.typesafe.config.Config;
-import io.github.seonwkim.test.CustomOverrideConfiguration;
-import io.github.seonwkim.test.CustomTestRootGuardian;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.junit.jupiter.api.Nested;
@@ -19,16 +14,20 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 import org.springframework.test.context.TestPropertySource;
 
+import com.typesafe.config.Config;
+
+import io.github.seonwkim.test.CustomOverrideConfiguration;
+import io.github.seonwkim.test.CustomTestRootGuardian;
+
 public class PekkoAutoConfigurationTest {
 
-	@SpringBootApplication(scanBasePackages = "io.github.seonwkim.core")
+	@SpringBootApplication
 	static class TestApp {}
 
 	@Nested
 	@SpringBootTest(classes = TestApp.class)
 	@TestPropertySource(
 			properties = {
-				"spring.actor-enabled=true",
 				"spring.actor.pekko.loglevel=INFO",
 				"spring.actor.pekko.actor.provider=local"
 			})
@@ -42,22 +41,6 @@ public class PekkoAutoConfigurationTest {
 
 			assertEquals("INFO", config.getString("pekko.loglevel"));
 			assertEquals("local", config.getString("pekko.actor.provider"));
-		}
-	}
-
-	@Nested
-	@SpringBootTest(classes = TestApp.class)
-	@TestPropertySource(
-			properties = {"spring.actor-enabled=false", "spring.actor.pekko.loglevel=DEBUG"})
-	class WhenDisabled {
-
-		@Test
-		void shouldNotCreateActorSystem(ApplicationContext context) {
-			assertFalse(context.containsBean("actorSystem"), "ActorSystem bean should NOT exist");
-			assertThrows(
-					Exception.class,
-					() -> context.getBean(SpringActorSystem.class),
-					"Expected exception when accessing missing DefaultActorSystemInstance bean");
 		}
 	}
 
@@ -77,8 +60,8 @@ public class PekkoAutoConfigurationTest {
 			return Behaviors.setup(
 					ctx ->
 							Behaviors.receive(TestHelloActor.Command.class)
-									.onMessage(TestHelloActor.SayHello.class, msg -> Behaviors.same())
-									.build());
+									 .onMessage(TestHelloActor.SayHello.class, msg -> Behaviors.same())
+									 .build());
 		}
 	}
 
@@ -86,7 +69,6 @@ public class PekkoAutoConfigurationTest {
 	@SpringBootTest(classes = TestApp.class)
 	@TestPropertySource(
 			properties = {
-				"spring.actor-enabled=true",
 				"spring.actor.pekko.loglevel=INFO",
 				"spring.actor.pekko.actor.provider=local"
 			})
@@ -117,7 +99,6 @@ public class PekkoAutoConfigurationTest {
 	@SpringBootTest(classes = {TestApp.class, CustomOverrideConfiguration.class})
 	@TestPropertySource(
 			properties = {
-				"spring.actor-enabled=true",
 				"spring.actor.pekko.loglevel=INFO",
 				"spring.actor.pekko.actor.provider=local"
 			})
@@ -141,7 +122,6 @@ public class PekkoAutoConfigurationTest {
 	@SpringBootTest(classes = {TestApp.class})
 	@TestPropertySource(
 			properties = {
-				"spring.actor-enabled=true",
 				"spring.actor.pekko.loglevel=INFO",
 				"spring.actor.pekko.actor.provider=cluster"
 			})
