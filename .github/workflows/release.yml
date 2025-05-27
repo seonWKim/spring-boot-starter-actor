@@ -1,4 +1,4 @@
-name: Create New Release Version
+name: Release Maven Central
 
 on:
   workflow_dispatch:
