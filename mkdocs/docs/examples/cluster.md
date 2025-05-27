@@ -175,19 +175,12 @@ To run the cluster example:
 3. Observe how the same entity ID always routes to the same node
 4. Try different entity IDs to see how they are distributed across the cluster
 
-## Benefits of Using Entities
+## Entity Benefits
 
-Using entities with Spring Boot Starter Actor provides several benefits:
+Entities in Spring Boot Starter Actor provide:
 
-1. **Automatic Distribution**: Entities are automatically distributed across the cluster based on their IDs
-2. **Location Transparency**: You can send messages to entities without knowing which node they're on
-3. **Scalability**: As you add more nodes to the cluster, entities are redistributed automatically
-4. **Fault Tolerance**: If a node fails, entities are automatically recreated on other nodes
-5. **Simplified State Management**: Each entity manages its own state, eliminating the need for complex synchronization
-
-## Key Takeaways
-
-- Spring Boot Starter Actor makes it easy to work with entities in a clustered environment
-- Entities provide a natural way to model domain objects in a distributed system
-- The library handles the complexity of entity distribution, message routing, and cluster management
-- Integration with Spring WebFlux allows for reactive programming with distributed entities
+- Automatic distribution across the cluster
+- Location transparency for messaging
+- Scalability with cluster expansion
+- Fault tolerance with automatic recreation
+- Simplified state management

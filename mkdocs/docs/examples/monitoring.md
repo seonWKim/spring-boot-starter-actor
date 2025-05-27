@@ -60,7 +60,7 @@ public class ActorClusterMetricsExporter {
     private final MeterRegistry registry;
     private final ConcurrentHashMap<String, Timer> invokeTimers = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Counter> invokeCounters = new ConcurrentHashMap<>();
-    
+
     // Define which message types to track
     private final Set<Class<?>> targetClasses = Set.of(
         ChatRoomActor.JoinRoom.class,
@@ -85,7 +85,7 @@ public class ActorClusterMetricsExporter {
                 }
 
                 String messageType = envelope.message().getClass().getSimpleName();
-                
+
                 // Record timing metrics
                 Timer timer = invokeTimers.computeIfAbsent(messageType, mt ->
                     Timer.builder("pekko.actorcell.invoke.timer")
@@ -93,7 +93,7 @@ public class ActorClusterMetricsExporter {
                          .tags("messageType", mt)
                          .register(registry)
                 );
-                
+
                 // Record count metrics
                 Counter counter = invokeCounters.computeIfAbsent(messageType, mt ->
                     Counter.builder("pekko.actorcell.invoke.count")
@@ -156,7 +156,7 @@ cd scripts/monitoring
 docker-compose down -v
 ```
 
-## Key Takeaways
+## Summary
 
-- The metrics module makes it easy to collect performance data from your actor system
-- Prometheus and Grafana integration offers powerful visualization and alerting
+- Collect performance data with the metrics module
+- Visualize with Prometheus and Grafana

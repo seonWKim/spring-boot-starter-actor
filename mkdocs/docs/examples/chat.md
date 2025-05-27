@@ -564,73 +564,18 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
 }
 ```
 
-## Why No Third-Party Middleware Is Needed
+## Architecture Benefits
 
-### 1. Built-in Message Routing
-
-Spring Boot Starter Actor provides:
+This architecture eliminates the need for third-party middleware by leveraging:
 
 - Built-in message routing between actors
-- Automatic distribution of actors across the cluster
-- Location transparency for actor references
-- Type-safe command interfaces for actor communication
-
-This eliminates the need for a separate message broker like RabbitMQ or Kafka.
-
-### 2. State Management
-
-Actors naturally manage state:
-
-- Each chat room actor maintains its own list of connected users
-- State is encapsulated within actors and not exposed directly
-- State changes are driven by messages, ensuring consistency
-- Custom actor contexts allow for dependency injection and state management
-
-This eliminates the need for a separate state store like Redis.
-
-### 3. Scalability
-
-The actor model provides scalability:
-
-- Chat rooms are distributed across the cluster as sharded actors
-- User actors are local to each node, reducing network overhead
-- New nodes can be added to the cluster to handle more chat rooms
-- The system scales horizontally without changes to the application code
-
-This eliminates the need for complex scaling infrastructure.
-
-### 4. Real-Time Communication
-
-The combination of WebSockets and actors provides real-time communication:
-
-- WebSockets provide a direct connection between clients and the server
-- Actors handle message distribution efficiently
-- Messages are delivered immediately without polling or delays
-
-This eliminates the need for specialized real-time messaging services.
-
-### 5. Fault Tolerance
-
-The actor system provides fault tolerance:
-
-- If an actor fails, it can be automatically restarted
-- If a node fails, its actors are redistributed to other nodes
-- The system continues to function even during partial failures
-
-This eliminates the need for additional reliability layers.
-
-## Benefits of This Approach
-
-1. **Simplified Architecture**: Fewer components means less complexity and fewer points of failure
-2. **Reduced Operational Overhead**: No need to manage and monitor additional services
-3. **Lower Latency**: Direct communication without intermediate hops
-4. **Cost Efficiency**: No licensing or operational costs for additional middleware
-5. **Easier Deployment**: Simpler deployment with fewer dependencies
+- Natural state management within actors
+- Scalability through sharded actors
+- Real-time communication via WebSockets
+- Fault tolerance provided by the actor system
 
 ## Key Takeaways
 
-- Spring Boot Starter Actor enables building real-world applications without third-party middleware
-- The actor model provides a natural way to handle real-time communication and state management
-- WebSockets combined with actors create an efficient real-time messaging system
-- The resulting architecture is simpler, more cost-effective, and easier to maintain
-- Complex applications like chat systems can be built with minimal infrastructure requirements
+- The actor model provides an effective way to handle real-time communication
+- WebSockets combined with actors create an efficient messaging system
+- The resulting architecture is simpler and easier to maintain
