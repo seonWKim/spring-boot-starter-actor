@@ -1,6 +1,8 @@
 package io.github.seonwkim.example;
 
 import io.github.seonwkim.core.SpringActor;
+import io.github.seonwkim.core.SpringActorContext;
+
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
@@ -39,12 +41,12 @@ public class HelloActor implements SpringActor {
 	/**
 	 * Creates the behavior for this actor when it's started.
 	 *
-	 * @param id The ID of the actor
+	 * @param actorContext The ID of the actor
 	 * @return The behavior for the actor
 	 */
 	@Override
-	public Behavior<Command> create(String id) {
-		return Behaviors.setup(ctx -> new HelloActorBehavior(ctx, id).create());
+	public Behavior<Command> create(SpringActorContext actorContext) {
+		return Behaviors.setup(ctx -> new HelloActorBehavior(ctx, actorContext).create());
 	}
 
 	/**
@@ -53,17 +55,17 @@ public class HelloActor implements SpringActor {
 	 */
 	private static class HelloActorBehavior {
 		private final ActorContext<Command> ctx;
-		private final String actorId;
+		private final SpringActorContext actorContext;
 
 		/**
 		 * Creates a new behavior with the given context and actor ID.
 		 *
 		 * @param ctx The actor context
-		 * @param actorId The ID of the actor
+		 * @param actorContext The context of the actor
 		 */
-		HelloActorBehavior(ActorContext<Command> ctx, String actorId) {
+		HelloActorBehavior(ActorContext<Command> ctx, SpringActorContext actorContext) {
 			this.ctx = ctx;
-			this.actorId = actorId;
+			this.actorContext = actorContext;
 		}
 
 		/**
@@ -83,10 +85,10 @@ public class HelloActor implements SpringActor {
 		 */
 		private Behavior<Command> onSayHello(SayHello msg) {
 			// Log the received message
-			ctx.getLog().info("Received SayHello for id={}", actorId);
+			ctx.getLog().info("Received SayHello for id={}", actorContext.actorId());
 
 			// Send a response back to the caller
-			msg.replyTo.tell("Hello from actor " + actorId);
+			msg.replyTo.tell("Hello from actor " + actorContext);
 
 			return Behaviors.same();
 		}

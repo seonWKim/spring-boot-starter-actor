@@ -3,9 +3,14 @@ package io.github.seonwkim.example;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.github.seonwkim.core.SpringActor;
+import io.github.seonwkim.core.SpringActorContext;
+
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+
+import javax.swing.Spring;
+
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
@@ -51,11 +56,12 @@ public class UserActor implements SpringActor {
 	 * Creates a behavior for a user actor. This method is called by the actor system when a new user
 	 * actor is created.
 	 *
-	 * @param id The ID of the actor
+	 * @param actorContext The context of the actor
 	 * @return A behavior for the actor
 	 */
 	@Override
-	public Behavior<ChatRoomActor.ChatEvent> create(String id) {
+	public Behavior<ChatRoomActor.ChatEvent> create(SpringActorContext actorContext) {
+		final String id = actorContext.actorId();
 		return Behaviors.setup(
 				context -> {
 					context.getLog().info("Creating user actor with ID: {}", id);
