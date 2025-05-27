@@ -51,6 +51,18 @@ The Chat Example demonstrates how to build a real-time chat application using Sp
 
 This example demonstrates how Spring Boot Starter Actor can be used to build real-world applications efficiently without relying on additional infrastructure components.
 
+### [Monitoring](monitoring.md)
+
+The Monitoring example demonstrates how to monitor and analyze your actor system's performance. It shows:
+
+- Setting up a complete monitoring stack with Prometheus and Grafana
+- Collecting and exporting metrics from your actor system
+- Visualizing actor performance metrics in real-time
+- Tracking message processing times and throughput
+- Monitoring cluster health and resource usage
+
+This example provides insights into how Spring Boot Starter Actor can be used to observe and optimize your application's performance without complex configuration.
+
 ## Getting Started
 
 To run these examples:
