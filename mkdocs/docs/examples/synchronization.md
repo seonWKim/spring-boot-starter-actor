@@ -273,62 +273,20 @@ public class CounterController {
 }
 ```
 
-## Why Actors Are Efficient for Synchronization
+## Actor Efficiency
 
-### 1. Message-Based Concurrency
+Actors provide efficient synchronization through:
 
-Actors use a message-based concurrency model where:
-
-- Each actor processes one message at a time
-- No explicit locks are needed
-- The actor's state is never shared directly with other components
-
-This eliminates the need for complex locking mechanisms and the associated overhead.
-
-### 2. No Blocking
-
-Unlike traditional synchronization approaches:
-
-- Database locking requires database transactions, which can block other operations
-- Redis locking requires network round-trips and can lead to contention
-- Actors process messages asynchronously without blocking threads
-
-### 3. Scalability
-
-Actor-based synchronization scales well because:
-
-- Each counter is an independent actor that can run on any node in the cluster
-- The system can handle many counters simultaneously
-- Adding more nodes increases the overall capacity
-
-### 4. Reduced Contention
-
-With actors:
-
-- Each counter has its own dedicated actor
-- Contention only occurs when multiple requests target the same counter
-- Different counters can be updated concurrently without interference
-
-### 5. Simplified Error Handling
-
-Actors provide built-in supervision and error handling:
-
-- If an actor fails, it can be restarted automatically
-- The actor's state can be preserved or reset as needed
-- Errors are isolated to individual actors
+- Message-based concurrency without explicit locks
+- Non-blocking asynchronous processing
+- Independent actors that scale across nodes
+- Reduced contention between different counters
+- Built-in supervision and error handling
 
 ## Performance Comparison
 
 When benchmarked under high concurrency:
 
-1. **Database Locking**: Slowest due to transaction overhead and database contention
-2. **Redis Locking**: Better than database locking but still has network overhead
-3. **Actor-Based Synchronization**: Fastest due to in-memory processing and message-based concurrency
-
-## Key Takeaways
-
-- Actor-based synchronization is more efficient than traditional approaches for managing concurrent access to shared resources
-- Actors eliminate the need for explicit locks, reducing complexity and overhead
-- The message-based concurrency model naturally handles synchronization without blocking
-- Spring Boot Starter Actor makes it easy to implement actor-based synchronization in Spring applications
-- For high-concurrency scenarios, actors provide better performance and scalability than database or Redis locking
+1. **Database Locking**: Slowest due to transaction overhead
+2. **Redis Locking**: Better but has network overhead
+3. **Actor-Based Synchronization**: Fastest with in-memory processing

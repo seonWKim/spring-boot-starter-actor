@@ -146,9 +146,8 @@ To run the simple example:
 2. Access the `/hello` endpoint to send a message to the actor
 3. Observe the response from the actor
 
-## Key Takeaways
+## Key Points
 
-- Spring Boot Starter Actor makes it easy to integrate actors with Spring Boot applications
-- Actors provide a simple and effective way to handle concurrent operations
-- The library handles the complexity of actor creation and message passing
-- Integration with Spring WebFlux allows for reactive programming with actors
+- Easy integration with Spring Boot
+- Simple concurrency handling
+- Reactive programming support
