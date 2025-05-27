@@ -3,6 +3,8 @@ package io.github.seonwkim.core;
 import io.github.seonwkim.core.RootGuardian.StopResult;
 import io.github.seonwkim.core.behavior.ClusterEventBehavior;
 import io.github.seonwkim.core.impl.DefaultRootGuardian;
+import io.github.seonwkim.core.impl.DefaultSpringActorContext;
+
 import java.time.Duration;
 import java.util.concurrent.CompletionStage;
 import org.apache.pekko.actor.typed.ActorRef;
@@ -102,7 +104,7 @@ public class SpringActorSystem implements DisposableBean {
 						actorSystem,
 						(ActorRef<DefaultRootGuardian.Spawned<T>> replyTo) ->
 								new DefaultRootGuardian.SpawnActor<>(
-										commandClass, actorId, replyTo, MailboxSelector.defaultMailbox(), false),
+										commandClass, new DefaultSpringActorContext(actorId), replyTo, MailboxSelector.defaultMailbox(), false),
 						DEFAULT_TIMEOUT,
 						actorSystem.scheduler())
 				.thenApply(spawned -> new SpringActorRef<>(actorSystem.scheduler(), spawned.ref));
@@ -125,7 +127,7 @@ public class SpringActorSystem implements DisposableBean {
 						actorSystem,
 						(ActorRef<DefaultRootGuardian.Spawned<T>> replyTo) ->
 								new DefaultRootGuardian.SpawnActor<>(
-										commandClass, actorId, replyTo, MailboxSelector.defaultMailbox(), false),
+										commandClass, new DefaultSpringActorContext(actorId), replyTo, MailboxSelector.defaultMailbox(), false),
 						timeout,
 						actorSystem.scheduler())
 				.thenApply(spawned -> new SpringActorRef<>(actorSystem.scheduler(), spawned.ref));
@@ -150,7 +152,7 @@ public class SpringActorSystem implements DisposableBean {
 						actorSystem,
 						(ActorRef<DefaultRootGuardian.Spawned<T>> replyTo) ->
 								new DefaultRootGuardian.SpawnActor<>(
-										commandClass, actorId, replyTo, mailboxSelector, false),
+										commandClass, new DefaultSpringActorContext(actorId), replyTo, mailboxSelector, false),
 						timeout,
 						actorSystem.scheduler())
 				.thenApply(spawned -> new SpringActorRef<>(actorSystem.scheduler(), spawned.ref));
@@ -173,7 +175,7 @@ public class SpringActorSystem implements DisposableBean {
 		return AskPattern.ask(
 				actorSystem,
 				(ActorRef<DefaultRootGuardian.StopResult> replyTo) ->
-						new DefaultRootGuardian.StopActor<>(commandClass, actorId, replyTo),
+						new DefaultRootGuardian.StopActor<>(commandClass, new DefaultSpringActorContext(actorId), replyTo),
 				DEFAULT_TIMEOUT,
 				actorSystem.scheduler());
 	}
@@ -199,7 +201,7 @@ public class SpringActorSystem implements DisposableBean {
 		return AskPattern.ask(
 				actorSystem,
 				(ActorRef<DefaultRootGuardian.StopResult> replyTo) ->
-						new DefaultRootGuardian.StopActor<>(commandClass, actorId, replyTo),
+						new DefaultRootGuardian.StopActor<>(commandClass, new DefaultSpringActorContext(actorId), replyTo),
 				timeout,
 				actorSystem.scheduler());
 	}

@@ -82,9 +82,9 @@ public class PekkoConfiguration {
 
             registry.register(
                     commandClass,
-                    id -> {
+                    actorContext -> {
                         try {
-                            return actorBean.create(id);
+                            return actorBean.create(actorContext);
                         } catch (Exception e) {
                             throw new RuntimeException(
                                     "Failed to invoke create(id) on " + actorBean.getClass().getName(), e);

@@ -32,8 +32,8 @@ public interface RootGuardian {
 	class SpawnActor<T> implements Command {
 		/** The class of commands that the actor can handle */
 		public final Class<T> commandClass;
-		/** The ID of the actor */
-		public final String actorId;
+		/** The context of the actor */
+		public final SpringActorContext actorContext;
 		/** The actor reference to reply to with the spawned actor reference */
 		public final ActorRef<Spawned<T>> replyTo;
 		/** The mailbox selector to use * */
@@ -45,19 +45,19 @@ public interface RootGuardian {
 		 * Creates a new SpawnActor command.
 		 *
 		 * @param commandClass The class of commands that the actor can handle
-		 * @param actorId The ID of the actor
+		 * @param actorContext The ID of the actor
 		 * @param replyTo The actor reference to reply to with the spawned actor reference
 		 * @param mailboxSelector The mailboxSelector
 		 * @param isClusterSingleton Whether the actor should be cluster singleton
 		 */
 		public SpawnActor(
 				Class<T> commandClass,
-				String actorId,
+				SpringActorContext actorContext,
 				ActorRef<Spawned<T>> replyTo,
 				MailboxSelector mailboxSelector,
 				Boolean isClusterSingleton) {
 			this.commandClass = commandClass;
-			this.actorId = actorId;
+			this.actorContext = actorContext;
 			this.replyTo = replyTo;
 			this.mailboxSelector = mailboxSelector;
 			this.isClusterSingleton = isClusterSingleton;
@@ -76,8 +76,8 @@ public interface RootGuardian {
 	class StopActor<T> implements Command {
 		/** The class of commands that the actor can handle */
 		public final Class<T> commandClass;
-		/** The ID of the actor to be stopped */
-		public final String actorId;
+		/** The context of the actor to be stopped */
+		public final SpringActorContext actorContext;
 		/** The actor reference to reply to with the stop result */
 		public final ActorRef<StopResult> replyTo;
 
@@ -85,12 +85,12 @@ public interface RootGuardian {
 		 * Creates a new StopActor command.
 		 *
 		 * @param commandClass The class of commands that the actor can handle
-		 * @param actorId The ID of the actor to be stopped
+		 * @param actorContext The context of the actor to be stopped
 		 * @param replyTo The actor reference to reply to with the stop result
 		 */
-		public StopActor(Class<T> commandClass, String actorId, ActorRef<StopResult> replyTo) {
+		public StopActor(Class<T> commandClass, SpringActorContext actorContext, ActorRef<StopResult> replyTo) {
 			this.commandClass = commandClass;
-			this.actorId = actorId;
+			this.actorContext = actorContext;
 			this.replyTo = replyTo;
 		}
 	}

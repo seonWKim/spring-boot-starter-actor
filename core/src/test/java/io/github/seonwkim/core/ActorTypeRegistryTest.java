@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.seonwkim.core.ActorTypeRegistryTest.DummyActor.Command;
+import io.github.seonwkim.core.impl.DefaultSpringActorContext;
+
 import java.util.UUID;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
@@ -34,7 +36,7 @@ public class ActorTypeRegistryTest {
 								.build());
 
 		Behavior<DummyActor.Command> behavior =
-				registry.createBehavior(DummyActor.Command.class, UUID.randomUUID().toString());
+				registry.createBehavior(DummyActor.Command.class, new DefaultSpringActorContext(UUID.randomUUID().toString()));
 		assertNotNull(behavior);
 	}
 
@@ -48,7 +50,7 @@ public class ActorTypeRegistryTest {
 								.build());
 
 		Behavior<DummyActor.Command> behavior =
-				registry.createBehavior(DummyActor.Command.class, "custom-id");
+				registry.createBehavior(DummyActor.Command.class, new DefaultSpringActorContext("custom-id"));
 
 		assertNotNull(behavior);
 		assertTrue(behavior instanceof Behavior<?>);
@@ -59,7 +61,7 @@ public class ActorTypeRegistryTest {
 		assertThrows(
 				IllegalArgumentException.class,
 				() -> {
-					registry.createBehavior(DummyActor.Command.class, "missing");
+					registry.createBehavior(DummyActor.Command.class, new DefaultSpringActorContext("missing"));
 				});
 	}
 }

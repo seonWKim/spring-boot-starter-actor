@@ -38,7 +38,7 @@ class SpringActorSystemTest {
 		}
 
 		@Override
-		public Behavior<Command> create(String id) {
+		public Behavior<Command> create(SpringActorContext id) {
 			return Behaviors.setup(
 					ctx ->
 							Behaviors.receive(Command.class)

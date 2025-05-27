@@ -12,7 +12,7 @@ import org.apache.pekko.actor.typed.Behavior;
  */
 public class ActorTypeRegistry {
 
-	private final Map<String, Function<String, Behavior<?>>> factories = new HashMap<>();
+	private final Map<String, Function<SpringActorContext, Behavior<?>>> factories = new HashMap<>();
 	private final Map<Class<?>, String> classToKey = new HashMap<>();
 
 	/**
@@ -23,9 +23,9 @@ public class ActorTypeRegistry {
 	 * @param <T> The type of commands that the actor can handle
 	 */
 	@SuppressWarnings("unchecked")
-	public <T> void register(Class<T> commandClass, Function<String, Behavior<?>> factory) {
+	public <T> void register(Class<T> commandClass, Function<SpringActorContext, Behavior<?>> factory) {
 		String key = commandClass.getName();
-		Function<String, Behavior<?>> castedFactory = factory;
+		Function<SpringActorContext, Behavior<?>> castedFactory = factory;
 
 		factories.put(key, castedFactory);
 		classToKey.put(commandClass, key);
@@ -35,26 +35,26 @@ public class ActorTypeRegistry {
 	 * Creates a behavior for a given command class and ID.
 	 *
 	 * @param commandClass The class of commands that the actor can handle
-	 * @param id The ID of the actor
+	 * @param actorContext The context of the actor
 	 * @param <T> The type of commands that the actor can handle
 	 * @return A behavior for the actor
 	 * @throws IllegalArgumentException If no factory is registered for the command class
 	 */
 	@SuppressWarnings("unchecked")
-	public <T> Behavior<T> createBehavior(Class<T> commandClass, String id) {
+	public <T> Behavior<T> createBehavior(Class<T> commandClass, SpringActorContext actorContext) {
 		String key = classToKey.get(commandClass);
 		if (key == null) {
 			throw new IllegalArgumentException(
 					"No factory registered for class: " + commandClass.getName());
 		}
-		return (Behavior<T>) createBehaviorByKey(key, id);
+		return (Behavior<T>) createBehaviorByKey(key, actorContext);
 	}
 
-	private Behavior<?> createBehaviorByKey(String key, String id) {
-		Function<String, Behavior<?>> factory = factories.get(key);
+	private Behavior<?> createBehaviorByKey(String key, SpringActorContext actorContext) {
+		Function<SpringActorContext, Behavior<?>> factory = factories.get(key);
 		if (factory == null) {
 			throw new IllegalArgumentException("No factory registered for key: " + key);
 		}
-		return factory.apply(id);
+		return factory.apply(actorContext);
 	}
 }

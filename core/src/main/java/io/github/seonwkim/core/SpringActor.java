@@ -19,8 +19,8 @@ public interface SpringActor {
 	 * Creates a behavior for this actor. This method is called by the actor system when a new actor
 	 * is created.
 	 *
-	 * @param id The ID of the actor
+	 * @param actorContext The context of the actor
 	 * @return A behavior for the actor
 	 */
-	Behavior<?> create(String id);
+	Behavior<?> create(SpringActorContext actorContext);
 }

@@ -2,6 +2,8 @@ package io.github.seonwkim.core.impl;
 
 import io.github.seonwkim.core.ActorTypeRegistry;
 import io.github.seonwkim.core.RootGuardian;
+import io.github.seonwkim.core.SpringActorContext;
+
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.pekko.actor.typed.ActorRef;
@@ -70,13 +72,13 @@ public class DefaultRootGuardian implements RootGuardian {
 	 */
 	@SuppressWarnings("unchecked")
 	public <T> Behavior<RootGuardian.Command> handleSpawnActor(SpawnActor<T> msg) {
-		String key = buildActorKey(msg.commandClass, msg.actorId);
+		String key = buildActorKey(msg.commandClass, msg.actorContext);
 
 		ActorRef<T> ref;
 		if (actorRefs.containsKey(key)) {
 			ref = (ActorRef<T>) actorRefs.get(key);
 		} else {
-			Behavior<T> behavior = registry.createBehavior(msg.commandClass, msg.actorId);
+			Behavior<T> behavior = registry.createBehavior(msg.commandClass, msg.actorContext);
 			ref = ctx.spawn(behavior, key, msg.mailboxSelector);
 			actorRefs.put(key, ref);
 		}
@@ -96,7 +98,7 @@ public class DefaultRootGuardian implements RootGuardian {
 	 */
 	@SuppressWarnings("unchecked")
 	public <T> Behavior<RootGuardian.Command> handleStopActor(StopActor<T> msg) {
-		String key = buildActorKey(msg.commandClass, msg.actorId);
+		String key = buildActorKey(msg.commandClass, msg.actorContext);
 
 		final ActorRef<T> actorRef = (ActorRef<T>) actorRefs.get(key);
 		if (actorRef != null) {
@@ -114,10 +116,10 @@ public class DefaultRootGuardian implements RootGuardian {
 	 * Builds a unique key for an actor based on its command class and ID.
 	 *
 	 * @param clazz The command class of the actor
-	 * @param actorId The ID of the actor
+	 * @param actorContext The context of the actor
 	 * @return A unique key for the actor
 	 */
-	private String buildActorKey(Class<?> clazz, String actorId) {
-		return clazz.getName() + "-" + actorId;
+	private String buildActorKey(Class<?> clazz, SpringActorContext actorContext) {
+		return clazz.getName() + "-" + actorContext.actorId();
 	}
 }

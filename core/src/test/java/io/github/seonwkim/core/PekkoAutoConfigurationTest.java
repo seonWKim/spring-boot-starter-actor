@@ -16,6 +16,7 @@ import org.springframework.test.context.TestPropertySource;
 
 import com.typesafe.config.Config;
 
+import io.github.seonwkim.core.impl.DefaultSpringActorContext;
 import io.github.seonwkim.test.CustomOverrideConfiguration;
 import io.github.seonwkim.test.CustomTestRootGuardian;
 
@@ -56,7 +57,7 @@ public class PekkoAutoConfigurationTest {
 		public static class SayHello implements TestHelloActor.Command {}
 
 		@Override
-		public Behavior<TestHelloActor.Command> create(String id) {
+		public Behavior<TestHelloActor.Command> create(SpringActorContext id) {
 			return Behaviors.setup(
 					ctx ->
 							Behaviors.receive(TestHelloActor.Command.class)
@@ -81,7 +82,7 @@ public class PekkoAutoConfigurationTest {
 
 			// Should be able to create the behavior by command class
 			Behavior<TestHelloActor.Command> behavior =
-					registry.createBehavior(TestHelloActor.Command.class, "test-id");
+					registry.createBehavior(TestHelloActor.Command.class, new DefaultSpringActorContext("test-id"));
 
 			assertNotNull(behavior, "Behavior for TestHelloActor should be registered and non-null");
 		}
