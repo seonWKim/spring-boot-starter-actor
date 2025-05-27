@@ -48,8 +48,8 @@ public class HelloActor implements SpringActor {
     }
 
     @Override
-    public Behavior<Command> create(String id) {
-        return Behaviors.setup(ctx -> new HelloActorBehavior(ctx, id).create());
+    public Behavior<Command> create(SpringActorContext actorContext) {
+        return Behaviors.setup(ctx -> new HelloActorBehavior(ctx, actorContext).create());
     }
 
     // Actor behavior implementation
@@ -64,7 +64,7 @@ public class HelloActor implements SpringActor {
 
         private Behavior<Command> onSayHello(SayHello msg) {
             // Send response
-            msg.replyTo.tell("Hello from actor " + actorId);
+            msg.replyTo.tell("Hello from actor " + actorContext.actorId());
             return Behaviors.same();
         }
     }

@@ -13,6 +13,7 @@ To create an actor, implement the `SpringActor` interface and annotate the class
 
 ```java
 import io.github.seonwkim.core.SpringActor;
+import io.github.seonwkim.core.SpringActorContext;
 
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
@@ -46,18 +47,18 @@ public class HelloActor implements SpringActor {
 
     // Create the behavior for this actor
     @Override
-    public Behavior<Command> create(String id) {
-        return Behaviors.setup(ctx -> new HelloActorBehavior(ctx, id).create());
+    public Behavior<Command> create(SpringActorContext actorContext) {
+        return Behaviors.setup(ctx -> new HelloActorBehavior(ctx, actorContext).create());
     }
 
     // Inner class to handle the actor's behavior
     private static class HelloActorBehavior {
         private final ActorContext<Command> ctx;
-        private final String actorId;
+        private final SpringActorContext actorContext;
 
-        HelloActorBehavior(ActorContext<Command> ctx, String actorId) {
+        HelloActorBehavior(ActorContext<Command> ctx, SpringActorContext actorContext) {
             this.ctx = ctx;
-            this.actorId = actorId;
+            this.actorContext = actorContext;
         }
 
         public Behavior<Command> create() {
@@ -66,14 +67,14 @@ public class HelloActor implements SpringActor {
                             .onMessage(SayHello.class, this::onSayHello)
                             .build();
         }
-        
+
         private Behavior<Command> onSayHi(SayHi msg) {
             ctx.getLog().info("Received SayHi for id={}", actorId);
             return Behaviors.same(); 
         }
 
         private Behavior<Command> onSayHello(SayHello msg) {
-            ctx.getLog().info("Received SayHello for id={}", actorId);
+            ctx.getLog().info("Received SayHello for id={}", actorContext.getId());
             msg.replyTo.tell("Hello from actor " + actorId);
             return Behaviors.same();
         }

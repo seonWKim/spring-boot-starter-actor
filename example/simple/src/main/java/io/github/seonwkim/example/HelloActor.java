@@ -41,7 +41,7 @@ public class HelloActor implements SpringActor {
 	/**
 	 * Creates the behavior for this actor when it's started.
 	 *
-	 * @param actorContext The ID of the actor
+	 * @param actorContext The context of the actor
 	 * @return The behavior for the actor
 	 */
 	@Override
@@ -88,7 +88,7 @@ public class HelloActor implements SpringActor {
 			ctx.getLog().info("Received SayHello for id={}", actorContext.actorId());
 
 			// Send a response back to the caller
-			msg.replyTo.tell("Hello from actor " + actorContext);
+			msg.replyTo.tell("Hello from actor " + actorContext.actorId());
 
 			return Behaviors.same();
 		}
