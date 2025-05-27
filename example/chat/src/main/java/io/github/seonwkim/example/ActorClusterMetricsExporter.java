@@ -39,13 +39,9 @@ public class ActorClusterMetricsExporter {
 	 * be measured and counted.
 	 */
 	private final Set<Class<?>> targetClasses =
-			Set.of(
-					ChatRoomActor.JoinRoom.class,
+			Set.of(ChatRoomActor.JoinRoom.class,
 					ChatRoomActor.LeaveRoom.class,
-					ChatRoomActor.SendMessage.class,
-					ChatRoomActor.ChatEvent.class,
-					ChatRoomActor.UserJoined.class,
-					ChatRoomActor.UserLeft.class);
+					ChatRoomActor.SendMessage.class);
 
 	public ActorClusterMetricsExporter(MeterRegistry registry) {
 		this.registry = registry;

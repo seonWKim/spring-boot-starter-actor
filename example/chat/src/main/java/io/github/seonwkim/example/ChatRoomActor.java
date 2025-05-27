@@ -66,51 +66,6 @@ public class ChatRoomActor implements ShardedActor<ChatRoomActor.Command> {
 		}
 	}
 
-	/** Base interface for all events that can be sent from the chat room actor to clients. */
-	public interface ChatEvent extends JsonSerializable {}
-
-	/** Event sent when a user joins the room. */
-	public static class UserJoined implements ChatEvent {
-		public final String userId;
-		public final String roomId;
-
-		@JsonCreator
-		public UserJoined(
-				@JsonProperty("userId") String userId, @JsonProperty("roomId") String roomId) {
-			this.userId = userId;
-			this.roomId = roomId;
-		}
-	}
-
-	/** Event sent when a user leaves the room. */
-	public static class UserLeft implements ChatEvent {
-		public final String userId;
-		public final String roomId;
-
-		@JsonCreator
-		public UserLeft(@JsonProperty("userId") String userId, @JsonProperty("roomId") String roomId) {
-			this.userId = userId;
-			this.roomId = roomId;
-		}
-	}
-
-	/** Event sent when a message is received in the room. */
-	public static class MessageReceived implements ChatEvent {
-		public final String userId;
-		public final String message;
-		public final String roomId;
-
-		@JsonCreator
-		public MessageReceived(
-				@JsonProperty("userId") String userId,
-				@JsonProperty("message") String message,
-				@JsonProperty("roomId") String roomId) {
-			this.userId = userId;
-			this.message = message;
-			this.roomId = roomId;
-		}
-	}
-
 	@Override
 	public EntityTypeKey<Command> typeKey() {
 		return TYPE_KEY;
