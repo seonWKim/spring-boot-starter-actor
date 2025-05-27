@@ -64,9 +64,23 @@ To view the latest versions, refer to the following:
 
 Spring Boot Starter Actor uses Spring Boot's auto-configuration to set up the actor system. By default, it will create a local actor system with sensible defaults.
 
+### Enable Actor Support
+
+Add the `@EnableActorSupport` annotation to your Spring Boot application class:
+
+```java
+@SpringBootApplication
+@EnableActorSupport
+public class MyApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(MyApplication.class, args);
+    }
+}
+```
+
 ### Application Properties
 
-You can configure the actor system using application properties(or yaml):
+You can customize the actor system using application properties (or yaml):
 
 ```yaml
 # application.properties or application.yml

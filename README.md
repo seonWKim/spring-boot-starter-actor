@@ -95,6 +95,20 @@ To view the latest versions, refer to the following:
 
 ### Basic Configuration
 
+Add the `@EnableActorSupport` annotation to your Spring Boot application class:
+
+```java
+@SpringBootApplication
+@EnableActorSupport
+public class MyApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(MyApplication.class, args);
+    }
+}
+```
+
+You can still customize the actor system using application properties:
+
 ```yaml
 spring:
   actor:
