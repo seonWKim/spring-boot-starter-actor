@@ -32,12 +32,12 @@ public class ChatRoomActor implements ShardedActor<ChatRoomActor.Command> {
 	/** Command to join a chat room. */
 	public static class JoinRoom implements Command {
 		public final String userId;
-		public final ActorRef<ChatEvent> userRef;
+		public final ActorRef<UserActor.Command> userRef;
 
 		@JsonCreator
 		public JoinRoom(
 				@JsonProperty("userId") String userId,
-				@JsonProperty("userRef") ActorRef<ChatEvent> userRef) {
+				@JsonProperty("userRef") ActorRef<UserActor.Command> userRef) {
 			this.userId = userId;
 			this.userRef = userRef;
 		}
@@ -133,7 +133,7 @@ public class ChatRoomActor implements ShardedActor<ChatRoomActor.Command> {
 	 * @return The behavior for the chat room
 	 */
 	private Behavior<Command> chatRoom(
-			String roomId, Map<String, ActorRef<ChatEvent>> connectedUsers) {
+			String roomId, Map<String, ActorRef<UserActor.Command>> connectedUsers) {
 		return Behaviors.receive(Command.class)
 				.onMessage(
 						JoinRoom.class,
@@ -142,8 +142,8 @@ public class ChatRoomActor implements ShardedActor<ChatRoomActor.Command> {
 							connectedUsers.put(msg.userId, msg.userRef);
 
 							// Notify all users that a new user has joined
-							UserJoined event = new UserJoined(msg.userId, roomId);
-							broadcastEvent(connectedUsers, event);
+							UserActor.JoinRoom joinRoomCmd = new UserActor.JoinRoom(msg.userId, roomId);
+							broadcastCommand(connectedUsers, joinRoomCmd);
 
 							return chatRoom(roomId, connectedUsers);
 						})
@@ -151,22 +151,28 @@ public class ChatRoomActor implements ShardedActor<ChatRoomActor.Command> {
 						LeaveRoom.class,
 						msg -> {
 							// Remove the user from connected users
-							connectedUsers.remove(msg.userId);
+							ActorRef<UserActor.Command> userRef = connectedUsers.remove(msg.userId);
 
-							// Notify all users that a user has left
-							UserLeft event = new UserLeft(msg.userId, roomId);
-							broadcastEvent(connectedUsers, event);
+							if (userRef != null) {
+								// Notify the user that they left the room
+								UserActor.LeaveRoom leaveRoomCmd = new UserActor.LeaveRoom(msg.userId, roomId);
+								userRef.tell(leaveRoomCmd);
+
+								// Notify all remaining users that a user has left
+								broadcastCommand(connectedUsers, leaveRoomCmd);
+							}
 
 							return chatRoom(roomId, connectedUsers);
 						})
 				.onMessage(
 						SendMessage.class,
 						msg -> {
-							// Create a message received event
-							MessageReceived event = new MessageReceived(msg.userId, msg.message, roomId);
+							// Create a message received command
+							UserActor.ReceiveMessage receiveMessageCmd = 
+									new UserActor.ReceiveMessage(msg.userId, msg.message, roomId);
 
 							// Broadcast the message to all connected users
-							broadcastEvent(connectedUsers, event);
+							broadcastCommand(connectedUsers, receiveMessageCmd);
 
 							return Behaviors.same();
 						})
@@ -174,13 +180,13 @@ public class ChatRoomActor implements ShardedActor<ChatRoomActor.Command> {
 	}
 
 	/**
-	 * Broadcasts an event to all connected users.
+	 * Broadcasts a command to all connected users.
 	 *
 	 * @param connectedUsers Map of user IDs to their actor references
-	 * @param event The event to broadcast
+	 * @param command The command to broadcast
 	 */
-	private void broadcastEvent(Map<String, ActorRef<ChatEvent>> connectedUsers, ChatEvent event) {
-		connectedUsers.values().forEach(userRef -> userRef.tell(event));
+	private void broadcastCommand(Map<String, ActorRef<UserActor.Command>> connectedUsers, UserActor.Command command) {
+		connectedUsers.values().forEach(userRef -> userRef.tell(command));
 	}
 
 	@Override

@@ -30,9 +30,6 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
 		this.objectMapper = objectMapper;
 		this.chatService = chatService;
 		this.actorSystem = actorSystem;
-
-		// Set the object mapper in UserActor
-		UserActor.setObjectMapper(objectMapper);
 	}
 
 	@Override
@@ -88,12 +85,12 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
 		String roomId = payload.get("roomId").asText();
 
 		try {
-			// Register the session with UserActor
-			UserActor.registerSession(userId, session);
+			// Create a UserActorContext with the session
+			UserActorContext userActorContext = new UserActorContext("user-" + userId, session);
 
-			// Use SpringActorSystem's spawn method to create the actor
-			CompletionStage<SpringActorRef<ChatRoomActor.ChatEvent>> actorRefFuture =
-					actorSystem.spawn(ChatRoomActor.ChatEvent.class, "user-" + userId);
+			// Use SpringActorSystem's spawn method to create the actor with the context
+			CompletionStage<SpringActorRef<UserActor.Command>> actorRefFuture =
+					actorSystem.spawn(UserActor.Command.class, userActorContext);
 
 			actorRefFuture
 					.thenAccept(

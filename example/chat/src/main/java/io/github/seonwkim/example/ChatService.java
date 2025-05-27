@@ -53,7 +53,7 @@ public class ChatService {
 	 * @param roomId The ID of the room
 	 * @param userRef The actor reference for the user
 	 */
-	public void joinRoom(String userId, String roomId, ActorRef<ChatRoomActor.ChatEvent> userRef) {
+	public void joinRoom(String userId, String roomId, ActorRef<UserActor.Command> userRef) {
 		SpringShardedActorRef<ChatRoomActor.Command> roomRef =
 				actorSystem.entityRef(ChatRoomActor.TYPE_KEY, roomId);
 
