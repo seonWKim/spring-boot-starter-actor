@@ -111,6 +111,27 @@ public class SpringActorSystem implements DisposableBean {
 	}
 
 	/**
+	 * Spawns a new actor with the given command class and actor ID, using the default timeout. This
+	 * method asks the root guardian to create a new actor and returns a CompletionStage that will be
+	 * completed with a SpringActorRef to the new actor.
+	 *
+	 * @param commandClass The class of commands that the actor can handle
+	 * @param actorContext The context of the actor
+	 * @param <T> The type of commands that the actor can handle
+	 * @return A CompletionStage that will be completed with a SpringActorRef to the new actor
+	 */
+	public <T> CompletionStage<SpringActorRef<T>> spawn(Class<T> commandClass, SpringActorContext actorContext) {
+		return AskPattern.ask(
+								 actorSystem,
+								 (ActorRef<DefaultRootGuardian.Spawned<T>> replyTo) ->
+										 new DefaultRootGuardian.SpawnActor<>(
+												 commandClass, actorContext, replyTo, MailboxSelector.defaultMailbox(), false),
+								 DEFAULT_TIMEOUT,
+								 actorSystem.scheduler())
+						 .thenApply(spawned -> new SpringActorRef<>(actorSystem.scheduler(), spawned.ref));
+	}
+
+	/**
 	 * Spawns a new actor with the given command class, actor ID, and timeout. This method asks the
 	 * root guardian to create a new actor and returns a CompletionStage that will be completed with a
 	 * SpringActorRef to the new actor.
@@ -139,6 +160,29 @@ public class SpringActorSystem implements DisposableBean {
 	 * SpringActorRef to the new actor.
 	 *
 	 * @param commandClass The class of commands that the actor can handle
+	 * @param actorContext The ID of the actor
+	 * @param timeout The maximum time to wait for the actor to be created
+	 * @param <T> The type of commands that the actor can handle
+	 * @return A CompletionStage that will be completed with a SpringActorRef to the new actor
+	 */
+	public <T> CompletionStage<SpringActorRef<T>> spawn(
+			Class<T> commandClass, SpringActorContext actorContext, Duration timeout) {
+		return AskPattern.ask(
+								 actorSystem,
+								 (ActorRef<DefaultRootGuardian.Spawned<T>> replyTo) ->
+										 new DefaultRootGuardian.SpawnActor<>(
+												 commandClass, actorContext, replyTo, MailboxSelector.defaultMailbox(), false),
+								 timeout,
+								 actorSystem.scheduler())
+						 .thenApply(spawned -> new SpringActorRef<>(actorSystem.scheduler(), spawned.ref));
+	}
+
+	/**
+	 * Spawns a new actor with the given command class, actor ID, and timeout. This method asks the
+	 * root guardian to create a new actor and returns a CompletionStage that will be completed with a
+	 * SpringActorRef to the new actor.
+	 *
+	 * @param commandClass The class of commands that the actor can handle
 	 * @param actorId The ID of the actor
 	 * @param timeout The maximum time to wait for the actor to be created
 	 * @param mailboxSelector The mailbox configuration to use for the actor, such as a bounded or
@@ -156,6 +200,31 @@ public class SpringActorSystem implements DisposableBean {
 						timeout,
 						actorSystem.scheduler())
 				.thenApply(spawned -> new SpringActorRef<>(actorSystem.scheduler(), spawned.ref));
+	}
+
+	/**
+	 * Spawns a new actor with the given command class, actor ID, and timeout. This method asks the
+	 * root guardian to create a new actor and returns a CompletionStage that will be completed with a
+	 * SpringActorRef to the new actor.
+	 *
+	 * @param commandClass The class of commands that the actor can handle
+	 * @param actorContext The ID of the actor
+	 * @param timeout The maximum time to wait for the actor to be created
+	 * @param mailboxSelector The mailbox configuration to use for the actor, such as a bounded or
+	 *     unbounded mailbox, which can affect throughput and message prioritization behavior.
+	 * @param <T> The type of commands that the actor can handle
+	 * @return A CompletionStage that will be completed with a SpringActorRef to the new actor
+	 */
+	public <T> CompletionStage<SpringActorRef<T>> spawn(
+			Class<T> commandClass, SpringActorContext actorContext, Duration timeout, MailboxSelector mailboxSelector) {
+		return AskPattern.ask(
+								 actorSystem,
+								 (ActorRef<DefaultRootGuardian.Spawned<T>> replyTo) ->
+										 new DefaultRootGuardian.SpawnActor<>(
+												 commandClass, actorContext, replyTo, mailboxSelector, false),
+								 timeout,
+								 actorSystem.scheduler())
+						 .thenApply(spawned -> new SpringActorRef<>(actorSystem.scheduler(), spawned.ref));
 	}
 
 	/**
