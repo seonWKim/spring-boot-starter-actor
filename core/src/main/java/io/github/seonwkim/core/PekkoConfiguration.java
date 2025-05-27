@@ -111,6 +111,13 @@ public class PekkoConfiguration {
         return registry;
     }
 
+    /**
+     * Creates a PekkoProperties bean with the given environment.
+     * This bean provides configuration properties for the Pekko actor system.
+     *
+     * @param environment The Spring environment
+     * @return A PekkoProperties instance
+     */
     @Bean
     @ConditionalOnMissingBean(PekkoProperties.class)
     public PekkoProperties pekkoProperties(Environment environment) {
