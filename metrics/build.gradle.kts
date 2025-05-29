@@ -8,9 +8,11 @@ java {
     targetCompatibility = JavaVersion.VERSION_11
 }
 
+val bytebuddyVersion: String by project
+
 dependencies {
-    implementation("net.bytebuddy:byte-buddy")
-    implementation("net.bytebuddy:byte-buddy-agent")
+    implementation("net.bytebuddy:byte-buddy:${bytebuddyVersion}")
+    implementation("net.bytebuddy:byte-buddy-agent:${bytebuddyVersion}")
 
     testImplementation("org.apache.pekko:pekko-actor-typed_3")
     testImplementation("org.apache.pekko:pekko-cluster-typed_3")
