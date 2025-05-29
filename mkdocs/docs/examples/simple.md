@@ -30,7 +30,7 @@ You can find the complete source code for this example on GitHub:
 
 ```java
 @Component
-public class HelloActor implements SpringActor {
+public class HelloActor implements SpringActor<HelloActor.Command> {
     // Command interface and message types
     public interface Command {}
 
@@ -43,7 +43,7 @@ public class HelloActor implements SpringActor {
     }
 
     @Override
-    public Class<?> commandClass() {
+    public Class<Command> commandClass() {
         return Command.class;
     }
 
