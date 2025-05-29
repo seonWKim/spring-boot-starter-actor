@@ -44,8 +44,8 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     public void afterConnectionEstablished(WebSocketSession session) {
         String userId = UUID.randomUUID().toString();
         session.getAttributes().put("userId", userId);
-        UserActor.UserActorV2Context userActorContext =
-                new UserActor.UserActorV2Context(actorSystem, objectMapper, userId, session);
+        UserActor.UserActorContext userActorContext =
+                new UserActor.UserActorContext(actorSystem, objectMapper, userId, session);
 
         actorSystem.spawn(UserActor.Command.class, userActorContext)
                    .thenAccept(userActor -> {

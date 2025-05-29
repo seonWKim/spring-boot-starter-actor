@@ -2,7 +2,7 @@
 
 This is a sample chat application built with Spring Boot and Pekko (a fork of Akka) for actor-based programming. It demonstrates how to use the Spring Boot Starter Actor library to build a reactive, clustered application.
 
-## Arhitecture 
+## Architecture 
 
 ```mermaid
 graph TD

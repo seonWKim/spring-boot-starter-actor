@@ -28,30 +28,53 @@ You can find the complete source code for this example on GitHub:
 ```java
 @Component
 public class ChatRoomActor implements ShardedActor<ChatRoomActor.Command> {
+
     public static final EntityTypeKey<Command> TYPE_KEY =
             EntityTypeKey.create(Command.class, "ChatRoomActor");
 
-    // Command interface and message types
+    /** Base interface for all commands that can be sent to the chat room actor. */
     public interface Command extends JsonSerializable {}
 
+    /** Command to join a chat room. */
     public static class JoinRoom implements Command {
         public final String userId;
         public final ActorRef<UserActor.Command> userRef;
 
-        // Constructor and properties...
+        @JsonCreator
+        public JoinRoom(
+                @JsonProperty("userId") String userId,
+                @JsonProperty("userRef") ActorRef<UserActor.Command> userRef) {
+            this.userId = userId;
+            this.userRef = userRef;
+        }
     }
 
+    /** Command to leave a chat room. */
     public static class LeaveRoom implements Command {
         public final String userId;
 
-        // Constructor and properties...
+        @JsonCreator
+        public LeaveRoom(@JsonProperty("userId") String userId) {
+            this.userId = userId;
+        }
     }
 
+    /** Command to send a message to the chat room. */
     public static class SendMessage implements Command {
         public final String userId;
         public final String message;
 
-        // Constructor and properties...
+        @JsonCreator
+        public SendMessage(
+                @JsonProperty("userId") String userId, @JsonProperty("message") String message) {
+            this.userId = userId;
+            this.message = message;
+        }
+    }
+
+    @Override
+    public EntityTypeKey<Command> typeKey() {
+        return TYPE_KEY;
     }
 
     @Override
@@ -63,194 +86,295 @@ public class ChatRoomActor implements ShardedActor<ChatRoomActor.Command> {
                 });
     }
 
+    /**
+     * Creates the behavior for a chat room with the given room ID and connected users.
+     *
+     * @param roomId The ID of the chat room
+     * @param connectedUsers Map of user IDs to their actor references
+     *
+     * @return The behavior for the chat room
+     */
     private Behavior<Command> chatRoom(
-            String roomId, Map<String, ActorRef<UserActor.Command>> connectedUsers) {
+            String roomId,
+            Map<String, ActorRef<UserActor.Command>> connectedUsers
+    ) {
         return Behaviors.receive(Command.class)
-                .onMessage(JoinRoom.class, msg -> {
-                    // Add the user to the connected users
-                    connectedUsers.put(msg.userId, msg.userRef);
+                        .onMessage(
+                                JoinRoom.class,
+                                msg -> {
+                                    // Add the user to the connected users
+                                    connectedUsers.put(msg.userId, msg.userRef);
 
-                    // Notify all users that a new user has joined
-                    UserActor.JoinRoom joinRoomCmd = new UserActor.JoinRoom(msg.userId, roomId);
-                    broadcastCommand(connectedUsers, joinRoomCmd);
+                                    // Notify all users that a new user has joined
+                                    UserActor.JoinRoomEvent joinRoomEvent = new UserActor.JoinRoomEvent(
+                                            msg.userId);
+                                    broadcastCommand(connectedUsers, joinRoomEvent);
 
-                    return chatRoom(roomId, connectedUsers);
-                })
-                .onMessage(LeaveRoom.class, msg -> {
-                    // Remove the user from connected users
-                    ActorRef<UserActor.Command> userRef = connectedUsers.remove(msg.userId);
+                                    return chatRoom(roomId, connectedUsers);
+                                })
+                        .onMessage(
+                                LeaveRoom.class,
+                                msg -> {
+                                    // Remove the user from connected users
+                                    ActorRef<UserActor.Command> userRef = connectedUsers.remove(msg.userId);
 
-                    if (userRef != null) {
-                        // Notify the user that they left the room
-                        UserActor.LeaveRoom leaveRoomCmd = new UserActor.LeaveRoom(msg.userId, roomId);
-                        userRef.tell(leaveRoomCmd);
+                                    if (userRef != null) {
+                                        // Notify the user that they left the room
+                                        UserActor.LeaveRoomEvent leaveRoomEvent = new UserActor.LeaveRoomEvent(
+                                                msg.userId);
+                                        userRef.tell(leaveRoomEvent);
 
-                        // Notify all remaining users that a user has left
-                        broadcastCommand(connectedUsers, leaveRoomCmd);
-                    }
+                                        // Notify all remaining users that a user has left
+                                        broadcastCommand(connectedUsers, leaveRoomEvent);
+                                    }
 
-                    return chatRoom(roomId, connectedUsers);
-                })
-                .onMessage(SendMessage.class, msg -> {
-                    // Create a message received command
-                    UserActor.ReceiveMessage receiveMessageCmd = 
-                            new UserActor.ReceiveMessage(msg.userId, msg.message, roomId);
+                                    return chatRoom(roomId, connectedUsers);
+                                })
+                        .onMessage(
+                                SendMessage.class,
+                                msg -> {
+                                    // Create a message received command
+                                    UserActor.SendMessageEvent receiveMessageCmd =
+                                            new UserActor.SendMessageEvent(msg.userId, msg.message);
 
-                    // Broadcast the message to all connected users
-                    broadcastCommand(connectedUsers, receiveMessageCmd);
+                                    // Broadcast the message to all connected users
+                                    broadcastCommand(connectedUsers, receiveMessageCmd);
 
-                    return Behaviors.same();
-                })
-                .build();
+                                    return Behaviors.same();
+                                })
+                        .build();
     }
 
-    private void broadcastCommand(Map<String, ActorRef<UserActor.Command>> connectedUsers, UserActor.Command command) {
+    /**
+     * Broadcasts a command to all connected users.
+     *
+     * @param connectedUsers Map of user IDs to their actor references
+     * @param command The command to broadcast
+     */
+    private void broadcastCommand(Map<String, ActorRef<UserActor.Command>> connectedUsers,
+                                  UserActor.Command command) {
         connectedUsers.values().forEach(userRef -> userRef.tell(command));
     }
 
-    // Other ShardedActor implementation methods...
+    @Override
+    public ShardingMessageExtractor<ShardEnvelope<Command>, Command> extractor() {
+        return new DefaultShardingMessageExtractor<>(3);
+    }
 }
 ```
 
 ### UserActor
 
-`UserActor` represents a connected user and handles sending messages to the user's WebSocket connection. It's implemented as a SpringActor that receives commands from ChatRoomActor:
+`UserActor` represents a connected user and handles sending messages to the user's WebSocket connection. It's implemented as a SpringActor that interacts with ChatRoomActor:
 
 ```java
 @Component
 public class UserActor implements SpringActor {
 
-    private final ObjectMapper objectMapper;
-
-    @Autowired
-    public UserActor(ObjectMapper objectMapper) {
-        this.objectMapper = objectMapper;
-    }
-
-    /** Base interface for all commands that can be sent to the user actor. */
     public interface Command extends JsonSerializable {}
 
-    /** Command sent when a user joins a room. */
+    public static class Connect implements Command {
+    }
+
     public static class JoinRoom implements Command {
-        public final String userId;
-        public final String roomId;
+        private final String roomId;
 
-        // Constructor and properties...
+        public JoinRoom(String roomId) {this.roomId = roomId;}
     }
 
-    /** Command sent when a user leaves a room. */
     public static class LeaveRoom implements Command {
-        public final String userId;
-        public final String roomId;
-
-        // Constructor and properties...
+        public LeaveRoom() {}
     }
 
-    /** Command sent when a message is sent to a room. */
     public static class SendMessage implements Command {
-        public final String userId;
-        public final String message;
-        public final String roomId;
+        private final String message;
 
-        // Constructor and properties...
+        public SendMessage(String message) {this.message = message;}
     }
 
-    /** Command sent when a message is received from a room. */
-    public static class ReceiveMessage implements Command {
-        public final String userId;
-        public final String message;
-        public final String roomId;
+    public static class JoinRoomEvent implements Command {
+        private final String userId;
 
-        // Constructor and properties...
+        public JoinRoomEvent(String userId) {this.userId = userId;}
+    }
+
+    public static class LeaveRoomEvent implements Command {
+        private final String userId;
+
+        public LeaveRoomEvent(String userId) {this.userId = userId;}
+    }
+
+    public static class SendMessageEvent implements Command {
+        private final String userId;
+        private final String message;
+
+        public SendMessageEvent(String userId, String message) {
+            this.userId = userId;
+            this.message = message;
+        }
     }
 
     @Override
     public Class<?> commandClass() {
-        return Command.class;
+        return UserActor.Command.class;
+    }
+
+    public static class UserActorContext implements SpringActorContext {
+        private final SpringActorSystem actorSystem;
+        private final ObjectMapper objectMapper;
+        private final WebSocketSession session;
+
+        private final String userId;
+
+        public UserActorContext(SpringActorSystem actorSystem, ObjectMapper objectMapper, String userId,
+                              WebSocketSession session) {
+            this.actorSystem = actorSystem;
+            this.objectMapper = objectMapper;
+            this.userId = userId;
+            this.session = session;
+        }
+
+        @Override
+        public String actorId() {
+            return userId;
+        }
     }
 
     @Override
-    public Behavior<Command> create(io.github.seonwkim.core.SpringActorContext actorContext) {
-        if (!(actorContext instanceof UserActorContext)) {
-            throw new IllegalArgumentException("Expected UserActorContext but got " + actorContext.getClass().getName());
+    public Behavior<Command> create(SpringActorContext actorContext) {
+        if (!(actorContext instanceof UserActorContext userActorContext)) {
+            throw new IllegalStateException("Must be UserActorContext");
         }
-
-        UserActorContext userActorContext = (UserActorContext) actorContext;
-        final String id = userActorContext.actorId();
-        final WebSocketSession session = userActorContext.getSession();
 
         return Behaviors.setup(
-                context -> {
-                    context.getLog().info("Creating user actor with ID: {}", id);
-
-                    if (session == null) {
-                        context.getLog().error("Session not found for user ID: {}", id);
-                        return Behaviors.empty();
-                    }
-
-                    return new UserActorBehavior(context, session, objectMapper).create();
-                });
+                context -> new UserActorBehavior(
+                        context,
+                        userActorContext.actorSystem,
+                        userActorContext.objectMapper,
+                        userActorContext.userId,
+                        userActorContext.session
+                ).create()
+        );
     }
 
-    // Inner class to isolate stateful behavior logic
-    private static class UserActorBehavior {
-        private final ActorContext<Command> context;
-        private final WebSocketSession session;
+    public static class UserActorBehavior {
+        private final ActorContext<UserActor.Command> context;
+        private final SpringActorSystem actorSystem;
         private final ObjectMapper objectMapper;
 
-        UserActorBehavior(
-                ActorContext<Command> context,
-                WebSocketSession session,
-                ObjectMapper objectMapper) {
+        private final String userId;
+        private final WebSocketSession session;
+
+        @Nullable
+        private String currentRoomId;
+
+        public UserActorBehavior(ActorContext<Command> context, SpringActorSystem actorSystem,
+                               ObjectMapper objectMapper, String userId, WebSocketSession session) {
             this.context = context;
-            this.session = session;
+            this.actorSystem = actorSystem;
             this.objectMapper = objectMapper;
+            this.userId = userId;
+            this.session = session;
         }
 
-        public Behavior<Command> create() {
+        public Behavior<UserActor.Command> create() {
             return Behaviors.receive(Command.class)
-                    .onMessage(JoinRoom.class, this::onJoinRoom)
-                    .onMessage(LeaveRoom.class, this::onLeaveRoom)
-                    .onMessage(SendMessage.class, this::onSendMessage)
-                    .onMessage(ReceiveMessage.class, this::onReceiveMessage)
-                    .build();
+                            .onMessage(Connect.class, this::onConnect)
+                            .onMessage(JoinRoom.class, this::onJoinRoom)
+                            .onMessage(LeaveRoom.class, this::onLeaveRoom)
+                            .onMessage(SendMessage.class, this::onSendMessage)
+                            .onMessage(JoinRoomEvent.class, this::onJoinRoomEvent)
+                            .onMessage(LeaveRoomEvent.class, this::onLeaveRoomEvent)
+                            .onMessage(SendMessageEvent.class, this::onSendMessageEvent)
+                            .build();
+        }
+
+        private Behavior<Command> onConnect(Connect connect) {
+            sendEvent(
+                    "connected",
+                    builder -> {
+                        builder.put("userId", userId);
+                    });
+
+            return Behaviors.same();
         }
 
         private Behavior<Command> onJoinRoom(JoinRoom command) {
+            currentRoomId = command.roomId;
+            final var roomActor = getRoomActor();
             sendEvent(
-                    "user_joined",
+                    "joined",
                     builder -> {
-                        builder.put("userId", command.userId);
-                        builder.put("roomId", command.roomId);
+                        builder.put("roomId", currentRoomId);
                     });
+
+            roomActor.tell(new ChatRoomActor.JoinRoom(userId, context.getSelf()));
             return Behaviors.same();
         }
 
         private Behavior<Command> onLeaveRoom(LeaveRoom command) {
+            if (currentRoomId == null) {
+                context.getLog().info("{} user has not joined any room.", userId);
+                return Behaviors.same();
+            }
+
             sendEvent(
-                    "user_left",
+                    "left",
                     builder -> {
-                        builder.put("userId", command.userId);
-                        builder.put("roomId", command.roomId);
+                        builder.put("roomId", currentRoomId);
                     });
+
+            final var roomActor = getRoomActor();
+            roomActor.tell(new ChatRoomActor.LeaveRoom(userId));
+
             return Behaviors.same();
         }
 
         private Behavior<Command> onSendMessage(SendMessage command) {
-            // This is a command from the user to send a message to the room
-            // We don't need to send anything to the WebSocket here
+            if (currentRoomId == null) {
+                context.getLog().info("{} user has not joined any room.", userId);
+                return Behaviors.same();
+            }
+
+            final var roomActor = getRoomActor();
+            roomActor.tell(new ChatRoomActor.SendMessage(userId, command.message));
+
             return Behaviors.same();
         }
 
-        private Behavior<Command> onReceiveMessage(ReceiveMessage command) {
+        private Behavior<Command> onJoinRoomEvent(JoinRoomEvent event) {
+            sendEvent(
+                    "user_joined",
+                    builder -> {
+                        builder.put("userId", event.userId);
+                        builder.put("roomId", currentRoomId);
+                    });
+            return Behaviors.same();
+        }
+
+        private Behavior<Command> onLeaveRoomEvent(LeaveRoomEvent event) {
+            sendEvent(
+                    "user_left",
+                    builder -> {
+                        builder.put("userId", event.userId);
+                        builder.put("roomId", currentRoomId);
+                    });
+            return Behaviors.same();
+        }
+
+        private Behavior<Command> onSendMessageEvent(SendMessageEvent event) {
             sendEvent(
                     "message",
                     builder -> {
-                        builder.put("userId", command.userId);
-                        builder.put("message", command.message);
-                        builder.put("roomId", command.roomId);
+                        builder.put("userId", event.userId);
+                        builder.put("message", event.message);
+                        builder.put("roomId", currentRoomId);
                     });
             return Behaviors.same();
+        }
+
+        private SpringShardedActorRef<ChatRoomActor.Command> getRoomActor() {
+            return actorSystem.entityRef(ChatRoomActor.TYPE_KEY, currentRoomId);
         }
 
         private void sendEvent(String type, EventBuilder builder) {
@@ -266,151 +390,11 @@ public class UserActor implements SpringActor {
                 context.getLog().error("Failed to send message to WebSocket", e);
             }
         }
-    }
 
-    @FunctionalInterface
-    private interface EventBuilder {
-        void build(ObjectNode node);
-    }
-}
-```
-
-### UserActorContext
-
-`UserActorContext` is a custom implementation of `SpringActorContext` that holds both the actor ID and the WebSocket session. This allows the UserActor to directly access the WebSocket session without using static fields:
-
-```java
-public class UserActorContext implements SpringActorContext {
-
-    private final String id;
-    private final WebSocketSession session;
-
-    /**
-     * Creates a new UserActorContext with the given ID and WebSocket session.
-     *
-     * @param id The ID of the actor
-     * @param session The WebSocket session
-     */
-    public UserActorContext(String id, WebSocketSession session) {
-        this.id = id;
-        this.session = session;
-    }
-
-    @Override
-    public String actorId() {
-        return id;
-    }
-
-    /**
-     * Gets the WebSocket session associated with this actor.
-     *
-     * @return The WebSocket session
-     */
-    public WebSocketSession getSession() {
-        return session;
-    }
-}
-```
-
-### ChatService
-
-`ChatService` manages the interaction between WebSocket connections and chat room actors:
-
-```java
-@Service
-public class ChatService {
-    private final SpringActorSystem actorSystem;
-    private final ConcurrentMap<String, WebSocketSession> sessions = new ConcurrentHashMap<>();
-    private final ConcurrentMap<String, String> userRooms = new ConcurrentHashMap<>();
-
-    public ChatService(SpringActorSystem actorSystem) {
-        this.actorSystem = actorSystem;
-    }
-
-    /**
-     * Registers a WebSocket session for a user.
-     *
-     * @param userId The ID of the user
-     * @param session The WebSocket session
-     */
-    public void registerSession(String userId, WebSocketSession session) {
-        sessions.put(userId, session);
-    }
-
-    /**
-     * Removes a WebSocket session for a user.
-     *
-     * @param userId The ID of the user
-     */
-    public void removeSession(String userId) {
-        sessions.remove(userId);
-        String roomId = userRooms.remove(userId);
-        if (roomId != null) {
-            leaveRoom(userId, roomId);
+        @FunctionalInterface
+        private interface EventBuilder {
+            void build(ObjectNode node);
         }
-    }
-
-    /**
-     * Joins a chat room.
-     *
-     * @param userId The ID of the user
-     * @param roomId The ID of the room
-     * @param userRef The actor reference for the user
-     */
-    public void joinRoom(String userId, String roomId, ActorRef<UserActor.Command> userRef) {
-        SpringShardedActorRef<ChatRoomActor.Command> roomRef =
-                actorSystem.entityRef(ChatRoomActor.TYPE_KEY, roomId);
-
-        roomRef.tell(new ChatRoomActor.JoinRoom(userId, userRef));
-        userRooms.put(userId, roomId);
-    }
-
-    /**
-     * Leaves a chat room.
-     *
-     * @param userId The ID of the user
-     * @param roomId The ID of the room
-     */
-    public void leaveRoom(String userId, String roomId) {
-        SpringShardedActorRef<ChatRoomActor.Command> roomRef =
-                actorSystem.entityRef(ChatRoomActor.TYPE_KEY, roomId);
-
-        roomRef.tell(new ChatRoomActor.LeaveRoom(userId));
-        userRooms.remove(userId);
-    }
-
-    /**
-     * Sends a message to a chat room.
-     *
-     * @param userId The ID of the user
-     * @param roomId The ID of the room
-     * @param message The message to send
-     */
-    public void sendMessage(String userId, String roomId, String message) {
-        SpringShardedActorRef<ChatRoomActor.Command> roomRef =
-                actorSystem.entityRef(ChatRoomActor.TYPE_KEY, roomId);
-
-        roomRef.tell(new ChatRoomActor.SendMessage(userId, message));
-    }
-
-    /**
-     * Gets the WebSocket session for a user.
-     *
-     * @param userId The ID of the user
-     * @return The WebSocket session, or null if not found
-     */
-    public WebSocketSession getSession(String userId) {
-        return sessions.get(userId);
-    }
-
-    /**
-     * Gets the room ID for a user.
-     *
-     * @param userId The ID of the user
-     * @return The room ID, or null if the user is not in a room
-     */
-    public String getUserRoom(String userId) {
-        return userRooms.get(userId);
     }
 }
 ```
@@ -422,35 +406,30 @@ public class ChatService {
 ```java
 @Component
 public class ChatWebSocketHandler extends TextWebSocketHandler {
+
     private final ObjectMapper objectMapper;
-    private final ChatService chatService;
     private final SpringActorSystem actorSystem;
+    private final ConcurrentMap<String, SpringActorRef<UserActor.Command>> userActors =
+            new ConcurrentHashMap<>();
 
     public ChatWebSocketHandler(
-            ObjectMapper objectMapper, ChatService chatService, SpringActorSystem actorSystem) {
+            ObjectMapper objectMapper, SpringActorSystem actorSystem) {
         this.objectMapper = objectMapper;
-        this.chatService = chatService;
         this.actorSystem = actorSystem;
     }
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) {
-        // Generate a unique user ID for this session
         String userId = UUID.randomUUID().toString();
         session.getAttributes().put("userId", userId);
+        UserActor.UserActorContext userActorContext =
+                new UserActor.UserActorContext(actorSystem, objectMapper, userId, session);
 
-        // Register the session with the chat service
-        chatService.registerSession(userId, session);
-
-        // Send a welcome message with the user ID
-        try {
-            ObjectNode response = objectMapper.createObjectNode();
-            response.put("type", "connected");
-            response.put("userId", userId);
-            session.sendMessage(new TextMessage(objectMapper.writeValueAsString(response)));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        actorSystem.spawn(UserActor.Command.class, userActorContext)
+                   .thenAccept(userActor -> {
+                       userActors.put(userId, userActor);
+                       userActor.tell(new Connect());
+                   });
     }
 
     @Override
@@ -461,13 +440,13 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
 
         switch (type) {
             case "join":
-                handleJoinRoom(session, userId, payload);
+                handleJoinRoom(userId, payload);
                 break;
             case "leave":
-                handleLeaveRoom(session, userId);
+                handleLeaveRoom(userId);
                 break;
             case "message":
-                handleChatMessage(session, userId, payload);
+                handleChatMessage(userId, payload);
                 break;
             default:
                 sendErrorMessage(session, "Unknown message type: " + type);
@@ -476,77 +455,43 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
-        String userId = (String) session.getAttributes().get("userId");
-        if (userId != null) {
-            chatService.removeSession(userId);
+        final String userId = (String) session.getAttributes().get("userId");
+        final var userActor = getUserActor(userId);
+        if (userId != null && userActor != null) {
+            actorSystem.stop(UserActor.Command.class, userId);
+            userActors.remove(userId);
         }
     }
 
-    private void handleJoinRoom(WebSocketSession session, String userId, JsonNode payload) {
+    private void handleJoinRoom(String userId, JsonNode payload) {
         String roomId = payload.get("roomId").asText();
-
-        try {
-            // Create a UserActorContext with the session
-            UserActorContext userActorContext = new UserActorContext("user-" + userId, session);
-
-            // Use SpringActorSystem's spawn method to create the actor with the context
-            CompletionStage<SpringActorRef<UserActor.Command>> actorRefFuture =
-                    actorSystem.spawn(UserActor.Command.class, userActorContext);
-
-            actorRefFuture
-                    .thenAccept(
-                            actorRef -> {
-                                // Join the room
-                                chatService.joinRoom(userId, roomId, actorRef.getRef());
-
-                                // Send confirmation
-                                try {
-                                    ObjectNode response = objectMapper.createObjectNode();
-                                    response.put("type", "joined");
-                                    response.put("roomId", roomId);
-                                    session.sendMessage(new TextMessage(objectMapper.writeValueAsString(response)));
-                                } catch (IOException e) {
-                                    e.printStackTrace();
-                                    sendErrorMessage(session, "Failed to send join confirmation: " + e.getMessage());
-                                }
-                            })
-                    .exceptionally(
-                            ex -> {
-                                ex.printStackTrace();
-                                sendErrorMessage(session, "Failed to create actor: " + ex.getMessage());
-                                return null;
-                            });
-        } catch (Exception e) {
-            e.printStackTrace();
-            sendErrorMessage(session, "Failed to join room: " + e.getMessage());
+        final var userActor = getUserActor(userId);
+        if (roomId != null && userActor != null) {
+            userActor.tell(new JoinRoom(roomId));
         }
     }
 
-    private void handleLeaveRoom(WebSocketSession session, String userId) {
-        String roomId = chatService.getUserRoom(userId);
-        if (roomId != null) {
-            chatService.leaveRoom(userId, roomId);
-
-            // Send confirmation
-            try {
-                ObjectNode response = objectMapper.createObjectNode();
-                response.put("type", "left");
-                response.put("roomId", roomId);
-                session.sendMessage(new TextMessage(objectMapper.writeValueAsString(response)));
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+    private void handleLeaveRoom(String userId) {
+        final var userActor = getUserActor(userId);
+        if (userActor != null) {
+            userActor.tell(new LeaveRoom());
         }
     }
 
-    private void handleChatMessage(WebSocketSession session, String userId, JsonNode payload) {
-        String roomId = chatService.getUserRoom(userId);
-        if (roomId != null) {
-            String messageText = payload.get("message").asText();
-            chatService.sendMessage(userId, roomId, messageText);
-        } else {
-            sendErrorMessage(session, "You are not in a room");
+    private void handleChatMessage(String userId, JsonNode payload) {
+        final var userActor = getUserActor(userId);
+        String messageText = payload.get("message").asText();
+        if (userActor != null && messageText != null) {
+            userActor.tell(new SendMessage(messageText));
         }
+    }
+
+    private SpringActorRef<UserActor.Command> getUserActor(String userId) {
+        if (userId == null) {
+            return null;
+        }
+
+        return userActors.get(userId);
     }
 
     private void sendErrorMessage(WebSocketSession session, String errorMessage) {
@@ -578,4 +523,3 @@ This architecture eliminates the need for third-party middleware by leveraging:
 
 - The actor model provides an effective way to handle real-time communication
 - WebSockets combined with actors create an efficient messaging system
-- The resulting architecture is simpler and easier to maintain

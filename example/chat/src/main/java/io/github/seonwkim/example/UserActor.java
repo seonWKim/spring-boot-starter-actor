@@ -70,14 +70,14 @@ public class UserActor implements SpringActor {
         return UserActor.Command.class;
     }
 
-    public static class UserActorV2Context implements SpringActorContext {
+    public static class UserActorContext implements SpringActorContext {
         private final SpringActorSystem actorSystem;
         private final ObjectMapper objectMapper;
         private final WebSocketSession session;
 
         private final String userId;
 
-        public UserActorV2Context(SpringActorSystem actorSystem, ObjectMapper objectMapper, String userId,
+        public UserActorContext(SpringActorSystem actorSystem, ObjectMapper objectMapper, String userId,
                                   WebSocketSession session) {
             this.actorSystem = actorSystem;
             this.objectMapper = objectMapper;
@@ -93,12 +93,12 @@ public class UserActor implements SpringActor {
 
     @Override
     public Behavior<Command> create(SpringActorContext actorContext) {
-        if (!(actorContext instanceof UserActorV2Context userActorContext)) {
-            throw new IllegalStateException("Must be UserActorV2Context");
+        if (!(actorContext instanceof UserActorContext userActorContext)) {
+            throw new IllegalStateException("Must be UserActorContext");
         }
 
         return Behaviors.setup(
-                context -> new UserActorV2Behavior(
+                context -> new UserActorBehavior(
                         context,
                         userActorContext.actorSystem,
                         userActorContext.objectMapper,
@@ -108,7 +108,7 @@ public class UserActor implements SpringActor {
         );
     }
 
-    public static class UserActorV2Behavior {
+    public static class UserActorBehavior {
         private final ActorContext<UserActor.Command> context;
         private final SpringActorSystem actorSystem;
         private final ObjectMapper objectMapper;
@@ -119,7 +119,7 @@ public class UserActor implements SpringActor {
         @Nullable
         private String currentRoomId;
 
-        public UserActorV2Behavior(ActorContext<Command> context, SpringActorSystem actorSystem,
+        public UserActorBehavior(ActorContext<Command> context, SpringActorSystem actorSystem,
                                    ObjectMapper objectMapper, String userId, WebSocketSession session) {
             this.context = context;
             this.actorSystem = actorSystem;
