@@ -169,7 +169,7 @@ public class ChatRoomActor implements ShardedActor<ChatRoomActor.Command> {
 
 ```java
 @Component
-public class UserActor implements SpringActor {
+public class UserActor implements SpringActor<UserActor.Command> {
 
     public interface Command extends JsonSerializable {}
 
@@ -215,7 +215,7 @@ public class UserActor implements SpringActor {
     }
 
     @Override
-    public Class<?> commandClass() {
+    public Class<Command> commandClass() {
         return UserActor.Command.class;
     }
 

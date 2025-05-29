@@ -22,7 +22,7 @@ import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.springframework.stereotype.Component;
 
 @Component
-public class HelloActor implements SpringActor {
+public class HelloActor implements SpringActor<HelloActor.Command> {
 
     // Define the command interface for messages this actor can handle
     public interface Command {}
@@ -41,7 +41,7 @@ public class HelloActor implements SpringActor {
 
     // Specify the command class this actor can handle
     @Override
-    public Class<?> commandClass() {
+    public Class<Command> commandClass() {
         return Command.class;
     }
 
