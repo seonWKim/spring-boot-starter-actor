@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
  * greeting message that includes its actor ID.
  */
 @Component
-public class HelloActor implements SpringActor {
+public class HelloActor implements SpringActor<HelloActor.Command> {
 
 	/** Base interface for all commands that can be sent to the hello actor. */
 	public interface Command {}
@@ -34,7 +34,7 @@ public class HelloActor implements SpringActor {
 	 * @return The command class
 	 */
 	@Override
-	public Class<?> commandClass() {
+	public Class<Command> commandClass() {
 		return Command.class;
 	}
 

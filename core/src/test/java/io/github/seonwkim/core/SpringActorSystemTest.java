@@ -22,9 +22,9 @@ import org.springframework.test.context.TestPropertySource;
 class SpringActorSystemTest {
 
     @Component
-    static class TestHelloActor implements SpringActor {
+    static class TestHelloActor implements SpringActor<TestHelloActor.Command> {
         @Override
-        public Class<?> commandClass() {
+        public Class<Command> commandClass() {
             return Command.class;
         }
 
@@ -54,9 +54,9 @@ class SpringActorSystemTest {
     }
 
     @Component
-    static class CustomActorContextActor implements SpringActor {
+    static class CustomActorContextActor implements SpringActor<CustomActorContextActor.Command> {
         @Override
-        public Class<?> commandClass() {
+        public Class<Command> commandClass() {
             return Command.class;
         }
 
