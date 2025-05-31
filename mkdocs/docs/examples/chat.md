@@ -509,6 +509,64 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
 }
 ```
 
+## Running the Application
+
+### Local Cluster Setup
+
+You can run multiple instances of the application locally using the provided `cluster-start.sh` script:
+
+```bash
+./cluster-start.sh chat io.github.seonwkim.example.SpringPekkoApplication 8080 2551 3
+```
+
+This will start 3 instances of the application with the following configuration:
+- Instance 1: HTTP port 8080, Pekko port 2551
+- Instance 2: HTTP port 8081, Pekko port 2552
+- Instance 3: HTTP port 8082, Pekko port 2553
+
+To stop the cluster:
+```bash
+./cluster-stop.sh
+```
+
+### Docker Deployment
+
+You can also deploy the chat application as a clusterized app using Docker:
+
+```bash
+# Navigate to the chat example directory
+cd example/chat
+
+# Run the init-local-docker.sh script to build and deploy the application
+sh init-local-docker.sh
+```
+
+This script will:
+
+1. Build the chat application JAR file
+2. Build a Docker image for the application
+3. Deploy a 3-node Pekko cluster using Docker Compose
+4. Each node will be accessible at:
+   - Node 1: http://localhost:8080
+   - Node 2: http://localhost:8081
+   - Node 3: http://localhost:8082
+
+#### Viewing Logs
+
+To view logs for a specific node:
+```bash
+docker-compose logs -f chat-app-0
+```
+
+#### Stopping the Deployment
+
+To stop the Docker deployment:
+```bash
+docker-compose down
+```
+
+The Docker deployment uses the same application code but configures it to run in a containerized environment, making it easier to deploy and scale in production scenarios.
+
 ## Architecture Benefits
 
 This architecture eliminates the need for third-party middleware by leveraging:
