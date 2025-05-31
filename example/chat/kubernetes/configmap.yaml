@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: chat-app-config
+data:
+  pekko.port: "2551"
+  server.port: "8080"
+  seed.nodes: "pekko://spring-pekko-example@chat-app-headless:2551"
+  # Using the headless service for Pekko cluster discovery
+  # This allows pods to find each other regardless of their IP addresses

@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: chat-app
+  labels:
+    app: chat-app
+spec:
+  selector:
+    app: chat-app
+  ports:
+  - port: 8080
+    targetPort: 8080
+    name: http
+  - port: 2551
+    targetPort: 2551
+    name: pekko
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: chat-app-external
+  labels:
+    app: chat-app
+spec:
+  selector:
+    app: chat-app
+  ports:
+  - port: 80
+    targetPort: 8080
+    name: http
+  type: LoadBalancer

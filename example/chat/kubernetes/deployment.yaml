@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chat-app
+  labels:
+    app: chat-app
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: chat-app
+  template:
+    metadata:
+      labels:
+        app: chat-app
+    spec:
+      containers:
+      - name: chat-app
+        image: chat-app:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 2551
+          name: pekko
+        env:
+        - name: PEKKO_HOSTNAME
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: PEKKO_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: chat-app-config
+              key: pekko.port
+        - name: SERVER_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: chat-app-config
+              key: server.port
+        - name: SEED_NODES
+          valueFrom:
+            configMapKeyRef:
+              name: chat-app-config
+              key: seed.nodes
+        resources:
+          limits:
+            cpu: "1"
+            memory: "1Gi"
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+        readinessProbe:
+          httpGet:
+            path: /actuator/health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /actuator/health
+            port: http
+          initialDelaySeconds: 60
+          periodSeconds: 10
