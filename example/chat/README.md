@@ -70,9 +70,5 @@ This will start 3 instances of the application with the following configuration:
 Build and run the application using Docker:
 
 ```bash
-# Build the Docker image from the project root
-docker build -t chat-app:latest -f example/chat/Dockerfile .
-
-# Run a container
-docker run -p 8080:8080 -p 2551:2551 chat-app:latest
+sh init-local-docker.sh
 ```

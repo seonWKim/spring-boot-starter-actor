@@ -1,0 +1,38 @@
+services:
+  chat-app-0:
+    image: chat-app:latest
+    container_name: chat-app-0
+    ports:
+      - "8080:8080"
+    environment:
+      PEKKO_HOSTNAME: chat-app-0
+      PEKKO_PORT: 2551
+      SERVER_PORT: 8080
+      SEED_NODES: pekko://spring-pekko-example@chat-app-0:2551,pekko://spring-pekko-example@chat-app-1:2552,pekko://spring-pekko-example@chat-app-2:2553
+
+  chat-app-1:
+    image: chat-app:latest
+    container_name: chat-app-1
+    ports:
+      - "8081:8080"
+    environment:
+      PEKKO_HOSTNAME: chat-app-1
+      PEKKO_PORT: 2552
+      SERVER_PORT: 8080
+      SEED_NODES: pekko://spring-pekko-example@chat-app-0:2551,pekko://spring-pekko-example@chat-app-1:2552,pekko://spring-pekko-example@chat-app-2:2553
+
+  chat-app-2:
+    image: chat-app:latest
+    container_name: chat-app-2
+    ports:
+      - "8082:8080"
+    environment:
+      PEKKO_HOSTNAME: chat-app-2
+      PEKKO_PORT: 2553
+      SERVER_PORT: 8080
+      SEED_NODES: pekko://spring-pekko-example@chat-app-0:2551,pekko://spring-pekko-example@chat-app-1:2552,pekko://spring-pekko-example@chat-app-2:2553
+
+
+networks:
+  default:
+    name: pekko-net
