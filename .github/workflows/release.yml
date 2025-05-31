@@ -1,4 +1,4 @@
-name: Release Maven Central
+name: Create tag and Publish
 
 on:
   workflow_dispatch:
