@@ -12,7 +12,6 @@ import org.springframework.boot.context.properties.source.ConfigurationPropertyN
 import org.springframework.context.EnvironmentAware;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.Environment;
-import org.springframework.stereotype.Component;
 
 /**
  * Configuration properties for Pekko actor system. This class binds properties with the prefix
