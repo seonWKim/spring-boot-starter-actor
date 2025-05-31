@@ -7,30 +7,37 @@ WORKDIR /app
 # Copy the application jar file
 COPY build/libs/*.jar app.jar
 
-# Create environment variables for the configurable properties with default values
-ENV PEKKO_HOSTNAME=127.0.0.1 \
-    PEKKO_PORT=2551 \
-    SEED_NODES="pekko://spring-pekko-example@127.0.0.1:2551,pekko://spring-pekko-example@127.0.0.1:2552,pekko://spring-pekko-example@127.0.0.1:2553" \
-    SERVER_PORT=8080 \
-    # JVM options optimized for containers
-    JAVA_OPTS="-XX:+UseContainerSupport \
-               -XX:+UseG1GC \
-               -XX:+UseStringDeduplication \
-               -XX:MaxRAMPercentage=75 \
-               -XX:+HeapDumpOnOutOfMemoryError \
-               --add-opens java.base/java.lang=ALL-UNNAMED \
-               --add-opens java.base/java.io=ALL-UNNAMED \
-               --add-opens java.base/java.util=ALL-UNNAMED \
-               --add-opens java.base/java.util.concurrent=ALL-UNNAMED"
+# Copy the entrypoint script
+COPY <<'EOF' /app/entrypoint.sh
+#!/bin/sh
 
-# Create an entrypoint script to handle the configuration
-RUN echo '#!/bin/sh \n\
+# Fail fast if any required environment variables are missing or empty
+: "${PEKKO_HOSTNAME:?PEKKO_HOSTNAME is not set}"
+: "${PEKKO_PORT:?PEKKO_PORT is not set}"
+: "${SEED_NODES:?SEED_NODES is not set}"
+: "${SERVER_PORT:?SERVER_PORT is not set}"
+
+# Optional: JVM tuning defaults
+: "${JAVA_OPTS:=-XX:+UseContainerSupport -XX:+UseG1GC -XX:+UseStringDeduplication -XX:MaxRAMPercentage=75 -XX:+HeapDumpOnOutOfMemoryError \
+  --add-opens java.base/java.lang=ALL-UNNAMED \
+  --add-opens java.base/java.io=ALL-UNNAMED \
+  --add-opens java.base/java.util=ALL-UNNAMED \
+  --add-opens java.base/java.util.concurrent=ALL-UNNAMED}"
+
+echo "Starting app with:"
+echo "  PEKKO_HOSTNAME=${PEKKO_HOSTNAME}"
+echo "  PEKKO_PORT=${PEKKO_PORT}"
+echo "  SEED_NODES=${SEED_NODES}"
+echo "  SERVER_PORT=${SERVER_PORT}"
+
 exec java $JAVA_OPTS -jar app.jar \
---spring.actor.pekko.remote.artery.canonical.hostname=${PEKKO_HOSTNAME} \
---spring.actor.pekko.remote.artery.canonical.port=${PEKKO_PORT} \
---spring.actor.pekko.cluster.seed-nodes=${SEED_NODES} \
---server.port=${SERVER_PORT}' > /app/entrypoint.sh && \
-chmod +x /app/entrypoint.sh
+  --spring.actor.pekko.remote.artery.canonical.hostname=${PEKKO_HOSTNAME} \
+  --spring.actor.pekko.remote.artery.canonical.port=${PEKKO_PORT} \
+  --spring.actor.pekko.cluster.seed-nodes=${SEED_NODES} \
+  --server.port=${SERVER_PORT}
+EOF
+
+RUN chmod +x /app/entrypoint.sh
 
 # Set non-root user for security
 RUN addgroup --system --gid 1001 appuser && \
