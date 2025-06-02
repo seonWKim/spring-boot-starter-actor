@@ -4,6 +4,8 @@ import java.time.Duration;
 
 import org.apache.pekko.actor.typed.MailboxSelector;
 
+import io.github.seonwkim.core.impl.DefaultSpringActorContext;
+
 public class SpringActorSpawnContext<T> {
     private final Class<T> commandClass;
     private final SpringActorContext actorContext;
@@ -56,6 +58,11 @@ public class SpringActorSpawnContext<T> {
             return this;
         }
 
+        public Builder<T> actorId(String actorId) {
+            this.actorContext = new DefaultSpringActorContext(actorId);
+            return this;
+        }
+
         public Builder<T> actorContext(SpringActorContext actorContext) {
             this.actorContext = actorContext;
             return this;
@@ -77,6 +84,9 @@ public class SpringActorSpawnContext<T> {
         }
 
         public SpringActorSpawnContext<T> build() {
+            if (commandClass == null || actorContext == null) {
+                throw new IllegalArgumentException("commandClass and actorContext must be set");
+            }
             return new SpringActorSpawnContext<>(
                     commandClass,
                     actorContext,

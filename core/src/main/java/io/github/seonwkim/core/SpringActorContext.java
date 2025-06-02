@@ -14,10 +14,6 @@ package io.github.seonwkim.core;
  * 
  * <p>This context is used when spawning and stopping actors through the
  * {@code SpringActorSystem}, and is passed to actor factory methods during creation.</p>
- * 
- * @see io.github.seonwkim.core.impl.DefaultSpringActorContext
- * @see io.github.seonwkim.core.SpringActorSystem#spawn(Class, SpringActorContext)
- * @see io.github.seonwkim.core.SpringActorSystem#stop(Class, SpringActorContext)
  */
 public interface SpringActorContext {
 
