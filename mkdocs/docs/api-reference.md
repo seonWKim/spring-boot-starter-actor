@@ -77,6 +77,14 @@ public class SpringActorSystem {
     public <T> CompletionStage<SpringActorRef<T>> spawn(SpringActorSpawnContext<T> spawnContext);
 
     /**
+     * Asynchronously stops a previously spawned actor with the given stop context.
+     *
+     * @param stopContext The context containing all parameters needed to stop the actor
+     * @return A CompletionStage that completes when the stop command has been processed
+     */
+    public <T> CompletionStage<StopResult> stop(SpringActorStopContext<T> stopContext);
+
+    /**
      * Gets a reference to a sharded actor entity.
      *
      * @param typeKey The entity type key
