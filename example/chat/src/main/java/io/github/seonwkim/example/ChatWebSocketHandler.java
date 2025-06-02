@@ -16,6 +16,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.github.seonwkim.core.SpringActorRef;
+import io.github.seonwkim.core.SpringActorSpawnContext;
+import io.github.seonwkim.core.SpringActorStopContext;
 import io.github.seonwkim.core.SpringActorSystem;
 import io.github.seonwkim.example.UserActor.Connect;
 import io.github.seonwkim.example.UserActor.JoinRoom;
@@ -47,7 +49,12 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         UserActor.UserActorContext userActorContext =
                 new UserActor.UserActorContext(actorSystem, objectMapper, userId, session);
 
-        actorSystem.spawn(UserActor.Command.class, userActorContext)
+        final SpringActorSpawnContext<UserActor.Command> spawnContext =
+                new SpringActorSpawnContext.Builder<UserActor.Command>()
+                        .commandClass(UserActor.Command.class)
+                        .actorContext(userActorContext)
+                        .build();
+        actorSystem.spawn(spawnContext)
                    .thenAccept(userActor -> {
                        userActors.put(userId, userActor);
                        userActor.tell(new Connect());
@@ -80,7 +87,12 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         final String userId = (String) session.getAttributes().get("userId");
         final var userActor = getUserActor(userId);
         if (userId != null && userActor != null) {
-            actorSystem.stop(UserActor.Command.class, userId);
+            final SpringActorStopContext<UserActor.Command> stopContext =
+                    new SpringActorStopContext.Builder<UserActor.Command>()
+                            .commandClass(UserActor.Command.class)
+                            .actorId(userId)
+                            .build();
+            actorSystem.stop(stopContext);
             userActors.remove(userId);
         }
     }

@@ -69,15 +69,20 @@ spawning actors and getting references to sharded actors.
 ```java
 public class SpringActorSystem {
     /**
-     * Spawns an actor with the given command class and name.
+     * Spawns an actor with the given spawn context.
      *
-     * @param commandClass The class of commands the actor can handle
-     * @param name The name of the actor
-     * @param timeout The timeout for the spawn operation
+     * @param spawnContext The context containing all parameters needed to spawn the actor
      * @return A CompletionStage that resolves to a reference to the spawned actor
      */
-    public <T> CompletionStage<SpringActorRef<T>> spawn(
-            Class<T> commandClass, String name, Duration timeout);
+    public <T> CompletionStage<SpringActorRef<T>> spawn(SpringActorSpawnContext<T> spawnContext);
+
+    /**
+     * Asynchronously stops a previously spawned actor with the given stop context.
+     *
+     * @param stopContext The context containing all parameters needed to stop the actor
+     * @return A CompletionStage that completes when the stop command has been processed
+     */
+    public <T> CompletionStage<StopResult> stop(SpringActorStopContext<T> stopContext);
 
     /**
      * Gets a reference to a sharded actor entity.

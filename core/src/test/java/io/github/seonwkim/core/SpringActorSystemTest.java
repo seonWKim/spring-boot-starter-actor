@@ -117,21 +117,32 @@ class SpringActorSystemTest {
             SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
 
             final String actorId = "test-actor";
-            final SpringActorRef<TestHelloActor.Command> actorRef =
-                    actorSystem.spawn(TestHelloActor.Command.class, actorId).toCompletableFuture().join();
+            final SpringActorSpawnContext<TestHelloActor.Command> spawnContext =
+                    new SpringActorSpawnContext.Builder<TestHelloActor.Command>()
+                            .commandClass(TestHelloActor.Command.class)
+                            .actorId(actorId)
+                            .build();
+            final SpringActorRef<TestHelloActor.Command> actorRef = actorSystem.spawn(spawnContext).toCompletableFuture().join();
             assertThat(actorRef).isNotNull();
 
             assertEquals(actorRef.ask(SayHello::new).toCompletableFuture().join(), "hello world!!");
+            final SpringActorStopContext<TestHelloActor.Command> stopContext =
+                    new SpringActorStopContext.Builder<TestHelloActor.Command>()
+                            .commandClass(TestHelloActor.Command.class)
+                            .actorId(actorId)
+                            .build();
             assertEquals(
                     actorSystem
-                            .stop(TestHelloActor.Command.class, actorId)
+                            .stop(stopContext)
                             .toCompletableFuture()
                             .join()
                             .getClass(),
                     Stopped.class);
+
+            // Try to stop the same actor again, should return ActorNotFound
             assertEquals(
                     actorSystem
-                            .stop(TestHelloActor.Command.class, actorId)
+                            .stop(stopContext)
                             .toCompletableFuture()
                             .join()
                             .getClass(),
@@ -146,8 +157,13 @@ class SpringActorSystemTest {
 
             final String actorId = "test-actor";
             final SpringActorContext actorContext = new CustomActorContext(actorId);
+            final SpringActorSpawnContext<CustomActorContextActor.Command> spawnContext =
+                    new SpringActorSpawnContext.Builder<CustomActorContextActor.Command>()
+                            .commandClass(CustomActorContextActor.Command.class)
+                            .actorContext(actorContext)
+                            .build();
             final SpringActorRef<CustomActorContextActor.Command> actorRef =
-                    actorSystem.spawn(CustomActorContextActor.Command.class, actorContext).toCompletableFuture().join();
+                    actorSystem.spawn(spawnContext).toCompletableFuture().join();
             assertThat(actorRef).isNotNull();
             assertEquals(actorRef.ask(CustomActorContextActor.SayHello::new).toCompletableFuture().join(), actorContext.actorId());
         }

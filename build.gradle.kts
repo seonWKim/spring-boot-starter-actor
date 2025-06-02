@@ -83,15 +83,15 @@ subprojects {
     }
 }
 
-spotless {
-    java {
-        target("**/*.java")
-        targetExclude(layout.buildDirectory.dir("**/*.java").get().asFile)
-        removeUnusedImports()
-        googleJavaFormat("1.7") // or use eclipse().configFile("path/to/eclipse-format.xml")
-        indentWithTabs(2)
-    }
-}
+//spotless {
+//    java {
+//        target("**/*.java")
+//        targetExclude(layout.buildDirectory.dir("**/*.java").get().asFile)
+//        removeUnusedImports()
+//        googleJavaFormat("1.7") // or use eclipse().configFile("path/to/eclipse-format.xml")
+//        indentWithTabs(2)
+//    }
+//}
 
 val runCoreTest = tasks.register<Exec>("runCoreTest") {
     commandLine("./gradlew", ":core:test")

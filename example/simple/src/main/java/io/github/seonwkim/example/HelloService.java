@@ -1,6 +1,7 @@
 package io.github.seonwkim.example;
 
 import io.github.seonwkim.core.SpringActorRef;
+import io.github.seonwkim.core.SpringActorSpawnContext;
 import io.github.seonwkim.core.SpringActorSystem;
 import io.github.seonwkim.example.HelloActor.Command;
 import java.time.Duration;
@@ -26,11 +27,13 @@ public class HelloService {
 		// Spawn a single actor with the name "default"
 		// Note: In a production environment, consider using a non-blocking approach
 		// instead of join() which blocks the current thread
-		this.helloActor =
-				springActorSystem
-						.spawn(HelloActor.Command.class, "default", Duration.ofSeconds(3))
-						.toCompletableFuture()
-						.join();
+		final SpringActorSpawnContext<HelloActor.Command> spawnContext =
+				new SpringActorSpawnContext.Builder<HelloActor.Command>()
+						.commandClass(HelloActor.Command.class)
+						.actorId("default")
+						.duration(Duration.ofSeconds(3))
+						.build();
+		this.helloActor = springActorSystem.spawn(spawnContext).toCompletableFuture().join();
 	}
 
 	/**

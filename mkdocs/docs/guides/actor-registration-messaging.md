@@ -88,6 +88,7 @@ Once you've registered your actor, you can spawn instances of it using the `Spri
 
 ```java
 import io.github.seonwkim.core.SpringActorRef;
+import io.github.seonwkim.core.SpringActorSpawnContext;
 import io.github.seonwkim.core.SpringActorSystem;
 
 import org.springframework.stereotype.Service;
@@ -102,9 +103,17 @@ public class HelloService {
     private final SpringActorRef<HelloActor.Command> helloActor;
 
     public HelloService(SpringActorSystem springActorSystem) {
-        // Spawn an actor with the name "default"
+        // Create a spawn context for the actor
+        final SpringActorSpawnContext<HelloActor.Command> spawnContext =
+                new SpringActorSpawnContext.Builder<HelloActor.Command>()
+                        .commandClass(HelloActor.Command.class)
+                        .actorId("default")
+                        .duration(Duration.ofSeconds(3))
+                        .build();
+
+        // Spawn an actor with the context
         this.helloActor = springActorSystem
-                .spawn(HelloActor.Command.class, "default", Duration.ofSeconds(3))
+                .spawn(spawnContext)
                 .toCompletableFuture()
                 .join();
     }
