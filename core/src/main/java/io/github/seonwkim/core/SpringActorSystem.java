@@ -89,6 +89,22 @@ public class SpringActorSystem implements DisposableBean {
 		return cluster;
 	}
 
+
+	public <T> CompletionStage<SpringActorRef<T>> spawn(SpringActorSpawnContext<T> spawnContext) {
+		return AskPattern.ask(
+				actorSystem,
+				(ActorRef<DefaultRootGuardian.Spawned<T>> replyTo) ->
+						new DefaultRootGuardian.SpawnActor<>(
+								spawnContext.getCommandClass(),
+								spawnContext.getActorContext(),
+								replyTo,
+								spawnContext.getMailboxSelector(),
+								false),
+				DEFAULT_TIMEOUT,
+				actorSystem.scheduler())
+						 .thenApply(spawned -> new SpringActorRef<>(actorSystem.scheduler(), spawned.ref));
+	}
+
 	/**
 	 * Spawns a new actor with the given command class and actor ID, using the default timeout. This
 	 * method asks the root guardian to create a new actor and returns a CompletionStage that will be
