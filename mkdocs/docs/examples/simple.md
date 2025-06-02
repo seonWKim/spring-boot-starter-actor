@@ -85,9 +85,17 @@ public class HelloService {
     private final SpringActorRef<Command> helloActor;
 
     public HelloService(SpringActorSystem springActorSystem) {
-        // Spawn a single actor with the name "default"
+        // Create a spawn context for the actor
+        final SpringActorSpawnContext<HelloActor.Command> spawnContext =
+                new SpringActorSpawnContext.Builder<HelloActor.Command>()
+                        .commandClass(HelloActor.Command.class)
+                        .actorId("default")
+                        .duration(Duration.ofSeconds(3))
+                        .build();
+
+        // Spawn a single actor with the context
         this.helloActor = springActorSystem
-                .spawn(HelloActor.Command.class, "default", Duration.ofSeconds(3))
+                .spawn(spawnContext)
                 .toCompletableFuture()
                 .join();
     }
