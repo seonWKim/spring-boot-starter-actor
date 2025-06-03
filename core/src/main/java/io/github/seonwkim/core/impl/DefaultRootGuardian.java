@@ -13,7 +13,7 @@ import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 
 /**
- * Default implementation of the RootGuardian interface. This class manages the lifecycle of actors
+ * Default implementation of the {@code RootGuardian} interface. This class manages the lifecycle of actors
  * and maintains references to them. It handles commands for spawning actors and returns references
  * to them.
  */
@@ -110,6 +110,6 @@ public class DefaultRootGuardian implements RootGuardian {
 	}
 
 	private String buildActorKey(Class<?> actorClass, SpringActorContext actorContext) {
-		return actorClass.getName() + "-" + actorContext.actorId();
+		return actorClass.getName() + ":" + actorContext.actorId();
 	}
 }

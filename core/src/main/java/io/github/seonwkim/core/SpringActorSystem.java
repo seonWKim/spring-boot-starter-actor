@@ -46,8 +46,6 @@ public class SpringActorSystem implements DisposableBean {
     @Nullable
     private final ClusterSharding clusterSharding;
 
-    private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(3); // configurable if needed
-
     /**
      * Creates a new SpringActorSystem in local mode.
      *

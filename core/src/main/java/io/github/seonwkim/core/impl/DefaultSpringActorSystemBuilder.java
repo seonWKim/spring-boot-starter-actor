@@ -33,7 +33,8 @@ public class DefaultSpringActorSystemBuilder implements SpringActorSystemBuilder
 	/** The configuration map */
 	private Map<String, Object> configMap = Collections.emptyMap();
 	/** The Spring application event publisher */
-	@Nullable private ApplicationEventPublisher applicationEventPublisher;
+	@Nullable
+	private ApplicationEventPublisher applicationEventPublisher;
 	/** The sharded actor registry */
 	private ShardedActorRegistry shardedActorRegistry = ShardedActorRegistry.INSTANCE;
 	/** The default actor system name */
