@@ -120,7 +120,6 @@ class SpringActorSystemTest {
             final SpringActorSpawnContext<TestHelloActor, TestHelloActor.Command> spawnContext =
                     new SpringActorSpawnContext.Builder<TestHelloActor, TestHelloActor.Command>()
                             .actorClass(TestHelloActor.class)
-                            .commandClass(TestHelloActor.Command.class)
                             .actorId(actorId)
                             .build();
             final SpringActorRef<TestHelloActor.Command> actorRef = actorSystem.spawn(spawnContext).toCompletableFuture().join();
@@ -161,7 +160,6 @@ class SpringActorSystemTest {
             final SpringActorSpawnContext<CustomActorContextActor, CustomActorContextActor.Command> spawnContext =
                     new SpringActorSpawnContext.Builder<CustomActorContextActor, CustomActorContextActor.Command>()
                             .actorClass(CustomActorContextActor.class)
-                            .commandClass(CustomActorContextActor.Command.class)
                             .actorContext(actorContext)
                             .build();
             final SpringActorRef<CustomActorContextActor.Command> actorRef =

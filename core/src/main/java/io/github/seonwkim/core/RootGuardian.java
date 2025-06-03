@@ -29,8 +29,6 @@ public interface RootGuardian {
 	 */
 	class SpawnActor<A extends SpringActor<A, C>, C> implements Command {
 		public final Class<A> actorClass;
-		/** The class of commands that the actor can handle */
-		public final Class<C> commandClass;
 		/** The context of the actor */
 		public final SpringActorContext actorContext;
 		/** The actor reference to reply to with the spawned actor reference */
@@ -43,7 +41,6 @@ public interface RootGuardian {
 		/**
 		 * Creates a new SpawnActor command.
 		 *
-		 * @param commandClass The class of commands that the actor can handle
 		 * @param actorContext The ID of the actor
 		 * @param replyTo The actor reference to reply to with the spawned actor reference
 		 * @param mailboxSelector The mailboxSelector
@@ -51,13 +48,11 @@ public interface RootGuardian {
 		 */
 		public SpawnActor(
                 Class<A> actorClass,
-				Class<C> commandClass,
                 SpringActorContext actorContext,
                 ActorRef<Spawned<C>> replyTo,
                 MailboxSelector mailboxSelector,
                 Boolean isClusterSingleton) {
             this.actorClass = actorClass;
-            this.commandClass = commandClass;
 			this.actorContext = actorContext;
 			this.replyTo = replyTo;
 			this.mailboxSelector = mailboxSelector;

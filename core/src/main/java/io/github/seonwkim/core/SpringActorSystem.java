@@ -94,7 +94,6 @@ public class SpringActorSystem implements DisposableBean {
 				(ActorRef<DefaultRootGuardian.Spawned<T>> replyTo) ->
 						new DefaultRootGuardian.SpawnActor<>(
 								spawnContext.getActorClass(),
-								spawnContext.getCommandClass(),
 								spawnContext.getActorContext(),
 								replyTo,
 								spawnContext.getMailboxSelector(),

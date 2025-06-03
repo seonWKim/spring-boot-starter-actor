@@ -52,7 +52,6 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         final SpringActorSpawnContext<UserActor, UserActor.Command> spawnContext =
                 new SpringActorSpawnContext.Builder<UserActor, UserActor.Command>()
                         .actorClass(UserActor.class)
-                        .commandClass(UserActor.Command.class)
                         .actorContext(userActorContext)
                         .build();
         actorSystem.spawn(spawnContext)

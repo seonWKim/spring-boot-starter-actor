@@ -8,7 +8,6 @@ import io.github.seonwkim.core.impl.DefaultSpringActorContext;
 
 public class SpringActorSpawnContext<A extends SpringActor<A, C>, C> {
     private final Class<A> actorClass;
-    private final Class<C> commandClass;
     private final SpringActorContext actorContext;
     private final Duration duration;
     private final MailboxSelector mailboxSelector;
@@ -16,13 +15,11 @@ public class SpringActorSpawnContext<A extends SpringActor<A, C>, C> {
 
     public SpringActorSpawnContext(
             Class<A> actorClass,
-            Class<C> commandClass,
             SpringActorContext actorContext,
             Duration duration,
             MailboxSelector mailboxSelector,
             boolean isClusterSingleton) {
         this.actorClass = actorClass;
-        this.commandClass = commandClass;
         this.actorContext = actorContext;
         this.duration = duration;
         this.mailboxSelector = mailboxSelector;
@@ -31,10 +28,6 @@ public class SpringActorSpawnContext<A extends SpringActor<A, C>, C> {
 
     public Class<A> getActorClass() {
         return actorClass;
-    }
-
-    public Class<C> getCommandClass() {
-        return commandClass;
     }
 
     public SpringActorContext getActorContext() {
@@ -55,7 +48,6 @@ public class SpringActorSpawnContext<A extends SpringActor<A, C>, C> {
 
     public static class Builder<A extends SpringActor<A, C>, C> {
         private Class<A> actorClass;
-        private Class<C> commandClass;
         private SpringActorContext actorContext;
         private Duration duration = Duration.ofSeconds(3);
         private MailboxSelector mailboxSelector = MailboxSelector.defaultMailbox();
@@ -63,11 +55,6 @@ public class SpringActorSpawnContext<A extends SpringActor<A, C>, C> {
 
         public Builder<A, C> actorClass(Class<A> actorClass) {
             this.actorClass = actorClass;
-            return this;
-        }
-
-        public Builder<A, C> commandClass(Class<C> commandClass) {
-            this.commandClass = commandClass;
             return this;
         }
 
@@ -97,12 +84,11 @@ public class SpringActorSpawnContext<A extends SpringActor<A, C>, C> {
         }
 
         public SpringActorSpawnContext<A, C> build() {
-            if (actorClass == null || commandClass == null || actorContext == null) {
+            if (actorClass == null || actorContext == null) {
                 throw new IllegalArgumentException("actorClass, commandClass and actorContext must be set");
             }
             return new SpringActorSpawnContext<>(
                     actorClass,
-                    commandClass,
                     actorContext,
                     duration,
                     mailboxSelector,
