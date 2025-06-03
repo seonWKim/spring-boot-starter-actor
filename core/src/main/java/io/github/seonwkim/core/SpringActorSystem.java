@@ -55,8 +55,10 @@ import org.springframework.lang.Nullable;
 public class SpringActorSystem implements DisposableBean {
 
     private final ActorSystem<RootGuardian.Command> actorSystem;
-    @Nullable private final Cluster cluster;
-    @Nullable private final ClusterSharding clusterSharding;
+    @Nullable
+    private final Cluster cluster;
+    @Nullable
+    private final ClusterSharding clusterSharding;
 
     private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(3); // configurable if needed
 
@@ -125,18 +127,18 @@ public class SpringActorSystem implements DisposableBean {
      */
     @SuppressWarnings("unchecked")
     public <A extends SpringActor<A, C>, C> CompletionStage<SpringActorRef<C>> spawn(
-            SpringActorSpawnContext<A, C> spawnContext) {
-        return AskPattern.ask(
-                                 actorSystem,
-                                 (ActorRef<Spawned<?>> replyTo) ->
-                                         new DefaultRootGuardian.SpawnActor(
-                                                 spawnContext.getActorClass(),
-                                                 spawnContext.getActorContext(),
-                                                 replyTo,
-                                                 spawnContext.getMailboxSelector(),
-                                                 spawnContext.isClusterSingleton()),
-                                 spawnContext.getTimeout(),
-                                 actorSystem.scheduler())
+            SpringActorSpawnContext<A, C> spawnContext
+    ) {
+        return AskPattern.ask(actorSystem,
+                              (ActorRef<Spawned<?>> replyTo) ->
+                                      new DefaultRootGuardian.SpawnActor(
+                                              spawnContext.getActorClass(),
+                                              spawnContext.getActorContext(),
+                                              replyTo,
+                                              spawnContext.getMailboxSelector(),
+                                              spawnContext.isClusterSingleton()),
+                              spawnContext.getTimeout(),
+                              actorSystem.scheduler())
                          .thenApply(spawned -> {
                              // This cast is necessary because the Spawned message contains a generic ActorRef<?>
                              // We know it's an ActorRef<C> because we spawned an actor that handles commands of type C

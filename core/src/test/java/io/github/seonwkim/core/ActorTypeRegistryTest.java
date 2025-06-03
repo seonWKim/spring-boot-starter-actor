@@ -20,11 +20,6 @@ public class ActorTypeRegistryTest {
 		public interface Command {}
 
 		@Override
-		public Class<Command> commandClass() {
-			return Command.class;
-		}
-
-		@Override
 		public Behavior<Command> create(SpringActorContext actorContext) {
 			return null;
 		}

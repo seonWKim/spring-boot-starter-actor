@@ -47,10 +47,6 @@ public class PekkoAutoConfigurationTest {
 
 	@Component
 	static class TestHelloActor implements SpringActor<TestHelloActor, TestHelloActor.Command> {
-		@Override
-		public Class<Command> commandClass() {
-			return Command.class;
-		}
 
 		public interface Command {}
 

@@ -23,10 +23,6 @@ class SpringActorSystemTest {
 
     @Component
     static class TestHelloActor implements SpringActor<TestHelloActor, TestHelloActor.Command> {
-        @Override
-        public Class<Command> commandClass() {
-            return Command.class;
-        }
 
         public interface Command {}
 
@@ -55,10 +51,6 @@ class SpringActorSystemTest {
 
     @Component
     static class CustomActorContextActor implements SpringActor<CustomActorContextActor, CustomActorContextActor.Command> {
-        @Override
-        public Class<Command> commandClass() {
-            return Command.class;
-        }
 
         public interface Command {}
 

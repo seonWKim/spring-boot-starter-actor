@@ -38,7 +38,7 @@ class ActorInstrumentationEventListenerTest {
 				() -> {
 					actorSystem
 							.spawn(
-									TestHelloActor.Command.class,
+									TestHelloActor.class,
 									"instrumented-" + UUID.randomUUID(),
 									TestHelloActor.create(),
 									Duration.ofSeconds(3))

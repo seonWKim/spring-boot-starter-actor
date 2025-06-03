@@ -29,16 +29,6 @@ public class HelloActor implements SpringActor<HelloActor, HelloActor.Command> {
 	}
 
 	/**
-	 * Returns the class of commands this actor can handle.
-	 *
-	 * @return The command class
-	 */
-	@Override
-	public Class<Command> commandClass() {
-		return Command.class;
-	}
-
-	/**
 	 * Creates the behavior for this actor when it's started.
 	 *
 	 * @param actorContext The context of the actor

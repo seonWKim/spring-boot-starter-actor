@@ -5,8 +5,11 @@ import java.util.concurrent.CompletionStage;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.ActorSystem;
 import org.apache.pekko.actor.typed.Behavior;
+import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.AskPattern;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
+
+import io.github.seonwkim.metrics.TestActorSystem.Guardian.Spawned;
 
 public class TestActorSystem {
 
@@ -16,36 +19,33 @@ public class TestActorSystem {
 		this.actorSystem = ActorSystem.create(Guardian.create(), "testGuardian");
 	}
 
-	public ActorSystem<Guardian.Command> getActorSystem() {
-		return actorSystem;
-	}
-
-	public <T> CompletionStage<ActorRef<T>> spawn(
-			Class<T> commandClass, String actorId, Behavior<T> behavior, Duration timeout) {
+	@SuppressWarnings("unchecked")
+	public <A, C> CompletionStage<ActorRef<C>> spawn(
+			Class<A> actorClass, String actorId, Behavior<C> behavior, Duration timeout) {
 		return AskPattern.ask(
 						actorSystem,
-						(ActorRef<Guardian.Spawned<T>> replyTo) ->
-								new Guardian.SpawnActor<>(commandClass, actorId, behavior, replyTo),
+						(ActorRef<Guardian.Spawned<?>> replyTo) ->
+								new Guardian.SpawnActor(actorClass, actorId, behavior, replyTo),
 						timeout,
 						actorSystem.scheduler())
-				.thenApply(spawned -> spawned.ref);
+				.thenApply(spawned -> (ActorRef<C>) spawned.ref);
 	}
 
 	public static class Guardian {
 		public interface Command {}
 
-		public static class SpawnActor<T> implements Command {
-			public final Class<T> commandClass;
+		public static class SpawnActor implements Command {
+			public final Class<?> actorClass;
 			public final String actorId;
-			public final Behavior<T> behavior;
-			public final ActorRef<Spawned<T>> replyTo;
+			public final Behavior<?> behavior;
+			public final ActorRef<Spawned<?>> replyTo;
 
 			public SpawnActor(
-					Class<T> commandClass,
+					Class<?> actorClass,
 					String actorId,
-					Behavior<T> behavior,
-					ActorRef<Spawned<T>> replyTo) {
-				this.commandClass = commandClass;
+					Behavior<?> behavior,
+					ActorRef<Spawned<?>> replyTo) {
+				this.actorClass = actorClass;
 				this.actorId = actorId;
 				this.behavior = behavior;
 				this.replyTo = replyTo;
@@ -68,9 +68,8 @@ public class TestActorSystem {
 									.build());
 		}
 
-		private static <T> Behavior<Command> handleSpawnActor(
-				org.apache.pekko.actor.typed.javadsl.ActorContext<Command> ctx, SpawnActor<T> msg) {
-			ActorRef<T> actorRef = ctx.spawn(msg.behavior, msg.actorId);
+		private static Behavior<Command> handleSpawnActor(ActorContext<Command> ctx, SpawnActor msg) {
+			ActorRef<?> actorRef = ctx.spawn(msg.behavior, msg.actorId);
 			msg.replyTo.tell(new Spawned<>(actorRef));
 			return Behaviors.same();
 		}

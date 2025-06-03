@@ -21,14 +21,6 @@ import org.apache.pekko.actor.typed.Behavior;
  */
 public interface SpringActor<A extends SpringActor<A, C>, C> {
 	/**
-	 * Returns the class of commands that this actor can handle. This is used to register the actor
-	 * with the ActorTypeRegistry.
-	 *
-	 * @return The class of commands that this actor can handle
-	 */
-	Class<C> commandClass();
-
-	/**
 	 * Creates a behavior for this actor. This method is called by the actor system when a new actor
 	 * is created.
 	 *

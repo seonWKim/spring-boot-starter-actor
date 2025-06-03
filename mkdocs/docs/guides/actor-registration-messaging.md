@@ -39,12 +39,6 @@ public class HelloActor implements SpringActor<HelloActor, HelloActor.Command> {
         }
     }
 
-    // Specify the command class this actor can handle
-    @Override
-    public Class<Command> commandClass() {
-        return Command.class;
-    }
-
     // Create the behavior for this actor
     @Override
     public Behavior<Command> create(SpringActorContext actorContext) {
@@ -107,7 +101,6 @@ public class HelloService {
         final SpringActorSpawnContext<HelloActor, HelloActor.Command> spawnContext =
                 new SpringActorSpawnContext.Builder<HelloActor, HelloActor.Command>()
                         .actorClass(HelloActor.class)
-                        .commandClass(HelloActor.Command.class)
                         .actorId("default")
                         .duration(Duration.ofSeconds(3))
                         .build();

@@ -43,11 +43,6 @@ public class HelloActor implements SpringActor<HelloActor, HelloActor.Command> {
     }
 
     @Override
-    public Class<Command> commandClass() {
-        return Command.class;
-    }
-
-    @Override
     public Behavior<Command> create(SpringActorContext actorContext) {
         return Behaviors.setup(ctx -> new HelloActorBehavior(ctx, actorContext).create());
     }
@@ -89,7 +84,6 @@ public class HelloService {
         final SpringActorSpawnContext<HelloActor, HelloActor.Command> spawnContext =
                 new SpringActorSpawnContext.Builder<HelloActor, HelloActor.Command>()
                         .actorClass(HelloActor.class)
-                        .commandClass(HelloActor.Command.class)
                         .actorId("default")
                         .duration(Duration.ofSeconds(3))
                         .build();

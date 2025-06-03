@@ -214,11 +214,6 @@ public class UserActor implements SpringActor<UserActor, UserActor.Command> {
         }
     }
 
-    @Override
-    public Class<Command> commandClass() {
-        return UserActor.Command.class;
-    }
-
     public static class UserActorContext implements SpringActorContext {
         private final SpringActorSystem actorSystem;
         private final ObjectMapper objectMapper;
@@ -428,7 +423,6 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         final SpringActorSpawnContext<UserActor, UserActor.Command> spawnContext =
                 new SpringActorSpawnContext.Builder<UserActor, UserActor.Command>()
                         .actorClass(UserActor.class)
-                        .commandClass(UserActor.Command.class)
                         .actorContext(userActorContext)
                         .build();
 
@@ -468,7 +462,6 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
             final SpringActorStopContext<UserActor, UserActor.Command> stopContext =
                     new SpringActorStopContext.Builder<UserActor, UserActor.Command>()
                             .actorClass(UserActor.class)
-                            .commandClass(UserActor.Command.class)
                             .actorId(userId)
                             .build();
             actorSystem.stop(stopContext);

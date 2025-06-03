@@ -65,11 +65,6 @@ public class UserActor implements SpringActor<UserActor, UserActor.Command> {
         }
     }
 
-    @Override
-    public Class<Command> commandClass() {
-        return UserActor.Command.class;
-    }
-
     public static class UserActorContext implements SpringActorContext {
         private final SpringActorSystem actorSystem;
         private final ObjectMapper objectMapper;
