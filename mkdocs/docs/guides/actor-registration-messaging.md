@@ -22,7 +22,7 @@ import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.springframework.stereotype.Component;
 
 @Component
-public class HelloActor implements SpringActor<HelloActor.Command> {
+public class HelloActor implements SpringActor<HelloActor, HelloActor.Command> {
 
     // Define the command interface for messages this actor can handle
     public interface Command {}
@@ -104,8 +104,9 @@ public class HelloService {
 
     public HelloService(SpringActorSystem springActorSystem) {
         // Create a spawn context for the actor
-        final SpringActorSpawnContext<HelloActor.Command> spawnContext =
-                new SpringActorSpawnContext.Builder<HelloActor.Command>()
+        final SpringActorSpawnContext<HelloActor, HelloActor.Command> spawnContext =
+                new SpringActorSpawnContext.Builder<HelloActor, HelloActor.Command>()
+                        .actorClass(HelloActor.class)
                         .commandClass(HelloActor.Command.class)
                         .actorId("default")
                         .duration(Duration.ofSeconds(3))

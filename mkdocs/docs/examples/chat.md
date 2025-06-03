@@ -169,7 +169,7 @@ public class ChatRoomActor implements ShardedActor<ChatRoomActor.Command> {
 
 ```java
 @Component
-public class UserActor implements SpringActor<UserActor.Command> {
+public class UserActor implements SpringActor<UserActor, UserActor.Command> {
 
     public interface Command extends JsonSerializable {}
 
@@ -425,8 +425,9 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         UserActor.UserActorContext userActorContext =
                 new UserActor.UserActorContext(actorSystem, objectMapper, userId, session);
 
-        final SpringActorSpawnContext<UserActor.Command> spawnContext =
-                new SpringActorSpawnContext.Builder<UserActor.Command>()
+        final SpringActorSpawnContext<UserActor, UserActor.Command> spawnContext =
+                new SpringActorSpawnContext.Builder<UserActor, UserActor.Command>()
+                        .actorClass(UserActor.class)
                         .commandClass(UserActor.Command.class)
                         .actorContext(userActorContext)
                         .build();
@@ -464,8 +465,9 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         final String userId = (String) session.getAttributes().get("userId");
         final var userActor = getUserActor(userId);
         if (userId != null && userActor != null) {
-            final SpringActorStopContext<UserActor.Command> stopContext =
-                    new SpringActorStopContext.Builder<UserActor.Command>()
+            final SpringActorStopContext<UserActor, UserActor.Command> stopContext =
+                    new SpringActorStopContext.Builder<UserActor, UserActor.Command>()
+                            .actorClass(UserActor.class)
                             .commandClass(UserActor.Command.class)
                             .actorId(userId)
                             .build();
