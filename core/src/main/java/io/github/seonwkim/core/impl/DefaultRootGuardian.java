@@ -2,6 +2,7 @@ package io.github.seonwkim.core.impl;
 
 import io.github.seonwkim.core.ActorTypeRegistry;
 import io.github.seonwkim.core.RootGuardian;
+import io.github.seonwkim.core.SpringActor;
 import io.github.seonwkim.core.SpringActorContext;
 
 import java.util.HashMap;
@@ -56,8 +57,8 @@ public class DefaultRootGuardian implements RootGuardian {
 		return Behaviors.setup(
 				ctx ->
 						Behaviors.receive(Command.class)
-								.onMessage(SpawnActor.class, msg -> handleSpawnActor(msg))
-								.onMessage(StopActor.class, msg -> handleStopActor((StopActor<?>) msg))
+								.onMessage(SpawnActor.class, this::handleSpawnActor)
+								.onMessage(StopActor.class, this::handleStopActor)
 								.build());
 	}
 
@@ -67,18 +68,16 @@ public class DefaultRootGuardian implements RootGuardian {
 	 * created and its reference is returned.
 	 *
 	 * @param msg The SpawnActor command
-	 * @param <T> The type of messages that the actor can handle
 	 * @return The same behavior, as this handler doesn't change the behavior
 	 */
-	@SuppressWarnings("unchecked")
-	public <T> Behavior<RootGuardian.Command> handleSpawnActor(SpawnActor<T> msg) {
-		String key = buildActorKey(msg.commandClass, msg.actorContext);
+	public Behavior<RootGuardian.Command> handleSpawnActor(SpawnActor msg) {
+		String key = buildActorKey(msg.actorClass, msg.actorContext);
 
-		ActorRef<T> ref;
+		ActorRef<?> ref;
 		if (actorRefs.containsKey(key)) {
-			ref = (ActorRef<T>) actorRefs.get(key);
+			ref = actorRefs.get(key);
 		} else {
-			Behavior<T> behavior = registry.createBehavior(msg.commandClass, msg.actorContext);
+			Behavior<?> behavior = registry.createBehavior(msg.actorClass, msg.actorContext);
 			ref = ctx.spawn(behavior, key, msg.mailboxSelector);
 			actorRefs.put(key, ref);
 		}
@@ -93,14 +92,12 @@ public class DefaultRootGuardian implements RootGuardian {
 	 * reply-to actor. Otherwise, an ActorNotFound message is sent.
 	 *
 	 * @param msg The StopActor command
-	 * @param <T> The type of messages that the actor can handle
 	 * @return The same behavior, as this handler doesn't change the behavior
 	 */
-	@SuppressWarnings("unchecked")
-	public <T> Behavior<RootGuardian.Command> handleStopActor(StopActor<T> msg) {
-		String key = buildActorKey(msg.commandClass, msg.actorContext);
+	public Behavior<RootGuardian.Command> handleStopActor(StopActor msg) {
+		String key = buildActorKey(msg.actorClass, msg.actorContext);
 
-		final ActorRef<T> actorRef = (ActorRef<T>) actorRefs.get(key);
+		final ActorRef<?> actorRef = actorRefs.get(key);
 		if (actorRef != null) {
 			actorRefs.remove(key);
 			ctx.stop(actorRef);
@@ -112,14 +109,7 @@ public class DefaultRootGuardian implements RootGuardian {
 		return Behaviors.same();
 	}
 
-	/**
-	 * Builds a unique key for an actor based on its command class and ID.
-	 *
-	 * @param clazz The command class of the actor
-	 * @param actorContext The context of the actor
-	 * @return A unique key for the actor
-	 */
-	private String buildActorKey(Class<?> clazz, SpringActorContext actorContext) {
-		return clazz.getName() + "-" + actorContext.actorId();
+	private String buildActorKey(Class<?> actorClass, SpringActorContext actorContext) {
+		return actorClass.getName() + "-" + actorContext.actorId();
 	}
 }

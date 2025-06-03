@@ -27,9 +27,9 @@ public class HelloService {
 		// Spawn a single actor with the name "default"
 		// Note: In a production environment, consider using a non-blocking approach
 		// instead of join() which blocks the current thread
-		final SpringActorSpawnContext<HelloActor.Command> spawnContext =
-				new SpringActorSpawnContext.Builder<HelloActor.Command>()
-						.commandClass(HelloActor.Command.class)
+		final SpringActorSpawnContext<HelloActor, HelloActor.Command> spawnContext =
+				new SpringActorSpawnContext.Builder<HelloActor, HelloActor.Command>()
+						.actorClass(HelloActor.class)
 						.actorId("default")
 						.duration(Duration.ofSeconds(3))
 						.build();

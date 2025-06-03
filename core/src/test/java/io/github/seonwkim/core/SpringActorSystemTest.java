@@ -22,7 +22,7 @@ import org.springframework.test.context.TestPropertySource;
 class SpringActorSystemTest {
 
     @Component
-    static class TestHelloActor implements SpringActor<TestHelloActor.Command> {
+    static class TestHelloActor implements SpringActor<TestHelloActor, TestHelloActor.Command> {
         @Override
         public Class<Command> commandClass() {
             return Command.class;
@@ -54,7 +54,7 @@ class SpringActorSystemTest {
     }
 
     @Component
-    static class CustomActorContextActor implements SpringActor<CustomActorContextActor.Command> {
+    static class CustomActorContextActor implements SpringActor<CustomActorContextActor, CustomActorContextActor.Command> {
         @Override
         public Class<Command> commandClass() {
             return Command.class;
@@ -117,18 +117,18 @@ class SpringActorSystemTest {
             SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
 
             final String actorId = "test-actor";
-            final SpringActorSpawnContext<TestHelloActor.Command> spawnContext =
-                    new SpringActorSpawnContext.Builder<TestHelloActor.Command>()
-                            .commandClass(TestHelloActor.Command.class)
+            final SpringActorSpawnContext<TestHelloActor, TestHelloActor.Command> spawnContext =
+                    new SpringActorSpawnContext.Builder<TestHelloActor, TestHelloActor.Command>()
+                            .actorClass(TestHelloActor.class)
                             .actorId(actorId)
                             .build();
             final SpringActorRef<TestHelloActor.Command> actorRef = actorSystem.spawn(spawnContext).toCompletableFuture().join();
             assertThat(actorRef).isNotNull();
 
             assertEquals(actorRef.ask(SayHello::new).toCompletableFuture().join(), "hello world!!");
-            final SpringActorStopContext<TestHelloActor.Command> stopContext =
-                    new SpringActorStopContext.Builder<TestHelloActor.Command>()
-                            .commandClass(TestHelloActor.Command.class)
+            final SpringActorStopContext<TestHelloActor, TestHelloActor.Command> stopContext =
+                    new SpringActorStopContext.Builder<TestHelloActor, TestHelloActor.Command>()
+                            .actorClass(TestHelloActor.class)
                             .actorId(actorId)
                             .build();
             assertEquals(
@@ -157,9 +157,9 @@ class SpringActorSystemTest {
 
             final String actorId = "test-actor";
             final SpringActorContext actorContext = new CustomActorContext(actorId);
-            final SpringActorSpawnContext<CustomActorContextActor.Command> spawnContext =
-                    new SpringActorSpawnContext.Builder<CustomActorContextActor.Command>()
-                            .commandClass(CustomActorContextActor.Command.class)
+            final SpringActorSpawnContext<CustomActorContextActor, CustomActorContextActor.Command> spawnContext =
+                    new SpringActorSpawnContext.Builder<CustomActorContextActor, CustomActorContextActor.Command>()
+                            .actorClass(CustomActorContextActor.class)
                             .actorContext(actorContext)
                             .build();
             final SpringActorRef<CustomActorContextActor.Command> actorRef =

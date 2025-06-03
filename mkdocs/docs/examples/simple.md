@@ -30,7 +30,7 @@ You can find the complete source code for this example on GitHub:
 
 ```java
 @Component
-public class HelloActor implements SpringActor<HelloActor.Command> {
+public class HelloActor implements SpringActor<HelloActor, HelloActor.Command> {
     // Command interface and message types
     public interface Command {}
 
@@ -86,8 +86,9 @@ public class HelloService {
 
     public HelloService(SpringActorSystem springActorSystem) {
         // Create a spawn context for the actor
-        final SpringActorSpawnContext<HelloActor.Command> spawnContext =
-                new SpringActorSpawnContext.Builder<HelloActor.Command>()
+        final SpringActorSpawnContext<HelloActor, HelloActor.Command> spawnContext =
+                new SpringActorSpawnContext.Builder<HelloActor, HelloActor.Command>()
+                        .actorClass(HelloActor.class)
                         .commandClass(HelloActor.Command.class)
                         .actorId("default")
                         .duration(Duration.ofSeconds(3))

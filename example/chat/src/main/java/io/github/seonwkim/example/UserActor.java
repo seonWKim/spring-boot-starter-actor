@@ -20,7 +20,7 @@ import io.github.seonwkim.core.SpringShardedActorRef;
 import io.github.seonwkim.core.serialization.JsonSerializable;
 
 @Component
-public class UserActor implements SpringActor<UserActor.Command> {
+public class UserActor implements SpringActor<UserActor, UserActor.Command> {
 
     public interface Command extends JsonSerializable {}
 

@@ -46,7 +46,7 @@ public class PekkoAutoConfigurationTest {
 	}
 
 	@Component
-	static class TestHelloActor implements SpringActor<TestHelloActor.Command> {
+	static class TestHelloActor implements SpringActor<TestHelloActor, TestHelloActor.Command> {
 		@Override
 		public Class<Command> commandClass() {
 			return Command.class;
@@ -82,7 +82,7 @@ public class PekkoAutoConfigurationTest {
 
 			// Should be able to create the behavior by command class
 			Behavior<TestHelloActor.Command> behavior =
-					registry.createBehavior(TestHelloActor.Command.class, new DefaultSpringActorContext("test-id"));
+					(Behavior<TestHelloActor.Command>) registry.createBehavior(TestHelloActor.class, new DefaultSpringActorContext("test-id"));
 
 			assertNotNull(behavior, "Behavior for TestHelloActor should be registered and non-null");
 		}

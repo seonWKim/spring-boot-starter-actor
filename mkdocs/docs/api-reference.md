@@ -10,50 +10,54 @@ The `SpringActor` interface is the base interface for all actors in Spring Boot 
 contract for creating actors that can be managed by Spring.
 
 ```java
-public interface SpringActor {
+public interface SpringActor<A extends SpringActor<A, C>, C> {
     /**
-     * Returns the class of commands this actor can handle.
+     * Returns the class of commands that this actor can handle. This is used to register the actor
+     * with the ActorTypeRegistry.
      *
-     * @return The command class
+     * @return The class of commands that this actor can handle
      */
-    Class<?> commandClass();
+    Class<C> commandClass();
 
     /**
-     * Creates the behavior for this actor when it's started.
+     * Creates a behavior for this actor. This method is called by the actor system when a new actor
+     * is created.
      *
-     * @param id The ID of the actor
-     * @return The behavior for the actor
+     * @param actorContext The context of the actor
+     * @return A behavior for the actor
      */
-    Behavior<?> create(String id);
+    Behavior<C> create(SpringActorContext actorContext);
 }
 ```
 
 ### ShardedActor
 
-The `ShardedActor` interface extends `SpringActor` and adds support for sharding in a clustered environment.
+The `ShardedActor` interface provides support for sharding actors across a cluster.
 
 ```java
 public interface ShardedActor<T> {
     /**
-     * Returns the entity type key for this actor.
+     * Returns the entity type key for this actor type. The entity type key is used to identify the
+     * actor type in the cluster.
      *
-     * @return The entity type key
+     * @return The entity type key for this actor type
      */
     EntityTypeKey<T> typeKey();
 
     /**
-     * Creates the behavior for this actor when it's started.
+     * Creates a behavior for the actor given an entity context. This method is called when a new
+     * instance of the actor is created.
      *
-     * @param ctx The entity context containing information about this entity
-     * @return The behavior for the actor
+     * @param ctx The entity context for the actor
+     * @return A behavior for the actor
      */
     Behavior<T> create(EntityContext<T> ctx);
 
     /**
-     * Provides a message extractor for sharding. This determines how messages are routed to the
-     * correct entity.
+     * Returns a message extractor for this actor type. The message extractor is used to extract
+     * entity IDs and shard IDs from messages.
      *
-     * @return The sharding message extractor
+     * @return A message extractor for this actor type
      */
     ShardingMessageExtractor<ShardEnvelope<T>, T> extractor();
 }
@@ -74,7 +78,7 @@ public class SpringActorSystem {
      * @param spawnContext The context containing all parameters needed to spawn the actor
      * @return A CompletionStage that resolves to a reference to the spawned actor
      */
-    public <T> CompletionStage<SpringActorRef<T>> spawn(SpringActorSpawnContext<T> spawnContext);
+    public <A extends SpringActor<A, T>, T> CompletionStage<SpringActorRef<T>> spawn(SpringActorSpawnContext<A, T> spawnContext);
 
     /**
      * Asynchronously stops a previously spawned actor with the given stop context.
@@ -82,7 +86,7 @@ public class SpringActorSystem {
      * @param stopContext The context containing all parameters needed to stop the actor
      * @return A CompletionStage that completes when the stop command has been processed
      */
-    public <T> CompletionStage<StopResult> stop(SpringActorStopContext<T> stopContext);
+    public <A extends SpringActor<A, C>, C> CompletionStage<StopResult> stop(SpringActorStopContext<A, C> stopContext);
 
     /**
      * Gets a reference to a sharded actor entity.

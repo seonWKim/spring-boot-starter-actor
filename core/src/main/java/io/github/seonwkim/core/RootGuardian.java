@@ -26,16 +26,13 @@ public interface RootGuardian {
 	/**
 	 * Command to spawn a new actor. This command is sent to the root guardian to create a new actor
 	 * of the specified type with the given ID.
-	 *
-	 * @param <T> The type of messages that the actor can handle
 	 */
-	class SpawnActor<T> implements Command {
-		/** The class of commands that the actor can handle */
-		public final Class<T> commandClass;
+	class SpawnActor implements Command {
+		public final Class<?> actorClass;
 		/** The context of the actor */
 		public final SpringActorContext actorContext;
 		/** The actor reference to reply to with the spawned actor reference */
-		public final ActorRef<Spawned<T>> replyTo;
+		public final ActorRef<Spawned<?>> replyTo;
 		/** The mailbox selector to use * */
 		public final MailboxSelector mailboxSelector;
 		/** Whether the ActorRef should be cluster singleton * */
@@ -44,19 +41,18 @@ public interface RootGuardian {
 		/**
 		 * Creates a new SpawnActor command.
 		 *
-		 * @param commandClass The class of commands that the actor can handle
 		 * @param actorContext The ID of the actor
 		 * @param replyTo The actor reference to reply to with the spawned actor reference
 		 * @param mailboxSelector The mailboxSelector
 		 * @param isClusterSingleton Whether the actor should be cluster singleton
 		 */
 		public SpawnActor(
-				Class<T> commandClass,
-				SpringActorContext actorContext,
-				ActorRef<Spawned<T>> replyTo,
-				MailboxSelector mailboxSelector,
-				Boolean isClusterSingleton) {
-			this.commandClass = commandClass;
+                Class<?> actorClass,
+                SpringActorContext actorContext,
+                ActorRef<Spawned<?>> replyTo,
+                MailboxSelector mailboxSelector,
+                Boolean isClusterSingleton) {
+            this.actorClass = actorClass;
 			this.actorContext = actorContext;
 			this.replyTo = replyTo;
 			this.mailboxSelector = mailboxSelector;
@@ -66,16 +62,9 @@ public interface RootGuardian {
 
 	/**
 	 * Sends a command to stop an existing actor managed by the actor management system.
-	 *
-	 * <p>This command is typically handled by a parent or manager actor responsible for the lifecycle
-	 * of child actors. The actor identified by {@code actorId} and capable of handling {@code
-	 * commandClass} messages will be stopped gracefully if it exists.
-	 *
-	 * @param <T> The type of command that the target actor can handle
 	 */
-	class StopActor<T> implements Command {
-		/** The class of commands that the actor can handle */
-		public final Class<T> commandClass;
+	class StopActor implements Command {
+		public final Class<?> actorClass;
 		/** The context of the actor to be stopped */
 		public final SpringActorContext actorContext;
 		/** The actor reference to reply to with the stop result */
@@ -83,13 +72,11 @@ public interface RootGuardian {
 
 		/**
 		 * Creates a new StopActor command.
-		 *
-		 * @param commandClass The class of commands that the actor can handle
-		 * @param actorContext The context of the actor to be stopped
-		 * @param replyTo The actor reference to reply to with the stop result
 		 */
-		public StopActor(Class<T> commandClass, SpringActorContext actorContext, ActorRef<StopResult> replyTo) {
-			this.commandClass = commandClass;
+		public StopActor(Class<?> actorClass,
+						 SpringActorContext actorContext,
+						 ActorRef<StopResult> replyTo) {
+            this.actorClass = actorClass;
 			this.actorContext = actorContext;
 			this.replyTo = replyTo;
 		}

@@ -7,6 +7,7 @@ import org.apache.pekko.actor.typed.RecipientRef;
 import org.apache.pekko.actor.typed.Scheduler;
 import org.apache.pekko.actor.typed.javadsl.AskPattern;
 import org.apache.pekko.japi.function.Function;
+import org.springframework.beans.factory.annotation.Value;
 
 /**
  * A wrapper around Pekko's ActorRef that provides methods for asking and telling messages to an
@@ -18,7 +19,12 @@ public class SpringActorRef<T> {
 
 	private final Scheduler scheduler;
 	private final ActorRef<T> actorRef;
-	private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(3);
+	private final Duration defaultTimeout;
+
+	/**
+	 * Default value for the default timeout in seconds.
+	 */
+	public static final int DEFAULT_TIMEOUT_SECONDS = 3;
 
 	/**
 	 * Creates a new SpringActorRef with the given scheduler and actor reference.
@@ -27,8 +33,20 @@ public class SpringActorRef<T> {
 	 * @param actorRef The actor reference to wrap
 	 */
 	public SpringActorRef(Scheduler scheduler, ActorRef<T> actorRef) {
+		this(scheduler, actorRef, Duration.ofSeconds(DEFAULT_TIMEOUT_SECONDS));
+	}
+
+	/**
+	 * Creates a new SpringActorRef with the given scheduler, actor reference, and default timeout.
+	 *
+	 * @param scheduler The scheduler to use for asking messages
+	 * @param actorRef The actor reference to wrap
+	 * @param defaultTimeout The default timeout for ask operations
+	 */
+	public SpringActorRef(Scheduler scheduler, ActorRef<T> actorRef, Duration defaultTimeout) {
 		this.scheduler = scheduler;
 		this.actorRef = actorRef;
+		this.defaultTimeout = defaultTimeout;
 	}
 
 	/**
@@ -42,7 +60,7 @@ public class SpringActorRef<T> {
 	 */
 	public <REQ extends T, RES> CompletionStage<RES> ask(
 			Function<ActorRef<RES>, REQ> messageFactory) {
-		return ask(messageFactory, DEFAULT_TIMEOUT);
+		return ask(messageFactory, defaultTimeout);
 	}
 
 	/**

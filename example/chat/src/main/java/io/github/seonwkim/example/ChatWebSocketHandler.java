@@ -49,9 +49,9 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         UserActor.UserActorContext userActorContext =
                 new UserActor.UserActorContext(actorSystem, objectMapper, userId, session);
 
-        final SpringActorSpawnContext<UserActor.Command> spawnContext =
-                new SpringActorSpawnContext.Builder<UserActor.Command>()
-                        .commandClass(UserActor.Command.class)
+        final SpringActorSpawnContext<UserActor, UserActor.Command> spawnContext =
+                new SpringActorSpawnContext.Builder<UserActor, UserActor.Command>()
+                        .actorClass(UserActor.class)
                         .actorContext(userActorContext)
                         .build();
         actorSystem.spawn(spawnContext)
@@ -87,9 +87,9 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         final String userId = (String) session.getAttributes().get("userId");
         final var userActor = getUserActor(userId);
         if (userId != null && userActor != null) {
-            final SpringActorStopContext<UserActor.Command> stopContext =
-                    new SpringActorStopContext.Builder<UserActor.Command>()
-                            .commandClass(UserActor.Command.class)
+            final SpringActorStopContext<UserActor, UserActor.Command> stopContext =
+                    new SpringActorStopContext.Builder<UserActor, UserActor.Command>()
+                            .actorClass(UserActor.class)
                             .actorId(userId)
                             .build();
             actorSystem.stop(stopContext);
