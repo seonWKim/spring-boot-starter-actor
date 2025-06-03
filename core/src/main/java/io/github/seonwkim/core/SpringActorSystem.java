@@ -37,20 +37,6 @@ import org.springframework.lang.Nullable;
  * <p>The SpringActorSystem delegates actor creation and management to the RootGuardian, which is the
  * top-level actor in the system. The RootGuardian maintains references to all actors and handles
  * commands for spawning and stopping actors.
- *
- * <p>To create an actor, use one of the spawn methods:
- * <ul>
- *   <li>{@link #spawn(SpringActorSpawnContext)}: Spawns an actor with the given context</li>
- *   <li>{@link #spawn(Class, String)}: Spawns an actor with the given class and ID</li>
- *   <li>{@link #spawn(Class, SpringActorContext)}: Spawns an actor with the given class and context</li>
- * </ul>
- *
- * <p>To stop an actor, use one of the stop methods:
- * <ul>
- *   <li>{@link #stop(SpringActorStopContext)}: Stops an actor with the given context</li>
- *   <li>{@link #stop(Class, String)}: Stops an actor with the given class and ID</li>
- *   <li>{@link #stop(Class, SpringActorContext)}: Stops an actor with the given class and context</li>
- * </ul>
  */
 public class SpringActorSystem implements DisposableBean {
 
