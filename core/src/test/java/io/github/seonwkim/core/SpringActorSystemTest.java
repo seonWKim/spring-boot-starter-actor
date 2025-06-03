@@ -130,7 +130,6 @@ class SpringActorSystemTest {
             final SpringActorStopContext<TestHelloActor, TestHelloActor.Command> stopContext =
                     new SpringActorStopContext.Builder<TestHelloActor, TestHelloActor.Command>()
                             .actorClass(TestHelloActor.class)
-                            .commandClass(TestHelloActor.Command.class)
                             .actorId(actorId)
                             .build();
             assertEquals(

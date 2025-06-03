@@ -90,7 +90,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         if (userId != null && userActor != null) {
             final SpringActorStopContext<UserActor, UserActor.Command> stopContext =
                     new SpringActorStopContext.Builder<UserActor, UserActor.Command>()
-                            .commandClass(UserActor.Command.class)
+                            .actorClass(UserActor.class)
                             .actorId(userId)
                             .build();
             actorSystem.stop(stopContext);

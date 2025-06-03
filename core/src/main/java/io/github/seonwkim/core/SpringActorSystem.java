@@ -119,9 +119,8 @@ public class SpringActorSystem implements DisposableBean {
 		return AskPattern.ask(
 				actorSystem,
 				(ActorRef<DefaultRootGuardian.StopResult> replyTo) ->
-						new DefaultRootGuardian.StopActor<>(
+						new DefaultRootGuardian.StopActor(
 								stopContext.getActorClass(),
-								stopContext.getCommandClass(),
 								stopContext.getActorContext(),
 								replyTo),
 				stopContext.getDuration(),

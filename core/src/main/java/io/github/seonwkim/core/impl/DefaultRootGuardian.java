@@ -58,7 +58,7 @@ public class DefaultRootGuardian implements RootGuardian {
 				ctx ->
 						Behaviors.receive(Command.class)
 								.onMessage(SpawnActor.class, msg -> handleSpawnActor((SpawnActor<?, ?>) msg))
-								.onMessage(StopActor.class, msg -> handleStopActor((StopActor<?, ?>) msg))
+								.onMessage(StopActor.class, this::handleStopActor)
 								.build());
 	}
 
@@ -96,11 +96,10 @@ public class DefaultRootGuardian implements RootGuardian {
 	 * @param msg The StopActor command
 	 * @return The same behavior, as this handler doesn't change the behavior
 	 */
-	@SuppressWarnings("unchecked")
-	public <A extends SpringActor<A, C>, C> Behavior<RootGuardian.Command> handleStopActor(StopActor<A, C> msg) {
+	public Behavior<RootGuardian.Command> handleStopActor(StopActor msg) {
 		String key = buildActorKey(msg.actorClass, msg.actorContext);
 
-		final ActorRef<C> actorRef = (ActorRef<C>) actorRefs.get(key);
+		final ActorRef<?> actorRef = actorRefs.get(key);
 		if (actorRef != null) {
 			actorRefs.remove(key);
 			ctx.stop(actorRef);
