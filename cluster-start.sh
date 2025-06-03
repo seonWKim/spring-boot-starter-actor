@@ -3,6 +3,9 @@
 # Usage:
 # ./cluster-start.sh <module> <mainClass> <basePort> <basePekkoPort> <instanceCount>
 
+# building metrics jar first
+./gradlew :metrics:agentJar
+
 set -e
 
 MODULE=$1
