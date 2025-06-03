@@ -27,12 +27,12 @@ public interface RootGuardian {
 	 * Command to spawn a new actor. This command is sent to the root guardian to create a new actor
 	 * of the specified type with the given ID.
 	 */
-	class SpawnActor<A extends SpringActor<A, C>, C> implements Command {
-		public final Class<A> actorClass;
+	class SpawnActor implements Command {
+		public final Class<?> actorClass;
 		/** The context of the actor */
 		public final SpringActorContext actorContext;
 		/** The actor reference to reply to with the spawned actor reference */
-		public final ActorRef<Spawned<C>> replyTo;
+		public final ActorRef<Spawned<?>> replyTo;
 		/** The mailbox selector to use * */
 		public final MailboxSelector mailboxSelector;
 		/** Whether the ActorRef should be cluster singleton * */
@@ -47,9 +47,9 @@ public interface RootGuardian {
 		 * @param isClusterSingleton Whether the actor should be cluster singleton
 		 */
 		public SpawnActor(
-                Class<A> actorClass,
+                Class<?> actorClass,
                 SpringActorContext actorContext,
-                ActorRef<Spawned<C>> replyTo,
+                ActorRef<Spawned<?>> replyTo,
                 MailboxSelector mailboxSelector,
                 Boolean isClusterSingleton) {
             this.actorClass = actorClass;

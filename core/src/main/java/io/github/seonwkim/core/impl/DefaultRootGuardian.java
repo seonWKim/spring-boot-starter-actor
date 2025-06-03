@@ -57,7 +57,7 @@ public class DefaultRootGuardian implements RootGuardian {
 		return Behaviors.setup(
 				ctx ->
 						Behaviors.receive(Command.class)
-								.onMessage(SpawnActor.class, msg -> handleSpawnActor((SpawnActor<?, ?>) msg))
+								.onMessage(SpawnActor.class, this::handleSpawnActor)
 								.onMessage(StopActor.class, this::handleStopActor)
 								.build());
 	}
@@ -72,14 +72,14 @@ public class DefaultRootGuardian implements RootGuardian {
 	 * @return The same behavior, as this handler doesn't change the behavior
 	 */
 	@SuppressWarnings("unchecked")
-	public <A extends SpringActor<A, C>, C> Behavior<RootGuardian.Command> handleSpawnActor(SpawnActor<A, C> msg) {
+	public <A extends SpringActor<A, C>, C> Behavior<RootGuardian.Command> handleSpawnActor(SpawnActor msg) {
 		String key = buildActorKey(msg.actorClass, msg.actorContext);
 
-		ActorRef<C> ref;
+		ActorRef<?> ref;
 		if (actorRefs.containsKey(key)) {
-			ref = (ActorRef<C>) actorRefs.get(key);
+			ref = actorRefs.get(key);
 		} else {
-			Behavior<C> behavior = registry.createBehavior(msg.actorClass, msg.actorContext);
+			Behavior<?> behavior = registry.createBehavior(msg.actorClass, msg.actorContext);
 			ref = ctx.spawn(behavior, key, msg.mailboxSelector);
 			actorRefs.put(key, ref);
 		}

@@ -18,13 +18,12 @@ public class ActorTypeRegistry {
 		classToFactory.put(actorclass, factory);
 	}
 
-	@SuppressWarnings("unchecked")
-	public <A extends SpringActor<A, C>, C> Behavior<C> createBehavior(Class<A> actorClass, SpringActorContext actorContext) {
+	public Behavior<?> createBehavior(Class<?> actorClass, SpringActorContext actorContext) {
 		final Function<SpringActorContext, Behavior<?>> factory = classToFactory.get(actorClass);
 		if (factory == null) {
 			throw new IllegalArgumentException("No factory registered for class: " + actorClass.getName());
 		}
 
-		return (Behavior<C>) factory.apply(actorContext);
+		return factory.apply(actorContext);
 	}
 }

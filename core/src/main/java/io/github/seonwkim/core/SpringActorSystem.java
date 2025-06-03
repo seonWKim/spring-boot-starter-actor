@@ -1,5 +1,6 @@
 package io.github.seonwkim.core;
 
+import io.github.seonwkim.core.RootGuardian.Spawned;
 import io.github.seonwkim.core.RootGuardian.StopResult;
 import io.github.seonwkim.core.behavior.ClusterEventBehavior;
 import io.github.seonwkim.core.impl.DefaultRootGuardian;
@@ -87,12 +88,12 @@ public class SpringActorSystem implements DisposableBean {
 		return cluster;
 	}
 
-
-	public <A extends SpringActor<A, T>, T> CompletionStage<SpringActorRef<T>> spawn(SpringActorSpawnContext<A, T> spawnContext) {
+	@SuppressWarnings("unchecked")
+	public <A extends SpringActor<A, C>, C> CompletionStage<SpringActorRef<C>> spawn(SpringActorSpawnContext<A, C> spawnContext) {
 		return AskPattern.ask(
 				actorSystem,
-				(ActorRef<DefaultRootGuardian.Spawned<T>> replyTo) ->
-						new DefaultRootGuardian.SpawnActor<>(
+				(ActorRef<Spawned<?>> replyTo) ->
+						new DefaultRootGuardian.SpawnActor(
 								spawnContext.getActorClass(),
 								spawnContext.getActorContext(),
 								replyTo,
@@ -100,7 +101,7 @@ public class SpringActorSystem implements DisposableBean {
 								false),
 				DEFAULT_TIMEOUT,
 				actorSystem.scheduler())
-						 .thenApply(spawned -> new SpringActorRef<>(actorSystem.scheduler(), spawned.ref));
+						 .thenApply(spawned -> new SpringActorRef<>(actorSystem.scheduler(), (ActorRef<C>) spawned.ref));
 	}
 
 	/**

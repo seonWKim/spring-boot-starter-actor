@@ -47,7 +47,7 @@ public class ActorTypeRegistryTest {
 								.build());
 
 		Behavior<DummyActor.Command> behavior =
-				registry.createBehavior(DummyActor.class, new DefaultSpringActorContext(UUID.randomUUID().toString()));
+                (Behavior<DummyActor.Command>) registry.createBehavior(DummyActor.class, new DefaultSpringActorContext(UUID.randomUUID().toString()));
 		assertNotNull(behavior);
 	}
 
@@ -61,7 +61,7 @@ public class ActorTypeRegistryTest {
 								.build());
 
 		Behavior<DummyActor.Command> behavior =
-				registry.createBehavior(DummyActor.class, new DefaultSpringActorContext("custom-id"));
+                (Behavior<DummyActor.Command>) registry.createBehavior(DummyActor.class, new DefaultSpringActorContext("custom-id"));
 
 		assertNotNull(behavior);
 		assertTrue(behavior instanceof Behavior<?>);
