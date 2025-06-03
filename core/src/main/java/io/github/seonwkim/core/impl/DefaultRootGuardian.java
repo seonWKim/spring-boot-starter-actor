@@ -2,6 +2,7 @@ package io.github.seonwkim.core.impl;
 
 import io.github.seonwkim.core.ActorTypeRegistry;
 import io.github.seonwkim.core.RootGuardian;
+import io.github.seonwkim.core.SpringActor;
 import io.github.seonwkim.core.SpringActorContext;
 
 import java.util.HashMap;
@@ -34,6 +35,7 @@ public class DefaultRootGuardian implements RootGuardian {
 	private final ActorTypeRegistry registry;
 	/** Map of actor references by key */
 	private final Map<String, ActorRef<?>> actorRefs = new HashMap<>();
+	private final Map<String, ActorRef<?>> actorRefsV2 = new HashMap<>();
 
 	/**
 	 * Creates a new DefaultRootGuardian with the given actor context and actor type registry.
@@ -67,20 +69,20 @@ public class DefaultRootGuardian implements RootGuardian {
 	 * created and its reference is returned.
 	 *
 	 * @param msg The SpawnActor command
-	 * @param <T> The type of messages that the actor can handle
+	 * @param <C> The type of messages that the actor can handle
 	 * @return The same behavior, as this handler doesn't change the behavior
 	 */
 	@SuppressWarnings("unchecked")
-	public <T> Behavior<RootGuardian.Command> handleSpawnActor(SpawnActor<T> msg) {
-		String key = buildActorKey(msg.commandClass, msg.actorContext);
+	public <A extends SpringActor<A, C>, C> Behavior<RootGuardian.Command> handleSpawnActor(SpawnActor<A, C> msg) {
+		String key = buildActorKeyV2(msg.actorClass, msg.actorContext);
 
-		ActorRef<T> ref;
-		if (actorRefs.containsKey(key)) {
-			ref = (ActorRef<T>) actorRefs.get(key);
+		ActorRef<C> ref;
+		if (actorRefsV2.containsKey(key)) {
+			ref = (ActorRef<C>) actorRefsV2.get(key);
 		} else {
-			Behavior<T> behavior = registry.createBehavior(msg.commandClass, msg.actorContext);
+			Behavior<C> behavior = registry.createBehavior(msg.actorClass, msg.actorContext);
 			ref = ctx.spawn(behavior, key, msg.mailboxSelector);
-			actorRefs.put(key, ref);
+			actorRefsV2.put(key, ref);
 		}
 
 		msg.replyTo.tell(new Spawned<>(ref));
@@ -121,5 +123,9 @@ public class DefaultRootGuardian implements RootGuardian {
 	 */
 	private String buildActorKey(Class<?> clazz, SpringActorContext actorContext) {
 		return clazz.getName() + "-" + actorContext.actorId();
+	}
+
+	private String buildActorKeyV2(Class<?> actorClass, SpringActorContext actorContext) {
+		return actorClass.getName() + "-" + actorContext.actorId();
 	}
 }

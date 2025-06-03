@@ -78,10 +78,8 @@ public class PekkoConfiguration {
         Map<String, SpringActor> actorBeans = context.getBeansOfType(SpringActor.class);
 
         for (SpringActor actorBean : actorBeans.values()) {
-            Class<?> commandClass = actorBean.commandClass();
-
             registry.register(
-                    commandClass,
+                    actorBean.getClass(),
                     actorContext -> {
                         try {
                             return actorBean.create(actorContext);

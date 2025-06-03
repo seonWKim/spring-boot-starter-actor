@@ -22,7 +22,7 @@ import org.springframework.test.context.TestPropertySource;
 class SpringActorSystemTest {
 
     @Component
-    static class TestHelloActor implements SpringActor<TestHelloActor.Command> {
+    static class TestHelloActor implements SpringActor<TestHelloActor, TestHelloActor.Command> {
         @Override
         public Class<Command> commandClass() {
             return Command.class;
@@ -54,7 +54,7 @@ class SpringActorSystemTest {
     }
 
     @Component
-    static class CustomActorContextActor implements SpringActor<CustomActorContextActor.Command> {
+    static class CustomActorContextActor implements SpringActor<CustomActorContextActor, CustomActorContextActor.Command> {
         @Override
         public Class<Command> commandClass() {
             return Command.class;
@@ -117,8 +117,8 @@ class SpringActorSystemTest {
             SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
 
             final String actorId = "test-actor";
-            final SpringActorSpawnContext<TestHelloActor.Command> spawnContext =
-                    new SpringActorSpawnContext.Builder<TestHelloActor.Command>()
+            final SpringActorSpawnContext<TestHelloActor, TestHelloActor.Command> spawnContext =
+                    new SpringActorSpawnContext.Builder<TestHelloActor, TestHelloActor.Command>()
                             .commandClass(TestHelloActor.Command.class)
                             .actorId(actorId)
                             .build();
@@ -157,8 +157,8 @@ class SpringActorSystemTest {
 
             final String actorId = "test-actor";
             final SpringActorContext actorContext = new CustomActorContext(actorId);
-            final SpringActorSpawnContext<CustomActorContextActor.Command> spawnContext =
-                    new SpringActorSpawnContext.Builder<CustomActorContextActor.Command>()
+            final SpringActorSpawnContext<CustomActorContextActor, CustomActorContextActor.Command> spawnContext =
+                    new SpringActorSpawnContext.Builder<CustomActorContextActor, CustomActorContextActor.Command>()
                             .commandClass(CustomActorContextActor.Command.class)
                             .actorContext(actorContext)
                             .build();

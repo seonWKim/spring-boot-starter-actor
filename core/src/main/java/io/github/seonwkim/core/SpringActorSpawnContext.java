@@ -6,19 +6,22 @@ import org.apache.pekko.actor.typed.MailboxSelector;
 
 import io.github.seonwkim.core.impl.DefaultSpringActorContext;
 
-public class SpringActorSpawnContext<T> {
-    private final Class<T> commandClass;
+public class SpringActorSpawnContext<A extends SpringActor<A, C>, C> {
+    private final Class<A> actorClass;
+    private final Class<C> commandClass;
     private final SpringActorContext actorContext;
     private final Duration duration;
     private final MailboxSelector mailboxSelector;
     private final boolean isClusterSingleton;
 
     public SpringActorSpawnContext(
-            Class<T> commandClass,
+            Class<A> actorClass,
+            Class<C> commandClass,
             SpringActorContext actorContext,
             Duration duration,
             MailboxSelector mailboxSelector,
             boolean isClusterSingleton) {
+        this.actorClass = actorClass;
         this.commandClass = commandClass;
         this.actorContext = actorContext;
         this.duration = duration;
@@ -26,7 +29,11 @@ public class SpringActorSpawnContext<T> {
         this.isClusterSingleton = isClusterSingleton;
     }
 
-    public Class<T> getCommandClass() {
+    public Class<A> getActorClass() {
+        return actorClass;
+    }
+
+    public Class<C> getCommandClass() {
         return commandClass;
     }
 
@@ -46,48 +53,54 @@ public class SpringActorSpawnContext<T> {
         return isClusterSingleton;
     }
 
-    public static class Builder<T> {
-        private Class<T> commandClass;
+    public static class Builder<A extends SpringActor<A, C>, C> {
+        private Class<A> actorClass;
+        private Class<C> commandClass;
         private SpringActorContext actorContext;
         private Duration duration = Duration.ofSeconds(3);
         private MailboxSelector mailboxSelector = MailboxSelector.defaultMailbox();
         private boolean isClusterSingleton = false;
 
-        public Builder<T> commandClass(Class<T> commandClass) {
+        public Class<A> getActorClass() {
+            return actorClass;
+        }
+
+        public Builder<A, C> commandClass(Class<C> commandClass) {
             this.commandClass = commandClass;
             return this;
         }
 
-        public Builder<T> actorId(String actorId) {
+        public Builder<A, C> actorId(String actorId) {
             this.actorContext = new DefaultSpringActorContext(actorId);
             return this;
         }
 
-        public Builder<T> actorContext(SpringActorContext actorContext) {
+        public Builder<A, C> actorContext(SpringActorContext actorContext) {
             this.actorContext = actorContext;
             return this;
         }
 
-        public Builder<T> duration(Duration duration) {
+        public Builder<A, C> duration(Duration duration) {
             this.duration = duration;
             return this;
         }
 
-        public Builder<T> mailboxSelector(MailboxSelector mailboxSelector) {
+        public Builder<A, C> mailboxSelector(MailboxSelector mailboxSelector) {
             this.mailboxSelector = mailboxSelector;
             return this;
         }
 
-        public Builder<T> isClusterSingleton(boolean isClusterSingleton) {
+        public Builder<A, C> isClusterSingleton(boolean isClusterSingleton) {
             this.isClusterSingleton = isClusterSingleton;
             return this;
         }
 
-        public SpringActorSpawnContext<T> build() {
-            if (commandClass == null || actorContext == null) {
-                throw new IllegalArgumentException("commandClass and actorContext must be set");
+        public SpringActorSpawnContext<A, C> build() {
+            if (actorClass == null || commandClass == null || actorContext == null) {
+                throw new IllegalArgumentException("actorClass, commandClass and actorContext must be set");
             }
             return new SpringActorSpawnContext<>(
+                    actorClass,
                     commandClass,
                     actorContext,
                     duration,

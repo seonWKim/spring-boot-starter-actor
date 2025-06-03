@@ -90,11 +90,12 @@ public class SpringActorSystem implements DisposableBean {
 	}
 
 
-	public <T> CompletionStage<SpringActorRef<T>> spawn(SpringActorSpawnContext<T> spawnContext) {
+	public <A extends SpringActor<A, T>, T> CompletionStage<SpringActorRef<T>> spawn(SpringActorSpawnContext<A, T> spawnContext) {
 		return AskPattern.ask(
 				actorSystem,
 				(ActorRef<DefaultRootGuardian.Spawned<T>> replyTo) ->
 						new DefaultRootGuardian.SpawnActor<>(
+								spawnContext.getActorClass(),
 								spawnContext.getCommandClass(),
 								spawnContext.getActorContext(),
 								replyTo,

@@ -9,14 +9,14 @@ import org.apache.pekko.actor.typed.Behavior;
  * The purpose of forcing the return type of the create method to the actor's command class is
  * for simplicity(e.g. Multiple SpringActor's implementing the same class will increase overall complexity).
  */
-public interface SpringActor<T> {
+public interface SpringActor<A extends SpringActor<A, C>, C> {
 	/**
 	 * Returns the class of commands that this actor can handle. This is used to register the actor
 	 * with the ActorTypeRegistry.
 	 *
 	 * @return The class of commands that this actor can handle
 	 */
-	Class<T> commandClass();
+	Class<C> commandClass();
 
 	/**
 	 * Creates a behavior for this actor. This method is called by the actor system when a new actor
@@ -25,5 +25,5 @@ public interface SpringActor<T> {
 	 * @param actorContext The context of the actor
 	 * @return A behavior for the actor
 	 */
-	Behavior<T> create(SpringActorContext actorContext);
+	Behavior<C> create(SpringActorContext actorContext);
 }
