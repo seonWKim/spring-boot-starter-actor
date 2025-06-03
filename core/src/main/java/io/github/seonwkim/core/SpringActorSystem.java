@@ -3,13 +3,11 @@ package io.github.seonwkim.core;
 import io.github.seonwkim.core.RootGuardian.StopResult;
 import io.github.seonwkim.core.behavior.ClusterEventBehavior;
 import io.github.seonwkim.core.impl.DefaultRootGuardian;
-import io.github.seonwkim.core.impl.DefaultSpringActorContext;
 
 import java.time.Duration;
 import java.util.concurrent.CompletionStage;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.ActorSystem;
-import org.apache.pekko.actor.typed.MailboxSelector;
 import org.apache.pekko.actor.typed.Props;
 import org.apache.pekko.actor.typed.javadsl.AskPattern;
 import org.apache.pekko.cluster.ClusterEvent;
@@ -115,14 +113,14 @@ public class SpringActorSystem implements DisposableBean {
 	 * acknowledged.
 	 *
 	 * @param stopContext The context containing all parameters needed to stop the actor
-	 * @param <T> The type of commands that the actor can handle
 	 * @return A {@link CompletionStage} that completes when the stop command has been processed
 	 */
-	public <T> CompletionStage<StopResult> stop(SpringActorStopContext<T> stopContext) {
+	public <A extends SpringActor<A, C>, C> CompletionStage<StopResult> stop(SpringActorStopContext<A, C> stopContext) {
 		return AskPattern.ask(
 				actorSystem,
 				(ActorRef<DefaultRootGuardian.StopResult> replyTo) ->
 						new DefaultRootGuardian.StopActor<>(
+								stopContext.getActorClass(),
 								stopContext.getCommandClass(),
 								stopContext.getActorContext(),
 								replyTo),

@@ -61,8 +61,9 @@ public class SpringActorSpawnContext<A extends SpringActor<A, C>, C> {
         private MailboxSelector mailboxSelector = MailboxSelector.defaultMailbox();
         private boolean isClusterSingleton = false;
 
-        public Class<A> getActorClass() {
-            return actorClass;
+        public Builder<A, C> actorClass(Class<A> actorClass) {
+            this.actorClass = actorClass;
+            return this;
         }
 
         public Builder<A, C> commandClass(Class<C> commandClass) {

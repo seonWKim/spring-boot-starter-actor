@@ -72,11 +72,12 @@ public interface RootGuardian {
 	 * of child actors. The actor identified by {@code actorId} and capable of handling {@code
 	 * commandClass} messages will be stopped gracefully if it exists.
 	 *
-	 * @param <T> The type of command that the target actor can handle
+	 * @param <C> The type of command that the target actor can handle
 	 */
-	class StopActor<T> implements Command {
+	class StopActor<A extends SpringActor<A, C>, C> implements Command {
+		public final Class<A> actorClass;
 		/** The class of commands that the actor can handle */
-		public final Class<T> commandClass;
+		public final Class<C> commandClass;
 		/** The context of the actor to be stopped */
 		public final SpringActorContext actorContext;
 		/** The actor reference to reply to with the stop result */
@@ -89,8 +90,12 @@ public interface RootGuardian {
 		 * @param actorContext The context of the actor to be stopped
 		 * @param replyTo The actor reference to reply to with the stop result
 		 */
-		public StopActor(Class<T> commandClass, SpringActorContext actorContext, ActorRef<StopResult> replyTo) {
-			this.commandClass = commandClass;
+		public StopActor(Class<A> actorClass,
+						 Class<C> commandClass,
+						 SpringActorContext actorContext,
+						 ActorRef<StopResult> replyTo) {
+            this.actorClass = actorClass;
+            this.commandClass = commandClass;
 			this.actorContext = actorContext;
 			this.replyTo = replyTo;
 		}

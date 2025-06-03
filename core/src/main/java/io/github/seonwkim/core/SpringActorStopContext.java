@@ -7,23 +7,30 @@ import io.github.seonwkim.core.impl.DefaultSpringActorContext;
 /**
  * Context for stopping an actor. This class encapsulates all the parameters needed to stop an actor.
  *
- * @param <T> The type of commands that the actor can handle
+ * @param <C> The type of commands that the actor can handle
  */
-public class SpringActorStopContext<T> {
-    private final Class<T> commandClass;
+public class SpringActorStopContext<A extends SpringActor<A, C>, C> {
+    private final Class<A> actorClass;
+    private final Class<C> commandClass;
     private final SpringActorContext actorContext;
     private final Duration duration;
 
     public SpringActorStopContext(
-            Class<T> commandClass,
+            Class<A> actorClass,
+            Class<C> commandClass,
             SpringActorContext actorContext,
             Duration duration) {
+        this.actorClass = actorClass;
         this.commandClass = commandClass;
         this.actorContext = actorContext;
         this.duration = duration;
     }
 
-    public Class<T> getCommandClass() {
+    public Class<A> getActorClass() {
+        return actorClass;
+    }
+
+    public Class<C> getCommandClass() {
         return commandClass;
     }
 
@@ -38,12 +45,18 @@ public class SpringActorStopContext<T> {
     /**
      * Builder for creating {@link SpringActorStopContext} instances.
      *
-     * @param <T> The type of commands that the actor can handle
+     * @param <C> The type of commands that the actor can handle
      */
-    public static class Builder<T> {
-        private Class<T> commandClass;
+    public static class Builder<A extends SpringActor<A, C>, C> {
+        private Class<A> actorClass;
+        private Class<C> commandClass;
         private SpringActorContext actorContext;
         private Duration duration = Duration.ofSeconds(3);
+
+        public Builder<A, C> actorClass(Class<A> actorClass) {
+            this.actorClass = actorClass;
+            return this;
+        }
 
         /**
          * Sets the command class for the actor to stop.
@@ -51,7 +64,7 @@ public class SpringActorStopContext<T> {
          * @param commandClass The class of commands that the actor can handle
          * @return This builder
          */
-        public Builder<T> commandClass(Class<T> commandClass) {
+        public Builder<A, C> commandClass(Class<C> commandClass) {
             this.commandClass = commandClass;
             return this;
         }
@@ -62,7 +75,7 @@ public class SpringActorStopContext<T> {
          * @param actorId The ID of the actor to stop
          * @return This builder
          */
-        public Builder<T> actorId(String actorId) {
+        public Builder<A, C> actorId(String actorId) {
             this.actorContext = new DefaultSpringActorContext(actorId);
             return this;
         }
@@ -73,7 +86,7 @@ public class SpringActorStopContext<T> {
          * @param actorContext The context of the actor to stop
          * @return This builder
          */
-        public Builder<T> actorContext(SpringActorContext actorContext) {
+        public Builder<A, C> actorContext(SpringActorContext actorContext) {
             this.actorContext = actorContext;
             return this;
         }
@@ -84,7 +97,7 @@ public class SpringActorStopContext<T> {
          * @param duration The maximum time to wait for the stop operation to complete
          * @return This builder
          */
-        public Builder<T> duration(Duration duration) {
+        public Builder<A, C> duration(Duration duration) {
             this.duration = duration;
             return this;
         }
@@ -95,11 +108,12 @@ public class SpringActorStopContext<T> {
          * @return A new {@link SpringActorStopContext}
          * @throws IllegalArgumentException If commandClass or actorContext is null
          */
-        public SpringActorStopContext<T> build() {
-            if (commandClass == null || actorContext == null) {
+        public SpringActorStopContext<A, C> build() {
+            if (actorClass == null || commandClass == null || actorContext == null) {
                 throw new IllegalArgumentException("commandClass and actorContext must be set");
             }
             return new SpringActorStopContext<>(
+                    actorClass,
                     commandClass,
                     actorContext,
                     duration

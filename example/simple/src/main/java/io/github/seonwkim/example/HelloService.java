@@ -29,6 +29,7 @@ public class HelloService {
 		// instead of join() which blocks the current thread
 		final SpringActorSpawnContext<HelloActor, HelloActor.Command> spawnContext =
 				new SpringActorSpawnContext.Builder<HelloActor, HelloActor.Command>()
+						.actorClass(HelloActor.class)
 						.commandClass(HelloActor.Command.class)
 						.actorId("default")
 						.duration(Duration.ofSeconds(3))
