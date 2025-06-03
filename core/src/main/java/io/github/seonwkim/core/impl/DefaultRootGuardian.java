@@ -68,11 +68,9 @@ public class DefaultRootGuardian implements RootGuardian {
 	 * created and its reference is returned.
 	 *
 	 * @param msg The SpawnActor command
-	 * @param <C> The type of messages that the actor can handle
 	 * @return The same behavior, as this handler doesn't change the behavior
 	 */
-	@SuppressWarnings("unchecked")
-	public <A extends SpringActor<A, C>, C> Behavior<RootGuardian.Command> handleSpawnActor(SpawnActor msg) {
+	public Behavior<RootGuardian.Command> handleSpawnActor(SpawnActor msg) {
 		String key = buildActorKey(msg.actorClass, msg.actorContext);
 
 		ActorRef<?> ref;
