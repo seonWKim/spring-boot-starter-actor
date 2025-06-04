@@ -1,5 +1,7 @@
 package io.github.seonwkim.core.shard;
 
+import java.util.zip.CRC32;
+
 import org.apache.pekko.cluster.sharding.typed.ShardingMessageExtractor;
 
 /**
@@ -44,7 +46,13 @@ public class DefaultShardingMessageExtractor<T>
 	 */
 	@Override
 	public String shardId(String entityId) {
-		return String.valueOf(Math.abs(entityId.hashCode()) % numberOfShards);
+		CRC32 crc32 = new CRC32();
+		crc32.update(entityId.getBytes());
+		long hash = crc32.getValue();
+		if (hash < 0) {
+			hash = -hash;
+		}
+		return String.valueOf(Math.abs(hash % numberOfShards));
 	}
 
 	/**

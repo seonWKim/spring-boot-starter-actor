@@ -46,8 +46,6 @@ public class SpringActorSystem implements DisposableBean {
     @Nullable
     private final ClusterSharding clusterSharding;
 
-    private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(3); // configurable if needed
-
     /**
      * Creates a new SpringActorSystem in local mode.
      *
@@ -102,6 +100,11 @@ public class SpringActorSystem implements DisposableBean {
         return cluster;
     }
 
+    @Nullable
+    public ClusterSharding getClusterSharding() {
+        return clusterSharding;
+    }
+
     /**
      * Spawns a new actor with the given spawn context.
      *
@@ -112,9 +115,7 @@ public class SpringActorSystem implements DisposableBean {
      * @return A CompletionStage that will be completed with a reference to the spawned actor
      */
     @SuppressWarnings("unchecked")
-    public <A extends SpringActor<A, C>, C> CompletionStage<SpringActorRef<C>> spawn(
-            SpringActorSpawnContext<A, C> spawnContext
-    ) {
+    public <A extends SpringActor<A, C>, C> CompletionStage<SpringActorRef<C>> spawn(SpringActorSpawnContext<A, C> spawnContext) {
         return AskPattern.ask(actorSystem,
                               (ActorRef<Spawned<?>> replyTo) ->
                                       new DefaultRootGuardian.SpawnActor(

@@ -22,7 +22,10 @@
   "links": [],
   "panels": [
     {
-      "datasource": "Prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -45,7 +48,7 @@
               "viz": false
             },
             "insertNulls": false,
-            "lineInterpolation": "linear",
+            "lineInterpolation": "smooth",
             "lineWidth": 1,
             "pointSize": 5,
             "scaleDistribution": {
@@ -61,9 +64,7 @@
               "mode": "off"
             }
           },
-          "fieldMinMax": false,
           "mappings": [],
-          "noValue": "0",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -75,35 +76,9 @@
                 "value": 80
               }
             ]
-          },
-          "unit": "short"
-        },
-        "overrides": [
-          {
-            "__systemRef": "hideSeriesFrom",
-            "matcher": {
-              "id": "byNames",
-              "options": {
-                "mode": "exclude",
-                "names": [
-                  "Value"
-                ],
-                "prefix": "All except:",
-                "readOnly": true
-              }
-            },
-            "properties": [
-              {
-                "id": "custom.hideFrom",
-                "value": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": true
-                }
-              }
-            ]
           }
-        ]
+        },
+        "overrides": []
       },
       "gridPos": {
         "h": 8,
@@ -111,18 +86,13 @@
         "x": 0,
         "y": 0
       },
-      "id": 1,
+      "id": 3,
       "options": {
         "legend": {
-          "calcs": [
-            "min",
-            "max"
-          ],
-          "displayMode": "table",
+          "calcs": [],
+          "displayMode": "list",
           "placement": "bottom",
-          "showLegend": true,
-          "sortBy": "Min",
-          "sortDesc": true
+          "showLegend": true
         },
         "tooltip": {
           "hideZeros": false,
@@ -133,14 +103,22 @@
       "pluginVersion": "12.0.0+security-01",
       "targets": [
         {
-          "editorMode": "code",
-          "expr": "sort_desc(sum by (messageType) (rate(pekko_actorcell_invoke_count_total[1m])))",
-          "legendFormat": "{{messageType}}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "disableTextWrap": false,
+          "editorMode": "builder",
+          "expr": "sum by(instance) (pekko_shard_entities)",
+          "fullMetaSearch": false,
+          "includeNullMetadata": true,
+          "legendFormat": "__auto",
           "range": true,
-          "refId": "A"
+          "refId": "A",
+          "useBackend": false
         }
       ],
-      "title": "Actor Message Count (invoke) Per Minute",
+      "title": "Entities",
       "type": "timeseries"
     },
     {
@@ -237,6 +215,128 @@
         }
       ],
       "title": "Actor Message Latency (invoke) Per Second",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "fieldMinMax": false,
+          "mappings": [],
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "__systemRef": "hideSeriesFrom",
+            "matcher": {
+              "id": "byNames",
+              "options": {
+                "mode": "exclude",
+                "names": [
+                  "Value"
+                ],
+                "prefix": "All except:",
+                "readOnly": true
+              }
+            },
+            "properties": [
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": true
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
+      "id": 1,
+      "options": {
+        "legend": {
+          "calcs": [
+            "min",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "sortBy": "Min",
+          "sortDesc": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.0.0+security-01",
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "sort_desc(sum by (messageType) (rate(pekko_actorcell_invoke_count_total[1m])))",
+          "legendFormat": "{{messageType}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Actor Message Count (invoke) Per Minute",
       "type": "timeseries"
     }
   ],
