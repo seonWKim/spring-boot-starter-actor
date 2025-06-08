@@ -1,4 +1,6 @@
-<img src="mkdocs/docs/logo.png" alt="Library Logo" width="200"/>
+<div style="text-align: center; margin-top: 30px;">
+  <img src="mkdocs/docs/logo.png" alt="Library Logo" width="320" style="display: block; margin: 0 auto;" />
+</div>
 
 # Spring Boot Starter Actor
 
