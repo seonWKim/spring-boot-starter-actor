@@ -23,6 +23,18 @@ public class SpringShardedActorRef<T> {
 	private final Duration defaultTimeout;
 	
 	/**
+	 * Creates a builder for SpringShardedActorRef.
+	 *
+	 * @param scheduler The scheduler to use for asking messages
+	 * @param entityRef The entity reference to wrap
+	 * @param <T> The type of messages that the actor can handle
+	 * @return A new builder for SpringShardedActorRef
+	 */
+	public static <T> SpringShardedActorRefBuilder<T> builder(Scheduler scheduler, EntityRef<T> entityRef) {
+		return new SpringShardedActorRefBuilder<>(scheduler, entityRef);
+	}
+	
+	/**
 	 * Default value for the default timeout in seconds.
 	 */
 	public static final int DEFAULT_TIMEOUT_SECONDS = 3;

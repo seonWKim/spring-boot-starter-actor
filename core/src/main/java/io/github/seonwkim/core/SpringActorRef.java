@@ -20,6 +20,18 @@ public class SpringActorRef<T> {
 	private final Scheduler scheduler;
 	private final ActorRef<T> actorRef;
 	private final Duration defaultTimeout;
+	
+	/**
+	 * Creates a builder for SpringActorRef.
+	 *
+	 * @param scheduler The scheduler to use for asking messages
+	 * @param actorRef The actor reference to wrap
+	 * @param <T> The type of messages that the actor can handle
+	 * @return A new builder for SpringActorRef
+	 */
+	public static <T> SpringActorRefBuilder<T> builder(Scheduler scheduler, ActorRef<T> actorRef) {
+		return new SpringActorRefBuilder<>(scheduler, actorRef);
+	}
 
 	/**
 	 * Default value for the default timeout in seconds.
