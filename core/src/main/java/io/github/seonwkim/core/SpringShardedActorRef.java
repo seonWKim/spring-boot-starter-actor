@@ -20,17 +20,50 @@ public class SpringShardedActorRef<T> {
 
 	private final Scheduler scheduler;
 	private final EntityRef<T> entityRef;
-	private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(3);
+	private final Duration defaultTimeout;
+	
+	/**
+	 * Default value for the default timeout in seconds.
+	 */
+	public static final int DEFAULT_TIMEOUT_SECONDS = 3;
 
 	/**
 	 * Creates a new SpringShardedActorRef with the given scheduler and entity reference.
+	 * Uses the default timeout of 3 seconds.
 	 *
 	 * @param scheduler The scheduler to use for asking messages
 	 * @param entityRef The entity reference to wrap
 	 */
 	public SpringShardedActorRef(Scheduler scheduler, EntityRef<T> entityRef) {
+		this(scheduler, entityRef, Duration.ofSeconds(DEFAULT_TIMEOUT_SECONDS));
+	}
+	
+	/**
+	 * Creates a new SpringShardedActorRef with the given scheduler, entity reference, and default timeout.
+	 *
+	 * @param scheduler The scheduler to use for asking messages
+	 * @param entityRef The entity reference to wrap
+	 * @param defaultTimeout The default timeout for ask operations
+	 */
+	public SpringShardedActorRef(Scheduler scheduler, EntityRef<T> entityRef, Duration defaultTimeout) {
 		this.scheduler = scheduler;
 		this.entityRef = entityRef;
+		this.defaultTimeout = defaultTimeout;
+	}
+
+	/**
+	 * Asks the sharded actor a question and expects a response, using the default timeout. This
+	 * method sends a message to the actor and returns a CompletionStage that will be completed with
+	 * the response.
+	 *
+	 * @param messageFactory A function that creates a message given a reply-to actor reference
+	 * @param <REQ> The type of the request message
+	 * @param <RES> The type of the response message
+	 * @return A CompletionStage that will be completed with the response
+	 */
+	public <REQ extends T, RES> CompletionStage<RES> ask(
+			Function<ActorRef<RES>, REQ> messageFactory) {
+		return ask(messageFactory, defaultTimeout);
 	}
 
 	/**
@@ -48,21 +81,6 @@ public class SpringShardedActorRef<T> {
 		@SuppressWarnings("unchecked")
 		RecipientRef<REQ> recipient = (RecipientRef<REQ>) entityRef;
 		return AskPattern.ask(recipient, messageFactory, timeout, scheduler);
-	}
-
-	/**
-	 * Asks the sharded actor a question and expects a response, using the default timeout. This
-	 * method sends a message to the actor and returns a CompletionStage that will be completed with
-	 * the response.
-	 *
-	 * @param messageFactory A function that creates a message given a reply-to actor reference
-	 * @param <REQ> The type of the request message
-	 * @param <RES> The type of the response message
-	 * @return A CompletionStage that will be completed with the response
-	 */
-	public <REQ extends T, RES> CompletionStage<RES> ask(
-			Function<ActorRef<RES>, REQ> messageFactory) {
-		return ask(messageFactory, DEFAULT_TIMEOUT);
 	}
 
 	/**
