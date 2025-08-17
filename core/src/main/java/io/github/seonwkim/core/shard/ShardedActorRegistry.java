@@ -37,10 +37,7 @@ public class ShardedActorRegistry {
 	 * @return The sharded actor with the given entity type key, or null if not found
 	 */
 	public <T> ShardedActor<T> get(EntityTypeKey<T> typeKey) {
-		// This cast is safe because the registry ensures type consistency:
-		// - When registering, we store ShardedActor<T> with EntityTypeKey<T>
-		// - The same T type is maintained between the key and value
-		// - Type erasure prevents compile-time verification but runtime safety is maintained
+		// Safe cast: registry maintains T type consistency between key and value
 		@SuppressWarnings("unchecked")
 		ShardedActor<T> actor = (ShardedActor<T>) registry.get(typeKey);
 		return actor;

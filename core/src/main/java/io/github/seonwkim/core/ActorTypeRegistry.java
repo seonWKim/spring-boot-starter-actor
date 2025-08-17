@@ -66,8 +66,7 @@ public class ActorTypeRegistry {
 	public <A extends SpringActor<A, C>, C> Behavior<C> createTypedBehavior(
 			Class<A> actorClass, 
 			SpringActorContext actorContext) {
-		// Delegate to the non-generic method and cast the result
-		// Safe cast - the register method ensures type consistency
+		// Safe cast: register method ensures type consistency
 		return (Behavior<C>) createBehavior(actorClass, actorContext);
 	}
 }

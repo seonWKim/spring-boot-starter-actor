@@ -59,8 +59,10 @@ public class PekkoProperties implements EnvironmentAware {
 			Object value = entry.getValue();
 
 			if (value instanceof Map) {
+				// Safe cast: instanceof check ensures value is Map<String, Object>
 				normalized.put(key, normalizeCommaSeparatedLists((Map<String, Object>) value));
 			} else if (value instanceof String) {
+				// Safe cast: instanceof check ensures value is String
 				String str = ((String) value).trim();
 				if (looksLikeCommaSeparatedList(str)) {
 					List<String> items =

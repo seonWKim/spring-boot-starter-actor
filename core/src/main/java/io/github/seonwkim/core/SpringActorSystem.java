@@ -125,11 +125,7 @@ public class SpringActorSystem implements DisposableBean {
                               spawnContext.getTimeout(),
                               actorSystem.scheduler())
                          .thenApply(spawned -> {
-                             // The cast here is unavoidable due to type erasure in Java.
-                             // The RootGuardian cannot know the specific command type C at runtime,
-                             // so it returns Spawned<?> with ActorRef<?>. However, we maintain type
-                             // safety through the spawn context which ensures the actor class matches
-                             // the expected command type C.
+                             // Safe cast: spawn context ensures actor class matches command type C
                              @SuppressWarnings("unchecked")
                              ActorRef<C> typedRef = (ActorRef<C>) spawned.ref;
                              return new SpringActorRef<>(actorSystem.scheduler(), typedRef);
