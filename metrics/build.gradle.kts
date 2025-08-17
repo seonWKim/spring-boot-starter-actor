@@ -13,6 +13,7 @@ val bytebuddyVersion: String by project
 dependencies {
     implementation("net.bytebuddy:byte-buddy:${bytebuddyVersion}")
     implementation("net.bytebuddy:byte-buddy-agent:${bytebuddyVersion}")
+    implementation("org.slf4j:slf4j-api:2.0.17")
 
     testImplementation("org.apache.pekko:pekko-actor-typed_3")
     testImplementation("org.apache.pekko:pekko-cluster-typed_3")
@@ -21,6 +22,9 @@ dependencies {
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.10.2")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.10.2")
+    
+    // Add SLF4J Simple binding for tests
+    testRuntimeOnly("org.slf4j:slf4j-simple:2.0.17")
 }
 
 // Create a fat JAR with all dependencies

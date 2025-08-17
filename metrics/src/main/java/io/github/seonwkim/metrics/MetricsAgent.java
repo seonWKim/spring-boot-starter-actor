@@ -1,6 +1,10 @@
 package io.github.seonwkim.metrics;
 
 import java.lang.instrument.Instrumentation;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import net.bytebuddy.agent.builder.AgentBuilder;
 
 /**
@@ -8,6 +12,8 @@ import net.bytebuddy.agent.builder.AgentBuilder;
  * intercept method calls on actor classes and collect metrics about their execution.
  */
 public class MetricsAgent {
+
+	private static final Logger logger = LoggerFactory.getLogger(MetricsAgent.class);
 
 	/**
 	 * Premain method called when the agent is loaded during JVM startup.
@@ -38,6 +44,6 @@ public class MetricsAgent {
 	 * @param instrumentation Instrumentation instance
 	 */
 	private static void installAgent(Instrumentation instrumentation) {
-		System.out.println("[ActorMetricsAgent] Agent installed successfully");
+		logger.info("[ActorMetricsAgent] Agent installed successfully");
 	}
 }
