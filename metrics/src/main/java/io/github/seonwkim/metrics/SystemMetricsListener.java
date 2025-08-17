@@ -32,15 +32,7 @@ public class SystemMetricsListener implements ActorSystemEventListener.ActorLife
 	
 	@Override
 	public void onUnstartedCellReplaced(Object unstartedCell, Object newCell) {
-		try {
-			if (!isTemporaryActor(newCell)) {
-				SystemMetrics.getInstance().incrementActiveActors();
-				logger.debug("UnstartedCell replaced with ActorCell, active actors: {}", 
-						SystemMetrics.getInstance().getActiveActors());
-			}
-		} catch (Exception e) {
-			logger.error("Error in onUnstartedCellReplaced", e);
-		}
+		// No increment here to avoid double counting if onActorCreated already handled ActorCell.
 	}
 	
 	private boolean isTemporaryActor(Object cell) {
