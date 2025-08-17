@@ -3,6 +3,7 @@ package io.github.seonwkim.core.shard;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
 
 /**
@@ -35,9 +36,14 @@ public class ShardedActorRegistry {
 	 * @param <T> The type of messages that the actor can handle
 	 * @return The sharded actor with the given entity type key, or null if not found
 	 */
-	@SuppressWarnings("unchecked")
 	public <T> ShardedActor<T> get(EntityTypeKey<T> typeKey) {
-		return (ShardedActor<T>) registry.get(typeKey);
+		// This cast is safe because the registry ensures type consistency:
+		// - When registering, we store ShardedActor<T> with EntityTypeKey<T>
+		// - The same T type is maintained between the key and value
+		// - Type erasure prevents compile-time verification but runtime safety is maintained
+		@SuppressWarnings("unchecked")
+		ShardedActor<T> actor = (ShardedActor<T>) registry.get(typeKey);
+		return actor;
 	}
 
 	/**

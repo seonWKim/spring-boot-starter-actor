@@ -2,12 +2,11 @@ package io.github.seonwkim.core;
 
 import java.time.Duration;
 import java.util.concurrent.CompletionStage;
+
 import org.apache.pekko.actor.typed.ActorRef;
-import org.apache.pekko.actor.typed.RecipientRef;
 import org.apache.pekko.actor.typed.Scheduler;
 import org.apache.pekko.actor.typed.javadsl.AskPattern;
 import org.apache.pekko.japi.function.Function;
-import org.springframework.beans.factory.annotation.Value;
 
 /**
  * A wrapper around Pekko's ActorRef that provides methods for asking and telling messages to an
@@ -87,9 +86,7 @@ public class SpringActorRef<T> {
 	 */
 	public <REQ extends T, RES> CompletionStage<RES> ask(
 			Function<ActorRef<RES>, REQ> messageFactory, Duration timeout) {
-		@SuppressWarnings("unchecked")
-		RecipientRef<REQ> recipient = (RecipientRef<REQ>) actorRef;
-		return AskPattern.ask(recipient, messageFactory, timeout, scheduler);
+		return AskPattern.ask(actorRef, messageFactory::apply, timeout, scheduler);
 	}
 
 	/**

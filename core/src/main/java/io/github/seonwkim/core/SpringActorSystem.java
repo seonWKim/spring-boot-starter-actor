@@ -1,11 +1,5 @@
 package io.github.seonwkim.core;
 
-import io.github.seonwkim.core.RootGuardian.Spawned;
-import io.github.seonwkim.core.RootGuardian.StopResult;
-import io.github.seonwkim.core.behavior.ClusterEventBehavior;
-import io.github.seonwkim.core.impl.DefaultRootGuardian;
-
-import java.time.Duration;
 import java.util.concurrent.CompletionStage;
 
 import org.apache.pekko.actor.typed.ActorRef;
@@ -21,6 +15,11 @@ import org.apache.pekko.cluster.typed.Subscribe;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.lang.Nullable;
+
+import io.github.seonwkim.core.RootGuardian.Spawned;
+import io.github.seonwkim.core.RootGuardian.StopResult;
+import io.github.seonwkim.core.behavior.ClusterEventBehavior;
+import io.github.seonwkim.core.impl.DefaultRootGuardian;
 
 /**
  * A wrapper around Pekko's ActorSystem that provides methods for spawning actors and getting entity
@@ -114,7 +113,6 @@ public class SpringActorSystem implements DisposableBean {
      *
      * @return A CompletionStage that will be completed with a reference to the spawned actor
      */
-    @SuppressWarnings("unchecked")
     public <A extends SpringActor<A, C>, C> CompletionStage<SpringActorRef<C>> spawn(SpringActorSpawnContext<A, C> spawnContext) {
         return AskPattern.ask(actorSystem,
                               (ActorRef<Spawned<?>> replyTo) ->
@@ -127,9 +125,14 @@ public class SpringActorSystem implements DisposableBean {
                               spawnContext.getTimeout(),
                               actorSystem.scheduler())
                          .thenApply(spawned -> {
-                             // This cast is necessary because the Spawned message contains a generic ActorRef<?>
-                             // We know it's an ActorRef<C> because we spawned an actor that handles commands of type C
-                             return new SpringActorRef<>(actorSystem.scheduler(), (ActorRef<C>) spawned.ref);
+                             // The cast here is unavoidable due to type erasure in Java.
+                             // The RootGuardian cannot know the specific command type C at runtime,
+                             // so it returns Spawned<?> with ActorRef<?>. However, we maintain type
+                             // safety through the spawn context which ensures the actor class matches
+                             // the expected command type C.
+                             @SuppressWarnings("unchecked")
+                             ActorRef<C> typedRef = (ActorRef<C>) spawned.ref;
+                             return new SpringActorRef<>(actorSystem.scheduler(), typedRef);
                          });
     }
 
