@@ -20,7 +20,7 @@ import io.github.seonwkim.core.impl.DefaultSpringActorContext;
 import io.github.seonwkim.test.CustomOverrideConfiguration;
 import io.github.seonwkim.test.CustomTestRootGuardian;
 
-public class PekkoAutoConfigurationTest {
+public class ActorAutoConfigurationTest {
 
 	@SpringBootApplication
 	static class TestApp {}

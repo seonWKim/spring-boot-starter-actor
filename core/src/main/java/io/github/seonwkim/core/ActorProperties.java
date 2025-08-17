@@ -17,7 +17,7 @@ import org.springframework.core.env.Environment;
  * Configuration properties for Pekko actor system. This class binds properties with the prefix
  * "spring.actor" to a map and normalizes comma-separated lists.
  */
-public class PekkoProperties implements EnvironmentAware {
+public class ActorProperties implements EnvironmentAware {
 	private final Map<String, Object> config = new HashMap<>();
 
 	/**

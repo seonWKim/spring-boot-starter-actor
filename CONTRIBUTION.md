@@ -11,14 +11,11 @@ Welcome to Spring Boot Starter Actor! This document outlines contribution areas 
 - [x] **Direct Access** - Add getUnderlying() methods for advanced use cases
 
 ### Medium Priority
-- [ ] **Async Operations** - Add async tell methods and batch operations
 - [ ] **Retry Mechanisms** - Implement retry policies with exponential backoff
-- [ ] **Spring Integration** - Add @ConfigurationProperties and auto-configuration
-- [ ] **Reactive Support** - Add Mono/Flux wrapper methods
-- [ ] **Basic Metrics** - Integrate with Micrometer for observability
+- [ ] **Basic Metrics** - Add more pekko native metrics under metrics module. 
 
 ### Low Priority
-- [ ] **Advanced Monitoring** - Grafana dashboards and distributed tracing
+- [ ] **Advanced Monitoring** - Grafana dashboards for pekko native metrics. 
 - [ ] **Lifecycle Management** - Graceful shutdown and termination handling
 - [ ] **Testing Utilities** - Test fixtures and mock actors
 - [ ] **Circuit Breaker** - Resilience patterns implementation
@@ -26,11 +23,8 @@ Welcome to Spring Boot Starter Actor! This document outlines contribution areas 
 ## 🏗️ Core Infrastructure
 
 ### Deployment & Scalability
-- [ ] State migration between versions without data loss
-- [ ] Backward compatibility for rolling updates
-- [ ] Message versioning for deployment compatibility
-- [ ] Cluster topology change handling
-- [ ] Proper shutdown hooks and graceful termination
+- [ ] Blue-Green deployment example 
+- [ ] Rolling Update support - app versioning, minimizing data loss etc 
 - [ ] Kubernetes deployment templates and cluster formation
 
 ### Sharding & Distribution
@@ -41,20 +35,7 @@ Welcome to Spring Boot Starter Actor! This document outlines contribution areas 
 
 ## 🔧 API Enhancements
 
-### Configuration & Initialization
-- [ ] Configurable timeout constructor for SpringShardedActorRef
-- [ ] ActorProperties configuration class with @ConfigurationProperties
-- [ ] SpringActorRefFactory bean for centralized creation
-- [ ] Application.yml/properties support
-
-### Messaging Patterns
-- [ ] **Retry Support**: askWithRetry() with configurable policies
-- [ ] **Reactive Wrappers**: askMono(), askFlux(), tellMono() methods
-- [ ] **Streaming Support**: Backpressure handling for reactive streams
-- [ ] **Batch Operations**: tellAll() and askAll() for bulk messages
-
 ### Resilience & Error Handling
-- [ ] Custom exception hierarchy (ActorTimeoutException, ActorNotAvailableException)
 - [ ] Circuit breaker pattern implementation
 - [ ] Error recovery strategies
 - [ ] Retry policies with exponential backoff
@@ -62,7 +43,6 @@ Welcome to Spring Boot Starter Actor! This document outlines contribution areas 
 ## 📊 Monitoring & Observability
 
 ### Metrics & Tracing
-- [ ] ActorMetrics interface with Micrometer integration
 - [ ] Message flow tracing between actors
 - [ ] Timeout and failure metrics tracking
 - [ ] Actor system health indicators
@@ -103,6 +83,9 @@ cd spring-boot-starter-actor
 
 # Run examples
 ./gradlew :example:simple:bootRun
+
+# Run cluster 
+sh cluster-start.sh chat io.github.seonwkim.example.SpringPekkoApplication 8080 2551 3
 ```
 
 ### Contribution Guidelines
@@ -126,39 +109,12 @@ cd spring-boot-starter-actor
    - [ ] Examples still work
    - [ ] No breaking changes (or properly documented)
 
-## 📋 Migration & Compatibility
-
-### Breaking Changes Management
-- [ ] Document all breaking changes clearly
-- [ ] Provide migration examples and scripts
-- [ ] Create compatibility layer when possible
-- [ ] Update all example projects
-- [ ] Follow semantic versioning
+## 📋 Compatibility
 
 ### Version Support
 - Spring Boot 2.x (core module)
 - Spring Boot 3.x (core-boot3 module)
 - Java 11+
 - Apache Pekko (Akka fork)
-
-## 💡 Known Issues & Solutions
-
-### Current Limitations
-1. **SpringShardedActorRef** has hardcoded 3-second timeout
-2. Missing async variants of tell() method
-3. No built-in retry mechanisms
-4. Limited Spring reactive integration
-5. Unchecked casts to RecipientRef
-
-### Proposed Solutions
-These limitations are addressed in the priority tasks above. Contributors should focus on high-priority items first to resolve the most impactful issues.
-
-## 📞 Contact & Support
-
-- **Issues**: [GitHub Issues](https://github.com/seonwkim/spring-boot-starter-actor/issues)
-- **Discussions**: Use GitHub Discussions for questions and ideas
-- **License**: Apache License 2.0
-
----
 
 Thank you for contributing to Spring Boot Starter Actor! Your efforts help make actor-based programming more accessible in the Spring ecosystem.

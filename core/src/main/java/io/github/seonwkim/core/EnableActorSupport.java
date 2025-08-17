@@ -25,6 +25,6 @@ import org.springframework.context.annotation.Import;
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
-@Import(PekkoConfiguration.class)
+@Import(ActorConfiguration.class)
 public @interface EnableActorSupport {
 }

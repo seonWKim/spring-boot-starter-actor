@@ -14,7 +14,7 @@ import io.github.seonwkim.core.shard.ShardedActor;
 import io.github.seonwkim.core.shard.ShardedActorRegistry;
 
 @Configuration
-public class PekkoConfiguration {
+public class ActorConfiguration {
     /**
      * Creates a SpringActorSystemBuilder bean with the given properties, root guardian supplier,
      * application event publisher, and sharded actor registry.
@@ -28,7 +28,7 @@ public class PekkoConfiguration {
     @Bean
     @ConditionalOnMissingBean(SpringActorSystemBuilder.class)
     public SpringActorSystemBuilder actorSystemBuilder(
-            PekkoProperties properties,
+            ActorProperties properties,
             RootGuardianSupplierWrapper rootGuardianSupplierWrapper,
             ApplicationEventPublisher applicationEventPublisher,
             ShardedActorRegistry shardedActorRegistry) {
@@ -117,9 +117,9 @@ public class PekkoConfiguration {
      * @return A PekkoProperties instance
      */
     @Bean
-    @ConditionalOnMissingBean(PekkoProperties.class)
-    public PekkoProperties pekkoProperties(Environment environment) {
-        PekkoProperties properties = new PekkoProperties();
+    @ConditionalOnMissingBean(ActorProperties.class)
+    public ActorProperties pekkoProperties(Environment environment) {
+        ActorProperties properties = new ActorProperties();
         properties.setEnvironment(environment); // manually inject Environment
         return properties;
     }
