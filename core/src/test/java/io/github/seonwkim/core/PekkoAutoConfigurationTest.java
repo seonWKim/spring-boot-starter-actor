@@ -78,7 +78,7 @@ public class PekkoAutoConfigurationTest {
 
 			// Should be able to create the behavior by command class
 			Behavior<TestHelloActor.Command> behavior =
-					(Behavior<TestHelloActor.Command>) registry.createBehavior(TestHelloActor.class, new DefaultSpringActorContext("test-id"));
+                    registry.createTypedBehavior(TestHelloActor.class, new DefaultSpringActorContext("test-id"));
 
 			assertNotNull(behavior, "Behavior for TestHelloActor should be registered and non-null");
 		}

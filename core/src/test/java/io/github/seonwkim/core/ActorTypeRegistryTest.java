@@ -42,7 +42,7 @@ public class ActorTypeRegistryTest {
 								.build());
 
 		Behavior<DummyActor.Command> behavior =
-                (Behavior<DummyActor.Command>) registry.createBehavior(DummyActor.class, new DefaultSpringActorContext(UUID.randomUUID().toString()));
+                registry.createTypedBehavior(DummyActor.class, new DefaultSpringActorContext(UUID.randomUUID().toString()));
 		assertNotNull(behavior);
 	}
 
@@ -56,18 +56,15 @@ public class ActorTypeRegistryTest {
 								.build());
 
 		Behavior<DummyActor.Command> behavior =
-                (Behavior<DummyActor.Command>) registry.createBehavior(DummyActor.class, new DefaultSpringActorContext("custom-id"));
+                registry.createTypedBehavior(DummyActor.class, new DefaultSpringActorContext("custom-id"));
 
 		assertNotNull(behavior);
-		assertTrue(behavior instanceof Behavior<?>);
 	}
 
 	@Test
 	public void testThrowsOnMissingClassKey() {
 		assertThrows(
 				IllegalArgumentException.class,
-				() -> {
-					registry.createBehavior(DummyActor.class, new DefaultSpringActorContext("missing"));
-				});
+				() -> registry.createTypedBehavior(DummyActor.class, new DefaultSpringActorContext("missing")));
 	}
 }
