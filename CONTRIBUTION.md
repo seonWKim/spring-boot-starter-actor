@@ -8,7 +8,7 @@ Welcome to Spring Boot Starter Actor! This document outlines contribution areas 
 - [x] **Timeout Configuration Alignment** - Standardize timeout handling between SpringActorRef and SpringShardedActorRef
 - [x] **Builder Pattern** - Implement builder pattern for actor ref initialization
 - [x] **Type Safety** - Add stricter generic bounds and remove unchecked casts
-- [ ] **Direct Access** - Add getUnderlying() methods for advanced use cases
+- [x] **Direct Access** - Add getUnderlying() methods for advanced use cases
 
 ### Medium Priority
 - [ ] **Async Operations** - Add async tell methods and batch operations
