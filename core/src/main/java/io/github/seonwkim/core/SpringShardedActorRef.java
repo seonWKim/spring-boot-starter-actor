@@ -101,4 +101,13 @@ public class SpringShardedActorRef<T> {
 	public void tell(T message) {
 		entityRef.tell(message);
 	}
+
+	/**
+	 * Returns the underlying entity reference.
+	 *
+	 * @return The underlying Pekko EntityRef
+	 */
+	public EntityRef<T> getUnderlying() {
+		return entityRef;
+	}
 }

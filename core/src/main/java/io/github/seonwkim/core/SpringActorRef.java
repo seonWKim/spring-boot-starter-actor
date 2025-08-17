@@ -103,7 +103,7 @@ public class SpringActorRef<T> {
 	 *
 	 * @return The underlying Pekko ActorRef
 	 */
-	public ActorRef<T> getRef() {
+	public ActorRef<T> getUnderlying() {
 		return actorRef;
 	}
 }

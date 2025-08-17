@@ -45,7 +45,7 @@ public class ClusterShardingMetricsExporter {
         scheduler.scheduleAtFixedRate(() -> {
             shardStateActor.tell(new GetShardRegionState(
                     HelloActor.TYPE_KEY,
-                    metricsActors.getRef()
+                    metricsActors.getUnderlying()
             ));
         }, 0, 1, TimeUnit.SECONDS);
     }

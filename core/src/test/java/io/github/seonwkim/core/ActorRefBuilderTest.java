@@ -4,7 +4,6 @@ import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Scheduler;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityRef;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
 import java.time.Duration;
 
@@ -32,7 +31,7 @@ public class ActorRefBuilderTest {
 
         // Assert
         assertNotNull(ref);
-        assertEquals(actorRef, ref.getRef());
+        assertEquals(actorRef, ref.getUnderlying());
     }
 
     @Test
@@ -50,7 +49,7 @@ public class ActorRefBuilderTest {
 
         // Assert
         assertNotNull(ref);
-        assertEquals(actorRef, ref.getRef());
+        assertEquals(actorRef, ref.getUnderlying());
     }
 
     @Test
