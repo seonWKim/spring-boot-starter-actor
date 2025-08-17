@@ -31,6 +31,10 @@ public class TestActorSystem {
 				.thenApply(spawned -> (ActorRef<C>) spawned.ref);
 	}
 
+	public void terminate() {
+		actorSystem.terminate();
+	}
+
 	public static class Guardian {
 		public interface Command {}
 

@@ -7,12 +7,18 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.dynamic.DynamicType.Builder;
 import net.bytebuddy.matcher.ElementMatchers;
 import net.bytebuddy.utility.JavaModule;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ActorInstrumentation {
+	private static final Logger logger = LoggerFactory.getLogger(ActorInstrumentation.class);
+	
 	public static AgentBuilder decorate(AgentBuilder builder) {
 		return builder
 				.type(ElementMatchers.named("org.apache.pekko.actor.ActorCell"))
-				.transform(new ActorInstrumentationTransformer());
+				.transform(new ActorInstrumentationTransformer())
+				.type(ElementMatchers.named("org.apache.pekko.actor.UnstartedCell"))
+				.transform(new UnstartedCellTransformer());
 	}
 
 	public static class ActorInstrumentationTransformer implements Transformer {
@@ -23,12 +29,37 @@ public class ActorInstrumentation {
 				ClassLoader classLoader,
 				JavaModule module) {
 			return builder
+					// Track actor lifecycle - creation
+					.visit(
+							Advice.to(ActorCellConstructorAdvice.class)
+									.on(ElementMatchers.isConstructor()))
+					// Track actor lifecycle - termination
+					.visit(
+							Advice.to(ActorCellTerminateAdvice.class)
+									.on(ElementMatchers.named("terminate")))
+					// Track message processing
 					.visit(
 							Advice.to(ActorInstrumentation.InvokeAdvice.class)
 									.on(ElementMatchers.named("invoke")))
+					// Track batch message processing
 					.visit(
 							Advice.to(ActorInstrumentation.InvokeAllAdvice.class)
 									.on(ElementMatchers.named("invokeAll$1")));
+		}
+	}
+	
+	public static class UnstartedCellTransformer implements Transformer {
+		@Override
+		public Builder<?> transform(
+				Builder<?> builder,
+				TypeDescription typeDescription,
+				ClassLoader classLoader,
+				JavaModule module) {
+			return builder
+					// Track when UnstartedCell is replaced with ActorCell
+					.visit(
+							Advice.to(UnstartedCellReplaceWithAdvice.class)
+									.on(ElementMatchers.named("replaceWith")));
 		}
 	}
 
@@ -65,4 +96,26 @@ public class ActorInstrumentation {
 			ActorInstrumentationEventListener.invokeAllAdviceOnExit(messagesRef, startTime);
 		}
 	}
+	
+	public static class ActorCellConstructorAdvice {
+		@Advice.OnMethodExit(suppress = Throwable.class)
+		public static void onExit(@Advice.This Object cell) {
+			ActorSystemEventListener.onActorCreated(cell);
+		}
+	}
+	
+	public static class ActorCellTerminateAdvice {
+		@Advice.OnMethodEnter(suppress = Throwable.class)
+		public static void onEnter(@Advice.This Object cell) {
+			ActorSystemEventListener.onActorTerminated(cell);
+		}
+	}
+	
+	public static class UnstartedCellReplaceWithAdvice {
+		@Advice.OnMethodExit(suppress = Throwable.class)
+		public static void onExit(@Advice.This Object unstartedCell, @Advice.Argument(0) Object newCell) {
+			ActorSystemEventListener.onUnstartedCellReplaced(unstartedCell, newCell);
+		}
+	}
+	
 }
