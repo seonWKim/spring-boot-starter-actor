@@ -1,4 +1,4 @@
-package io.github.seonwkim.example;
+package io.github.seonwkim.example.metrics;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;

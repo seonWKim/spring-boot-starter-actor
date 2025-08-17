@@ -1,4 +1,4 @@
-package io.github.seonwkim.example;
+package io.github.seonwkim.example.metrics;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -15,7 +15,8 @@ import org.springframework.stereotype.Component;
 import io.github.seonwkim.core.SpringActorRef;
 import io.github.seonwkim.core.SpringActorSpawnContext;
 import io.github.seonwkim.core.SpringActorSystem;
-import io.github.seonwkim.example.ClusterShardingMetricsActor.ClusterShardingMetricsExporterContext;
+import io.github.seonwkim.example.HelloActor;
+import io.github.seonwkim.example.metrics.ClusterShardingMetricsActor.ClusterShardingMetricsExporterContext;
 import io.micrometer.core.instrument.MeterRegistry;
 
 @Component
