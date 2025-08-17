@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Usage:
-# ./cluster-start.sh <module> <mainClass> <basePort> <basePekkoPort> <instanceCount>
+# Usage: sh cluster-start.sh <module> <mainClass> <basePort> <basePekkoPort> <instanceCount>
+# e.g. sh cluster-start.sh chat io.github.seonwkim.example.SpringPekkoApplication 8080 2551 3
 
 # building metrics jar first
 ./gradlew :metrics:agentJar

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Usage:
-# sh cluster-start-with-jmx.sh chat io.github.seonwkim.example.SpringPekkoApplication 8080 2551 3 9091
+# sh cluster-start-with-jmx.sh chat io.github.seonwkim.example.SpringPekkoApplication 8080 2551 3
 
 set -e
 
