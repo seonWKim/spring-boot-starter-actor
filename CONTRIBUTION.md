@@ -11,10 +11,7 @@ Welcome to Spring Boot Starter Actor! This document outlines contribution areas 
 - [x] **Direct Access** - Add getUnderlying() methods for advanced use cases
 
 ### Medium Priority
-- [ ] **Async Operations** - Add async tell methods and batch operations
 - [ ] **Retry Mechanisms** - Implement retry policies with exponential backoff
-- [ ] **Spring Integration** - Add @ConfigurationProperties and auto-configuration
-- [ ] **Reactive Support** - Add Mono/Flux wrapper methods
 - [ ] **Basic Metrics** - Integrate with Micrometer for observability
 
 ### Low Priority
