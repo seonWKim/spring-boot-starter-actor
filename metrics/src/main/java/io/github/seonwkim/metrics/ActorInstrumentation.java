@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 
 import io.github.seonwkim.metrics.listener.InvokeAdviceEventListenersHolder;
 import io.github.seonwkim.metrics.listener.ActorLifeCycleEventListenersHolder;
+import io.github.seonwkim.metrics.listener.InvokeAllAdviceEventListenersHolder;
 
 public class ActorInstrumentation {
 	private static final Logger logger = LoggerFactory.getLogger(ActorInstrumentation.class);
@@ -88,7 +89,7 @@ public class ActorInstrumentation {
 		@Advice.OnMethodEnter(suppress = Throwable.class)
 		public static long onEnter(
 				@Advice.Argument(0) Object messages, @Advice.Local("messagesRef") Object messagesRef) {
-			InvokeAdviceEventListenersHolder.invokeAllAdviceOnEnter(messages);
+			InvokeAllAdviceEventListenersHolder.invokeAllAdviceOnEnter(messages);
 			messagesRef = messages;
 			return System.nanoTime();
 		}
@@ -96,7 +97,7 @@ public class ActorInstrumentation {
 		@Advice.OnMethodExit(onThrowable = Throwable.class)
 		public static void onExit(
 				@Advice.Local("messagesRef") Object messagesRef, @Advice.Enter long startTime) {
-			InvokeAdviceEventListenersHolder.invokeAllAdviceOnExit(messagesRef, startTime);
+			InvokeAllAdviceEventListenersHolder.invokeAllAdviceOnExit(messagesRef, startTime);
 		}
 	}
 	
