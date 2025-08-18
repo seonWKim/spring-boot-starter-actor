@@ -23,6 +23,7 @@ public class MetricsAgent {
 	 */
 	public static void premain(String arguments, Instrumentation instrumentation) {
 		AgentBuilder agentBuilder = new AgentBuilder.Default();
+		agentBuilder = EnvelopeInstrumentation.decorate(agentBuilder);
 		agentBuilder = ActorInstrumentation.decorate(agentBuilder);
 
 		agentBuilder.installOn(instrumentation);
