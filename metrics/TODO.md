@@ -2,7 +2,7 @@
 
 🎭 Actor Metrics
 
-- [ ] actor.processing-time - Time taken to process messages (Timer)
+- [x] actor.processing-time - Time taken to process messages (Timer)
   - **Test Strategy:** Create actor -> Send message -> Verify metric value > 0 after processing completes
 - [ ] actor.time-in-mailbox - Time from message enqueue to dequeue (Timer)
   - **Test Strategy:** Create actor with slow message handler -> Send multiple messages -> Verify time-in-mailbox metric increases for queued messages

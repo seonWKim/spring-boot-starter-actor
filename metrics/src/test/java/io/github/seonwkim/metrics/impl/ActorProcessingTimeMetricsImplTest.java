@@ -14,7 +14,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import io.github.seonwkim.metrics.TestActorSystem;
-import io.github.seonwkim.metrics.impl.ActorProcessingTimeMetricsImplTest.TestFastActor.Command;
 import io.github.seonwkim.metrics.listener.ActorInstrumentationEventListener;
 
 class ActorProcessingTimeMetricsImplTest {
@@ -53,45 +52,36 @@ class ActorProcessingTimeMetricsImplTest {
         assertNotNull(timerMetric, "Timer metric should be recorded");
         assertEquals(1, timerMetric.getCount(), "Should have processed 1 message");
 
-        // Processing time should be at least 100ms (the sleep time)
-        assertTrue(timerMetric.getMinTimeMillis() >= 100,
-                   "Min processing time should be at least 100ms, was: " + timerMetric.getMinTimeMillis());
-        assertTrue(timerMetric.getMaxTimeMillis() >= 100,
-                   "Max processing time should be at least 100ms, was: " + timerMetric.getMaxTimeMillis());
-        assertTrue(timerMetric.getAverageTimeMillis() >= 100,
-                   "Average processing time should be at least 100ms, was: "
-                   + timerMetric.getAverageTimeMillis());
-        assertTrue(timerMetric.getTotalTimeMillis() >= 100,
-                   "Total processing time should be at least 100ms, was: " + timerMetric.getTotalTimeMillis());
+        // Processing time should be at least 100ms (100,000,000 nanos)
+        long expectedMinNanos = 100_000_000L; // 100ms in nanoseconds
+        assertTrue(timerMetric.getMinTimeNanos() >= expectedMinNanos,
+                   "Min processing time should be at least 100ms (100,000,000ns), was: " + timerMetric.getMinTimeNanos());
+        assertTrue(timerMetric.getMaxTimeNanos() >= expectedMinNanos,
+                   "Max processing time should be at least 100ms (100,000,000ns), was: " + timerMetric.getMaxTimeNanos());
+        assertTrue(timerMetric.getAverageTimeNanos() >= expectedMinNanos,
+                   "Average processing time should be at least 100ms (100,000,000ns), was: "
+                   + timerMetric.getAverageTimeNanos());
+        assertTrue(timerMetric.getTotalTimeNanos() >= expectedMinNanos,
+                   "Total processing time should be at least 100ms (100,000,000ns), was: " + timerMetric.getTotalTimeNanos());
     }
 
     @Test
     void testMultipleMessagesMetrics() throws Exception {
         AtomicBoolean messageProcessed = new AtomicBoolean(false);
 
-        // Create behavior for fast processing
-        Behavior<TestFastActor.Command> behavior = Behaviors.setup(ctx ->
-                                                                           Behaviors.receive(
-                                                                                            TestFastActor.Command.class)
-                                                                                    .onMessage(
-                                                                                            TestFastActor.QuickProcess.class,
-                                                                                            msg -> {
-                                                                                                messageProcessed.set(
-                                                                                                        true);
-                                                                                                return Behaviors.same();
-                                                                                            })
-                                                                                    .build());
+        // Spawn actor
+        ActorRef<TestFastActor.Command> actor = actorSystem.spawn(
+                TestFastActor.Command.class,
+                "fast-actor-" + UUID.randomUUID(),
+                TestFastActor.create(messageProcessed),
+                Duration.ofSeconds(2))
+                .toCompletableFuture()
+                .get(2, TimeUnit.SECONDS);
 
         // Send multiple messages
         for (int i = 0; i < 3; i++) {
             messageProcessed.set(false);
-            actorSystem.spawn(
-                               TestFastActor.QuickProcess.class,
-                               "fast-actor-" + UUID.randomUUID(),
-                               behavior,
-                               Duration.ofSeconds(2))
-                       .toCompletableFuture()
-                       .get(2, TimeUnit.SECONDS);
+            actor.tell(new TestFastActor.QuickProcess());
 
             // Wait for message to be processed
             Thread.sleep(50);
@@ -103,21 +93,21 @@ class ActorProcessingTimeMetricsImplTest {
 
         // Verify metrics were recorded for all messages
         ActorProcessingTimeMetricsImpl.TimerMetric timerMetric =
-                metrics.getProcessingTimeMetric("QuickProcess");
+                metrics.getProcessingTimeMetric(TestFastActor.QuickProcess.class.getSimpleName());
 
         assertNotNull(timerMetric, "Timer metric should be recorded");
         assertEquals(3, timerMetric.getCount(), "Should have processed 3 messages");
 
-        // All times should be positive
-        assertTrue(timerMetric.getMinTimeMillis() >= 0, "Min time should be non-negative");
-        assertTrue(timerMetric.getMaxTimeMillis() >= 0, "Max time should be non-negative");
-        assertTrue(timerMetric.getAverageTimeMillis() >= 0, "Average time should be non-negative");
-        assertTrue(timerMetric.getTotalTimeMillis() >= 0, "Total time should be non-negative");
+        // All times should be positive (greater than 0 for fast operations)
+        assertTrue(timerMetric.getMinTimeNanos() > 0, "Min time should be positive");
+        assertTrue(timerMetric.getMaxTimeNanos() > 0, "Max time should be positive");
+        assertTrue(timerMetric.getAverageTimeNanos() > 0, "Average time should be positive");
+        assertTrue(timerMetric.getTotalTimeNanos() > 0, "Total time should be positive");
 
         // Min should be <= average <= max
-        assertTrue(timerMetric.getMinTimeMillis() <= timerMetric.getAverageTimeMillis(),
+        assertTrue(timerMetric.getMinTimeNanos() <= timerMetric.getAverageTimeNanos(),
                    "Min should be <= average");
-        assertTrue(timerMetric.getAverageTimeMillis() <= timerMetric.getMaxTimeMillis(),
+        assertTrue(timerMetric.getAverageTimeNanos() <= timerMetric.getMaxTimeNanos(),
                    "Average should be <= max");
     }
 
@@ -125,33 +115,17 @@ class ActorProcessingTimeMetricsImplTest {
     void testMetricsWithDifferentMessageTypes() throws Exception {
         AtomicBoolean pingProcessed = new AtomicBoolean(false);
 
-        // Create behavior that handles Ping and Pong differently
-        Behavior<TestMultiMessageActor.Command> behavior = Behaviors.setup(ctx ->
-                                                                                   Behaviors.receive(
-                                                                                                    TestMultiMessageActor.Command.class)
-                                                                                            .onMessage(
-                                                                                                    TestMultiMessageActor.Ping.class,
-                                                                                                    msg -> {
-                                                                                                        pingProcessed.set(
-                                                                                                                true);
-                                                                                                        return Behaviors.same();
-                                                                                                    })
-                                                                                            .onMessage(
-                                                                                                    TestMultiMessageActor.Pong.class,
-                                                                                                    msg -> {
-                                                                                                        // This won't be called in this test
-                                                                                                        return Behaviors.same();
-                                                                                                    })
-                                                                                            .build());
+        // Spawn actor
+        ActorRef<TestMultiMessageActor.Command> actor = actorSystem.spawn(
+                TestMultiMessageActor.Command.class,
+                "multi-msg-actor-" + UUID.randomUUID(),
+                TestMultiMessageActor.create(pingProcessed),
+                Duration.ofSeconds(3))
+                .toCompletableFuture()
+                .get(3, TimeUnit.SECONDS);
 
         // Send Ping message
-        actorSystem.spawn(
-                           TestMultiMessageActor.Ping.class,
-                           "multi-msg-actor-" + UUID.randomUUID(),
-                           behavior,
-                           Duration.ofSeconds(3))
-                   .toCompletableFuture()
-                   .get(3, TimeUnit.SECONDS);
+        actor.tell(new TestMultiMessageActor.Ping());
 
         // Wait for message to be processed
         Thread.sleep(100);
@@ -196,6 +170,17 @@ class ActorProcessingTimeMetricsImplTest {
         public interface Command {}
 
         public static class QuickProcess implements Command {}
+
+        public static Behavior<Command> create(AtomicBoolean messageProcessed) {
+            return Behaviors.setup(
+                    ctx ->
+                            Behaviors.receive(TestFastActor.Command.class)
+                                     .onMessage(TestFastActor.QuickProcess.class, msg -> {
+                                         messageProcessed.set(true);
+                                         return Behaviors.same();
+                                     })
+                                     .build());
+        }
     }
 
     static class TestMultiMessageActor {
@@ -204,5 +189,20 @@ class ActorProcessingTimeMetricsImplTest {
         public static class Ping implements Command {}
 
         public static class Pong implements Command {}
+
+        public static Behavior<Command> create(AtomicBoolean pingProcessed) {
+            return Behaviors.setup(
+                    ctx ->
+                            Behaviors.receive(TestMultiMessageActor.Command.class)
+                                     .onMessage(TestMultiMessageActor.Ping.class, msg -> {
+                                         pingProcessed.set(true);
+                                         return Behaviors.same();
+                                     })
+                                     .onMessage(TestMultiMessageActor.Pong.class, msg -> {
+                                         // This won't be called in this test
+                                         return Behaviors.same();
+                                     })
+                                     .build());
+        }
     }
 }

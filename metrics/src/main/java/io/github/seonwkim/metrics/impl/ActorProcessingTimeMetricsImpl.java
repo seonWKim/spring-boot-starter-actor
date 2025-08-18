@@ -86,25 +86,25 @@ public class ActorProcessingTimeMetricsImpl implements ActorInstrumentationEvent
 			return count.sum();
 		}
 		
-		public long getTotalTimeMillis() {
-			return TimeUnit.NANOSECONDS.toMillis(totalTimeNanos.sum());
+		public long getTotalTimeNanos() {
+			return totalTimeNanos.sum();
 		}
 		
-		public long getAverageTimeMillis() {
+		public long getAverageTimeNanos() {
 			long countValue = count.sum();
 			if (countValue == 0) {
 				return 0;
 			}
-			return TimeUnit.NANOSECONDS.toMillis(totalTimeNanos.sum() / countValue);
+			return totalTimeNanos.sum() / countValue;
 		}
 		
-		public long getMinTimeMillis() {
+		public long getMinTimeNanos() {
 			long min = minTimeNanos.get();
-			return min == Long.MAX_VALUE ? 0 : TimeUnit.NANOSECONDS.toMillis(min);
+			return min == Long.MAX_VALUE ? 0 : min;
 		}
 		
-		public long getMaxTimeMillis() {
-			return TimeUnit.NANOSECONDS.toMillis(maxTimeNanos.get());
+		public long getMaxTimeNanos() {
+			return maxTimeNanos.get();
 		}
 	}
 }
