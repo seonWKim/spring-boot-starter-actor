@@ -1,4 +1,4 @@
-package io.github.seonwkim.metrics;
+package io.github.seonwkim.metrics.listener;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -10,6 +10,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.junit.jupiter.api.Test;
+
+import io.github.seonwkim.metrics.TestActorSystem;
 
 class ActorInstrumentationEventListenerTest {
 

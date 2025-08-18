@@ -1,4 +1,4 @@
-package io.github.seonwkim.metrics;
+package io.github.seonwkim.metrics.listener;
 
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;

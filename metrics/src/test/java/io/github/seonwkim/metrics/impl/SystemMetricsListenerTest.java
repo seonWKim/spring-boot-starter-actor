@@ -1,4 +1,4 @@
-package io.github.seonwkim.metrics;
+package io.github.seonwkim.metrics.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -14,7 +14,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class SystemActiveActorsMetricTest {
+import io.github.seonwkim.metrics.TestActorSystem;
+import io.github.seonwkim.metrics.listener.ActorSystemEventListener;
+
+class SystemMetricsListenerTest {
 
     private TestActorSystem actorSystem;
     private SystemMetricsListener metricsListener;

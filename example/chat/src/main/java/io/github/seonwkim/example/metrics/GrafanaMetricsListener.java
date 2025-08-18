@@ -1,10 +1,10 @@
 package io.github.seonwkim.example.metrics;
 
-import io.github.seonwkim.metrics.ActorSystemEventListener;
+import io.github.seonwkim.metrics.listener.ActorSystemEventListener;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.Tags;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;

@@ -10,6 +10,9 @@ import net.bytebuddy.utility.JavaModule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.github.seonwkim.metrics.listener.ActorInstrumentationEventListener;
+import io.github.seonwkim.metrics.listener.ActorSystemEventListener;
+
 public class ActorInstrumentation {
 	private static final Logger logger = LoggerFactory.getLogger(ActorInstrumentation.class);
 	

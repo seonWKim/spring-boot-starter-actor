@@ -1,7 +1,9 @@
-package io.github.seonwkim.metrics;
+package io.github.seonwkim.metrics.impl;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.github.seonwkim.metrics.listener.ActorSystemEventListener;
 
 public class SystemMetricsListener implements ActorSystemEventListener.ActorLifecycleEventListener {
 	private static final Logger logger = LoggerFactory.getLogger(SystemMetricsListener.class);
