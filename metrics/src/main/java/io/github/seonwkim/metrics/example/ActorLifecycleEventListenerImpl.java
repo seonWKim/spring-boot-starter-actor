@@ -7,8 +7,8 @@ import org.slf4j.LoggerFactory;
 
 import io.github.seonwkim.metrics.listener.ActorSystemEventListener;
 
-public class ActorSystemEventListenerImpl implements ActorSystemEventListener.ActorLifecycleEventListener {
-	private static final Logger logger = LoggerFactory.getLogger(ActorSystemEventListenerImpl.class);
+public class ActorLifecycleEventListenerImpl implements ActorSystemEventListener.ActorLifecycleEventListener {
+	private static final Logger logger = LoggerFactory.getLogger(ActorLifecycleEventListenerImpl.class);
 
 	// Actor path constants
 	private static final String PEKKO_PREFIX = "pekko://";
