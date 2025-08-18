@@ -58,7 +58,7 @@ class InvokeAdviceEventListenersHolderTest {
 		AtomicBoolean onExitCalled = new AtomicBoolean(false);
 
 		var listener =
-				new InvokeAdviceEventListenersHolder.InvokeAllAdviceEventListener() {
+				new InvokeAllAdviceEventListenersHolder.InvokeAllAdviceEventListener() {
 					@Override
 					public void onEnter(Object messages) {
 						onEnterCalled.set(true);
@@ -69,7 +69,7 @@ class InvokeAdviceEventListenersHolderTest {
 						onExitCalled.set(true);
 					}
 				};
-		InvokeAdviceEventListenersHolder.register(listener);
+		InvokeAllAdviceEventListenersHolder.register(listener);
 
 		TestActorSystem actorSystem = new TestActorSystem();
 

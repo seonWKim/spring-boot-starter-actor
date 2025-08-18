@@ -4,49 +4,27 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class InvokeAdviceEventListenersHolder {
-	private static final Queue<InvokeAdviceEventListener> invokeAdviceEventListeners =
-			new ConcurrentLinkedQueue<>();
-	private static final Queue<InvokeAllAdviceEventListener> invokeAllAdviceEventListeners =
-			new ConcurrentLinkedQueue<>();
+    private static final Queue<InvokeAdviceEventListener> holder = new ConcurrentLinkedQueue<>();
 
-	public interface InvokeAdviceEventListener {
-		void onEnter(Object envelope);
+    public interface InvokeAdviceEventListener {
+        void onEnter(Object envelope);
 
-		void onExit(Object envelope, long startTime);
-	}
+        void onExit(Object envelope, long startTime);
+    }
 
-	public interface InvokeAllAdviceEventListener {
-		void onEnter(Object messages);
+    public static void register(InvokeAdviceEventListener listener) {
+        holder.add(listener);
+    }
 
-		void onExit(Object messages, long startTime);
-	}
+    public static void invokeAdviceOnEnter(Object envelope) {
+        holder.forEach(it -> it.onEnter(envelope));
+    }
 
-	public static void register(InvokeAdviceEventListener listener) {
-		invokeAdviceEventListeners.add(listener);
-	}
+    public static void invokeAdviceOnExit(Object envelope, long startTime) {
+        holder.forEach(it -> it.onExit(envelope, startTime));
+    }
 
-	public static void register(InvokeAllAdviceEventListener listener) {
-		invokeAllAdviceEventListeners.add(listener);
-	}
-
-	public static void invokeAdviceOnEnter(Object envelope) {
-		invokeAdviceEventListeners.forEach(it -> it.onEnter(envelope));
-	}
-
-	public static void invokeAdviceOnExit(Object envelope, long startTime) {
-		invokeAdviceEventListeners.forEach(it -> it.onExit(envelope, startTime));
-	}
-
-	public static void invokeAllAdviceOnEnter(Object messages) {
-		invokeAllAdviceEventListeners.forEach(it -> it.onEnter(messages));
-	}
-
-	public static void invokeAllAdviceOnExit(Object messages, long starTime) {
-		invokeAllAdviceEventListeners.forEach(it -> it.onExit(messages, starTime));
-	}
-
-	public static void reset() {
-		invokeAdviceEventListeners.clear();
-		invokeAllAdviceEventListeners.clear();
-	}
+    public static void reset() {
+        holder.clear();
+    }
 }
