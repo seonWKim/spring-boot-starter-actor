@@ -1,4 +1,4 @@
-package io.github.seonwkim.metrics.impl;
+package io.github.seonwkim.metrics.example;
 
 import static org.junit.jupiter.api.Assertions.*;
 

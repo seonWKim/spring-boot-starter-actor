@@ -1,4 +1,4 @@
-package io.github.seonwkim.metrics.impl;
+package io.github.seonwkim.metrics.example;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
