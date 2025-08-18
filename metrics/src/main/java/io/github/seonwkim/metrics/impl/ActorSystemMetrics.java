@@ -2,14 +2,14 @@ package io.github.seonwkim.metrics.impl;
 
 import java.util.concurrent.atomic.AtomicLong;
 
-public class SystemMetrics {
-	private static final SystemMetrics INSTANCE = new SystemMetrics();
+public class ActorSystemMetrics {
+	private static final ActorSystemMetrics INSTANCE = new ActorSystemMetrics();
 	
 	private final AtomicLong activeActors = new AtomicLong(0);
 	
-	private SystemMetrics() {}
+	private ActorSystemMetrics() {}
 	
-	public static SystemMetrics getInstance() {
+	public static ActorSystemMetrics getInstance() {
 		return INSTANCE;
 	}
 	

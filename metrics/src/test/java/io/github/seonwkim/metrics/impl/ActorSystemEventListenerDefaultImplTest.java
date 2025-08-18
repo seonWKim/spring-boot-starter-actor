@@ -17,18 +17,18 @@ import org.junit.jupiter.api.Test;
 import io.github.seonwkim.metrics.TestActorSystem;
 import io.github.seonwkim.metrics.listener.ActorSystemEventListener;
 
-class SystemMetricsListenerTest {
+class ActorSystemEventListenerDefaultImplTest {
 
     private TestActorSystem actorSystem;
-    private SystemMetricsListener metricsListener;
+    private ActorSystemEventListenerDefaultImpl metricsListener;
 
     @BeforeEach
     void setUp() {
-        SystemMetrics.getInstance().reset();
+        ActorSystemMetrics.getInstance().reset();
         actorSystem = new TestActorSystem();
 
         // Register the system metrics listener
-        metricsListener = new SystemMetricsListener();
+        metricsListener = new ActorSystemEventListenerDefaultImpl();
         ActorSystemEventListener.register(metricsListener);
     }
 
@@ -40,12 +40,12 @@ class SystemMetricsListenerTest {
         if (actorSystem != null) {
             actorSystem.terminate();
         }
-        SystemMetrics.getInstance().reset();
+        ActorSystemMetrics.getInstance().reset();
     }
 
     @Test
     void testActiveActorsGaugeIncrementsOnActorCreation() throws Exception {
-        long initialCount = SystemMetrics.getInstance().getActiveActors();
+        long initialCount = ActorSystemMetrics.getInstance().getActiveActors();
 
         actorSystem.spawn(
                            TestActor.Command.class,
@@ -55,7 +55,7 @@ class SystemMetricsListenerTest {
                    .toCompletableFuture()
                    .get(3, TimeUnit.SECONDS);
 
-        long afterFirstActor = SystemMetrics.getInstance().getActiveActors();
+        long afterFirstActor = ActorSystemMetrics.getInstance().getActiveActors();
         assertEquals(initialCount + 1, afterFirstActor,
                      "Active actors count should increase by 1 after creating an actor");
 
@@ -68,7 +68,7 @@ class SystemMetricsListenerTest {
                    .get(3, TimeUnit.SECONDS);
 
         Thread.sleep(200);
-        long afterSecondActor = SystemMetrics.getInstance().getActiveActors();
+        long afterSecondActor = ActorSystemMetrics.getInstance().getActiveActors();
         assertEquals(initialCount + 2, afterSecondActor,
                      "Active actors count should increase by 2 after creating two actors");
     }
@@ -76,7 +76,7 @@ class SystemMetricsListenerTest {
     @Test
     void testActiveActorsGaugeWithMultipleActors() throws Exception {
         Thread.sleep(500); // Wait for system initialization
-        long initialCount = SystemMetrics.getInstance().getActiveActors();
+        long initialCount = ActorSystemMetrics.getInstance().getActiveActors();
         List<ActorRef<TestActor.Command>> actors = new ArrayList<>();
 
         for (int i = 0; i < 3; i++) {
@@ -91,7 +91,7 @@ class SystemMetricsListenerTest {
         }
 
         Thread.sleep(200);
-        long finalCount = SystemMetrics.getInstance().getActiveActors();
+        long finalCount = ActorSystemMetrics.getInstance().getActiveActors();
         assertEquals(initialCount + 3, finalCount,
                      "Active actors count should increase by 3 after creating 3 actors");
     }
@@ -99,7 +99,7 @@ class SystemMetricsListenerTest {
     @Test
     void testActiveActorsGaugeDecrementsOnActorTermination() throws Exception {
         Thread.sleep(500); // Wait for system initialization
-        long initialCount = SystemMetrics.getInstance().getActiveActors();
+        long initialCount = ActorSystemMetrics.getInstance().getActiveActors();
 
         ActorRef<TestActor.Command> actor = actorSystem.spawn(
                                                                TestActor.Command.class,
@@ -110,14 +110,14 @@ class SystemMetricsListenerTest {
                                                        .get(3, TimeUnit.SECONDS);
 
         Thread.sleep(200);
-        long afterCreation = SystemMetrics.getInstance().getActiveActors();
+        long afterCreation = ActorSystemMetrics.getInstance().getActiveActors();
         assertEquals(initialCount + 1, afterCreation,
                      "Active actors count should increase by 1 after creating an actor");
 
         actor.tell(new TestActor.Stop());
 
         Thread.sleep(500);
-        long afterTermination = SystemMetrics.getInstance().getActiveActors();
+        long afterTermination = ActorSystemMetrics.getInstance().getActiveActors();
         assertEquals(initialCount, afterTermination,
                      "Active actors count should return to initial value after actor termination");
     }
@@ -125,7 +125,7 @@ class SystemMetricsListenerTest {
     @Test
     void testActiveActorsGaugeWithMixedLifecycle() throws Exception {
         Thread.sleep(500); // Wait for system initialization
-        long initialCount = SystemMetrics.getInstance().getActiveActors();
+        long initialCount = ActorSystemMetrics.getInstance().getActiveActors();
         List<ActorRef<TestActor.Command>> actors = new ArrayList<>();
 
         for (int i = 0; i < 5; i++) {
@@ -140,7 +140,7 @@ class SystemMetricsListenerTest {
         }
 
         Thread.sleep(200);
-        long afterFiveActors = SystemMetrics.getInstance().getActiveActors();
+        long afterFiveActors = ActorSystemMetrics.getInstance().getActiveActors();
         assertEquals(initialCount + 5, afterFiveActors,
                      "Active actors count should increase by 5 after creating 5 actors");
 
@@ -148,7 +148,7 @@ class SystemMetricsListenerTest {
         actors.get(1).tell(new TestActor.Stop());
 
         Thread.sleep(500);
-        long afterTwoStopped = SystemMetrics.getInstance().getActiveActors();
+        long afterTwoStopped = ActorSystemMetrics.getInstance().getActiveActors();
         assertEquals(initialCount + 3, afterTwoStopped,
                      "Active actors count should decrease by 2 after terminating 2 actors");
 
@@ -161,7 +161,7 @@ class SystemMetricsListenerTest {
                    .get(3, TimeUnit.SECONDS);
 
         Thread.sleep(200);
-        long afterNewActor = SystemMetrics.getInstance().getActiveActors();
+        long afterNewActor = ActorSystemMetrics.getInstance().getActiveActors();
         assertEquals(initialCount + 4, afterNewActor,
                      "Active actors count should increase by 1 after creating 1 more actor");
     }

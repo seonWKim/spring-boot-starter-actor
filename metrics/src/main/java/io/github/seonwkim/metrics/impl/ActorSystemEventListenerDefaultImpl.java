@@ -5,8 +5,8 @@ import org.slf4j.LoggerFactory;
 
 import io.github.seonwkim.metrics.listener.ActorSystemEventListener;
 
-public class SystemMetricsListener implements ActorSystemEventListener.ActorLifecycleEventListener {
-	private static final Logger logger = LoggerFactory.getLogger(SystemMetricsListener.class);
+public class ActorSystemEventListenerDefaultImpl implements ActorSystemEventListener.ActorLifecycleEventListener {
+	private static final Logger logger = LoggerFactory.getLogger(ActorSystemEventListenerDefaultImpl.class);
 
 	// Actor path constants
 	private static final String PEKKO_PREFIX = "pekko://";
@@ -18,8 +18,8 @@ public class SystemMetricsListener implements ActorSystemEventListener.ActorLife
 	public void onActorCreated(Object actorCell) {
 		try {
 			if (!isTemporaryActor(actorCell)) {
-				SystemMetrics.getInstance().incrementActiveActors();
-				logger.debug("Actor created, active actors: {}", SystemMetrics.getInstance().getActiveActors());
+				ActorSystemMetrics.getInstance().incrementActiveActors();
+				logger.debug("Actor created, active actors: {}", ActorSystemMetrics.getInstance().getActiveActors());
 			}
 		} catch (Exception e) {
 			logger.error("Error in onActorCreated", e);
@@ -30,8 +30,8 @@ public class SystemMetricsListener implements ActorSystemEventListener.ActorLife
 	public void onActorTerminated(Object actorCell) {
 		try {
 			if (!isTemporaryActor(actorCell)) {
-				SystemMetrics.getInstance().decrementActiveActors();
-				logger.debug("Actor terminated, active actors: {}", SystemMetrics.getInstance().getActiveActors());
+				ActorSystemMetrics.getInstance().decrementActiveActors();
+				logger.debug("Actor terminated, active actors: {}", ActorSystemMetrics.getInstance().getActiveActors());
 			}
 		} catch (Exception e) {
 			logger.error("Error in onActorTerminated", e);
