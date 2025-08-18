@@ -1,18 +1,49 @@
 package io.github.seonwkim.metrics.impl;
 
+import java.util.concurrent.atomic.AtomicLong;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.github.seonwkim.metrics.listener.ActorSystemEventListener;
 
-public class ActorSystemEventListenerDefaultImpl implements ActorSystemEventListener.ActorLifecycleEventListener {
-	private static final Logger logger = LoggerFactory.getLogger(ActorSystemEventListenerDefaultImpl.class);
+public class ActorSystemEventListenerImpl implements ActorSystemEventListener.ActorLifecycleEventListener {
+	private static final Logger logger = LoggerFactory.getLogger(ActorSystemEventListenerImpl.class);
 
 	// Actor path constants
 	private static final String PEKKO_PREFIX = "pekko://";
 	private static final String SYSTEM_PATH = "/system/";
 	private static final String TEMP_PATH = "/temp/";
 	private static final String STREAM_PATH = "/stream";
+
+	public static class ActorSystemMetrics {
+		private static final ActorSystemMetrics INSTANCE = new ActorSystemMetrics();
+
+		private final AtomicLong activeActors = new AtomicLong(0);
+
+		private ActorSystemMetrics() {}
+
+		public static ActorSystemMetrics getInstance() {
+			return INSTANCE;
+		}
+
+		public void incrementActiveActors() {
+			activeActors.incrementAndGet();
+		}
+
+		public void decrementActiveActors() {
+			activeActors.decrementAndGet();
+		}
+
+		public long getActiveActors() {
+			return activeActors.get();
+		}
+
+		public void reset() {
+			activeActors.set(0);
+		}
+	}
+
 
 	@Override
 	public void onActorCreated(Object actorCell) {
