@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
 
 import io.github.seonwkim.metrics.TestActorSystem;
 
-class ActorInstrumentationEventListenerTest {
+class InvokeAdviceEventListenersHolderTest {
 
 	@Test
 	void invokeAdviceTest() {
@@ -21,7 +21,7 @@ class ActorInstrumentationEventListenerTest {
 		AtomicBoolean onExitCalled = new AtomicBoolean(false);
 
 		var listener =
-				new ActorInstrumentationEventListener.InvokeAdviceEventListener() {
+				new InvokeAdviceEventListenersHolder.InvokeAdviceEventListener() {
 					@Override
 					public void onEnter(Object envelope) {
 						onEnterCalled.set(true);
@@ -32,7 +32,7 @@ class ActorInstrumentationEventListenerTest {
 						onExitCalled.set(true);
 					}
 				};
-		ActorInstrumentationEventListener.register(listener);
+		InvokeAdviceEventListenersHolder.register(listener);
 
 		TestActorSystem actorSystem = new TestActorSystem();
 
@@ -58,7 +58,7 @@ class ActorInstrumentationEventListenerTest {
 		AtomicBoolean onExitCalled = new AtomicBoolean(false);
 
 		var listener =
-				new ActorInstrumentationEventListener.InvokeAllAdviceEventListener() {
+				new InvokeAdviceEventListenersHolder.InvokeAllAdviceEventListener() {
 					@Override
 					public void onEnter(Object messages) {
 						onEnterCalled.set(true);
@@ -69,7 +69,7 @@ class ActorInstrumentationEventListenerTest {
 						onExitCalled.set(true);
 					}
 				};
-		ActorInstrumentationEventListener.register(listener);
+		InvokeAdviceEventListenersHolder.register(listener);
 
 		TestActorSystem actorSystem = new TestActorSystem();
 

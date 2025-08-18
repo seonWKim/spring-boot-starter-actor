@@ -14,20 +14,20 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import io.github.seonwkim.metrics.TestActorSystem;
-import io.github.seonwkim.metrics.listener.ActorInstrumentationEventListener;
+import io.github.seonwkim.metrics.listener.InvokeAdviceEventListenersHolder;
 
-class ActorInstrumentationEventListenerImplTest {
+class InvokeAdviceEventListenersHolderImplTest {
 
     private TestActorSystem actorSystem;
     private ActorInstrumentationEventListenerImpl metrics;
 
     @BeforeEach
     void setUp() {
-        ActorInstrumentationEventListener.reset();
+        InvokeAdviceEventListenersHolder.reset();
 
         actorSystem = new TestActorSystem();
         metrics = new ActorInstrumentationEventListenerImpl();
-        ActorInstrumentationEventListener.register(metrics);
+        InvokeAdviceEventListenersHolder.register(metrics);
     }
 
     @Test

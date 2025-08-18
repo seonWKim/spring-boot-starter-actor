@@ -10,7 +10,7 @@ import net.bytebuddy.utility.JavaModule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.github.seonwkim.metrics.listener.ActorInstrumentationEventListener;
+import io.github.seonwkim.metrics.listener.InvokeAdviceEventListenersHolder;
 import io.github.seonwkim.metrics.listener.ActorLifeCycleEventListenersHolder;
 
 public class ActorInstrumentation {
@@ -71,7 +71,7 @@ public class ActorInstrumentation {
 		@Advice.OnMethodEnter(suppress = Throwable.class)
 		public static long onEnter(
 				@Advice.Argument(0) Object envelope, @Advice.Local("envelopRef") Object envelopeRef) {
-			ActorInstrumentationEventListener.invokeAdviceOnEnter(envelope);
+			InvokeAdviceEventListenersHolder.invokeAdviceOnEnter(envelope);
 			envelopeRef = envelope;
 			return System.nanoTime();
 		}
@@ -79,7 +79,7 @@ public class ActorInstrumentation {
 		@Advice.OnMethodExit(onThrowable = Throwable.class)
 		public static void onExit(
 				@Advice.Local("envelopRef") Object envelopeRef, @Advice.Enter long startTime) {
-			ActorInstrumentationEventListener.invokeAdviceOnExit(envelopeRef, startTime);
+			InvokeAdviceEventListenersHolder.invokeAdviceOnExit(envelopeRef, startTime);
 		}
 	}
 
@@ -88,7 +88,7 @@ public class ActorInstrumentation {
 		@Advice.OnMethodEnter(suppress = Throwable.class)
 		public static long onEnter(
 				@Advice.Argument(0) Object messages, @Advice.Local("messagesRef") Object messagesRef) {
-			ActorInstrumentationEventListener.invokeAllAdviceOnEnter(messages);
+			InvokeAdviceEventListenersHolder.invokeAllAdviceOnEnter(messages);
 			messagesRef = messages;
 			return System.nanoTime();
 		}
@@ -96,7 +96,7 @@ public class ActorInstrumentation {
 		@Advice.OnMethodExit(onThrowable = Throwable.class)
 		public static void onExit(
 				@Advice.Local("messagesRef") Object messagesRef, @Advice.Enter long startTime) {
-			ActorInstrumentationEventListener.invokeAllAdviceOnExit(messagesRef, startTime);
+			InvokeAdviceEventListenersHolder.invokeAllAdviceOnExit(messagesRef, startTime);
 		}
 	}
 	

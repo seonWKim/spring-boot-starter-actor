@@ -3,7 +3,7 @@ package io.github.seonwkim.metrics.listener;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-public class ActorInstrumentationEventListener {
+public class InvokeAdviceEventListenersHolder {
 	private static final Queue<InvokeAdviceEventListener> invokeAdviceEventListeners =
 			new ConcurrentLinkedQueue<>();
 	private static final Queue<InvokeAllAdviceEventListener> invokeAllAdviceEventListeners =
