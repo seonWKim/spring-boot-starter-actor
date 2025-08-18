@@ -45,7 +45,7 @@ public class ActorInstrumentationEventListener {
 		invokeAllAdviceEventListeners.forEach(it -> it.onExit(messages, starTime));
 	}
 
-	public void reset() {
+	public static void reset() {
 		invokeAdviceEventListeners.clear();
 		invokeAllAdviceEventListeners.clear();
 	}
