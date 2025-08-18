@@ -9,8 +9,8 @@ import org.slf4j.LoggerFactory;
 
 import io.github.seonwkim.metrics.listener.ActorInstrumentationEventListener;
 
-public class ActorProcessingTimeMetricsImpl implements ActorInstrumentationEventListener.InvokeAdviceEventListener {
-	private static final Logger logger = LoggerFactory.getLogger(ActorProcessingTimeMetricsImpl.class);
+public class ActorInstrumentationEventListenerImpl implements ActorInstrumentationEventListener.InvokeAdviceEventListener {
+	private static final Logger logger = LoggerFactory.getLogger(ActorInstrumentationEventListenerImpl.class);
 
 	private final ConcurrentHashMap<String, TimerMetric> processingTimeMetrics = new ConcurrentHashMap<>();
 

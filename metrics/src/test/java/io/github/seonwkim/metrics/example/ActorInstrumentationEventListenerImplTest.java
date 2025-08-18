@@ -16,17 +16,17 @@ import org.junit.jupiter.api.Test;
 import io.github.seonwkim.metrics.TestActorSystem;
 import io.github.seonwkim.metrics.listener.ActorInstrumentationEventListener;
 
-class ActorProcessingTimeMetricsImplTest {
+class ActorInstrumentationEventListenerImplTest {
 
     private TestActorSystem actorSystem;
-    private ActorProcessingTimeMetricsImpl metrics;
+    private ActorInstrumentationEventListenerImpl metrics;
 
     @BeforeEach
     void setUp() {
         ActorInstrumentationEventListener.reset();
 
         actorSystem = new TestActorSystem();
-        metrics = new ActorProcessingTimeMetricsImpl();
+        metrics = new ActorInstrumentationEventListenerImpl();
         ActorInstrumentationEventListener.register(metrics);
     }
 
@@ -46,7 +46,7 @@ class ActorProcessingTimeMetricsImplTest {
         assertTrue(messageProcessed.get(), "Message should have been processed");
 
         // Verify metrics were recorded
-        ActorProcessingTimeMetricsImpl.TimerMetric timerMetric =
+        ActorInstrumentationEventListenerImpl.TimerMetric timerMetric =
                 metrics.getProcessingTimeMetric(TestSlowActor.Process.class.getSimpleName());
 
         assertNotNull(timerMetric, "Timer metric should be recorded");
@@ -92,7 +92,7 @@ class ActorProcessingTimeMetricsImplTest {
         Thread.sleep(100);
 
         // Verify metrics were recorded for all messages
-        ActorProcessingTimeMetricsImpl.TimerMetric timerMetric =
+        ActorInstrumentationEventListenerImpl.TimerMetric timerMetric =
                 metrics.getProcessingTimeMetric(TestFastActor.QuickProcess.class.getSimpleName());
 
         assertNotNull(timerMetric, "Timer metric should be recorded");
@@ -133,9 +133,9 @@ class ActorProcessingTimeMetricsImplTest {
         assertTrue(pingProcessed.get(), "Ping message should have been processed");
 
         // Verify metrics for different message types
-        ActorProcessingTimeMetricsImpl.TimerMetric pingMetric =
+        ActorInstrumentationEventListenerImpl.TimerMetric pingMetric =
                 metrics.getProcessingTimeMetric("Ping");
-        ActorProcessingTimeMetricsImpl.TimerMetric pongMetric =
+        ActorInstrumentationEventListenerImpl.TimerMetric pongMetric =
                 metrics.getProcessingTimeMetric("Pong");
 
         assertNotNull(pingMetric, "Ping metric should be recorded");
