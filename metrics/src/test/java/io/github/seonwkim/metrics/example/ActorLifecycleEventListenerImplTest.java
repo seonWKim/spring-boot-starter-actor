@@ -16,7 +16,7 @@ import org.junit.jupiter.api.Test;
 
 import io.github.seonwkim.metrics.TestActorSystem;
 import io.github.seonwkim.metrics.example.ActorLifecycleEventListenerImpl.ActorSystemMetrics;
-import io.github.seonwkim.metrics.listener.ActorSystemEventListener;
+import io.github.seonwkim.metrics.listener.ActorLifeCycleEventListenersHolder;
 
 class ActorLifecycleEventListenerImplTest {
 
@@ -30,13 +30,13 @@ class ActorLifecycleEventListenerImplTest {
 
         // Register the system metrics listener
         metricsListener = new ActorLifecycleEventListenerImpl();
-        ActorSystemEventListener.register(metricsListener);
+        ActorLifeCycleEventListenersHolder.register(metricsListener);
     }
 
     @AfterEach
     void tearDown() {
         if (metricsListener != null) {
-            ActorSystemEventListener.unregister(metricsListener);
+            ActorLifeCycleEventListenersHolder.unregister(metricsListener);
         }
         if (actorSystem != null) {
             actorSystem.terminate();

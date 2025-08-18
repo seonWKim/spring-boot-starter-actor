@@ -1,6 +1,6 @@
 package io.github.seonwkim.example.metrics;
 
-import io.github.seonwkim.metrics.listener.ActorSystemEventListener;
+import io.github.seonwkim.metrics.listener.ActorLifeCycleEventListenersHolder;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -18,7 +18,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * to Prometheus/Grafana via Micrometer.
  */
 @Component
-public class GrafanaMetricsListener implements ActorSystemEventListener.ActorLifecycleEventListener {
+public class GrafanaMetricsListener implements ActorLifeCycleEventListenersHolder.ActorLifecycleEventListener {
     private static final Logger logger = LoggerFactory.getLogger(GrafanaMetricsListener.class);
     
     private final MeterRegistry meterRegistry;
@@ -41,13 +41,13 @@ public class GrafanaMetricsListener implements ActorSystemEventListener.ActorLif
     
     @PostConstruct
     public void register() {
-        ActorSystemEventListener.register(this);
+        ActorLifeCycleEventListenersHolder.register(this);
         logger.info("GrafanaMetricsListener registered for actor system events");
     }
     
     @PreDestroy
     public void unregister() {
-        ActorSystemEventListener.unregister(this);
+        ActorLifeCycleEventListenersHolder.unregister(this);
         logger.info("GrafanaMetricsListener unregistered from actor system events");
     }
     

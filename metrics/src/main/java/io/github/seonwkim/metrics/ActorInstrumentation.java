@@ -11,7 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.github.seonwkim.metrics.listener.ActorInstrumentationEventListener;
-import io.github.seonwkim.metrics.listener.ActorSystemEventListener;
+import io.github.seonwkim.metrics.listener.ActorLifeCycleEventListenersHolder;
 
 public class ActorInstrumentation {
 	private static final Logger logger = LoggerFactory.getLogger(ActorInstrumentation.class);
@@ -103,21 +103,21 @@ public class ActorInstrumentation {
 	public static class ActorCellConstructorAdvice {
 		@Advice.OnMethodExit(suppress = Throwable.class)
 		public static void onExit(@Advice.This Object cell) {
-			ActorSystemEventListener.onActorCreated(cell);
+			ActorLifeCycleEventListenersHolder.onActorCreated(cell);
 		}
 	}
 	
 	public static class ActorCellTerminateAdvice {
 		@Advice.OnMethodEnter(suppress = Throwable.class)
 		public static void onEnter(@Advice.This Object cell) {
-			ActorSystemEventListener.onActorTerminated(cell);
+			ActorLifeCycleEventListenersHolder.onActorTerminated(cell);
 		}
 	}
 	
 	public static class UnstartedCellReplaceWithAdvice {
 		@Advice.OnMethodExit(suppress = Throwable.class)
 		public static void onExit(@Advice.This Object unstartedCell, @Advice.Argument(0) Object newCell) {
-			ActorSystemEventListener.onUnstartedCellReplaced(unstartedCell, newCell);
+			ActorLifeCycleEventListenersHolder.onUnstartedCellReplaced(unstartedCell, newCell);
 		}
 	}
 	
