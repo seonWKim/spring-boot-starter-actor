@@ -3,6 +3,13 @@ package io.github.seonwkim.metrics.listener;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+/**
+ * Registry for actor lifecycle event listeners that monitors actor creation, termination, and replacement events.
+ * 
+ * <p>The holder maintains a thread-safe collection of listeners that are notified when actor lifecycle events occur.
+ * This is particularly valuable in production environments where understanding actor behavior is critical for
+ * system reliability and performance optimization.</p>
+ */
 public class ActorLifeCycleEventListenersHolder {
 	private static final Queue<ActorLifecycleEventListener> holder = new ConcurrentLinkedQueue<>();
 

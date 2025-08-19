@@ -3,6 +3,13 @@ package io.github.seonwkim.metrics.listener;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+/**
+ * Registry for message invocation event listeners that monitors individual message processing in actors.
+ *
+ * <p>The holder captures both entry and exit points of message processing, enabling precise timing measurements
+ * and correlation of processing events. This granular visibility is essential for understanding actual
+ * message processing behavior in production systems.</p>
+ */
 public class InvokeAdviceEventListenersHolder {
     private static final Queue<InvokeAdviceEventListener> holder = new ConcurrentLinkedQueue<>();
 
