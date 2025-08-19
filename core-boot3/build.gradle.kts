@@ -103,3 +103,12 @@ val syncAllBoot3Sources by tasks.registering {
         syncTestResourcesToBoot3
     )
 }
+
+// Disable bootJar and enable jar to fix Maven Central publication
+tasks.bootJar {
+    enabled = false
+}
+
+tasks.jar {
+    enabled = true
+}

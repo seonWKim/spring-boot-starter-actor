@@ -35,6 +35,7 @@ subprojects {
         )
 
         pom {
+            packaging = "jar"
             name.set(project.findProperty("pomName") as String)
             description.set(project.findProperty("pomDescription") as String)
             url.set(project.findProperty("pomUrl") as String)

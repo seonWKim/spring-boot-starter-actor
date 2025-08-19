@@ -39,3 +39,12 @@ dependencies {
 	testImplementation("org.awaitility:awaitility")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
+
+// Disable bootJar task and enable regular jar task for library publishing
+tasks.bootJar {
+	enabled = false
+}
+
+tasks.jar {
+	enabled = true
+}
