@@ -4,7 +4,9 @@ import java.lang.reflect.Field;
 import java.util.Map;
 import java.util.WeakHashMap;
 
-import io.github.seonwkim.metrics.listener.EnvelopeInstrumentationEventListener;
+import io.github.seonwkim.metrics.listener.EnvelopeCreatedEventListenerHolder;
+import io.github.seonwkim.metrics.listener.EnvelopeCopiedEventListenerHolder;
+import io.github.seonwkim.metrics.listener.EnvelopeSentEventListenerHolder;
 import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.agent.builder.AgentBuilder.Transformer;
 import net.bytebuddy.asm.Advice;
@@ -71,7 +73,7 @@ public class EnvelopeInstrumentation {
 			long timestamp = System.nanoTime();
 			envelopeTimestamps.put(envelope, timestamp);
 			// Notify listeners
-			EnvelopeInstrumentationEventListener.onEnvelopeCreated(envelope, timestamp);
+			EnvelopeCreatedEventListenerHolder.onEnvelopeCreated(envelope, timestamp);
 		}
 	}
 	
@@ -83,7 +85,7 @@ public class EnvelopeInstrumentation {
 			if (timestamp != null) {
 				envelopeTimestamps.put(newEnvelope, timestamp);
 				// Notify listeners
-				EnvelopeInstrumentationEventListener.onEnvelopeCopied(oldEnvelope, newEnvelope, timestamp);
+				EnvelopeCopiedEventListenerHolder.onEnvelopeCopied(oldEnvelope, newEnvelope, timestamp);
 			}
 		}
 	}
@@ -100,7 +102,7 @@ public class EnvelopeInstrumentation {
 				timestamp = envelopeTimestamps.get(envelope);
 			}
 			// Notify listeners
-			EnvelopeInstrumentationEventListener.onEnvelopeSent(envelope, timestamp);
+			EnvelopeSentEventListenerHolder.onEnvelopeSent(envelope, timestamp);
 		}
 	}
 	
@@ -119,6 +121,8 @@ public class EnvelopeInstrumentation {
 	 */
 	public static void reset() {
 		envelopeTimestamps.clear();
-		EnvelopeInstrumentationEventListener.reset();
+		EnvelopeCreatedEventListenerHolder.reset();
+		EnvelopeCopiedEventListenerHolder.reset();
+		EnvelopeSentEventListenerHolder.reset();
 	}
 }

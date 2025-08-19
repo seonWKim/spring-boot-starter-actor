@@ -22,6 +22,10 @@ public class ActorLifeCycleEventListenersHolder {
 		holder.remove(listener);
 	}
 
+	public static void reset() {
+		holder.clear();
+	}
+
 	public static void onActorCreated(Object actorCell) {
 		holder.forEach(it -> it.onActorCreated(actorCell));
 	}

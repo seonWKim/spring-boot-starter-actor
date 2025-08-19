@@ -16,6 +16,10 @@ public class InvokeAdviceEventListenersHolder {
         holder.add(listener);
     }
 
+    public static void unregister(InvokeAdviceEventListener listener) {
+        holder.remove(listener);
+    }
+
     public static void invokeAdviceOnEnter(Object envelope) {
         holder.forEach(it -> it.onEnter(envelope));
     }

@@ -16,6 +16,10 @@ public class InvokeAllAdviceEventListenersHolder {
         holder.add(listener);
     }
 
+    public static void unregister(InvokeAllAdviceEventListener listener) {
+        holder.remove(listener);
+    }
+
     public static void invokeAllAdviceOnEnter(Object messages) {
         holder.forEach(it -> it.onEnter(messages));
     }
