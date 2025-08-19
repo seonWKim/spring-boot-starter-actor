@@ -1,24 +1,25 @@
 package io.github.seonwkim.example.metrics;
 
-import io.github.seonwkim.metrics.interceptor.ActorLifeCycleEventListenersHolder;
-import io.micrometer.core.instrument.Counter;
-import io.micrometer.core.instrument.Gauge;
-import io.micrometer.core.instrument.MeterRegistry;
+import java.util.concurrent.atomic.AtomicLong;
+
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
-import java.util.concurrent.atomic.AtomicLong;
+import io.github.seonwkim.metrics.interceptor.ActorLifeCycleEventInterceptorsHolder;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.MeterRegistry;
 
 /**
  * Custom SystemMetricsListener implementation that exports actor system metrics
  * to Prometheus/Grafana via Micrometer.
  */
 @Component
-public class GrafanaMetricsListener implements ActorLifeCycleEventListenersHolder.ActorLifecycleEventListener {
+public class GrafanaMetricsListener implements ActorLifeCycleEventInterceptorsHolder.ActorLifecycleEventInterceptor {
     private static final Logger logger = LoggerFactory.getLogger(GrafanaMetricsListener.class);
     
     private final MeterRegistry meterRegistry;
@@ -41,13 +42,13 @@ public class GrafanaMetricsListener implements ActorLifeCycleEventListenersHolde
     
     @PostConstruct
     public void register() {
-        ActorLifeCycleEventListenersHolder.register(this);
+        ActorLifeCycleEventInterceptorsHolder.register(this);
         logger.info("GrafanaMetricsListener registered for actor system events");
     }
     
     @PreDestroy
     public void unregister() {
-        ActorLifeCycleEventListenersHolder.unregister(this);
+        ActorLifeCycleEventInterceptorsHolder.unregister(this);
         logger.info("GrafanaMetricsListener unregistered from actor system events");
     }
     

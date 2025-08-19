@@ -1,16 +1,19 @@
 package io.github.seonwkim.example;
 
-import io.github.seonwkim.metrics.interceptor.InvokeAdviceEventListenersHolder;
-import io.github.seonwkim.metrics.interceptor.InvokeAdviceEventListenersHolder.InvokeAdviceEventListener;
-import io.micrometer.core.instrument.Counter;
-import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.Timer;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+
 import javax.annotation.PostConstruct;
+
 import org.apache.pekko.dispatch.Envelope;
 import org.springframework.stereotype.Component;
+
+import io.github.seonwkim.metrics.interceptor.InvokeAdviceEventInterceptorsHolder;
+import io.github.seonwkim.metrics.interceptor.InvokeAdviceEventInterceptorsHolder.InvokeAdviceEventInterceptor;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 
 /**
  * Exports metrics from the actor system to Micrometer for monitoring.
@@ -49,8 +52,8 @@ public class ActorClusterMetricsExporter {
 
 	@PostConstruct
 	public void registerMetrics() {
-		InvokeAdviceEventListenersHolder.register(
-				new InvokeAdviceEventListener() {
+		InvokeAdviceEventInterceptorsHolder.register(
+				new InvokeAdviceEventInterceptor() {
 					@Override
 					public void onEnter(Object envelope) {}
 
