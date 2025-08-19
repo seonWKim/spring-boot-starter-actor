@@ -1,22 +1,22 @@
-package io.github.seonwkim.metrics.listener;
+package io.github.seonwkim.metrics.interceptor;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.concurrent.atomic.AtomicBoolean;
-import org.junit.jupiter.api.AfterEach;
+
 import org.junit.jupiter.api.Test;
 
-class ActorLifeCycleEventListenersHolderTest {
+class ActorLifeCycleEventInterceptorsHolderTest {
 
     @Test
     void testOnActorCreated() {
-        AtomicBoolean listenerCalled = new AtomicBoolean(false);
+        AtomicBoolean interceptorCalled = new AtomicBoolean(false);
         Object testActorCell = new Object();
 
-        var listener = new ActorLifeCycleEventListenersHolder.ActorLifecycleEventListener() {
+        var interceptor = new ActorLifeCycleEventInterceptorsHolder.ActorLifecycleEventInterceptor() {
             @Override
             public void onActorCreated(Object actorCell) {
-                listenerCalled.set(true);
+                interceptorCalled.set(true);
             }
 
             @Override
@@ -31,20 +31,20 @@ class ActorLifeCycleEventListenersHolderTest {
         };
 
         // When
-        ActorLifeCycleEventListenersHolder.register(listener);
-        ActorLifeCycleEventListenersHolder.onActorCreated(testActorCell);
+        ActorLifeCycleEventInterceptorsHolder.register(interceptor);
+        ActorLifeCycleEventInterceptorsHolder.onActorCreated(testActorCell);
 
         // Then
-        assertTrue(listenerCalled.get(), "Listener should have been called");
+        assertTrue(interceptorCalled.get(), "Interceptor should have been called");
     }
 
     @Test
     void testOnActorTerminated() {
         // Given
-        AtomicBoolean listenerCalled = new AtomicBoolean(false);
+        AtomicBoolean interceptorCalled = new AtomicBoolean(false);
         Object testActorCell = new Object();
 
-        var listener = new ActorLifeCycleEventListenersHolder.ActorLifecycleEventListener() {
+        var interceptor = new ActorLifeCycleEventInterceptorsHolder.ActorLifecycleEventInterceptor() {
             @Override
             public void onActorCreated(Object actorCell) {
                 // Not testing this method here
@@ -52,7 +52,7 @@ class ActorLifeCycleEventListenersHolderTest {
 
             @Override
             public void onActorTerminated(Object actorCell) {
-                listenerCalled.set(true);
+                interceptorCalled.set(true);
             }
 
             @Override
@@ -62,21 +62,21 @@ class ActorLifeCycleEventListenersHolderTest {
         };
 
         // When
-        ActorLifeCycleEventListenersHolder.register(listener);
-        ActorLifeCycleEventListenersHolder.onActorTerminated(testActorCell);
+        ActorLifeCycleEventInterceptorsHolder.register(interceptor);
+        ActorLifeCycleEventInterceptorsHolder.onActorTerminated(testActorCell);
 
         // Then
-        assertTrue(listenerCalled.get(), "Listener should have been called");
+        assertTrue(interceptorCalled.get(), "Interceptor should have been called");
     }
 
     @Test
     void testOnUnstartedCellReplaced() {
         // Given
-        AtomicBoolean listenerCalled = new AtomicBoolean(false);
+        AtomicBoolean interceptorCalled = new AtomicBoolean(false);
         Object testUnstartedCell = new Object();
         Object testNewCell = new Object();
 
-        var listener = new ActorLifeCycleEventListenersHolder.ActorLifecycleEventListener() {
+        var interceptor = new ActorLifeCycleEventInterceptorsHolder.ActorLifecycleEventInterceptor() {
             @Override
             public void onActorCreated(Object actorCell) {
                 // Not testing this method here
@@ -89,28 +89,28 @@ class ActorLifeCycleEventListenersHolderTest {
 
             @Override
             public void onUnstartedCellReplaced(Object unstartedCell, Object newCell) {
-                listenerCalled.set(true);
+                interceptorCalled.set(true);
             }
         };
 
         // When
-        ActorLifeCycleEventListenersHolder.register(listener);
-        ActorLifeCycleEventListenersHolder.onUnstartedCellReplaced(testUnstartedCell, testNewCell);
+        ActorLifeCycleEventInterceptorsHolder.register(interceptor);
+        ActorLifeCycleEventInterceptorsHolder.onUnstartedCellReplaced(testUnstartedCell, testNewCell);
 
         // Then
-        assertTrue(listenerCalled.get(), "Listener should have been called");
+        assertTrue(interceptorCalled.get(), "Interceptor should have been called");
     }
     
     @Test
     void testReset() {
         // Given
-        AtomicBoolean listenerCalled = new AtomicBoolean(false);
+        AtomicBoolean interceptorCalled = new AtomicBoolean(false);
         Object testActorCell = new Object();
 
-        var listener = new ActorLifeCycleEventListenersHolder.ActorLifecycleEventListener() {
+        var interceptor = new ActorLifeCycleEventInterceptorsHolder.ActorLifecycleEventInterceptor() {
             @Override
             public void onActorCreated(Object actorCell) {
-                listenerCalled.set(true);
+                interceptorCalled.set(true);
             }
 
             @Override
@@ -125,11 +125,11 @@ class ActorLifeCycleEventListenersHolderTest {
         };
 
         // When
-        ActorLifeCycleEventListenersHolder.register(listener);
-        ActorLifeCycleEventListenersHolder.reset();
-        ActorLifeCycleEventListenersHolder.onActorCreated(testActorCell);
+        ActorLifeCycleEventInterceptorsHolder.register(interceptor);
+        ActorLifeCycleEventInterceptorsHolder.reset();
+        ActorLifeCycleEventInterceptorsHolder.onActorCreated(testActorCell);
 
         // Then
-        assertTrue(!listenerCalled.get(), "Listener should not have been called after reset");
+        assertTrue(!interceptorCalled.get(), "Interceptor should not have been called after reset");
     }
 }

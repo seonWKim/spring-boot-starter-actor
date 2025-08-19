@@ -7,10 +7,10 @@ import java.util.concurrent.atomic.LongAdder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.github.seonwkim.metrics.listener.InvokeAdviceEventListenersHolder;
+import io.github.seonwkim.metrics.interceptor.InvokeAdviceEventInterceptorsHolder;
 
-public class InvokeAdviceEventListenerImpl implements InvokeAdviceEventListenersHolder.InvokeAdviceEventListener {
-	private static final Logger logger = LoggerFactory.getLogger(InvokeAdviceEventListenerImpl.class);
+public class InvokeAdviceEventInterceptorImpl implements InvokeAdviceEventInterceptorsHolder.InvokeAdviceEventInterceptor {
+	private static final Logger logger = LoggerFactory.getLogger(InvokeAdviceEventInterceptorImpl.class);
 
 	private final ConcurrentHashMap<String, TimerMetric> processingTimeMetrics = new ConcurrentHashMap<>();
 

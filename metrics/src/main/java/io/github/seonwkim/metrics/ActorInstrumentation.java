@@ -10,9 +10,9 @@ import net.bytebuddy.utility.JavaModule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.github.seonwkim.metrics.listener.InvokeAdviceEventListenersHolder;
-import io.github.seonwkim.metrics.listener.ActorLifeCycleEventListenersHolder;
-import io.github.seonwkim.metrics.listener.InvokeAllAdviceEventListenersHolder;
+import io.github.seonwkim.metrics.interceptor.InvokeAdviceEventInterceptorsHolder;
+import io.github.seonwkim.metrics.interceptor.ActorLifeCycleEventInterceptorsHolder;
+import io.github.seonwkim.metrics.interceptor.InvokeAllAdviceEventInterceptorsHolder;
 
 public class ActorInstrumentation {
 	private static final Logger logger = LoggerFactory.getLogger(ActorInstrumentation.class);
@@ -72,7 +72,7 @@ public class ActorInstrumentation {
 		@Advice.OnMethodEnter(suppress = Throwable.class)
 		public static long onEnter(
 				@Advice.Argument(0) Object envelope, @Advice.Local("envelopRef") Object envelopeRef) {
-			InvokeAdviceEventListenersHolder.invokeAdviceOnEnter(envelope);
+			InvokeAdviceEventInterceptorsHolder.invokeAdviceOnEnter(envelope);
 			envelopeRef = envelope;
 			return System.nanoTime();
 		}
@@ -80,7 +80,7 @@ public class ActorInstrumentation {
 		@Advice.OnMethodExit(onThrowable = Throwable.class)
 		public static void onExit(
 				@Advice.Local("envelopRef") Object envelopeRef, @Advice.Enter long startTime) {
-			InvokeAdviceEventListenersHolder.invokeAdviceOnExit(envelopeRef, startTime);
+			InvokeAdviceEventInterceptorsHolder.invokeAdviceOnExit(envelopeRef, startTime);
 		}
 	}
 
@@ -89,7 +89,7 @@ public class ActorInstrumentation {
 		@Advice.OnMethodEnter(suppress = Throwable.class)
 		public static long onEnter(
 				@Advice.Argument(0) Object messages, @Advice.Local("messagesRef") Object messagesRef) {
-			InvokeAllAdviceEventListenersHolder.invokeAllAdviceOnEnter(messages);
+			InvokeAllAdviceEventInterceptorsHolder.invokeAllAdviceOnEnter(messages);
 			messagesRef = messages;
 			return System.nanoTime();
 		}
@@ -97,28 +97,28 @@ public class ActorInstrumentation {
 		@Advice.OnMethodExit(onThrowable = Throwable.class)
 		public static void onExit(
 				@Advice.Local("messagesRef") Object messagesRef, @Advice.Enter long startTime) {
-			InvokeAllAdviceEventListenersHolder.invokeAllAdviceOnExit(messagesRef, startTime);
+			InvokeAllAdviceEventInterceptorsHolder.invokeAllAdviceOnExit(messagesRef, startTime);
 		}
 	}
 	
 	public static class ActorCellConstructorAdvice {
 		@Advice.OnMethodExit(suppress = Throwable.class)
 		public static void onExit(@Advice.This Object cell) {
-			ActorLifeCycleEventListenersHolder.onActorCreated(cell);
+			ActorLifeCycleEventInterceptorsHolder.onActorCreated(cell);
 		}
 	}
 	
 	public static class ActorCellTerminateAdvice {
 		@Advice.OnMethodEnter(suppress = Throwable.class)
 		public static void onEnter(@Advice.This Object cell) {
-			ActorLifeCycleEventListenersHolder.onActorTerminated(cell);
+			ActorLifeCycleEventInterceptorsHolder.onActorTerminated(cell);
 		}
 	}
 	
 	public static class UnstartedCellReplaceWithAdvice {
 		@Advice.OnMethodExit(suppress = Throwable.class)
 		public static void onExit(@Advice.This Object unstartedCell, @Advice.Argument(0) Object newCell) {
-			ActorLifeCycleEventListenersHolder.onUnstartedCellReplaced(unstartedCell, newCell);
+			ActorLifeCycleEventInterceptorsHolder.onUnstartedCellReplaced(unstartedCell, newCell);
 		}
 	}
 	

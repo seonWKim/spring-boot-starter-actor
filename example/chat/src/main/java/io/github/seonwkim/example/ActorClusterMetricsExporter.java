@@ -1,7 +1,7 @@
 package io.github.seonwkim.example;
 
-import io.github.seonwkim.metrics.listener.InvokeAdviceEventListenersHolder;
-import io.github.seonwkim.metrics.listener.InvokeAdviceEventListenersHolder.InvokeAdviceEventListener;
+import io.github.seonwkim.metrics.interceptor.InvokeAdviceEventListenersHolder;
+import io.github.seonwkim.metrics.interceptor.InvokeAdviceEventListenersHolder.InvokeAdviceEventListener;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;

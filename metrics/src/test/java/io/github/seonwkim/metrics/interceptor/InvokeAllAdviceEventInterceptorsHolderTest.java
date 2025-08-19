@@ -1,4 +1,4 @@
-package io.github.seonwkim.metrics.listener;
+package io.github.seonwkim.metrics.interceptor;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -7,11 +7,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
-class InvokeAllAdviceEventListenersHolderTest {
+class InvokeAllAdviceEventInterceptorsHolderTest {
 
     @AfterEach
     void tearDown() {
-        InvokeAllAdviceEventListenersHolder.reset();
+        InvokeAllAdviceEventInterceptorsHolder.reset();
     }
 
     @Test
@@ -22,7 +22,7 @@ class InvokeAllAdviceEventListenersHolderTest {
         Object testMessages = new Object();
         long testStartTime = System.currentTimeMillis();
 
-        var listener = new InvokeAllAdviceEventListenersHolder.InvokeAllAdviceEventListener() {
+        var interceptor = new InvokeAllAdviceEventInterceptorsHolder.InvokeAllAdviceEventInterceptor() {
             @Override
             public void onEnter(Object messages) {
                 onEnterCalled.set(true);
@@ -35,9 +35,9 @@ class InvokeAllAdviceEventListenersHolderTest {
         };
 
         // When
-        InvokeAllAdviceEventListenersHolder.register(listener);
-        InvokeAllAdviceEventListenersHolder.invokeAllAdviceOnEnter(testMessages);
-        InvokeAllAdviceEventListenersHolder.invokeAllAdviceOnExit(testMessages, testStartTime);
+        InvokeAllAdviceEventInterceptorsHolder.register(interceptor);
+        InvokeAllAdviceEventInterceptorsHolder.invokeAllAdviceOnEnter(testMessages);
+        InvokeAllAdviceEventInterceptorsHolder.invokeAllAdviceOnExit(testMessages, testStartTime);
 
         // Then
         assertTrue(onEnterCalled.get(), "onEnter should have been called");
@@ -52,7 +52,7 @@ class InvokeAllAdviceEventListenersHolderTest {
         Object testMessages = new Object();
         long testStartTime = System.currentTimeMillis();
 
-        var listener = new InvokeAllAdviceEventListenersHolder.InvokeAllAdviceEventListener() {
+        var interceptor = new InvokeAllAdviceEventInterceptorsHolder.InvokeAllAdviceEventInterceptor() {
             @Override
             public void onEnter(Object messages) {
                 onEnterCalled.set(true);
@@ -65,10 +65,10 @@ class InvokeAllAdviceEventListenersHolderTest {
         };
 
         // When
-        InvokeAllAdviceEventListenersHolder.register(listener);
-        InvokeAllAdviceEventListenersHolder.unregister(listener);
-        InvokeAllAdviceEventListenersHolder.invokeAllAdviceOnEnter(testMessages);
-        InvokeAllAdviceEventListenersHolder.invokeAllAdviceOnExit(testMessages, testStartTime);
+        InvokeAllAdviceEventInterceptorsHolder.register(interceptor);
+        InvokeAllAdviceEventInterceptorsHolder.unregister(interceptor);
+        InvokeAllAdviceEventInterceptorsHolder.invokeAllAdviceOnEnter(testMessages);
+        InvokeAllAdviceEventInterceptorsHolder.invokeAllAdviceOnExit(testMessages, testStartTime);
 
         // Then
         assertFalse(onEnterCalled.get(), "onEnter should not have been called after unregistering");
@@ -83,7 +83,7 @@ class InvokeAllAdviceEventListenersHolderTest {
         Object testMessages = new Object();
         long testStartTime = System.currentTimeMillis();
 
-        var listener = new InvokeAllAdviceEventListenersHolder.InvokeAllAdviceEventListener() {
+        var interceptor = new InvokeAllAdviceEventInterceptorsHolder.InvokeAllAdviceEventInterceptor() {
             @Override
             public void onEnter(Object messages) {
                 onEnterCalled.set(true);
@@ -96,10 +96,10 @@ class InvokeAllAdviceEventListenersHolderTest {
         };
 
         // When
-        InvokeAllAdviceEventListenersHolder.register(listener);
-        InvokeAllAdviceEventListenersHolder.reset();
-        InvokeAllAdviceEventListenersHolder.invokeAllAdviceOnEnter(testMessages);
-        InvokeAllAdviceEventListenersHolder.invokeAllAdviceOnExit(testMessages, testStartTime);
+        InvokeAllAdviceEventInterceptorsHolder.register(interceptor);
+        InvokeAllAdviceEventInterceptorsHolder.reset();
+        InvokeAllAdviceEventInterceptorsHolder.invokeAllAdviceOnEnter(testMessages);
+        InvokeAllAdviceEventInterceptorsHolder.invokeAllAdviceOnExit(testMessages, testStartTime);
 
         // Then
         assertFalse(onEnterCalled.get(), "onEnter should not have been called after reset");
@@ -107,16 +107,16 @@ class InvokeAllAdviceEventListenersHolderTest {
     }
 
     @Test
-    void testMultipleListeners() {
+    void testMultipleInterceptors() {
         // Given
-        AtomicBoolean listener1Called = new AtomicBoolean(false);
-        AtomicBoolean listener2Called = new AtomicBoolean(false);
+        AtomicBoolean interceptor1Called = new AtomicBoolean(false);
+        AtomicBoolean interceptor2Called = new AtomicBoolean(false);
         Object testMessages = new Object();
 
-        var listener1 = new InvokeAllAdviceEventListenersHolder.InvokeAllAdviceEventListener() {
+        var interceptor1 = new InvokeAllAdviceEventInterceptorsHolder.InvokeAllAdviceEventInterceptor() {
             @Override
             public void onEnter(Object messages) {
-                listener1Called.set(true);
+                interceptor1Called.set(true);
             }
 
             @Override
@@ -124,10 +124,10 @@ class InvokeAllAdviceEventListenersHolderTest {
             }
         };
 
-        var listener2 = new InvokeAllAdviceEventListenersHolder.InvokeAllAdviceEventListener() {
+        var interceptor2 = new InvokeAllAdviceEventInterceptorsHolder.InvokeAllAdviceEventInterceptor() {
             @Override
             public void onEnter(Object messages) {
-                listener2Called.set(true);
+                interceptor2Called.set(true);
             }
 
             @Override
@@ -136,12 +136,12 @@ class InvokeAllAdviceEventListenersHolderTest {
         };
 
         // When
-        InvokeAllAdviceEventListenersHolder.register(listener1);
-        InvokeAllAdviceEventListenersHolder.register(listener2);
-        InvokeAllAdviceEventListenersHolder.invokeAllAdviceOnEnter(testMessages);
+        InvokeAllAdviceEventInterceptorsHolder.register(interceptor1);
+        InvokeAllAdviceEventInterceptorsHolder.register(interceptor2);
+        InvokeAllAdviceEventInterceptorsHolder.invokeAllAdviceOnEnter(testMessages);
 
         // Then
-        assertTrue(listener1Called.get(), "Listener 1 should have been called");
-        assertTrue(listener2Called.get(), "Listener 2 should have been called");
+        assertTrue(interceptor1Called.get(), "Interceptor 1 should have been called");
+        assertTrue(interceptor2Called.get(), "Interceptor 2 should have been called");
     }
 }

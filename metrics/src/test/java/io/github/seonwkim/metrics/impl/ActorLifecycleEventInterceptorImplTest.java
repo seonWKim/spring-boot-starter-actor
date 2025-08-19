@@ -15,28 +15,28 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import io.github.seonwkim.metrics.TestActorSystem;
-import io.github.seonwkim.metrics.impl.ActorLifecycleEventListenerImpl.ActorSystemMetrics;
-import io.github.seonwkim.metrics.listener.ActorLifeCycleEventListenersHolder;
+import io.github.seonwkim.metrics.impl.ActorLifecycleEventInterceptorImpl.ActorSystemMetrics;
+import io.github.seonwkim.metrics.interceptor.ActorLifeCycleEventInterceptorsHolder;
 
-class ActorLifecycleEventListenerImplTest {
+class ActorLifecycleEventInterceptorImplTest {
 
     private TestActorSystem actorSystem;
-    private ActorLifecycleEventListenerImpl metricsListener;
+    private ActorLifecycleEventInterceptorImpl metricsInterceptor;
 
     @BeforeEach
     void setUp() {
         ActorSystemMetrics.getInstance().reset();
         actorSystem = new TestActorSystem();
 
-        // Register the system metrics listener
-        metricsListener = new ActorLifecycleEventListenerImpl();
-        ActorLifeCycleEventListenersHolder.register(metricsListener);
+        // Register the system metrics interceptor
+        metricsInterceptor = new ActorLifecycleEventInterceptorImpl();
+        ActorLifeCycleEventInterceptorsHolder.register(metricsInterceptor);
     }
 
     @AfterEach
     void tearDown() {
-        if (metricsListener != null) {
-            ActorLifeCycleEventListenersHolder.unregister(metricsListener);
+        if (metricsInterceptor != null) {
+            ActorLifeCycleEventInterceptorsHolder.unregister(metricsInterceptor);
         }
         if (actorSystem != null) {
             actorSystem.terminate();

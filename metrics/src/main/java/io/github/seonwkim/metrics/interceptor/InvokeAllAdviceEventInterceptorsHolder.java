@@ -1,30 +1,30 @@
-package io.github.seonwkim.metrics.listener;
+package io.github.seonwkim.metrics.interceptor;
 
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
- * Registry for batch message invocation event listeners that monitors bulk message processing operations.
+ * Registry for batch message invocation event interceptors that monitors bulk message processing operations.
  *
  * <p>Unlike single message processing, this holder captures events when multiple messages are processed
  * together, providing insights into batch processing efficiency and helping optimize bulk operations.
  * This is particularly important for systems that handle high message volumes or use batching strategies.</p>
  */
-public class InvokeAllAdviceEventListenersHolder {
-    private static final Queue<InvokeAllAdviceEventListener> holder = new ConcurrentLinkedQueue<>();
+public class InvokeAllAdviceEventInterceptorsHolder {
+    private static final Queue<InvokeAllAdviceEventInterceptor> holder = new ConcurrentLinkedQueue<>();
 
-    public interface InvokeAllAdviceEventListener {
+    public interface InvokeAllAdviceEventInterceptor {
         void onEnter(Object messages);
 
         void onExit(Object messages, long startTime);
     }
 
-    public static void register(InvokeAllAdviceEventListener listener) {
-        holder.add(listener);
+    public static void register(InvokeAllAdviceEventInterceptor interceptor) {
+        holder.add(interceptor);
     }
 
-    public static void unregister(InvokeAllAdviceEventListener listener) {
-        holder.remove(listener);
+    public static void unregister(InvokeAllAdviceEventInterceptor interceptor) {
+        holder.remove(interceptor);
     }
 
     public static void invokeAllAdviceOnEnter(Object messages) {

@@ -5,10 +5,10 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.github.seonwkim.metrics.listener.ActorLifeCycleEventListenersHolder;
+import io.github.seonwkim.metrics.interceptor.ActorLifeCycleEventInterceptorsHolder;
 
-public class ActorLifecycleEventListenerImpl implements ActorLifeCycleEventListenersHolder.ActorLifecycleEventListener {
-	private static final Logger logger = LoggerFactory.getLogger(ActorLifecycleEventListenerImpl.class);
+public class ActorLifecycleEventInterceptorImpl implements ActorLifeCycleEventInterceptorsHolder.ActorLifecycleEventInterceptor {
+	private static final Logger logger = LoggerFactory.getLogger(ActorLifecycleEventInterceptorImpl.class);
 
 	// Actor path constants
 	private static final String PEKKO_PREFIX = "pekko://";

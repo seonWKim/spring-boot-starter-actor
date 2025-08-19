@@ -1,28 +1,28 @@
-package io.github.seonwkim.metrics.listener;
+package io.github.seonwkim.metrics.interceptor;
 
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
- * Registry for envelope creation event listeners that monitors when new message envelopes are created in the actor system.
+ * Registry for envelope creation event interceptors that monitors when new message envelopes are created in the actor system.
  *
  * <p>Envelope creation events mark the beginning of a message's lifecycle, providing critical data points
  * for understanding message flow patterns, system behavior, and performance characteristics. This is
  * particularly valuable for debugging message routing issues and optimizing message creation patterns.</p>
  */
-public class EnvelopeCreatedEventListenerHolder {
-	private static final Queue<EnvelopeCreatedEventListener> holder = new ConcurrentLinkedQueue<>();
+public class EnvelopeCreatedEventInterceptorsHolder {
+	private static final Queue<EnvelopeCreatedEventInterceptor> holder = new ConcurrentLinkedQueue<>();
 
-	public interface EnvelopeCreatedEventListener {
+	public interface EnvelopeCreatedEventInterceptor {
 		void onEnvelopeCreated(Object envelope, long timestamp);
 	}
 
-	public static void register(EnvelopeCreatedEventListener listener) {
-		holder.add(listener);
+	public static void register(EnvelopeCreatedEventInterceptor interceptor) {
+		holder.add(interceptor);
 	}
 
-	public static void unregister(EnvelopeCreatedEventListener listener) {
-		holder.remove(listener);
+	public static void unregister(EnvelopeCreatedEventInterceptor interceptor) {
+		holder.remove(interceptor);
 	}
 
 	public static void onEnvelopeCreated(Object envelope, long timestamp) {

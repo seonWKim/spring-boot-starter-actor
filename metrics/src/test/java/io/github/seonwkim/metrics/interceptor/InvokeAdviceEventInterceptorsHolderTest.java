@@ -1,4 +1,4 @@
-package io.github.seonwkim.metrics.listener;
+package io.github.seonwkim.metrics.interceptor;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -13,15 +13,15 @@ import org.junit.jupiter.api.Test;
 
 import io.github.seonwkim.metrics.TestActorSystem;
 
-class InvokeAdviceEventListenersHolderTest {
+class InvokeAdviceEventInterceptorsHolderTest {
 
 	@Test
 	void invokeAdviceTest() {
 		AtomicBoolean onEnterCalled = new AtomicBoolean(false);
 		AtomicBoolean onExitCalled = new AtomicBoolean(false);
 
-		var listener =
-				new InvokeAdviceEventListenersHolder.InvokeAdviceEventListener() {
+		var interceptor =
+				new InvokeAdviceEventInterceptorsHolder.InvokeAdviceEventInterceptor() {
 					@Override
 					public void onEnter(Object envelope) {
 						onEnterCalled.set(true);
@@ -32,7 +32,7 @@ class InvokeAdviceEventListenersHolderTest {
 						onExitCalled.set(true);
 					}
 				};
-		InvokeAdviceEventListenersHolder.register(listener);
+		InvokeAdviceEventInterceptorsHolder.register(interceptor);
 
 		TestActorSystem actorSystem = new TestActorSystem();
 
@@ -57,8 +57,8 @@ class InvokeAdviceEventListenersHolderTest {
 		AtomicBoolean onEnterCalled = new AtomicBoolean(false);
 		AtomicBoolean onExitCalled = new AtomicBoolean(false);
 
-		var listener =
-				new InvokeAllAdviceEventListenersHolder.InvokeAllAdviceEventListener() {
+		var interceptor =
+				new InvokeAllAdviceEventInterceptorsHolder.InvokeAllAdviceEventInterceptor() {
 					@Override
 					public void onEnter(Object messages) {
 						onEnterCalled.set(true);
@@ -69,7 +69,7 @@ class InvokeAdviceEventListenersHolderTest {
 						onExitCalled.set(true);
 					}
 				};
-		InvokeAllAdviceEventListenersHolder.register(listener);
+		InvokeAllAdviceEventInterceptorsHolder.register(interceptor);
 
 		TestActorSystem actorSystem = new TestActorSystem();
 

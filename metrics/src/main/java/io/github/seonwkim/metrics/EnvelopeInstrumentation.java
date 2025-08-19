@@ -1,12 +1,11 @@
 package io.github.seonwkim.metrics;
 
-import java.lang.reflect.Field;
 import java.util.Map;
 import java.util.WeakHashMap;
 
-import io.github.seonwkim.metrics.listener.EnvelopeCreatedEventListenerHolder;
-import io.github.seonwkim.metrics.listener.EnvelopeCopiedEventListenerHolder;
-import io.github.seonwkim.metrics.listener.EnvelopeSentEventListenerHolder;
+import io.github.seonwkim.metrics.interceptor.EnvelopeCreatedEventInterceptorsHolder;
+import io.github.seonwkim.metrics.interceptor.EnvelopeCopiedEventInterceptorsHolder;
+import io.github.seonwkim.metrics.interceptor.EnvelopeSentEventInterceptorsHolder;
 import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.agent.builder.AgentBuilder.Transformer;
 import net.bytebuddy.asm.Advice;
@@ -72,8 +71,8 @@ public class EnvelopeInstrumentation {
 			// Store timestamp when envelope is created
 			long timestamp = System.nanoTime();
 			envelopeTimestamps.put(envelope, timestamp);
-			// Notify listeners
-			EnvelopeCreatedEventListenerHolder.onEnvelopeCreated(envelope, timestamp);
+			// Notify interceptors
+			EnvelopeCreatedEventInterceptorsHolder.onEnvelopeCreated(envelope, timestamp);
 		}
 	}
 	
@@ -84,8 +83,8 @@ public class EnvelopeInstrumentation {
 			Long timestamp = envelopeTimestamps.get(oldEnvelope);
 			if (timestamp != null) {
 				envelopeTimestamps.put(newEnvelope, timestamp);
-				// Notify listeners
-				EnvelopeCopiedEventListenerHolder.onEnvelopeCopied(oldEnvelope, newEnvelope, timestamp);
+				// Notify interceptors
+				EnvelopeCopiedEventInterceptorsHolder.onEnvelopeCopied(oldEnvelope, newEnvelope, timestamp);
 			}
 		}
 	}
@@ -101,8 +100,8 @@ public class EnvelopeInstrumentation {
 			} else {
 				timestamp = envelopeTimestamps.get(envelope);
 			}
-			// Notify listeners
-			EnvelopeSentEventListenerHolder.onEnvelopeSent(envelope, timestamp);
+			// Notify interceptors
+			EnvelopeSentEventInterceptorsHolder.onEnvelopeSent(envelope, timestamp);
 		}
 	}
 	
@@ -117,12 +116,12 @@ public class EnvelopeInstrumentation {
 	}
 	
 	/**
-	 * Clear all stored timestamps and reset listeners (for testing purposes).
+	 * Clear all stored timestamps and reset interceptors (for testing purposes).
 	 */
 	public static void reset() {
 		envelopeTimestamps.clear();
-		EnvelopeCreatedEventListenerHolder.reset();
-		EnvelopeCopiedEventListenerHolder.reset();
-		EnvelopeSentEventListenerHolder.reset();
+		EnvelopeCreatedEventInterceptorsHolder.reset();
+		EnvelopeCopiedEventInterceptorsHolder.reset();
+		EnvelopeSentEventInterceptorsHolder.reset();
 	}
 }

@@ -1,6 +1,6 @@
 package io.github.seonwkim.example.metrics;
 
-import io.github.seonwkim.metrics.listener.ActorLifeCycleEventListenersHolder;
+import io.github.seonwkim.metrics.interceptor.ActorLifeCycleEventListenersHolder;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;

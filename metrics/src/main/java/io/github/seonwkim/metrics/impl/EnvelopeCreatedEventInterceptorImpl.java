@@ -6,10 +6,10 @@ import java.util.concurrent.atomic.LongAdder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.github.seonwkim.metrics.listener.EnvelopeCreatedEventListenerHolder;
+import io.github.seonwkim.metrics.interceptor.EnvelopeCreatedEventInterceptorsHolder;
 
-public class EnvelopeCreatedEventListenerImpl implements EnvelopeCreatedEventListenerHolder.EnvelopeCreatedEventListener {
-	private static final Logger logger = LoggerFactory.getLogger(EnvelopeCreatedEventListenerImpl.class);
+public class EnvelopeCreatedEventInterceptorImpl implements EnvelopeCreatedEventInterceptorsHolder.EnvelopeCreatedEventInterceptor {
+	private static final Logger logger = LoggerFactory.getLogger(EnvelopeCreatedEventInterceptorImpl.class);
 
 	private final ConcurrentHashMap<String, EnvelopeMetrics> envelopeMetrics = new ConcurrentHashMap<>();
 

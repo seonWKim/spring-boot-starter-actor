@@ -14,20 +14,20 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import io.github.seonwkim.metrics.TestActorSystem;
-import io.github.seonwkim.metrics.listener.InvokeAdviceEventListenersHolder;
+import io.github.seonwkim.metrics.interceptor.InvokeAdviceEventInterceptorsHolder;
 
-class InvokeAdviceEventListenerImplTest {
+class InvokeAdviceEventInterceptorImplTest {
 
     private TestActorSystem actorSystem;
-    private InvokeAdviceEventListenerImpl metrics;
+    private InvokeAdviceEventInterceptorImpl metrics;
 
     @BeforeEach
     void setUp() {
-        InvokeAdviceEventListenersHolder.reset();
+        InvokeAdviceEventInterceptorsHolder.reset();
 
         actorSystem = new TestActorSystem();
-        metrics = new InvokeAdviceEventListenerImpl();
-        InvokeAdviceEventListenersHolder.register(metrics);
+        metrics = new InvokeAdviceEventInterceptorImpl();
+        InvokeAdviceEventInterceptorsHolder.register(metrics);
     }
 
     @Test
@@ -46,7 +46,7 @@ class InvokeAdviceEventListenerImplTest {
         assertTrue(messageProcessed.get(), "Message should have been processed");
 
         // Verify metrics were recorded
-        InvokeAdviceEventListenerImpl.TimerMetric timerMetric =
+        InvokeAdviceEventInterceptorImpl.TimerMetric timerMetric =
                 metrics.getProcessingTimeMetric(TestSlowActor.Process.class.getSimpleName());
 
         assertNotNull(timerMetric, "Timer metric should be recorded");
@@ -92,7 +92,7 @@ class InvokeAdviceEventListenerImplTest {
         Thread.sleep(100);
 
         // Verify metrics were recorded for all messages
-        InvokeAdviceEventListenerImpl.TimerMetric timerMetric =
+        InvokeAdviceEventInterceptorImpl.TimerMetric timerMetric =
                 metrics.getProcessingTimeMetric(TestFastActor.QuickProcess.class.getSimpleName());
 
         assertNotNull(timerMetric, "Timer metric should be recorded");
@@ -133,9 +133,9 @@ class InvokeAdviceEventListenerImplTest {
         assertTrue(pingProcessed.get(), "Ping message should have been processed");
 
         // Verify metrics for different message types
-        InvokeAdviceEventListenerImpl.TimerMetric pingMetric =
+        InvokeAdviceEventInterceptorImpl.TimerMetric pingMetric =
                 metrics.getProcessingTimeMetric("Ping");
-        InvokeAdviceEventListenerImpl.TimerMetric pongMetric =
+        InvokeAdviceEventInterceptorImpl.TimerMetric pongMetric =
                 metrics.getProcessingTimeMetric("Pong");
 
         assertNotNull(pingMetric, "Ping metric should be recorded");

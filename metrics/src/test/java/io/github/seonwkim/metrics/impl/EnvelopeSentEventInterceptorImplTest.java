@@ -5,18 +5,18 @@ import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import io.github.seonwkim.metrics.listener.EnvelopeSentEventListenerHolder;
+import io.github.seonwkim.metrics.interceptor.EnvelopeSentEventInterceptorsHolder;
 
-class EnvelopeSentEventListenerImplTest {
+class EnvelopeSentEventInterceptorImplTest {
 
-	private EnvelopeSentEventListenerImpl listener;
+	private EnvelopeSentEventInterceptorImpl interceptor;
 
 	@BeforeEach
 	void setUp() {
-		EnvelopeSentEventListenerHolder.reset();
-		listener = new EnvelopeSentEventListenerImpl();
-		listener.reset();
-		EnvelopeSentEventListenerHolder.register(listener);
+		EnvelopeSentEventInterceptorsHolder.reset();
+		interceptor = new EnvelopeSentEventInterceptorImpl();
+		interceptor.reset();
+		EnvelopeSentEventInterceptorsHolder.register(interceptor);
 	}
 
 	@Test
@@ -26,10 +26,10 @@ class EnvelopeSentEventListenerImplTest {
 		long timestamp = System.nanoTime();
 
 		// Simulate envelope sent event
-		EnvelopeSentEventListenerHolder.onEnvelopeSent(envelope, timestamp);
+		EnvelopeSentEventInterceptorsHolder.onEnvelopeSent(envelope, timestamp);
 
-		EnvelopeSentEventListenerImpl.EnvelopeMetrics metrics = 
-				listener.getEnvelopeMetrics("TestMessage");
+		EnvelopeSentEventInterceptorImpl.EnvelopeMetrics metrics = 
+				interceptor.getEnvelopeMetrics("TestMessage");
 
 		assertNotNull(metrics, "Envelope metrics should be recorded");
 		assertEquals(1, metrics.getSentCount(), "Should have sent 1 envelope");
@@ -47,11 +47,11 @@ class EnvelopeSentEventListenerImplTest {
 		for (int i = 0; i < 5; i++) {
 			Object envelope = createMockEnvelope(new TestMessage("Message " + i));
 			long timestamp = firstTimestamp + (i * 1000000); // Add 1ms between each
-			EnvelopeSentEventListenerHolder.onEnvelopeSent(envelope, timestamp);
+			EnvelopeSentEventInterceptorsHolder.onEnvelopeSent(envelope, timestamp);
 		}
 
-		EnvelopeSentEventListenerImpl.EnvelopeMetrics metrics = 
-				listener.getEnvelopeMetrics("TestMessage");
+		EnvelopeSentEventInterceptorImpl.EnvelopeMetrics metrics = 
+				interceptor.getEnvelopeMetrics("TestMessage");
 
 		assertNotNull(metrics, "Envelope metrics should be recorded");
 		assertEquals(5, metrics.getSentCount(), "Should have sent 5 envelopes");
@@ -70,14 +70,14 @@ class EnvelopeSentEventListenerImplTest {
 		
 		long timestamp = System.nanoTime();
 		
-		EnvelopeSentEventListenerHolder.onEnvelopeSent(envelopeA1, timestamp);
-		EnvelopeSentEventListenerHolder.onEnvelopeSent(envelopeB, timestamp + 1000);
-		EnvelopeSentEventListenerHolder.onEnvelopeSent(envelopeA2, timestamp + 2000);
+		EnvelopeSentEventInterceptorsHolder.onEnvelopeSent(envelopeA1, timestamp);
+		EnvelopeSentEventInterceptorsHolder.onEnvelopeSent(envelopeB, timestamp + 1000);
+		EnvelopeSentEventInterceptorsHolder.onEnvelopeSent(envelopeA2, timestamp + 2000);
 
-		EnvelopeSentEventListenerImpl.EnvelopeMetrics typeAMetrics = 
-				listener.getEnvelopeMetrics("TypeA");
-		EnvelopeSentEventListenerImpl.EnvelopeMetrics typeBMetrics = 
-				listener.getEnvelopeMetrics("TypeB");
+		EnvelopeSentEventInterceptorImpl.EnvelopeMetrics typeAMetrics = 
+				interceptor.getEnvelopeMetrics("TypeA");
+		EnvelopeSentEventInterceptorImpl.EnvelopeMetrics typeBMetrics = 
+				interceptor.getEnvelopeMetrics("TypeB");
 
 		assertNotNull(typeAMetrics, "TypeA metrics should be recorded");
 		assertEquals(2, typeAMetrics.getSentCount(), "Should have sent 2 TypeA envelopes");
@@ -92,18 +92,18 @@ class EnvelopeSentEventListenerImplTest {
 		Object envelope = createMockEnvelope(new TestMessage("Test"));
 		long timestamp = System.nanoTime();
 		
-		EnvelopeSentEventListenerHolder.onEnvelopeSent(envelope, timestamp);
+		EnvelopeSentEventInterceptorsHolder.onEnvelopeSent(envelope, timestamp);
 
-		EnvelopeSentEventListenerImpl.EnvelopeMetrics metrics = 
-				listener.getEnvelopeMetrics("TestMessage");
+		EnvelopeSentEventInterceptorImpl.EnvelopeMetrics metrics = 
+				interceptor.getEnvelopeMetrics("TestMessage");
 		assertNotNull(metrics, "Metrics should exist before reset");
 		assertEquals(1, metrics.getSentCount(), "Should have 1 envelope sent");
 
 		// Reset metrics
-		listener.reset();
+		interceptor.reset();
 
-		EnvelopeSentEventListenerImpl.EnvelopeMetrics metricsAfterReset = 
-				listener.getEnvelopeMetrics("TestMessage");
+		EnvelopeSentEventInterceptorImpl.EnvelopeMetrics metricsAfterReset = 
+				interceptor.getEnvelopeMetrics("TestMessage");
 		assertNull(metricsAfterReset, "Metrics should be null after reset");
 	}
 
@@ -113,10 +113,10 @@ class EnvelopeSentEventListenerImplTest {
 		Object envelope = createMockEnvelope(new TestMessage("Single"));
 		long timestamp = System.nanoTime();
 		
-		EnvelopeSentEventListenerHolder.onEnvelopeSent(envelope, timestamp);
+		EnvelopeSentEventInterceptorsHolder.onEnvelopeSent(envelope, timestamp);
 
-		EnvelopeSentEventListenerImpl.EnvelopeMetrics metrics = 
-				listener.getEnvelopeMetrics("TestMessage");
+		EnvelopeSentEventInterceptorImpl.EnvelopeMetrics metrics = 
+				interceptor.getEnvelopeMetrics("TestMessage");
 
 		assertNotNull(metrics, "Metrics should be recorded");
 		assertEquals(0, metrics.getTimeBetweenFirstAndLast(), 
@@ -129,10 +129,10 @@ class EnvelopeSentEventListenerImplTest {
 		Object envelope = new Object(); // This will result in "unknown" message type
 		long timestamp = System.nanoTime();
 		
-		EnvelopeSentEventListenerHolder.onEnvelopeSent(envelope, timestamp);
+		EnvelopeSentEventInterceptorsHolder.onEnvelopeSent(envelope, timestamp);
 
-		EnvelopeSentEventListenerImpl.EnvelopeMetrics metrics = 
-				listener.getEnvelopeMetrics("unknown");
+		EnvelopeSentEventInterceptorImpl.EnvelopeMetrics metrics = 
+				interceptor.getEnvelopeMetrics("unknown");
 
 		assertNotNull(metrics, "Metrics should be recorded for unknown type");
 		assertEquals(1, metrics.getSentCount(), "Should have sent 1 envelope");
@@ -149,7 +149,7 @@ class EnvelopeSentEventListenerImplTest {
 			threads[i] = new Thread(() -> {
 				for (int j = 0; j < messagesPerThread; j++) {
 					Object envelope = createMockEnvelope(new TestMessage("Concurrent"));
-					EnvelopeSentEventListenerHolder.onEnvelopeSent(envelope, System.nanoTime());
+					EnvelopeSentEventInterceptorsHolder.onEnvelopeSent(envelope, System.nanoTime());
 				}
 			});
 		}
@@ -164,8 +164,8 @@ class EnvelopeSentEventListenerImplTest {
 			thread.join();
 		}
 		
-		EnvelopeSentEventListenerImpl.EnvelopeMetrics metrics = 
-				listener.getEnvelopeMetrics("TestMessage");
+		EnvelopeSentEventInterceptorImpl.EnvelopeMetrics metrics = 
+				interceptor.getEnvelopeMetrics("TestMessage");
 		
 		assertNotNull(metrics, "Metrics should be recorded");
 		assertEquals(threadCount * messagesPerThread, metrics.getSentCount(), 
@@ -175,11 +175,11 @@ class EnvelopeSentEventListenerImplTest {
 	@Test
 	void testNullEnvelope() {
 		// Test handling of null envelope
-		EnvelopeSentEventListenerHolder.onEnvelopeSent(null, System.nanoTime());
+		EnvelopeSentEventInterceptorsHolder.onEnvelopeSent(null, System.nanoTime());
 		
 		// Should handle gracefully without throwing exception
-		EnvelopeSentEventListenerImpl.EnvelopeMetrics metrics = 
-				listener.getEnvelopeMetrics("unknown");
+		EnvelopeSentEventInterceptorImpl.EnvelopeMetrics metrics = 
+				interceptor.getEnvelopeMetrics("unknown");
 		
 		// May or may not record a metric for null, depending on implementation
 		// Just verify no exception is thrown
@@ -189,22 +189,22 @@ class EnvelopeSentEventListenerImplTest {
 	@Test
 	void testGetMetricsForNonExistentType() {
 		// Test getting metrics for a message type that was never sent
-		EnvelopeSentEventListenerImpl.EnvelopeMetrics metrics = 
-				listener.getEnvelopeMetrics("NonExistentType");
+		EnvelopeSentEventInterceptorImpl.EnvelopeMetrics metrics = 
+				interceptor.getEnvelopeMetrics("NonExistentType");
 		
 		assertNull(metrics, "Should return null for non-existent message type");
 	}
 
 	@Test
 	void testDirectOnEnvelopeSentCall() {
-		// Test calling onEnvelopeSent directly on the listener
+		// Test calling onEnvelopeSent directly on the interceptor
 		Object envelope = createMockEnvelope(new TestMessage("Direct"));
 		long timestamp = System.nanoTime();
 		
-		listener.onEnvelopeSent(envelope, timestamp);
+		interceptor.onEnvelopeSent(envelope, timestamp);
 		
-		EnvelopeSentEventListenerImpl.EnvelopeMetrics metrics = 
-				listener.getEnvelopeMetrics("TestMessage");
+		EnvelopeSentEventInterceptorImpl.EnvelopeMetrics metrics = 
+				interceptor.getEnvelopeMetrics("TestMessage");
 		
 		assertNotNull(metrics, "Metrics should be recorded");
 		assertEquals(1, metrics.getSentCount(), "Should have sent 1 envelope");
@@ -214,8 +214,8 @@ class EnvelopeSentEventListenerImplTest {
 	@Test
 	void testEnvelopeMetricsWithZeroInitialValues() {
 		// Test that a new EnvelopeMetrics has correct initial values
-		EnvelopeSentEventListenerImpl.EnvelopeMetrics metrics = 
-				new EnvelopeSentEventListenerImpl.EnvelopeMetrics();
+		EnvelopeSentEventInterceptorImpl.EnvelopeMetrics metrics = 
+				new EnvelopeSentEventInterceptorImpl.EnvelopeMetrics();
 		
 		assertEquals(0, metrics.getSentCount(), "Initial sent count should be 0");
 		assertEquals(0, metrics.getFirstSentTimestamp(), "Initial first timestamp should be 0");
@@ -228,7 +228,7 @@ class EnvelopeSentEventListenerImplTest {
 		return new MockEnvelope(message);
 	}
 
-	// Mock envelope class that mimics the structure expected by the listener
+	// Mock envelope class that mimics the structure expected by the interceptor
 	private static class MockEnvelope {
 		private final Object message;
 

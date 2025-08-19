@@ -12,16 +12,16 @@ To use the metrics module, you need to include the Java agent when starting your
 java -javaagent:metrics-{version}-agent.jar -jar your-application.jar
 ```
 
-### 2. Implement Event Listeners
+### 2. Implement Event Interceptors
 
-Create listeners to process the metrics events:
+Create interceptors to process the metrics events:
 
 ```java
-import io.github.seonwkim.metrics.ActorInstrumentationEventListener;
-import io.github.seonwkim.metrics.ActorInstrumentationEventListener.InvokeAdviceEventListener;
+import io.github.seonwkim.metrics.ActorInstrumentationEventInterceptor;
+import io.github.seonwkim.metrics.ActorInstrumentationEventInterceptor.InvokeAdviceEventInterceptor;
 
-// Register a listener for regular actor messages
-ActorInstrumentationEventListener.register(new InvokeAdviceEventListener() {
+// Register a interceptor for regular actor messages
+ActorInstrumentationEventInterceptor.register(new InvokeAdviceEventInterceptor() {
     @Override
     public void onEnter(Envelope envelope) {
         // Called when a message is about to be processed
