@@ -1,4 +1,4 @@
-package io.github.seonwkim.metrics.example;
+package io.github.seonwkim.metrics.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -15,7 +15,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import io.github.seonwkim.metrics.TestActorSystem;
-import io.github.seonwkim.metrics.example.ActorLifecycleEventListenerImpl.ActorSystemMetrics;
+import io.github.seonwkim.metrics.impl.ActorLifecycleEventListenerImpl.ActorSystemMetrics;
 import io.github.seonwkim.metrics.listener.ActorLifeCycleEventListenersHolder;
 
 class ActorLifecycleEventListenerImplTest {

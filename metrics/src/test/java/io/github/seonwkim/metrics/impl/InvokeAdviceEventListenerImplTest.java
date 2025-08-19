@@ -1,4 +1,4 @@
-package io.github.seonwkim.metrics.example;
+package io.github.seonwkim.metrics.impl;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -16,17 +16,17 @@ import org.junit.jupiter.api.Test;
 import io.github.seonwkim.metrics.TestActorSystem;
 import io.github.seonwkim.metrics.listener.InvokeAdviceEventListenersHolder;
 
-class InvokeAdviceEventListenersHolderImplTest {
+class InvokeAdviceEventListenerImplTest {
 
     private TestActorSystem actorSystem;
-    private ActorInstrumentationEventListenerImpl metrics;
+    private InvokeAdviceEventListenerImpl metrics;
 
     @BeforeEach
     void setUp() {
         InvokeAdviceEventListenersHolder.reset();
 
         actorSystem = new TestActorSystem();
-        metrics = new ActorInstrumentationEventListenerImpl();
+        metrics = new InvokeAdviceEventListenerImpl();
         InvokeAdviceEventListenersHolder.register(metrics);
     }
 
@@ -46,7 +46,7 @@ class InvokeAdviceEventListenersHolderImplTest {
         assertTrue(messageProcessed.get(), "Message should have been processed");
 
         // Verify metrics were recorded
-        ActorInstrumentationEventListenerImpl.TimerMetric timerMetric =
+        InvokeAdviceEventListenerImpl.TimerMetric timerMetric =
                 metrics.getProcessingTimeMetric(TestSlowActor.Process.class.getSimpleName());
 
         assertNotNull(timerMetric, "Timer metric should be recorded");
@@ -92,7 +92,7 @@ class InvokeAdviceEventListenersHolderImplTest {
         Thread.sleep(100);
 
         // Verify metrics were recorded for all messages
-        ActorInstrumentationEventListenerImpl.TimerMetric timerMetric =
+        InvokeAdviceEventListenerImpl.TimerMetric timerMetric =
                 metrics.getProcessingTimeMetric(TestFastActor.QuickProcess.class.getSimpleName());
 
         assertNotNull(timerMetric, "Timer metric should be recorded");
@@ -133,9 +133,9 @@ class InvokeAdviceEventListenersHolderImplTest {
         assertTrue(pingProcessed.get(), "Ping message should have been processed");
 
         // Verify metrics for different message types
-        ActorInstrumentationEventListenerImpl.TimerMetric pingMetric =
+        InvokeAdviceEventListenerImpl.TimerMetric pingMetric =
                 metrics.getProcessingTimeMetric("Ping");
-        ActorInstrumentationEventListenerImpl.TimerMetric pongMetric =
+        InvokeAdviceEventListenerImpl.TimerMetric pongMetric =
                 metrics.getProcessingTimeMetric("Pong");
 
         assertNotNull(pingMetric, "Ping metric should be recorded");

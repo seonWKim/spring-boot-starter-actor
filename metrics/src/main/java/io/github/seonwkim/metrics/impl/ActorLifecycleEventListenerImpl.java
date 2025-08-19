@@ -1,4 +1,4 @@
-package io.github.seonwkim.metrics.example;
+package io.github.seonwkim.metrics.impl;
 
 import java.util.concurrent.atomic.AtomicLong;
 

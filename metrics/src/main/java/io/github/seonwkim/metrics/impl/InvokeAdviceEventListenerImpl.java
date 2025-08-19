@@ -1,4 +1,4 @@
-package io.github.seonwkim.metrics.example;
+package io.github.seonwkim.metrics.impl;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -9,8 +9,8 @@ import org.slf4j.LoggerFactory;
 
 import io.github.seonwkim.metrics.listener.InvokeAdviceEventListenersHolder;
 
-public class ActorInstrumentationEventListenerImpl implements InvokeAdviceEventListenersHolder.InvokeAdviceEventListener {
-	private static final Logger logger = LoggerFactory.getLogger(ActorInstrumentationEventListenerImpl.class);
+public class InvokeAdviceEventListenerImpl implements InvokeAdviceEventListenersHolder.InvokeAdviceEventListener {
+	private static final Logger logger = LoggerFactory.getLogger(InvokeAdviceEventListenerImpl.class);
 
 	private final ConcurrentHashMap<String, TimerMetric> processingTimeMetrics = new ConcurrentHashMap<>();
 
