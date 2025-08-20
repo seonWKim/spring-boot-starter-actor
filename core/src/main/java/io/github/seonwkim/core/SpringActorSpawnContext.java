@@ -96,7 +96,7 @@ public class SpringActorSpawnContext<A extends SpringActor<A, C>, C> {
     public static class Builder<A extends SpringActor<A, C>, C> {
         private Class<A> actorClass;
         private SpringActorContext actorContext;
-        private Duration duration = Duration.ofSeconds(3);
+        private Duration timeout = Duration.ofSeconds(3);
         private MailboxSelector mailboxSelector = MailboxSelector.defaultMailbox();
         private boolean isClusterSingleton = false;
 
@@ -136,11 +136,11 @@ public class SpringActorSpawnContext<A extends SpringActor<A, C>, C> {
         /**
          * Sets the timeout for the spawn operation.
          *
-         * @param duration The timeout for the spawn operation
+         * @param timeout The timeout for the spawn operation
          * @return This builder
          */
-        public Builder<A, C> duration(Duration duration) {
-            this.duration = duration;
+        public Builder<A, C> timeout(Duration timeout) {
+            this.timeout = timeout;
             return this;
         }
 
@@ -179,7 +179,7 @@ public class SpringActorSpawnContext<A extends SpringActor<A, C>, C> {
             return new SpringActorSpawnContext<>(
                     actorClass,
                     actorContext,
-                    duration,
+                    timeout,
                     mailboxSelector,
                     isClusterSingleton
             );

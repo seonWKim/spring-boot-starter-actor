@@ -31,7 +31,7 @@ public class HelloService {
 				new SpringActorSpawnContext.Builder<HelloActor, HelloActor.Command>()
 						.actorClass(HelloActor.class)
 						.actorId("default")
-						.duration(Duration.ofSeconds(3))
+						.timeout(Duration.ofSeconds(3))
 						.build();
 		this.helloActor = springActorSystem.spawn(spawnContext).toCompletableFuture().join();
 	}
