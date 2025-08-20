@@ -85,7 +85,7 @@ public class HelloService {
                 new SpringActorSpawnContext.Builder<HelloActor, HelloActor.Command>()
                         .actorClass(HelloActor.class)
                         .actorId("default")
-                        .duration(Duration.ofSeconds(3))
+                        .timeout(Duration.ofSeconds(3))
                         .build();
 
         // Spawn a single actor with the context

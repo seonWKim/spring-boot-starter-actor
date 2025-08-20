@@ -153,17 +153,26 @@ spring:
     name: spring-pekko
   actor:
     pekko:
+      name: spring-pekko-example
       actor:
         provider: cluster
+        allow-java-serialization: off
+        warn-about-java-serializer-usage: on
       remote:
         artery:
           canonical:
-            hostname: "127.0.0.1"
-            port: 25520
+            hostname: 127.0.0.1
+            port: 2551
       cluster:
+        name: spring-pekko-example
         seed-nodes:
-          - "pekko://spring-pekko@127.0.0.1:25520"
-        downing-provider-class: "org.apache.pekko.cluster.sbr.SplitBrainResolverProvider"
+          - pekko://spring-pekko-example@127.0.0.1:2551
+          - pekko://spring-pekko-example@127.0.0.1:2552
+          - pekko://spring-pekko-example@127.0.0.1:2553
+        downing-provider-class: org.apache.pekko.cluster.sbr.SplitBrainResolverProvider
+
+server:
+  port: 8080
 ```
 
 ## Running the Example
