@@ -47,4 +47,5 @@ tasks.bootJar {
 
 tasks.jar {
 	enabled = true
+	archiveClassifier.set("")  // Ensure no classifier for the main JAR so that maven works
 }
