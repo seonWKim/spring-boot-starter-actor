@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 
 import io.github.seonwkim.core.SpringActorRef;
 import io.github.seonwkim.core.SpringActorSpawnContext;
+import io.github.seonwkim.core.SpringActorSpawnContext.Builder;
 import io.github.seonwkim.core.SpringActorSystem;
 import io.github.seonwkim.example.HelloActor;
 import io.github.seonwkim.example.metrics.ClusterShardingMetricsActor.ClusterShardingMetricsExporterContext;
@@ -30,8 +31,7 @@ public class ClusterShardingMetricsExporter {
     public ClusterShardingMetricsExporter(MeterRegistry meterRegistry, SpringActorSystem springActorSystem) {
         this.springActorSystem = springActorSystem;
         final SpringActorSpawnContext<ClusterShardingMetricsActor, CurrentShardRegionState> context =
-                new SpringActorSpawnContext.Builder<ClusterShardingMetricsActor, CurrentShardRegionState>()
-                        .actorClass(ClusterShardingMetricsActor.class)
+                new Builder<>(ClusterShardingMetricsActor.class)
                         .actorContext(new ClusterShardingMetricsExporterContext("exporter", meterRegistry))
                         .build();
 

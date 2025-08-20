@@ -17,8 +17,10 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.github.seonwkim.core.SpringActorRef;
 import io.github.seonwkim.core.SpringActorSpawnContext;
+import io.github.seonwkim.core.SpringActorSpawnContext.Builder;
 import io.github.seonwkim.core.SpringActorStopContext;
 import io.github.seonwkim.core.SpringActorSystem;
+import io.github.seonwkim.example.UserActor.Command;
 import io.github.seonwkim.example.UserActor.Connect;
 import io.github.seonwkim.example.UserActor.JoinRoom;
 import io.github.seonwkim.example.UserActor.LeaveRoom;
@@ -49,9 +51,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         UserActor.UserActorContext userActorContext =
                 new UserActor.UserActorContext(actorSystem, objectMapper, userId, session);
 
-        final SpringActorSpawnContext<UserActor, UserActor.Command> spawnContext =
-                new SpringActorSpawnContext.Builder<UserActor, UserActor.Command>()
-                        .actorClass(UserActor.class)
+        final SpringActorSpawnContext<UserActor, UserActor.Command> spawnContext = new Builder<>(UserActor.class)
                         .actorContext(userActorContext)
                         .build();
         actorSystem.spawn(spawnContext)

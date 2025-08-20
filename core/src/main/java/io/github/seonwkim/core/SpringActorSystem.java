@@ -145,8 +145,7 @@ public class SpringActorSystem implements DisposableBean {
      */
     public <A extends SpringActor<A, C>, C> CompletionStage<SpringActorRef<C>> spawn(Class<A> actorClass,
                                                                                      String actorId) {
-        SpringActorSpawnContext<A, C> spawnContext = new SpringActorSpawnContext.Builder<A, C>()
-                .actorClass(actorClass)
+        SpringActorSpawnContext<A, C> spawnContext = new SpringActorSpawnContext.Builder<>(actorClass)
                 .actorId(actorId)
                 .build();
         return spawn(spawnContext);
@@ -165,8 +164,7 @@ public class SpringActorSystem implements DisposableBean {
      */
     public <A extends SpringActor<A, C>, C> CompletionStage<SpringActorRef<C>> spawn(Class<A> actorClass,
                                                                                      SpringActorContext actorContext) {
-        SpringActorSpawnContext<A, C> spawnContext = new SpringActorSpawnContext.Builder<A, C>()
-                .actorClass(actorClass)
+        SpringActorSpawnContext<A, C> spawnContext = new SpringActorSpawnContext.Builder<>(actorClass)
                 .actorContext(actorContext)
                 .build();
         return spawn(spawnContext);

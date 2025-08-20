@@ -28,11 +28,11 @@ public class HelloService {
 		// Note: In a production environment, consider using a non-blocking approach
 		// instead of join() which blocks the current thread
 		final SpringActorSpawnContext<HelloActor, HelloActor.Command> spawnContext =
-				new SpringActorSpawnContext.Builder<HelloActor, HelloActor.Command>()
-						.actorClass(HelloActor.class)
+                new SpringActorSpawnContext.Builder<>(HelloActor.class)
 						.actorId("default")
 						.timeout(Duration.ofSeconds(3))
 						.build();
+
 		this.helloActor = springActorSystem.spawn(spawnContext).toCompletableFuture().join();
 	}
 

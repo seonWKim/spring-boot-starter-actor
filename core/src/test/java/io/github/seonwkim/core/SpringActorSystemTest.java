@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.seonwkim.core.RootGuardian.ActorNotFound;
 import io.github.seonwkim.core.RootGuardian.Stopped;
+import io.github.seonwkim.core.SpringActorSpawnContext.Builder;
+import io.github.seonwkim.core.SpringActorSystemTest.TestHelloActor.Command;
 import io.github.seonwkim.core.SpringActorSystemTest.TestHelloActor.SayHello;
 
 import org.apache.pekko.actor.typed.ActorRef;
@@ -110,8 +112,7 @@ class SpringActorSystemTest {
 
             final String actorId = "test-actor";
             final SpringActorSpawnContext<TestHelloActor, TestHelloActor.Command> spawnContext =
-                    new SpringActorSpawnContext.Builder<TestHelloActor, TestHelloActor.Command>()
-                            .actorClass(TestHelloActor.class)
+                    new Builder<>(TestHelloActor.class)
                             .actorId(actorId)
                             .build();
             final SpringActorRef<TestHelloActor.Command> actorRef = actorSystem.spawn(spawnContext).toCompletableFuture().join();
@@ -150,8 +151,7 @@ class SpringActorSystemTest {
             final String actorId = "test-actor";
             final SpringActorContext actorContext = new CustomActorContext(actorId);
             final SpringActorSpawnContext<CustomActorContextActor, CustomActorContextActor.Command> spawnContext =
-                    new SpringActorSpawnContext.Builder<CustomActorContextActor, CustomActorContextActor.Command>()
-                            .actorClass(CustomActorContextActor.class)
+                    new Builder<>(CustomActorContextActor.class)
                             .actorContext(actorContext)
                             .build();
             final SpringActorRef<CustomActorContextActor.Command> actorRef =

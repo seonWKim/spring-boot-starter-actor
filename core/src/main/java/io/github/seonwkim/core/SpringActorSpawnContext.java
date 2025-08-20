@@ -94,21 +94,22 @@ public class SpringActorSpawnContext<A extends SpringActor<A, C>, C> {
      * @param <C> The type of commands that the actor can handle
      */
     public static class Builder<A extends SpringActor<A, C>, C> {
-        private Class<A> actorClass;
+        private final Class<A> actorClass;
         private SpringActorContext actorContext;
         private Duration timeout = Duration.ofSeconds(3);
         private MailboxSelector mailboxSelector = MailboxSelector.defaultMailbox();
         private boolean isClusterSingleton = false;
 
         /**
-         * Sets the class of the actor to spawn.
+         * Creates a new Builder with the specified actor class.
          *
          * @param actorClass The class of the actor to spawn
-         * @return This builder
          */
-        public Builder<A, C> actorClass(Class<A> actorClass) {
+        public Builder(Class<A> actorClass) {
+            if (actorClass == null) {
+                throw new IllegalArgumentException("actorClass must not be null");
+            }
             this.actorClass = actorClass;
-            return this;
         }
 
         /**
@@ -170,11 +171,11 @@ public class SpringActorSpawnContext<A extends SpringActor<A, C>, C> {
          * Builds a new {@link SpringActorSpawnContext} with the parameters set in this builder.
          *
          * @return A new {@link SpringActorSpawnContext}
-         * @throws IllegalArgumentException If actorClass or actorContext is null
+         * @throws IllegalArgumentException If actorContext is null
          */
         public SpringActorSpawnContext<A, C> build() {
-            if (actorClass == null || actorContext == null) {
-                throw new IllegalArgumentException("actorClass and actorContext must be set");
+            if (actorContext == null) {
+                throw new IllegalArgumentException("actorContext must be set");
             }
             return new SpringActorSpawnContext<>(
                     actorClass,
