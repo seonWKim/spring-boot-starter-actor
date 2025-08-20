@@ -66,19 +66,20 @@ public class SpringActorStopContext<A extends SpringActor<A, C>, C> {
      * @param <C> The type of commands that the actor can handle
      */
     public static class Builder<A extends SpringActor<A, C>, C> {
-        private Class<A> actorClass;
+        private final Class<A> actorClass;
         private SpringActorContext actorContext;
         private Duration duration = Duration.ofSeconds(3);
 
         /**
-         * Sets the class of the actor to stop.
+         * Creates a new Builder with the specified actor class.
          *
          * @param actorClass The class of the actor to stop
-         * @return This builder
          */
-        public Builder<A, C> actorClass(Class<A> actorClass) {
+        public Builder(Class<A> actorClass) {
+            if (actorClass == null) {
+                throw new IllegalArgumentException("actorClass must not be null");
+            }
             this.actorClass = actorClass;
-            return this;
         }
 
         /**
@@ -118,11 +119,11 @@ public class SpringActorStopContext<A extends SpringActor<A, C>, C> {
          * Builds a new {@link SpringActorStopContext} with the parameters set in this builder.
          *
          * @return A new {@link SpringActorStopContext}
-         * @throws IllegalArgumentException If actorClass or actorContext is null
+         * @throws IllegalArgumentException If actorContext is null
          */
         public SpringActorStopContext<A, C> build() {
-            if (actorClass == null || actorContext == null) {
-                throw new IllegalArgumentException("actorClass and actorContext must be set");
+            if (actorContext == null) {
+                throw new IllegalArgumentException("actorContext must be set");
             }
             return new SpringActorStopContext<>(
                     actorClass,

@@ -213,8 +213,7 @@ public class SpringActorSystem implements DisposableBean {
      */
     public <A extends SpringActor<A, C>, C> CompletionStage<StopResult> stop(Class<A> actorClass,
                                                                              String actorId) {
-        SpringActorStopContext<A, C> stopContext = new SpringActorStopContext.Builder<A, C>()
-                .actorClass(actorClass)
+        SpringActorStopContext<A, C> stopContext = new SpringActorStopContext.Builder<>(actorClass)
                 .actorId(actorId)
                 .build();
         return stop(stopContext);
@@ -238,8 +237,7 @@ public class SpringActorSystem implements DisposableBean {
      */
     public <A extends SpringActor<A, C>, C> CompletionStage<StopResult> stop(Class<A> actorClass,
                                                                              SpringActorContext actorContext) {
-        SpringActorStopContext<A, C> stopContext = new SpringActorStopContext.Builder<A, C>()
-                .actorClass(actorClass)
+        SpringActorStopContext<A, C> stopContext = new SpringActorStopContext.Builder<>(actorClass)
                 .actorContext(actorContext)
                 .build();
         return stop(stopContext);

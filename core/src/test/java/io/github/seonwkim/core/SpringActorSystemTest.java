@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.github.seonwkim.core.RootGuardian.ActorNotFound;
 import io.github.seonwkim.core.RootGuardian.Stopped;
 import io.github.seonwkim.core.SpringActorSpawnContext.Builder;
-import io.github.seonwkim.core.SpringActorSystemTest.TestHelloActor.Command;
 import io.github.seonwkim.core.SpringActorSystemTest.TestHelloActor.SayHello;
 
 import org.apache.pekko.actor.typed.ActorRef;
@@ -120,8 +119,7 @@ class SpringActorSystemTest {
 
             assertEquals(actorRef.ask(SayHello::new).toCompletableFuture().join(), "hello world!!");
             final SpringActorStopContext<TestHelloActor, TestHelloActor.Command> stopContext =
-                    new SpringActorStopContext.Builder<TestHelloActor, TestHelloActor.Command>()
-                            .actorClass(TestHelloActor.class)
+                    new SpringActorStopContext.Builder<>(TestHelloActor.class)
                             .actorId(actorId)
                             .build();
             assertEquals(

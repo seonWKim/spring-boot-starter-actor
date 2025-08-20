@@ -99,10 +99,9 @@ public class HelloService {
     public HelloService(SpringActorSystem springActorSystem) {
         // Create a spawn context for the actor
         final SpringActorSpawnContext<HelloActor, HelloActor.Command> spawnContext =
-                new SpringActorSpawnContext.Builder<HelloActor, HelloActor.Command>()
-                        .actorClass(HelloActor.class)
+                new SpringActorSpawnContext.Builder<>(HelloActor.class)
                         .actorId("default")
-                        .duration(Duration.ofSeconds(3))
+                        .timeout(Duration.ofSeconds(3))
                         .build();
 
         // Spawn an actor with the context
