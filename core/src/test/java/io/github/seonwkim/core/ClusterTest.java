@@ -147,11 +147,11 @@ public class ClusterTest {
 
 		System.out.println("Cluster is configured 🚀");
 		SpringShardedActorRef<TestShardedActor.Command> sharedActor1 =
-				system1.entityRef(TestShardedActor.TYPE_KEY, "shared-entity");
+				system1.sharded(TestShardedActor.class).withId("shared-entity").get();
 		SpringShardedActorRef<TestShardedActor.Command> sharedActor2 =
-				system2.entityRef(TestShardedActor.TYPE_KEY, "shared-entity");
+				system2.sharded(TestShardedActor.class).withId("shared-entity").get();
 		SpringShardedActorRef<TestShardedActor.Command> sharedActor3 =
-				system3.entityRef(TestShardedActor.TYPE_KEY, "shared-entity");
+				system3.sharded(TestShardedActor.class).withId("shared-entity").get();
 
 		sharedActor1.tell(new TestShardedActor.Ping("hello shard1"));
 		sharedActor2.tell(new TestShardedActor.Ping("hello shard2"));
@@ -172,11 +172,11 @@ public class ClusterTest {
 
 		System.out.println("Cluster is configured 🚀");
 		SpringShardedActorRef<TestShardedActor.Command> actor1 =
-				system1.entityRef(TestShardedActor.TYPE_KEY, "shared-entity-1");
+				system1.sharded(TestShardedActor.class).withId("shared-entity-1").get();
 		SpringShardedActorRef<TestShardedActor.Command> actor2 =
-				system2.entityRef(TestShardedActor.TYPE_KEY, "shared-entity-2");
+				system2.sharded(TestShardedActor.class).withId("shared-entity-2").get();
 		SpringShardedActorRef<TestShardedActor.Command> actor3 =
-				system3.entityRef(TestShardedActor.TYPE_KEY, "shared-entity-3");
+				system3.sharded(TestShardedActor.class).withId("shared-entity-3").get();
 
 		actor1.tell(new TestShardedActor.Ping("hello shard1"));
 		actor2.tell(new TestShardedActor.Ping("hello shard2"));

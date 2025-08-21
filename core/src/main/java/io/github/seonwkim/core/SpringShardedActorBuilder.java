@@ -1,6 +1,7 @@
 package io.github.seonwkim.core;
 
 import io.github.seonwkim.core.shard.ShardedActor;
+import org.apache.pekko.cluster.sharding.typed.javadsl.EntityRef;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
 
 /**
@@ -81,7 +82,12 @@ public class SpringShardedActorBuilder<T> {
                 ". Please ensure the actor has a static TYPE_KEY field or use withTypeKey() to provide one.");
         }
         
-        return actorSystem.entityRef(typeKey, entityId);
+        if (actorSystem.getClusterSharding() == null) {
+            throw new IllegalStateException("Cluster sharding not configured");
+        }
+        
+        final EntityRef<T> entityRef = actorSystem.getClusterSharding().entityRefFor(typeKey, entityId);
+        return new SpringShardedActorRef<>(actorSystem.getRaw().scheduler(), entityRef);
     }
     
     /**

@@ -10,8 +10,6 @@ import org.apache.pekko.actor.typed.Props;
 import org.apache.pekko.actor.typed.javadsl.AskPattern;
 import org.apache.pekko.cluster.ClusterEvent;
 import org.apache.pekko.cluster.sharding.typed.javadsl.ClusterSharding;
-import org.apache.pekko.cluster.sharding.typed.javadsl.EntityRef;
-import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
 import org.apache.pekko.cluster.typed.Cluster;
 import org.apache.pekko.cluster.typed.Subscribe;
 import org.springframework.beans.factory.DisposableBean;
@@ -229,26 +227,6 @@ public class SpringActorSystem implements DisposableBean {
         return stop(stopContext);
     }
 
-    /**
-     * Returns a reference to a sharded entity with the given entity type key and entity ID. This
-     * method can only be called if this SpringActorSystem is in cluster mode.
-     *
-     * @param entityTypeKey The entity type key
-     * @param entityId The entity ID
-     * @param <T> The type of messages that the entity can handle
-     *
-     * @return A SpringShardedActorRef to the entity
-     *
-     * @throws IllegalStateException If this SpringActorSystem is not in cluster mode
-     */
-    public <T> SpringShardedActorRef<T> entityRef(EntityTypeKey<T> entityTypeKey, String entityId) {
-        if (clusterSharding == null) {
-            throw new IllegalStateException("Cluster sharding not configured");
-        }
-
-        final EntityRef<T> entityRef = clusterSharding.entityRefFor(entityTypeKey, entityId);
-        return new SpringShardedActorRef<>(actorSystem.scheduler(), entityRef);
-    }
 
     /**
      * Creates a fluent builder for getting a reference to a sharded actor.

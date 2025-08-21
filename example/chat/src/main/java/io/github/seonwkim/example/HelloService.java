@@ -21,7 +21,7 @@ public class HelloService {
 	public Mono<String> hello(String message, String entityId) {
 		// Get a reference to the actor entity
 		SpringShardedActorRef<HelloActor.Command> actorRef =
-				springActorSystem.entityRef(HelloActor.TYPE_KEY, entityId);
+				springActorSystem.sharded(HelloActor.class).withId(entityId).get();
 
 		// Send the message to the actor and get the response
 		CompletionStage<String> response =

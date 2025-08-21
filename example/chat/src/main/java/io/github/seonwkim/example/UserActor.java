@@ -267,7 +267,7 @@ public class UserActor implements SpringActor<UserActor, UserActor.Command> {
         }
 
         private SpringShardedActorRef<ChatRoomActor.Command> getRoomActor() {
-            return actorSystem.entityRef(ChatRoomActor.TYPE_KEY, currentRoomId);
+            return actorSystem.sharded(ChatRoomActor.class).withId(currentRoomId).get();
         }
 
         private void sendEvent(String type, EventBuilder builder) {
