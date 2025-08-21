@@ -117,7 +117,7 @@ class SpringActorSystemTest {
             assertThat(actorRef).isNotNull();
 
             assertEquals(actorRef.ask(SayHello::new).toCompletableFuture().join(), "hello world!!");
-            
+
             // Stop the actor using the new simplified API
             assertEquals(
                     actorRef
@@ -127,10 +127,9 @@ class SpringActorSystemTest {
                             .getClass(),
                     Stopped.class);
 
-            // Try to stop the same actor again using actorSystem.stop, should return ActorNotFound
+            // Try to stop the same actor again using actorRef.stop, should return ActorNotFound
             assertEquals(
-                    actorSystem
-                            .stop(TestHelloActor.class, actorId)
+                    actorRef.stop()
                             .toCompletableFuture()
                             .join()
                             .getClass(),
