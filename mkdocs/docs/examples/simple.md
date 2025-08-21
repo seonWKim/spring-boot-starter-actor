@@ -80,18 +80,12 @@ public class HelloService {
     private final SpringActorRef<Command> helloActor;
 
     public HelloService(SpringActorSystem springActorSystem) {
-        // Create a spawn context for the actor
-        final SpringActorSpawnContext<HelloActor, HelloActor.Command> spawnContext =
-                new SpringActorSpawnContext.Builder<>(HelloActor.class)
-                        .actorId("default")
-                        .timeout(Duration.ofSeconds(3))
-                        .build();
-
-        // Spawn a single actor with the context
+        // Spawn a single actor using the simplified fluent API
         this.helloActor = springActorSystem
-                .spawn(spawnContext)
-                .toCompletableFuture()
-                .join();
+                .spawn(HelloActor.class)
+                .withId("default")
+                .withTimeout(Duration.ofSeconds(3))
+                .startAndWait();
     }
 
     public Mono<String> hello() {

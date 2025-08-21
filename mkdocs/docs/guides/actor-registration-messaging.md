@@ -80,9 +80,12 @@ public class HelloActor implements SpringActor<HelloActor, HelloActor.Command> {
 
 Once you've registered your actor, you can spawn instances of it using the `SpringActorSystem`:
 
+### Simplified API
+
+The recommended way to spawn actors is using the fluent builder API:
+
 ```java
 import io.github.seonwkim.core.SpringActorRef;
-import io.github.seonwkim.core.SpringActorSpawnContext;
 import io.github.seonwkim.core.SpringActorSystem;
 
 import org.springframework.stereotype.Service;
@@ -97,22 +100,71 @@ public class HelloService {
     private final SpringActorRef<HelloActor.Command> helloActor;
 
     public HelloService(SpringActorSystem springActorSystem) {
-        // Create a spawn context for the actor
-        final SpringActorSpawnContext<HelloActor, HelloActor.Command> spawnContext =
-                new SpringActorSpawnContext.Builder<>(HelloActor.class)
-                        .actorId("default")
-                        .timeout(Duration.ofSeconds(3))
-                        .build();
-
-        // Spawn an actor with the context
+        // Spawn an actor using the fluent builder API
         this.helloActor = springActorSystem
-                .spawn(spawnContext)
-                .toCompletableFuture()
-                .join();
+                .spawn(HelloActor.class)
+                .withId("default")
+                .withTimeout(Duration.ofSeconds(3))
+                .startAndWait();
     }
 
     // Service methods...
 }
+```
+
+### Even Simpler API
+
+For basic use cases with default settings:
+
+```java
+// Simple spawn with just an ID (uses default timeout of 3 seconds)
+SpringActorRef<HelloActor.Command> actor = springActorSystem
+        .spawn(HelloActor.class, "actorId")
+        .toCompletableFuture()
+        .join();
+```
+
+### Async Spawning
+
+For non-blocking actor creation:
+
+```java
+@Service
+public class HelloService {
+    private final CompletionStage<SpringActorRef<HelloActor.Command>> helloActor;
+
+    public HelloService(SpringActorSystem springActorSystem) {
+        // Spawn asynchronously
+        this.helloActor = springActorSystem
+                .spawn(HelloActor.class)
+                .withId("default")
+                .withTimeout("3s")  // Can use string format
+                .start();
+    }
+
+    public Mono<String> hello() {
+        return Mono.fromCompletionStage(
+            helloActor.thenCompose(actor ->
+                actor.ask(HelloActor.SayHello::new, Duration.ofSeconds(3))
+            )
+        );
+    }
+}
+```
+
+### Advanced Configuration
+
+The fluent API supports additional configuration options:
+
+```java
+SpringActorRef<HelloActor.Command> actor = springActorSystem
+        .spawn(HelloActor.class)
+        .withId("myActor")
+        .withTimeout(Duration.ofSeconds(5))
+        .withMailbox("bounded")  // or "unbounded", "default"
+        .asClusterSingleton()     // For cluster singleton actors
+        .withContext(customContext)  // Custom actor context
+        .start();
 ```
 
 ## Sending Messages to Actors
@@ -140,6 +192,24 @@ public Mono<String> hello() {
 }
 ```
 
+## Stopping Actors
+
+You can gracefully stop actors when they are no longer needed:
+
+### Simplified Stop API
+
+```java
+// Stop an actor using its class and ID
+springActorSystem.stop(HelloActor.class, "actorId")
+    .toCompletableFuture()
+    .join();
+
+// Or with a custom context
+springActorSystem.stop(HelloActor.class, customContext)
+    .toCompletableFuture()
+    .join();
+```
+
 ## Best Practices
 
 1. **Actor Hierarchy**: Organize actors in a hierarchy to manage their lifecycle and supervision.
@@ -147,6 +217,7 @@ public Mono<String> hello() {
 3. **Timeout Handling**: Always specify reasonable timeouts for ask operations and handle timeout exceptions.
 4. **Non-Blocking Operations**: Avoid blocking operations inside actors, as they can lead to thread starvation.
 5. **Actor Naming**: Use meaningful and unique names for actors to make debugging easier.
+6. **Prefer Fluent API**: Use the fluent builder API for spawning actors as it provides better readability and type safety.
 
 ## Next Steps
 

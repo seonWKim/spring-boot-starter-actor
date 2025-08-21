@@ -105,6 +105,29 @@ public class SpringActorSystem implements DisposableBean {
     }
 
     /**
+     * Creates a fluent builder for spawning an actor with the given actor class.
+     * This provides a more convenient API for configuring and spawning actors.
+     *
+     * <p>Example usage:
+     * <pre>
+     * SpringActorRef&lt;Command&gt; actor = actorSystem
+     *     .spawn(HelloActor.class)
+     *     .withId("myActor")
+     *     .withTimeout(Duration.ofSeconds(5))
+     *     .start();
+     * </pre>
+     *
+     * @param actorClass The class of the actor to spawn
+     * @param <A> The type of the actor
+     * @param <C> The type of commands that the actor can handle
+     *
+     * @return A builder for configuring and spawning the actor
+     */
+    public <A extends SpringActor<A, C>, C> SpringActorSpawnBuilder<A, C> spawn(Class<A> actorClass) {
+        return new SpringActorSpawnBuilder<>(this, actorClass);
+    }
+
+    /**
      * Spawns a new actor with the given spawn context.
      *
      * @param spawnContext The context containing all parameters needed to spawn the actor
@@ -113,7 +136,7 @@ public class SpringActorSystem implements DisposableBean {
      *
      * @return A CompletionStage that will be completed with a reference to the spawned actor
      */
-    public <A extends SpringActor<A, C>, C> CompletionStage<SpringActorRef<C>> spawn(SpringActorSpawnContext<A, C> spawnContext) {
+    protected  <A extends SpringActor<A, C>, C> CompletionStage<SpringActorRef<C>> spawn(SpringActorSpawnContext<A, C> spawnContext) {
         return AskPattern.ask(actorSystem,
                               (ActorRef<Spawned<?>> replyTo) ->
                                       new DefaultRootGuardian.SpawnActor(
@@ -130,44 +153,6 @@ public class SpringActorSystem implements DisposableBean {
                              ActorRef<C> typedRef = (ActorRef<C>) spawned.ref;
                              return new SpringActorRef<>(actorSystem.scheduler(), typedRef);
                          });
-    }
-
-    /**
-     * Spawns a new actor with the given actor class and actor ID.
-     * This is a simplified version of the {@link #spawn(SpringActorSpawnContext)} method.
-     *
-     * @param actorClass The class of the actor to spawn
-     * @param actorId The ID of the actor to spawn
-     * @param <A> The type of the actor
-     * @param <C> The type of commands that the actor can handle
-     *
-     * @return A CompletionStage that will be completed with a reference to the spawned actor
-     */
-    public <A extends SpringActor<A, C>, C> CompletionStage<SpringActorRef<C>> spawn(Class<A> actorClass,
-                                                                                     String actorId) {
-        SpringActorSpawnContext<A, C> spawnContext = new SpringActorSpawnContext.Builder<>(actorClass)
-                .actorId(actorId)
-                .build();
-        return spawn(spawnContext);
-    }
-
-    /**
-     * Spawns a new actor with the given actor class and actor context.
-     * This is a simplified version of the {@link #spawn(SpringActorSpawnContext)} method.
-     *
-     * @param actorClass The class of the actor to spawn
-     * @param actorContext The context of the actor to spawn
-     * @param <A> The type of the actor
-     * @param <C> The type of commands that the actor can handle
-     *
-     * @return A CompletionStage that will be completed with a reference to the spawned actor
-     */
-    public <A extends SpringActor<A, C>, C> CompletionStage<SpringActorRef<C>> spawn(Class<A> actorClass,
-                                                                                     SpringActorContext actorContext) {
-        SpringActorSpawnContext<A, C> spawnContext = new SpringActorSpawnContext.Builder<>(actorClass)
-                .actorContext(actorContext)
-                .build();
-        return spawn(spawnContext);
     }
 
     /**

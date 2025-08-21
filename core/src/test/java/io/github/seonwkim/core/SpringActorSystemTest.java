@@ -51,7 +51,8 @@ class SpringActorSystemTest {
     }
 
     @Component
-    static class CustomActorContextActor implements SpringActor<CustomActorContextActor, CustomActorContextActor.Command> {
+    static class CustomActorContextActor
+            implements SpringActor<CustomActorContextActor, CustomActorContextActor.Command> {
 
         public interface Command {}
 
@@ -114,7 +115,10 @@ class SpringActorSystemTest {
                     new Builder<>(TestHelloActor.class)
                             .actorId(actorId)
                             .build();
-            final SpringActorRef<TestHelloActor.Command> actorRef = actorSystem.spawn(spawnContext).toCompletableFuture().join();
+            final SpringActorRef<TestHelloActor.Command> actorRef = actorSystem.spawn(TestHelloActor.class)
+                                                                               .withId(actorId)
+                                                                               .startAndWait();
+
             assertThat(actorRef).isNotNull();
 
             assertEquals(actorRef.ask(SayHello::new).toCompletableFuture().join(), "hello world!!");
@@ -140,7 +144,6 @@ class SpringActorSystemTest {
                     ActorNotFound.class);
         }
 
-
         @Test
         void customActorContext(ApplicationContext context) {
             assertTrue(context.containsBean("actorSystem"), "ActorSystem bean should exist");
@@ -148,14 +151,13 @@ class SpringActorSystemTest {
 
             final String actorId = "test-actor";
             final SpringActorContext actorContext = new CustomActorContext(actorId);
-            final SpringActorSpawnContext<CustomActorContextActor, CustomActorContextActor.Command> spawnContext =
-                    new Builder<>(CustomActorContextActor.class)
-                            .actorContext(actorContext)
-                            .build();
             final SpringActorRef<CustomActorContextActor.Command> actorRef =
-                    actorSystem.spawn(spawnContext).toCompletableFuture().join();
+                    actorSystem.spawn(CustomActorContextActor.class)
+                               .withContext(actorContext)
+                               .startAndWait();
             assertThat(actorRef).isNotNull();
-            assertEquals(actorRef.ask(CustomActorContextActor.SayHello::new).toCompletableFuture().join(), actorContext.actorId());
+            assertEquals(actorRef.ask(CustomActorContextActor.SayHello::new).toCompletableFuture().join(),
+                         actorContext.actorId());
         }
     }
 }

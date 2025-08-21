@@ -30,12 +30,9 @@ public class ClusterShardingMetricsExporter {
 
     public ClusterShardingMetricsExporter(MeterRegistry meterRegistry, SpringActorSystem springActorSystem) {
         this.springActorSystem = springActorSystem;
-        final SpringActorSpawnContext<ClusterShardingMetricsActor, CurrentShardRegionState> context =
-                new Builder<>(ClusterShardingMetricsActor.class)
-                        .actorContext(new ClusterShardingMetricsExporterContext("exporter", meterRegistry))
-                        .build();
-
-        this.metricsActors = springActorSystem.spawn(context).toCompletableFuture().join();
+        this.metricsActors = springActorSystem.spawn(ClusterShardingMetricsActor.class)
+                .withContext(new ClusterShardingMetricsExporterContext("exporter", meterRegistry))
+                .startAndWait();
     }
 
     @PostConstruct
