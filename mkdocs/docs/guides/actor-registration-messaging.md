@@ -112,18 +112,6 @@ public class HelloService {
 }
 ```
 
-### Even Simpler API
-
-For basic use cases with default settings:
-
-```java
-// Simple spawn with just an ID (uses default timeout of 3 seconds)
-SpringActorRef<HelloActor.Command> actor = springActorSystem
-        .spawn(HelloActor.class, "actorId")
-        .toCompletableFuture()
-        .join();
-```
-
 ### Async Spawning
 
 For non-blocking actor creation:

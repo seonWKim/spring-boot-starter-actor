@@ -4,11 +4,6 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.seonwkim.core.RootGuardian.ActorNotFound;
-import io.github.seonwkim.core.RootGuardian.Stopped;
-import io.github.seonwkim.core.SpringActorSpawnContext.Builder;
-import io.github.seonwkim.core.SpringActorSystemTest.TestHelloActor.SayHello;
-
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
@@ -19,6 +14,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 import org.springframework.test.context.TestPropertySource;
+
+import io.github.seonwkim.core.RootGuardian.ActorNotFound;
+import io.github.seonwkim.core.RootGuardian.Stopped;
+import io.github.seonwkim.core.SpringActorSystemTest.TestHelloActor.SayHello;
 
 class SpringActorSystemTest {
 
@@ -111,10 +110,6 @@ class SpringActorSystemTest {
             SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
 
             final String actorId = "test-actor";
-            final SpringActorSpawnContext<TestHelloActor, TestHelloActor.Command> spawnContext =
-                    new Builder<>(TestHelloActor.class)
-                            .actorId(actorId)
-                            .build();
             final SpringActorRef<TestHelloActor.Command> actorRef = actorSystem.spawn(TestHelloActor.class)
                                                                                .withId(actorId)
                                                                                .startAndWait();

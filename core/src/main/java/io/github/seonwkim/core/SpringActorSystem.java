@@ -20,6 +20,7 @@ import io.github.seonwkim.core.RootGuardian.Spawned;
 import io.github.seonwkim.core.RootGuardian.StopResult;
 import io.github.seonwkim.core.behavior.ClusterEventBehavior;
 import io.github.seonwkim.core.impl.DefaultRootGuardian;
+import io.github.seonwkim.core.shard.ShardedActor;
 
 /**
  * A wrapper around Pekko's ActorSystem that provides methods for spawning actors and getting entity
@@ -247,6 +248,30 @@ public class SpringActorSystem implements DisposableBean {
 
         final EntityRef<T> entityRef = clusterSharding.entityRefFor(entityTypeKey, entityId);
         return new SpringShardedActorRef<>(actorSystem.scheduler(), entityRef);
+    }
+
+    /**
+     * Creates a fluent builder for getting a reference to a sharded actor.
+     * This provides a simplified API for working with sharded actors.
+     *
+     * <p>Example usage:
+     * <pre>
+     * var counter = actorSystem.sharded(CounterActor.class)
+     *     .withId("counter-123")
+     *     .get();
+     * </pre>
+     *
+     * @param actorClass The class of the sharded actor
+     * @param <T> The type of commands that the sharded actor can handle
+     *
+     * @return A builder for configuring and getting the sharded actor reference
+     * @throws IllegalStateException If this SpringActorSystem is not in cluster mode
+     */
+    public <T> SpringShardedActorBuilder<T> sharded(Class<? extends ShardedActor<T>> actorClass) {
+        if (clusterSharding == null) {
+            throw new IllegalStateException("Cluster sharding not configured. Sharded actors require cluster mode.");
+        }
+        return new SpringShardedActorBuilder<>(this, actorClass);
     }
 
     /**

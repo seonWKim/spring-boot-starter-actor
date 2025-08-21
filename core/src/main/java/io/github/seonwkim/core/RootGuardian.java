@@ -35,6 +35,7 @@ public interface RootGuardian {
 		public final ActorRef<Spawned<?>> replyTo;
 		/** The mailbox selector to use * */
 		public final MailboxSelector mailboxSelector;
+		// TOOD: support for cluster singleton actor creation
 		/** Whether the ActorRef should be cluster singleton * */
 		public final Boolean isClusterSingleton;
 

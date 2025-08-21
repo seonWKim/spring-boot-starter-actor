@@ -1,7 +1,6 @@
 package io.github.seonwkim.example.counter;
 
 import io.github.seonwkim.core.SpringActorSystem;
-import io.github.seonwkim.core.SpringShardedActorRef;
 import java.time.Duration;
 import java.util.concurrent.CompletionStage;
 import org.slf4j.Logger;
@@ -40,9 +39,10 @@ public class ActorCounterService implements CounterService {
 	public void increment(String counterId) {
 		logger.debug("Incrementing counter with ID: {}", counterId);
 
-		// Get a reference to the sharded actor for this counter
-		SpringShardedActorRef<CounterActor.Command> actorRef =
-				springActorSystem.entityRef(CounterActor.TYPE_KEY, counterId);
+		// Get a reference to the sharded actor for this counter using the new simplified API
+		var actorRef = springActorSystem.sharded(CounterActor.class)
+				.withId(counterId)
+				.get();
 
 		// Send an increment message to the actor and get the response
 		actorRef.tell(new CounterActor.Increment());
@@ -58,9 +58,10 @@ public class ActorCounterService implements CounterService {
 	public Mono<Long> getValue(String counterId) {
 		logger.debug("Getting value for counter with ID: {}", counterId);
 
-		// Get a reference to the sharded actor for this counter
-		SpringShardedActorRef<CounterActor.Command> actorRef =
-				springActorSystem.entityRef(CounterActor.TYPE_KEY, counterId);
+		// Get a reference to the sharded actor for this counter using the new simplified API
+		var actorRef = springActorSystem.sharded(CounterActor.class)
+				.withId(counterId)
+				.get();
 
 		// Send a get value message to the actor and get the response
 		CompletionStage<Long> response =
