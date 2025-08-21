@@ -226,7 +226,7 @@ public class ActorCounterService implements CounterService {
     public void increment(String counterId) {
         // Get a reference to the sharded actor for this counter
         SpringShardedActorRef<CounterActor.Command> actorRef =
-                springActorSystem.entityRef(CounterActor.TYPE_KEY, counterId);
+                springActorSystem.sharded(CounterActor.class).withId(counterId).get();
 
         // Send an increment message to the actor
         actorRef.tell(new CounterActor.Increment());
@@ -236,7 +236,7 @@ public class ActorCounterService implements CounterService {
     public Mono<Long> getValue(String counterId) {
         // Get a reference to the sharded actor for this counter
         SpringShardedActorRef<CounterActor.Command> actorRef =
-                springActorSystem.entityRef(CounterActor.TYPE_KEY, counterId);
+                springActorSystem.sharded(CounterActor.class).withId(counterId).get();
 
         // Send a get value message to the actor and get the response
         CompletionStage<Long> response =

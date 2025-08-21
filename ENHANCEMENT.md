@@ -18,21 +18,6 @@ After analyzing the example modules (simple, chat, cluster, synchronization), se
 - Type safety issues with runtime casting (UserActor.java:138-140)
 - No compile-time guarantees for context compatibility
 
-### 3. Complex Sharded Actor API
-**Issue**: Working with sharded actors requires understanding multiple concepts simultaneously.
-
-**Current Usage** (ActorCounterService.java:43-48):
-```java
-SpringShardedActorRef<CounterActor.Command> actorRef =
-    springActorSystem.entityRef(CounterActor.TYPE_KEY, counterId);
-actorRef.tell(new CounterActor.Increment());
-```
-
-**Problem**:
-- Requires TYPE_KEY static field definition
-- Manual extractor configuration needed
-- No builder pattern for common configurations
-
 ### 4. Nested Class Command Pattern Verbosity
 **Issue**: All examples use nested classes for commands, creating verbose definitions.
 

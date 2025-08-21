@@ -81,13 +81,12 @@ public class SpringActorSystem {
     public <A extends SpringActor<A, C>, C> CompletionStage<StopResult> stop(SpringActorStopContext<A, C> stopContext);
 
     /**
-     * Gets a reference to a sharded actor entity.
+     * Creates a fluent builder for getting a reference to a sharded actor.
      *
-     * @param typeKey The entity type key
-     * @param entityId The entity ID
-     * @return A reference to the sharded actor entity
+     * @param actorClass The class of the sharded actor
+     * @return A builder for configuring and getting the sharded actor reference
      */
-    public <T> SpringShardedActorRef<T> entityRef(EntityTypeKey<T> typeKey, String entityId);
+    public <T> SpringShardedActorBuilder<T> sharded(Class<? extends ShardedActor<T>> actorClass);
 }
 ```
 

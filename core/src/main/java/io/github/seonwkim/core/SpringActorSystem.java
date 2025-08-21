@@ -23,8 +23,8 @@ import io.github.seonwkim.core.impl.DefaultRootGuardian;
 import io.github.seonwkim.core.shard.ShardedActor;
 
 /**
- * A wrapper around Pekko's ActorSystem that provides methods for spawning actors and getting entity
- * references. This class simplifies interaction with the actor system by providing a more
+ * A wrapper around Pekko's ActorSystem that provides methods for spawning actors and getting
+ * references to sharded actors. This class simplifies interaction with the actor system by providing a more
  * Spring-friendly API. It supports both local and cluster modes.
  *
  * <p>The SpringActorSystem is part of the actor system architecture:

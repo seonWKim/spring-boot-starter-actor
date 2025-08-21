@@ -147,7 +147,7 @@ Key differences from a regular actor:
 
 ## Interacting with Sharded Actors
 
-To interact with sharded actors, you use the `entityRef` method of the `SpringActorSystem`:
+To interact with sharded actors, you use the `sharded` method of the `SpringActorSystem`:
 
 ```java
 import io.github.seonwkim.core.SpringActorSystem;
@@ -172,7 +172,7 @@ public class HelloService {
     public Mono<String> hello(String message, String entityId) {
         // Get a reference to the actor entity
         SpringShardedActorRef<HelloActor.Command> actorRef =
-                springActorSystem.entityRef(HelloActor.TYPE_KEY, entityId);
+                springActorSystem.sharded(HelloActor.class).withId(entityId).get();
 
         // Send the message to the actor and get the response
         CompletionStage<String> response =
@@ -184,12 +184,13 @@ public class HelloService {
 }
 ```
 
-The `entityRef` method takes two parameters:
+The `sharded` method creates a builder that:
 
-1. The `EntityTypeKey` for the actor type
-2. The entity ID that identifies the specific entity
+1. Takes the actor class as a parameter
+2. Requires setting the entity ID using `withId()`
+3. Returns the actor reference with `get()`
 
-The method returns a `SpringShardedActorRef<T>` that can be used to send messages to the entity.
+The builder pattern provides a more fluent API and automatically resolves the `EntityTypeKey` from the actor class.
 
 ## Using Sharded Actors in a REST Controller
 

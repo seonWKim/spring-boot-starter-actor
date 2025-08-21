@@ -91,7 +91,7 @@ public class HelloActor implements ShardedActor<HelloActor.Command> {
 
 `HelloService` acts as an intermediary between the REST API and the actor system:
 
-- It gets references to actor entities using the entityRef method
+- It gets references to actor entities using the sharded method
 - It provides methods to send messages to specific entities and return the responses
 - It converts actor responses to reactive Mono objects for use with Spring WebFlux
 
@@ -107,7 +107,7 @@ public class HelloService {
     public Mono<String> hello(String message, String entityId) {
         // Get a reference to the actor entity
         SpringShardedActorRef<HelloActor.Command> actorRef =
-                springActorSystem.entityRef(HelloActor.TYPE_KEY, entityId);
+                springActorSystem.sharded(HelloActor.class).withId(entityId).get();
 
         // Send the message to the actor and get the response
         CompletionStage<String> response =
