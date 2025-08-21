@@ -458,12 +458,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         final String userId = (String) session.getAttributes().get("userId");
         final var userActor = getUserActor(userId);
         if (userId != null && userActor != null) {
-            final SpringActorStopContext<UserActor, UserActor.Command> stopContext =
-                    new SpringActorStopContext.Builder<UserActor, UserActor.Command>()
-                            .actorClass(UserActor.class)
-                            .actorId(userId)
-                            .build();
-            actorSystem.stop(stopContext);
+            userActor.stop();
             userActors.remove(userId);
         }
     }

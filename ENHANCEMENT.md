@@ -50,21 +50,6 @@ this.helloActor = springActorSystem.spawn(spawnContext).toCompletableFuture().jo
 - Poor practice for Spring applications
 - No clear async initialization pattern
 
-### 6. Manual Stop Context Creation
-**Issue**: Stopping actors requires verbose context creation.
-
-**Example** (ChatWebSocketHandler.java:90-94):
-```java
-final SpringActorStopContext<UserActor, UserActor.Command> stopContext =
-    new SpringActorStopContext.Builder<>(UserActor.class)
-        .actorId(userId)
-        .build();
-actorSystem.stop(stopContext);
-```
-
-**Problem**:
-- Redundant information (class already known from spawn)
-- Verbose for simple stop operations
 
 ## Recommended Enhancements
 

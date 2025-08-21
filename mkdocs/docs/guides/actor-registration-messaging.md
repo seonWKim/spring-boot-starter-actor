@@ -187,15 +187,7 @@ You can gracefully stop actors when they are no longer needed:
 ### Simplified Stop API
 
 ```java
-// Stop an actor using its class and ID
-springActorSystem.stop(HelloActor.class, "actorId")
-    .toCompletableFuture()
-    .join();
-
-// Or with a custom context
-springActorSystem.stop(HelloActor.class, customContext)
-    .toCompletableFuture()
-    .join();
+actorRef.stop(); 
 ```
 
 ## Best Practices
