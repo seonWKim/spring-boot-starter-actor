@@ -128,7 +128,7 @@ public class SpringActorSystem implements DisposableBean {
         return new SpringActorSpawnBuilder<>(this, actorClass);
     }
 
-    protected  <A extends SpringActor<A, C>, C> CompletionStage<SpringActorRef<C>> spawn(
+    protected <A extends SpringActor<A, C>, C> CompletionStage<SpringActorRef<C>> spawn(
             Class<A> actorClass,
             SpringActorContext actorContext,
             MailboxSelector mailboxSelector,
@@ -149,84 +149,15 @@ public class SpringActorSystem implements DisposableBean {
                              // Safe cast: spawn context ensures actor class matches command type C
                              @SuppressWarnings("unchecked")
                              ActorRef<C> typedRef = (ActorRef<C>) spawned.ref;
-                             return new SpringActorRef<>(actorSystem.scheduler(), typedRef);
+                             return new SpringActorRef<>(
+                                     actorSystem.scheduler(),
+                                     typedRef,
+                                     Duration.ofSeconds(3),
+                                     actorSystem,
+                                     actorClass,
+                                     actorContext);
                          });
     }
-
-
-    /**
-     * Asynchronously stops a previously spawned actor with the given stop context.
-     *
-     * <p>If the actor exists and is currently active, it will be gracefully stopped. If the actor
-     * does not exist or has already been passivated or stopped, the returned {@link CompletionStage}
-     * will still complete successfully with a {@link StopResult} response indicating the request was
-     * acknowledged.
-     *
-     * @param stopContext The context containing all parameters needed to stop the actor
-     *
-     * @return A {@link CompletionStage} that completes when the stop command has been processed
-     */
-    public <A extends SpringActor<A, C>, C> CompletionStage<StopResult> stop(
-            SpringActorStopContext<A, C> stopContext) {
-        return AskPattern.ask(
-                actorSystem,
-                (ActorRef<DefaultRootGuardian.StopResult> replyTo) ->
-                        new DefaultRootGuardian.StopActor(
-                                stopContext.getActorClass(),
-                                stopContext.getActorContext(),
-                                replyTo),
-                stopContext.getTimeout(),
-                actorSystem.scheduler());
-    }
-
-    /**
-     * Asynchronously stops a previously spawned actor with the given actor class and actor ID.
-     * This is a simplified version of the {@link #stop(SpringActorStopContext)} method.
-     *
-     * <p>If the actor exists and is currently active, it will be gracefully stopped. If the actor
-     * does not exist or has already been passivated or stopped, the returned {@link CompletionStage}
-     * will still complete successfully with a {@link StopResult} response indicating the request was
-     * acknowledged.
-     *
-     * @param actorClass The class of the actor to stop
-     * @param actorId The ID of the actor to stop
-     * @param <A> The type of the actor
-     * @param <C> The type of commands that the actor can handle
-     *
-     * @return A {@link CompletionStage} that completes when the stop command has been processed
-     */
-    public <A extends SpringActor<A, C>, C> CompletionStage<StopResult> stop(Class<A> actorClass,
-                                                                             String actorId) {
-        SpringActorStopContext<A, C> stopContext = new SpringActorStopContext.Builder<>(actorClass)
-                .actorId(actorId)
-                .build();
-        return stop(stopContext);
-    }
-
-    /**
-     * Asynchronously stops a previously spawned actor with the given actor class and actor context.
-     * This is a simplified version of the {@link #stop(SpringActorStopContext)} method.
-     *
-     * <p>If the actor exists and is currently active, it will be gracefully stopped. If the actor
-     * does not exist or has already been passivated or stopped, the returned {@link CompletionStage}
-     * will still complete successfully with a {@link StopResult} response indicating the request was
-     * acknowledged.
-     *
-     * @param actorClass The class of the actor to stop
-     * @param actorContext The context of the actor to stop
-     * @param <A> The type of the actor
-     * @param <C> The type of commands that the actor can handle
-     *
-     * @return A {@link CompletionStage} that completes when the stop command has been processed
-     */
-    public <A extends SpringActor<A, C>, C> CompletionStage<StopResult> stop(Class<A> actorClass,
-                                                                             SpringActorContext actorContext) {
-        SpringActorStopContext<A, C> stopContext = new SpringActorStopContext.Builder<>(actorClass)
-                .actorContext(actorContext)
-                .build();
-        return stop(stopContext);
-    }
-
 
     /**
      * Creates a fluent builder for getting a reference to a sharded actor.
@@ -243,11 +174,13 @@ public class SpringActorSystem implements DisposableBean {
      * @param <T> The type of commands that the sharded actor can handle
      *
      * @return A builder for configuring and getting the sharded actor reference
+     *
      * @throws IllegalStateException If this SpringActorSystem is not in cluster mode
      */
     public <T> SpringShardedActorBuilder<T> sharded(Class<? extends ShardedActor<T>> actorClass) {
         if (clusterSharding == null) {
-            throw new IllegalStateException("Cluster sharding not configured. Sharded actors require cluster mode.");
+            throw new IllegalStateException(
+                    "Cluster sharding not configured. Sharded actors require cluster mode.");
         }
         return new SpringShardedActorBuilder<>(this, actorClass);
     }

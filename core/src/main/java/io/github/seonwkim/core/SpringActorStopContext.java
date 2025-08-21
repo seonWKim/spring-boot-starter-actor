@@ -6,11 +6,14 @@ import io.github.seonwkim.core.impl.DefaultSpringActorContext;
 
 /**
  * Context for stopping an actor. This class encapsulates all the parameters needed to stop an actor.
- * It is used by the {@link SpringActorSystem#stop(SpringActorStopContext)} method to stop an existing actor.
+ * 
+ * @deprecated Use {@link SpringActorRef#stop()} or {@link SpringActorSystem#stop(Class, String)} instead.
+ *             This class will be made internal in a future version.
  *
  * @param <A> The type of the actor
  * @param <C> The type of commands that the actor can handle
  */
+@Deprecated
 public class SpringActorStopContext<A extends SpringActor<A, C>, C> {
     private final Class<A> actorClass;
     private final SpringActorContext actorContext;

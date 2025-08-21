@@ -82,7 +82,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         final String userId = (String) session.getAttributes().get("userId");
         final var userActor = getUserActor(userId);
         if (userId != null && userActor != null) {
-            actorSystem.stop(UserActor.class, userId);
+            userActor.stop();
             userActors.remove(userId);
         }
     }

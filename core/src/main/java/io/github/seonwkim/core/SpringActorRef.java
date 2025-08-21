@@ -4,9 +4,13 @@ import java.time.Duration;
 import java.util.concurrent.CompletionStage;
 
 import org.apache.pekko.actor.typed.ActorRef;
+import org.apache.pekko.actor.typed.ActorSystem;
 import org.apache.pekko.actor.typed.Scheduler;
 import org.apache.pekko.actor.typed.javadsl.AskPattern;
 import org.apache.pekko.japi.function.Function;
+
+import io.github.seonwkim.core.RootGuardian.StopResult;
+import io.github.seonwkim.core.impl.DefaultRootGuardian;
 
 /**
  * A wrapper around Pekko's ActorRef that provides methods for asking and telling messages to an
@@ -19,6 +23,9 @@ public class SpringActorRef<T> {
 	private final Scheduler scheduler;
 	private final ActorRef<T> actorRef;
 	private final Duration defaultTimeout;
+	private final ActorSystem<RootGuardian.Command> actorSystem;
+	private final Class<? extends SpringActor<?, T>> actorClass;
+	private final SpringActorContext actorContext;
 	
 	/**
 	 * Creates a builder for SpringActorRef.
@@ -39,25 +46,54 @@ public class SpringActorRef<T> {
 
 	/**
 	 * Creates a new SpringActorRef with the given scheduler and actor reference.
+	 * This constructor is deprecated in favor of the constructor with metadata.
 	 *
 	 * @param scheduler The scheduler to use for asking messages
 	 * @param actorRef The actor reference to wrap
+	 * @deprecated Use the constructor with actor metadata instead
 	 */
+	@Deprecated
 	public SpringActorRef(Scheduler scheduler, ActorRef<T> actorRef) {
 		this(scheduler, actorRef, Duration.ofSeconds(DEFAULT_TIMEOUT_SECONDS));
 	}
 
 	/**
 	 * Creates a new SpringActorRef with the given scheduler, actor reference, and default timeout.
+	 * This constructor is deprecated in favor of the constructor with metadata.
 	 *
 	 * @param scheduler The scheduler to use for asking messages
 	 * @param actorRef The actor reference to wrap
 	 * @param defaultTimeout The default timeout for ask operations
+	 * @deprecated Use the constructor with actor metadata instead
 	 */
+	@Deprecated
 	public SpringActorRef(Scheduler scheduler, ActorRef<T> actorRef, Duration defaultTimeout) {
+		this(scheduler, actorRef, defaultTimeout, null, null, null);
+	}
+
+	/**
+	 * Creates a new SpringActorRef with full metadata for enhanced operations.
+	 *
+	 * @param scheduler The scheduler to use for asking messages
+	 * @param actorRef The actor reference to wrap
+	 * @param defaultTimeout The default timeout for ask operations
+	 * @param actorSystem The actor system (can be null for legacy compatibility)
+	 * @param actorClass The actor class (can be null for legacy compatibility)
+	 * @param actorContext The actor context (can be null for legacy compatibility)
+	 */
+	public SpringActorRef(
+			Scheduler scheduler,
+			ActorRef<T> actorRef,
+			Duration defaultTimeout,
+			ActorSystem<RootGuardian.Command> actorSystem,
+			Class<? extends SpringActor<?, T>> actorClass,
+			SpringActorContext actorContext) {
 		this.scheduler = scheduler;
 		this.actorRef = actorRef;
 		this.defaultTimeout = defaultTimeout;
+		this.actorSystem = actorSystem;
+		this.actorClass = actorClass;
+		this.actorContext = actorContext;
 	}
 
 	/**
@@ -105,5 +141,37 @@ public class SpringActorRef<T> {
 	 */
 	public ActorRef<T> getUnderlying() {
 		return actorRef;
+	}
+
+	/**
+	 * Stops this actor asynchronously.
+	 * 
+	 * @return A CompletionStage that completes when the stop command has been processed
+	 * @throws IllegalStateException If this SpringActorRef was created without metadata
+	 */
+	public CompletionStage<StopResult> stop() {
+		return stop(Duration.ofSeconds(3));
+	}
+
+	/**
+	 * Stops this actor asynchronously with a custom timeout.
+	 * 
+	 * @param timeout The maximum time to wait for the stop operation to complete
+	 * @return A CompletionStage that completes when the stop command has been processed
+	 * @throws IllegalStateException If this SpringActorRef was created without metadata
+	 */
+	public CompletionStage<StopResult> stop(Duration timeout) {
+		if (actorSystem == null || actorClass == null || actorContext == null) {
+			throw new IllegalStateException(
+				"Cannot stop actor: SpringActorRef was created without required metadata. " +
+				"Use SpringActorSystem.spawn() to create actors with full metadata support.");
+		}
+
+		return AskPattern.ask(
+			actorSystem,
+			(ActorRef<StopResult> replyTo) ->
+				new DefaultRootGuardian.StopActor(actorClass, actorContext, replyTo),
+			timeout,
+			scheduler);
 	}
 }
