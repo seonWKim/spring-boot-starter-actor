@@ -1,9 +1,11 @@
 package io.github.seonwkim.core;
 
+import java.time.Duration;
 import java.util.concurrent.CompletionStage;
 
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.ActorSystem;
+import org.apache.pekko.actor.typed.MailboxSelector;
 import org.apache.pekko.actor.typed.Props;
 import org.apache.pekko.actor.typed.javadsl.AskPattern;
 import org.apache.pekko.cluster.ClusterEvent;
@@ -128,25 +130,22 @@ public class SpringActorSystem implements DisposableBean {
         return new SpringActorSpawnBuilder<>(this, actorClass);
     }
 
-    /**
-     * Spawns a new actor with the given spawn context.
-     *
-     * @param spawnContext The context containing all parameters needed to spawn the actor
-     * @param <A> The type of the actor
-     * @param <C> The type of commands that the actor can handle
-     *
-     * @return A CompletionStage that will be completed with a reference to the spawned actor
-     */
-    protected  <A extends SpringActor<A, C>, C> CompletionStage<SpringActorRef<C>> spawn(SpringActorSpawnContext<A, C> spawnContext) {
+    protected  <A extends SpringActor<A, C>, C> CompletionStage<SpringActorRef<C>> spawn(
+            Class<A> actorClass,
+            SpringActorContext actorContext,
+            MailboxSelector mailboxSelector,
+            boolean isClusterSingleton,
+            Duration timeout
+    ) {
         return AskPattern.ask(actorSystem,
                               (ActorRef<Spawned<?>> replyTo) ->
                                       new DefaultRootGuardian.SpawnActor(
-                                              spawnContext.getActorClass(),
-                                              spawnContext.getActorContext(),
+                                              actorClass,
+                                              actorContext,
                                               replyTo,
-                                              spawnContext.getMailboxSelector(),
-                                              spawnContext.isClusterSingleton()),
-                              spawnContext.getTimeout(),
+                                              mailboxSelector,
+                                              isClusterSingleton),
+                              timeout,
                               actorSystem.scheduler())
                          .thenApply(spawned -> {
                              // Safe cast: spawn context ensures actor class matches command type C
@@ -155,6 +154,7 @@ public class SpringActorSystem implements DisposableBean {
                              return new SpringActorRef<>(actorSystem.scheduler(), typedRef);
                          });
     }
+
 
     /**
      * Asynchronously stops a previously spawned actor with the given stop context.

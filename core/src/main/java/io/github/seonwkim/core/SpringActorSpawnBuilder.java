@@ -142,15 +142,13 @@ public class SpringActorSpawnBuilder<A extends SpringActor<A, C>, C> {
             actorContext = new DefaultSpringActorContext(actorId);
         }
 
-        SpringActorSpawnContext<A, C> spawnContext = new SpringActorSpawnContext<>(
+        return actorSystem.spawn(
                 actorClass,
                 actorContext,
-                timeout,
                 mailboxSelector,
-                isClusterSingleton
+                isClusterSingleton,
+                timeout
         );
-
-        return actorSystem.spawn(spawnContext);
     }
 
     /**
