@@ -21,72 +21,64 @@ import org.springframework.stereotype.Component;
 @Component
 public class HelloActor implements ShardedActor<HelloActor.Command> {
 
-	public static final EntityTypeKey<Command> TYPE_KEY =
-			EntityTypeKey.create(Command.class, "HelloActor");
+    public static final EntityTypeKey<Command> TYPE_KEY = EntityTypeKey.create(Command.class, "HelloActor");
 
-	/** Base interface for all commands that can be sent to the hello actor. */
-	public interface Command extends JsonSerializable {}
+    /** Base interface for all commands that can be sent to the hello actor. */
+    public interface Command extends JsonSerializable {}
 
-	/** Command to say hello and get a response. */
-	public static class SayHello implements Command {
-		public final ActorRef<String> replyTo;
-		public final String message;
+    /** Command to say hello and get a response. */
+    public static class SayHello implements Command {
+        public final ActorRef<String> replyTo;
+        public final String message;
 
-		@JsonCreator
-		public SayHello(
-				@JsonProperty("replyTo") ActorRef<String> replyTo,
-				@JsonProperty("message") String message) {
-			this.replyTo = replyTo;
-			this.message = message;
-		}
-	}
+        @JsonCreator
+        public SayHello(@JsonProperty("replyTo") ActorRef<String> replyTo, @JsonProperty("message") String message) {
+            this.replyTo = replyTo;
+            this.message = message;
+        }
+    }
 
-	@Override
-	public EntityTypeKey<Command> typeKey() {
-		return TYPE_KEY;
-	}
+    @Override
+    public EntityTypeKey<Command> typeKey() {
+        return TYPE_KEY;
+    }
 
-	/**
-	 * Creates the behavior for this actor when it's started.
-	 *
-	 * @param ctx The entity context containing information about this entity
-	 * @return The behavior for the actor
-	 */
-	@Override
-	public Behavior<Command> create(EntityContext<Command> ctx) {
-		return Behaviors.setup(
-				context ->
-						Behaviors.receive(Command.class)
-								.onMessage(
-										SayHello.class,
-										msg -> {
-											// Get information about the current node and entity
-											final String nodeAddress = context.getSystem().address().toString();
-											final String entityId = ctx.getEntityId();
+    /**
+     * Creates the behavior for this actor when it's started.
+     *
+     * @param ctx The entity context containing information about this entity
+     * @return The behavior for the actor
+     */
+    @Override
+    public Behavior<Command> create(EntityContext<Command> ctx) {
+        return Behaviors.setup(context -> Behaviors.receive(Command.class)
+                .onMessage(SayHello.class, msg -> {
+                    // Get information about the current node and entity
+                    final String nodeAddress = context.getSystem().address().toString();
+                    final String entityId = ctx.getEntityId();
 
-											// Create a response message with node and entity information
-											final String message =
-													"Received from entity [" + entityId + "] on node [" + nodeAddress + "]";
+                    // Create a response message with node and entity information
+                    final String message = "Received from entity [" + entityId + "] on node [" + nodeAddress + "]";
 
-											// Send the response back to the caller
-											msg.replyTo.tell(message);
+                    // Send the response back to the caller
+                    msg.replyTo.tell(message);
 
-											// Log the message for debugging
-											context.getLog().info(message);
+                    // Log the message for debugging
+                    context.getLog().info(message);
 
-											return Behaviors.same();
-										})
-								.build());
-	}
+                    return Behaviors.same();
+                })
+                .build());
+    }
 
-	/**
-	 * Provides a message extractor for sharding. This determines how messages are routed to the
-	 * correct entity.
-	 *
-	 * @return The sharding message extractor
-	 */
-	@Override
-	public ShardingMessageExtractor<ShardEnvelope<Command>, Command> extractor() {
-		return new DefaultShardingMessageExtractor<>(3);
-	}
+    /**
+     * Provides a message extractor for sharding. This determines how messages are routed to the
+     * correct entity.
+     *
+     * @return The sharding message extractor
+     */
+    @Override
+    public ShardingMessageExtractor<ShardEnvelope<Command>, Command> extractor() {
+        return new DefaultShardingMessageExtractor<>(3);
+    }
 }

@@ -4,8 +4,8 @@ import io.github.seonwkim.core.SpringActorContext;
 import org.springframework.web.socket.WebSocketSession;
 
 /**
- * Custom SpringActorContext for UserActor that includes both actorId and WebSocketSession.
- * This allows the UserActor to directly access the WebSocketSession without using static fields.
+ * Custom SpringActorContext for UserActor that includes both actorId and WebSocketSession. This
+ * allows the UserActor to directly access the WebSocketSession without using static fields.
  */
 public class UserActorContext implements SpringActorContext {
 

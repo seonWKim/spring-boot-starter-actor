@@ -4,15 +4,14 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
-
 import org.springframework.context.annotation.Import;
 
 /**
  * Enables actor support in a Spring Boot application by importing the necessary configuration.
  *
- * <p>Example usage:</p>
- * <pre>
- * {@code
+ * <p>Example usage:
+ *
+ * <pre>{@code
  * @SpringBootApplication
  * @EnableActorSupport
  * public class MyApplication {
@@ -20,11 +19,9 @@ import org.springframework.context.annotation.Import;
  *         SpringApplication.run(MyApplication.class, args);
  *     }
  * }
- * }
- * </pre>
+ * }</pre>
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 @Import(ActorConfiguration.class)
-public @interface EnableActorSupport {
-}
+public @interface EnableActorSupport {}

@@ -4,6 +4,9 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.github.seonwkim.core.RootGuardian.ActorNotFound;
+import io.github.seonwkim.core.RootGuardian.Stopped;
+import io.github.seonwkim.core.SpringActorSystemTest.TestHelloActor.SayHello;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
@@ -14,10 +17,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 import org.springframework.test.context.TestPropertySource;
-
-import io.github.seonwkim.core.RootGuardian.ActorNotFound;
-import io.github.seonwkim.core.RootGuardian.Stopped;
-import io.github.seonwkim.core.SpringActorSystemTest.TestHelloActor.SayHello;
 
 class SpringActorSystemTest {
 
@@ -36,16 +35,12 @@ class SpringActorSystemTest {
 
         @Override
         public Behavior<Command> create(SpringActorContext id) {
-            return Behaviors.setup(
-                    ctx ->
-                            Behaviors.receive(Command.class)
-                                     .onMessage(
-                                             SayHello.class,
-                                             msg -> {
-                                                 msg.replyTo.tell("hello world!!");
-                                                 return Behaviors.same();
-                                             })
-                                     .build());
+            return Behaviors.setup(ctx -> Behaviors.receive(Command.class)
+                    .onMessage(SayHello.class, msg -> {
+                        msg.replyTo.tell("hello world!!");
+                        return Behaviors.same();
+                    })
+                    .build());
         }
     }
 
@@ -65,16 +60,12 @@ class SpringActorSystemTest {
 
         @Override
         public Behavior<Command> create(SpringActorContext context) {
-            return Behaviors.setup(
-                    ctx ->
-                            Behaviors.receive(Command.class)
-                                     .onMessage(
-                                             SayHello.class,
-                                             msg -> {
-                                                 msg.replyTo.tell(context.actorId());
-                                                 return Behaviors.same();
-                                             })
-                                     .build());
+            return Behaviors.setup(ctx -> Behaviors.receive(Command.class)
+                    .onMessage(SayHello.class, msg -> {
+                        msg.replyTo.tell(context.actorId());
+                        return Behaviors.same();
+                    })
+                    .build());
         }
     }
 
@@ -97,11 +88,7 @@ class SpringActorSystemTest {
 
     @Nested
     @SpringBootTest(classes = TestApp.class)
-    @TestPropertySource(
-            properties = {
-                    "spring.actor.pekko.loglevel=INFO",
-                    "spring.actor.pekko.actor.provider=local"
-            })
+    @TestPropertySource(properties = {"spring.actor.pekko.loglevel=INFO", "spring.actor.pekko.actor.provider=local"})
     class SimpleTest {
 
         @Test
@@ -110,30 +97,18 @@ class SpringActorSystemTest {
             SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
 
             final String actorId = "test-actor";
-            final SpringActorRef<TestHelloActor.Command> actorRef = actorSystem.spawn(TestHelloActor.class)
-                                                                               .withId(actorId)
-                                                                               .startAndWait();
+            final SpringActorRef<TestHelloActor.Command> actorRef =
+                    actorSystem.spawn(TestHelloActor.class).withId(actorId).startAndWait();
 
             assertThat(actorRef).isNotNull();
 
             assertEquals(actorRef.ask(SayHello::new).toCompletableFuture().join(), "hello world!!");
 
             // Stop the actor using the new simplified API
-            assertEquals(
-                    actorRef
-                            .stop()
-                            .toCompletableFuture()
-                            .join()
-                            .getClass(),
-                    Stopped.class);
+            assertEquals(actorRef.stop().toCompletableFuture().join().getClass(), Stopped.class);
 
             // Try to stop the same actor again using actorRef.stop, should return ActorNotFound
-            assertEquals(
-                    actorRef.stop()
-                            .toCompletableFuture()
-                            .join()
-                            .getClass(),
-                    ActorNotFound.class);
+            assertEquals(actorRef.stop().toCompletableFuture().join().getClass(), ActorNotFound.class);
         }
 
         @Test
@@ -143,13 +118,16 @@ class SpringActorSystemTest {
 
             final String actorId = "test-actor";
             final SpringActorContext actorContext = new CustomActorContext(actorId);
-            final SpringActorRef<CustomActorContextActor.Command> actorRef =
-                    actorSystem.spawn(CustomActorContextActor.class)
-                               .withContext(actorContext)
-                               .startAndWait();
+            final SpringActorRef<CustomActorContextActor.Command> actorRef = actorSystem
+                    .spawn(CustomActorContextActor.class)
+                    .withContext(actorContext)
+                    .startAndWait();
             assertThat(actorRef).isNotNull();
-            assertEquals(actorRef.ask(CustomActorContextActor.SayHello::new).toCompletableFuture().join(),
-                         actorContext.actorId());
+            assertEquals(
+                    actorRef.ask(CustomActorContextActor.SayHello::new)
+                            .toCompletableFuture()
+                            .join(),
+                    actorContext.actorId());
         }
     }
 }

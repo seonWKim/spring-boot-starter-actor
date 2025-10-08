@@ -1,16 +1,13 @@
 package io.github.seonwkim.core;
 
+import io.github.seonwkim.core.impl.DefaultSpringActorContext;
 import java.time.Duration;
 import java.util.concurrent.CompletionStage;
-
 import org.apache.pekko.actor.typed.MailboxSelector;
 
-import io.github.seonwkim.core.impl.DefaultSpringActorContext;
-
 /**
- * A fluent builder for spawning actors with a simplified API.
- * This builder provides a more convenient way to spawn actors compared to
- * using SpringActorSpawnContext directly.
+ * A fluent builder for spawning actors with a simplified API. This builder provides a more
+ * convenient way to spawn actors compared to using SpringActorSpawnContext directly.
  *
  * @param <A> The type of the actor
  * @param <C> The type of commands that the actor can handle
@@ -92,8 +89,7 @@ public class SpringActorSpawnBuilder<A extends SpringActor<A, C>, C> {
     }
 
     /**
-     * Sets the mailbox selector using a string name.
-     * Common values: "default", "bounded", "unbounded"
+     * Sets the mailbox selector using a string name. Common values: "default", "bounded", "unbounded"
      *
      * @param mailboxName The name of the mailbox type
      * @return This builder
@@ -142,18 +138,12 @@ public class SpringActorSpawnBuilder<A extends SpringActor<A, C>, C> {
             actorContext = new DefaultSpringActorContext(actorId);
         }
 
-        return actorSystem.spawn(
-                actorClass,
-                actorContext,
-                mailboxSelector,
-                isClusterSingleton,
-                timeout
-        );
+        return actorSystem.spawn(actorClass, actorContext, mailboxSelector, isClusterSingleton, timeout);
     }
 
     /**
-     * Spawns the actor synchronously and returns the actor reference.
-     * This method blocks until the actor is spawned.
+     * Spawns the actor synchronously and returns the actor reference. This method blocks until the
+     * actor is spawned.
      *
      * @return A reference to the spawned actor
      * @throws IllegalStateException If neither actorId nor actorContext is set

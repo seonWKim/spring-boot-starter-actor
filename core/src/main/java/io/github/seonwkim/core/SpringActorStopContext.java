@@ -1,15 +1,14 @@
 package io.github.seonwkim.core;
 
+import io.github.seonwkim.core.impl.DefaultSpringActorContext;
 import java.time.Duration;
 
-import io.github.seonwkim.core.impl.DefaultSpringActorContext;
-
 /**
- * Context for stopping an actor. This class encapsulates all the parameters needed to stop an actor.
- * 
- * @deprecated Use {@link SpringActorRef#stop()} or {@link SpringActorSystem#stop(Class, String)} instead.
- *             This class will be made internal in a future version.
+ * Context for stopping an actor. This class encapsulates all the parameters needed to stop an
+ * actor.
  *
+ * @deprecated Use {@link SpringActorRef#stop()} or {@link SpringActorSystem#stop(Class, String)}
+ *     instead. This class will be made internal in a future version.
  * @param <A> The type of the actor
  * @param <C> The type of commands that the actor can handle
  */
@@ -26,10 +25,7 @@ public class SpringActorStopContext<A extends SpringActor<A, C>, C> {
      * @param actorContext The context of the actor to stop
      * @param timeout The timeout for the stop operation
      */
-    public SpringActorStopContext(
-            Class<A> actorClass,
-            SpringActorContext actorContext,
-            Duration timeout) {
+    public SpringActorStopContext(Class<A> actorClass, SpringActorContext actorContext, Duration timeout) {
         this.actorClass = actorClass;
         this.actorContext = actorContext;
         this.timeout = timeout;
@@ -86,7 +82,8 @@ public class SpringActorStopContext<A extends SpringActor<A, C>, C> {
         }
 
         /**
-         * Sets the actor ID for the actor to stop. This creates a default actor context with the given ID.
+         * Sets the actor ID for the actor to stop. This creates a default actor context with the given
+         * ID.
          *
          * @param actorId The ID of the actor to stop
          * @return This builder
@@ -128,11 +125,7 @@ public class SpringActorStopContext<A extends SpringActor<A, C>, C> {
             if (actorContext == null) {
                 throw new IllegalArgumentException("actorContext must be set");
             }
-            return new SpringActorStopContext<>(
-                    actorClass,
-                    actorContext,
-                    duration
-            );
+            return new SpringActorStopContext<>(actorClass, actorContext, duration);
         }
     }
 }

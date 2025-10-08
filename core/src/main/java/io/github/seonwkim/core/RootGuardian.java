@@ -11,117 +11,111 @@ import org.apache.pekko.actor.typed.MailboxSelector;
  * references to them.
  */
 public interface RootGuardian {
-	/**
-	 * Base command type for RootGuardian-compatible actors. All commands sent to the RootGuardian
-	 * must implement this interface.
-	 */
-	interface Command {}
+    /**
+     * Base command type for RootGuardian-compatible actors. All commands sent to the RootGuardian
+     * must implement this interface.
+     */
+    interface Command {}
 
-	/**
-	 * Interface for results of stopping an actor. Implementations of this interface are returned in
-	 * response to a StopActor command.
-	 */
-	interface StopResult extends Command {}
+    /**
+     * Interface for results of stopping an actor. Implementations of this interface are returned in
+     * response to a StopActor command.
+     */
+    interface StopResult extends Command {}
 
-	/**
-	 * Command to spawn a new actor. This command is sent to the root guardian to create a new actor
-	 * of the specified type with the given ID.
-	 */
-	class SpawnActor implements Command {
-		public final Class<?> actorClass;
-		/** The context of the actor */
-		public final SpringActorContext actorContext;
-		/** The actor reference to reply to with the spawned actor reference */
-		public final ActorRef<Spawned<?>> replyTo;
-		/** The mailbox selector to use * */
-		public final MailboxSelector mailboxSelector;
-		// TOOD: support for cluster singleton actor creation
-		/** Whether the ActorRef should be cluster singleton * */
-		public final Boolean isClusterSingleton;
+    /**
+     * Command to spawn a new actor. This command is sent to the root guardian to create a new actor
+     * of the specified type with the given ID.
+     */
+    class SpawnActor implements Command {
+        public final Class<?> actorClass;
+        /** The context of the actor */
+        public final SpringActorContext actorContext;
+        /** The actor reference to reply to with the spawned actor reference */
+        public final ActorRef<Spawned<?>> replyTo;
+        /** The mailbox selector to use * */
+        public final MailboxSelector mailboxSelector;
+        // TOOD: support for cluster singleton actor creation
+        /** Whether the ActorRef should be cluster singleton * */
+        public final Boolean isClusterSingleton;
 
-		/**
-		 * Creates a new SpawnActor command.
-		 *
-		 * @param actorContext The ID of the actor
-		 * @param replyTo The actor reference to reply to with the spawned actor reference
-		 * @param mailboxSelector The mailboxSelector
-		 * @param isClusterSingleton Whether the actor should be cluster singleton
-		 */
-		public SpawnActor(
+        /**
+         * Creates a new SpawnActor command.
+         *
+         * @param actorContext The ID of the actor
+         * @param replyTo The actor reference to reply to with the spawned actor reference
+         * @param mailboxSelector The mailboxSelector
+         * @param isClusterSingleton Whether the actor should be cluster singleton
+         */
+        public SpawnActor(
                 Class<?> actorClass,
                 SpringActorContext actorContext,
                 ActorRef<Spawned<?>> replyTo,
                 MailboxSelector mailboxSelector,
                 Boolean isClusterSingleton) {
             this.actorClass = actorClass;
-			this.actorContext = actorContext;
-			this.replyTo = replyTo;
-			this.mailboxSelector = mailboxSelector;
-			this.isClusterSingleton = isClusterSingleton;
-		}
-	}
+            this.actorContext = actorContext;
+            this.replyTo = replyTo;
+            this.mailboxSelector = mailboxSelector;
+            this.isClusterSingleton = isClusterSingleton;
+        }
+    }
 
-	/**
-	 * Sends a command to stop an existing actor managed by the actor management system.
-	 */
-	class StopActor implements Command {
-		public final Class<?> actorClass;
-		/** The context of the actor to be stopped */
-		public final SpringActorContext actorContext;
-		/** The actor reference to reply to with the stop result */
-		public final ActorRef<StopResult> replyTo;
+    /** Sends a command to stop an existing actor managed by the actor management system. */
+    class StopActor implements Command {
+        public final Class<?> actorClass;
+        /** The context of the actor to be stopped */
+        public final SpringActorContext actorContext;
+        /** The actor reference to reply to with the stop result */
+        public final ActorRef<StopResult> replyTo;
 
-		/**
-		 * Creates a new StopActor command.
-		 */
-		public StopActor(Class<?> actorClass,
-						 SpringActorContext actorContext,
-						 ActorRef<StopResult> replyTo) {
+        /** Creates a new StopActor command. */
+        public StopActor(Class<?> actorClass, SpringActorContext actorContext, ActorRef<StopResult> replyTo) {
             this.actorClass = actorClass;
-			this.actorContext = actorContext;
-			this.replyTo = replyTo;
-		}
-	}
+            this.actorContext = actorContext;
+            this.replyTo = replyTo;
+        }
+    }
 
-	/**
-	 * Response message containing a reference to a spawned actor. This message is sent in response to
-	 * a SpawnActor command.
-	 *
-	 * @param <T> The type of messages that the actor can handle
-	 */
-	class Spawned<T> {
-		/** The reference to the spawned actor */
-		public final ActorRef<T> ref;
+    /**
+     * Response message containing a reference to a spawned actor. This message is sent in response to
+     * a SpawnActor command.
+     *
+     * @param <T> The type of messages that the actor can handle
+     */
+    class Spawned<T> {
+        /** The reference to the spawned actor */
+        public final ActorRef<T> ref;
 
-		/**
-		 * Creates a new Spawned message with the given actor reference.
-		 *
-		 * @param ref The reference to the spawned actor
-		 */
-		public Spawned(ActorRef<T> ref) {
-			this.ref = ref;
-		}
-	}
+        /**
+         * Creates a new Spawned message with the given actor reference.
+         *
+         * @param ref The reference to the spawned actor
+         */
+        public Spawned(ActorRef<T> ref) {
+            this.ref = ref;
+        }
+    }
 
-	/**
-	 * Response message indicating that an actor was successfully stopped. This message is sent in
-	 * response to a StopActor command when the actor is found and stopped.
-	 */
-	class Stopped implements StopResult {}
+    /**
+     * Response message indicating that an actor was successfully stopped. This message is sent in
+     * response to a StopActor command when the actor is found and stopped.
+     */
+    class Stopped implements StopResult {}
 
-	/**
-	 * Response message indicating that an actor was not found and could not be stopped. This message
-	 * is sent in response to a StopActor command when the actor is not found.
-	 */
-	class ActorNotFound implements StopResult {}
+    /**
+     * Response message indicating that an actor was not found and could not be stopped. This message
+     * is sent in response to a StopActor command when the actor is not found.
+     */
+    class ActorNotFound implements StopResult {}
 
-	/**
-	 * Creates the default RootGuardian behavior using the given actor type registry.
-	 *
-	 * @param registry The ActorTypeRegistry to use for creating actor behaviors
-	 * @return A behavior for the RootGuardian
-	 */
-	static Behavior<Command> create(ActorTypeRegistry registry) {
-		return DefaultRootGuardian.create(registry);
-	}
+    /**
+     * Creates the default RootGuardian behavior using the given actor type registry.
+     *
+     * @param registry The ActorTypeRegistry to use for creating actor behaviors
+     * @return A behavior for the RootGuardian
+     */
+    static Behavior<Command> create(ActorTypeRegistry registry) {
+        return DefaultRootGuardian.create(registry);
+    }
 }

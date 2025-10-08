@@ -15,48 +15,47 @@ import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 @Configuration
-@EnableAutoConfiguration(
-		exclude = {RedisAutoConfiguration.class, RedisReactiveAutoConfiguration.class})
+@EnableAutoConfiguration(exclude = {RedisAutoConfiguration.class, RedisReactiveAutoConfiguration.class})
 public class RedisConfig {
-	@Value("${spring.data.redis.host}")
-	private String host;
+    @Value("${spring.data.redis.host}")
+    private String host;
 
-	@Value("${spring.data.redis.port}")
-	private int port;
+    @Value("${spring.data.redis.port}")
+    private int port;
 
-	@Bean
-	public ReactiveRedisConnectionFactory redisConnectionFactory() {
-		return new LettuceConnectionFactory(host, port);
-	}
+    @Bean
+    public ReactiveRedisConnectionFactory redisConnectionFactory() {
+        return new LettuceConnectionFactory(host, port);
+    }
 
-	@Bean
-	public ReactiveRedisOperations<String, Object> redisTemplate() {
-		ReactiveRedisConnectionFactory rrcf = redisConnectionFactory();
+    @Bean
+    public ReactiveRedisOperations<String, Object> redisTemplate() {
+        ReactiveRedisConnectionFactory rrcf = redisConnectionFactory();
 
-		Jackson2JsonRedisSerializer<Object> serializer =
-				new Jackson2JsonRedisSerializer<>(Object.class);
+        Jackson2JsonRedisSerializer<Object> serializer = new Jackson2JsonRedisSerializer<>(Object.class);
 
-		RedisSerializationContext.RedisSerializationContextBuilder<String, Object> builder =
-				RedisSerializationContext.newSerializationContext(new StringRedisSerializer());
+        RedisSerializationContext.RedisSerializationContextBuilder<String, Object> builder =
+                RedisSerializationContext.newSerializationContext(new StringRedisSerializer());
 
-		RedisSerializationContext<String, Object> context =
-				builder.value(serializer).hashValue(serializer).hashKey(serializer).build();
+        RedisSerializationContext<String, Object> context = builder.value(serializer)
+                .hashValue(serializer)
+                .hashKey(serializer)
+                .build();
 
-		return new ReactiveRedisTemplate<>(rrcf, context);
-	}
+        return new ReactiveRedisTemplate<>(rrcf, context);
+    }
 
-	@Bean
-	public ReactiveRedisTemplate<String, Long> longRedisTemplate(
-			ReactiveRedisConnectionFactory connectionFactory) {
-		StringRedisSerializer keySerializer = new StringRedisSerializer();
-		Jackson2JsonRedisSerializer<Long> valueSerializer =
-				new Jackson2JsonRedisSerializer<>(Long.class);
+    @Bean
+    public ReactiveRedisTemplate<String, Long> longRedisTemplate(ReactiveRedisConnectionFactory connectionFactory) {
+        StringRedisSerializer keySerializer = new StringRedisSerializer();
+        Jackson2JsonRedisSerializer<Long> valueSerializer = new Jackson2JsonRedisSerializer<>(Long.class);
 
-		RedisSerializationContext.RedisSerializationContextBuilder<String, Long> builder =
-				RedisSerializationContext.newSerializationContext(keySerializer);
+        RedisSerializationContext.RedisSerializationContextBuilder<String, Long> builder =
+                RedisSerializationContext.newSerializationContext(keySerializer);
 
-		RedisSerializationContext<String, Long> context = builder.value(valueSerializer).build();
+        RedisSerializationContext<String, Long> context =
+                builder.value(valueSerializer).build();
 
-		return new ReactiveRedisTemplate<>(connectionFactory, context);
-	}
+        return new ReactiveRedisTemplate<>(connectionFactory, context);
+    }
 }

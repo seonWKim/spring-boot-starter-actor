@@ -4,11 +4,13 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
- * Registry for batch message invocation event interceptors that monitors bulk message processing operations.
+ * Registry for batch message invocation event interceptors that monitors bulk message processing
+ * operations.
  *
- * <p>Unlike single message processing, this holder captures events when multiple messages are processed
- * together, providing insights into batch processing efficiency and helping optimize bulk operations.
- * This is particularly important for systems that handle high message volumes or use batching strategies.</p>
+ * <p>Unlike single message processing, this holder captures events when multiple messages are
+ * processed together, providing insights into batch processing efficiency and helping optimize bulk
+ * operations. This is particularly important for systems that handle high message volumes or use
+ * batching strategies.
  */
 public class InvokeAllAdviceEventInterceptorsHolder {
     private static final Queue<InvokeAllAdviceEventInterceptor> holder = new ConcurrentLinkedQueue<>();
