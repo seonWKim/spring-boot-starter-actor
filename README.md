@@ -28,7 +28,7 @@ The goal is to make actor-based programming accessible to Spring developers, and
 
 ## Core Concepts
 
-This project bridges the gap between Spring Boot and the actor model, allowing developers to build stateful
+This project bridges the gap between Spring Boot and the actor model, allowing developers to build 
 applications using familiar Spring Boot patterns while leveraging the power of the actor model for managing
 state and concurrency.
 
@@ -42,8 +42,8 @@ The actor model is a programming paradigm that:
 - Auto-configure Pekko with Spring Boot
 - Seamless integration with Spring's dependency injection
 - Support for both local and cluster modes
-- Easy actor creation and management
-- Spring-friendly actor references
+- Easy actor and sharded entity creation and management
+- Spring-friendly actor management
 
 ## Quick Start
 
@@ -127,6 +127,125 @@ spring:
     pekko:
       actor:
         provider: local
+```
+
+### Creating Actors
+
+Spring Boot Starter Actor makes it easy to create actors by simply implementing an interface and using Spring's `@Component` annotation.
+
+#### Simple Actor
+
+```java
+@Component
+public class HelloActor implements SpringActor<HelloActor, HelloActor.Command> {
+
+    public interface Command {}
+
+    public static class SayHello implements Command {
+        public final String message;
+        public SayHello(String message) { this.message = message; }
+    }
+
+    @Override
+    public Behavior<Command> create(SpringActorContext actorContext) {
+        return Behaviors.setup(ctx ->
+            Behaviors.receive(Command.class)
+                .onMessage(SayHello.class, msg -> {
+                    ctx.getLog().info("Hello: {}", msg.message);
+                    return Behaviors.same();
+                })
+                .build()
+        );
+    }
+}
+```
+
+Spawn and use the actor in your service:
+
+```java
+@Service
+public class MyService {
+    private final SpringActorRef<HelloActor.Command> helloActor;
+
+    public MyService(SpringActorSystem springActorSystem) {
+        this.helloActor = springActorSystem
+            .spawn(HelloActor.class)
+            .withId("default")
+            .startAndWait();
+    }
+
+    public void greet(String message) {
+        helloActor.tell(() -> new HelloActor.SayHello(message));
+    }
+}
+```
+
+#### Sharded Entities (for Distributed Systems)
+
+For clustered environments, create sharded actors that are automatically distributed across nodes:
+
+```java
+@Component
+public class UserActor implements ShardedActor<UserActor.Command> {
+
+    public static final EntityTypeKey<Command> TYPE_KEY =
+        EntityTypeKey.create(Command.class, "UserActor");
+
+    public interface Command extends JsonSerializable {}
+
+    public static class UpdateProfile implements Command {
+        public final String name;
+        @JsonCreator
+        public UpdateProfile(@JsonProperty("name") String name) {
+            this.name = name;
+        }
+    }
+
+    @Override
+    public EntityTypeKey<Command> typeKey() {
+        return TYPE_KEY;
+    }
+
+    @Override
+    public Behavior<Command> create(EntityContext<Command> ctx) {
+        return Behaviors.setup(context ->
+            Behaviors.receive(Command.class)
+                .onMessage(UpdateProfile.class, msg -> {
+                    context.getLog().info("User {} profile updated: {}",
+                        ctx.getEntityId(), msg.name);
+                    return Behaviors.same();
+                })
+                .build()
+        );
+    }
+
+    @Override
+    public ShardingMessageExtractor<ShardEnvelope<Command>, Command> extractor() {
+        return new DefaultShardingMessageExtractor<>(100);
+    }
+}
+```
+
+Use sharded entities in your service:
+
+```java
+@Service
+public class UserService {
+    private final SpringActorSystem springActorSystem;
+
+    public UserService(SpringActorSystem springActorSystem) {
+        this.springActorSystem = springActorSystem;
+    }
+
+    public void updateUserProfile(String userId, String name) {
+        SpringShardedActorRef<UserActor.Command> userActor =
+            springActorSystem.sharded(UserActor.class)
+                .withId(userId)
+                .get();
+
+        userActor.tell(() -> new UserActor.UpdateProfile(name));
+    }
+}
 ```
 
 ### Try the Demo
