@@ -81,6 +81,11 @@ subprojects {
 
     tasks.withType<Test> {
         useJUnitPlatform()
+        dependsOn("spotlessCheck")
+    }
+
+    tasks.named("build") {
+        dependsOn("spotlessCheck")
     }
 }
 
