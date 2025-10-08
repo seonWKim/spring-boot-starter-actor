@@ -188,3 +188,23 @@ $ cd scripts/monitoring && docker-compose down -v
 ```
 
 The monitoring setup provides dashboards for visualizing actor metrics, including message processing times and message counts by type.
+
+## Contributions 
+
+We welcome and appreciate your contributions! To ensure a smooth collaboration process, please follow these guidelines:
+
+- **Create an Issue First**  
+  Before opening a pull request (PR), create an issue ticket that clearly describes the purpose of your contribution.  
+
+- **Submit a Pull Request (PR)**  
+  Once the issue has been created and discussed, open a PR referencing the issue. Make sure to provide a detailed explanation of the changes introduced.
+
+- **Code Quality and Style**  
+  Ensure that your code follows the project’s style guidelines. You can automatically apply formatting by running:
+  ```bash
+  ./gradlew spotlessApply
+  ```
+  
+- **Testing**
+  All tests must pass before your PR can be merged.
+  Please run the test suite locally and confirm everything is working as expected.
