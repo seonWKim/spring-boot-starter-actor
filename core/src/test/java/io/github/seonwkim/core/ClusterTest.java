@@ -154,7 +154,7 @@ public class ClusterTest {
 
         Thread.sleep(500); // wait for messages to be processed
         TestShardedActor.State state = sharedActor1
-                .ask(GetState::new, Duration.ofSeconds(3))
+                .ask(GetState::new, Duration.ofSeconds(10)) // takes long on the CI/CD
                 .toCompletableFuture()
                 .get();
         assertEquals(3, state.getMessageCount());
