@@ -1,19 +1,16 @@
 package io.github.seonwkim.core;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.Mockito.mock;
+
+import java.time.Duration;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Scheduler;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityRef;
 import org.junit.jupiter.api.Test;
 
-import java.time.Duration;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.mockito.Mockito.mock;
-
-/**
- * Tests for the builder pattern implementation of SpringActorRef and SpringShardedActorRef.
- */
+/** Tests for the builder pattern implementation of SpringActorRef and SpringShardedActorRef. */
 public class ActorRefBuilderTest {
 
     @Test

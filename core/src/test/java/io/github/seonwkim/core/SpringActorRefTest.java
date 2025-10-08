@@ -16,80 +16,79 @@ import org.junit.jupiter.api.Test;
 
 public class SpringActorRefTest {
 
-	interface Command {}
+    interface Command {}
 
-	public static class Ping implements Command {
-		public final ActorRef<String> replyTo;
+    public static class Ping implements Command {
+        public final ActorRef<String> replyTo;
 
-		public Ping(ActorRef<String> replyTo) {
-			this.replyTo = replyTo;
-		}
-	}
+        public Ping(ActorRef<String> replyTo) {
+            this.replyTo = replyTo;
+        }
+    }
 
-	public static class SimpleMessage implements Command {
-		public final String value;
+    public static class SimpleMessage implements Command {
+        public final String value;
 
-		public SimpleMessage(String value) {
-			this.value = value;
-		}
-	}
+        public SimpleMessage(String value) {
+            this.value = value;
+        }
+    }
 
-	public static Behavior<Command> create(String id, CompletableFuture<String> signal) {
-		return Behaviors.receive(Command.class)
-				.onMessage(
-						Ping.class,
-						msg -> {
-							msg.replyTo.tell("pong:" + id);
-							return Behaviors.same();
-						})
-				.onMessage(
-						SimpleMessage.class,
-						msg -> {
-							signal.complete("received: " + msg.value);
-							return Behaviors.same();
-						})
-				.build();
-	}
+    public static Behavior<Command> create(String id, CompletableFuture<String> signal) {
+        return Behaviors.receive(Command.class)
+                .onMessage(Ping.class, msg -> {
+                    msg.replyTo.tell("pong:" + id);
+                    return Behaviors.same();
+                })
+                .onMessage(SimpleMessage.class, msg -> {
+                    signal.complete("received: " + msg.value);
+                    return Behaviors.same();
+                })
+                .build();
+    }
 
-	private ActorTestKit testKit;
+    private ActorTestKit testKit;
 
-	@BeforeEach
-	void setup() {
-		testKit = ActorTestKit.create(); // JUnit 5-compatible
-	}
+    @BeforeEach
+    void setup() {
+        testKit = ActorTestKit.create(); // JUnit 5-compatible
+    }
 
-	@AfterEach
-	void tearDown() {
-		testKit.shutdownTestKit();
-	}
+    @AfterEach
+    void tearDown() {
+        testKit.shutdownTestKit();
+    }
 
-	@Test
-	void testAskMethod() throws ExecutionException, InterruptedException {
-		String id = UUID.randomUUID().toString();
-		Behavior<Command> behavior = create(id, new CompletableFuture<>());
+    @Test
+    void testAskMethod() throws ExecutionException, InterruptedException {
+        String id = UUID.randomUUID().toString();
+        Behavior<Command> behavior = create(id, new CompletableFuture<>());
 
-		ActorRef<Command> actorRef = testKit.spawn(behavior, "ask-" + id);
-		SpringActorRef<Command> springRef =
-				new SpringActorRef<>(testKit.system().scheduler(), actorRef);
+        ActorRef<Command> actorRef = testKit.spawn(behavior, "ask-" + id);
+        SpringActorRef<Command> springRef =
+                new SpringActorRef<>(testKit.system().scheduler(), actorRef);
 
-		String result = springRef.ask(Ping::new, Duration.ofSeconds(3)).toCompletableFuture().get();
+        String result = springRef
+                .ask(Ping::new, Duration.ofSeconds(3))
+                .toCompletableFuture()
+                .get();
 
-		assertEquals("pong:" + id, result);
-	}
+        assertEquals("pong:" + id, result);
+    }
 
-	@Test
-	void testTellMethod() throws ExecutionException, InterruptedException {
-		String id = UUID.randomUUID().toString();
-		CompletableFuture<String> signal = new CompletableFuture<>();
-		Behavior<Command> behavior = create(id, signal);
+    @Test
+    void testTellMethod() throws ExecutionException, InterruptedException {
+        String id = UUID.randomUUID().toString();
+        CompletableFuture<String> signal = new CompletableFuture<>();
+        Behavior<Command> behavior = create(id, signal);
 
-		ActorRef<Command> actorRef = testKit.spawn(behavior, "tell-" + id);
-		SpringActorRef<Command> springRef =
-				new SpringActorRef<>(testKit.system().scheduler(), actorRef);
+        ActorRef<Command> actorRef = testKit.spawn(behavior, "tell-" + id);
+        SpringActorRef<Command> springRef =
+                new SpringActorRef<>(testKit.system().scheduler(), actorRef);
 
-		springRef.tell(new SimpleMessage("hello"));
-		String result = signal.get();
+        springRef.tell(new SimpleMessage("hello"));
+        String result = signal.get();
 
-		assertEquals("received: hello", result);
-	}
+        assertEquals("received: hello", result);
+    }
 }

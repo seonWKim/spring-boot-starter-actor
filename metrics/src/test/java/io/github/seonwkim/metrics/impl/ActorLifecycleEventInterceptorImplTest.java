@@ -2,21 +2,19 @@ package io.github.seonwkim.metrics.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import io.github.seonwkim.metrics.TestActorSystem;
+import io.github.seonwkim.metrics.impl.ActorLifecycleEventInterceptorImpl.ActorSystemMetrics;
+import io.github.seonwkim.metrics.interceptor.ActorLifeCycleEventInterceptorsHolder;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import io.github.seonwkim.metrics.TestActorSystem;
-import io.github.seonwkim.metrics.impl.ActorLifecycleEventInterceptorImpl.ActorSystemMetrics;
-import io.github.seonwkim.metrics.interceptor.ActorLifeCycleEventInterceptorsHolder;
 
 class ActorLifecycleEventInterceptorImplTest {
 
@@ -48,30 +46,26 @@ class ActorLifecycleEventInterceptorImplTest {
     void testActiveActorsGaugeIncrementsOnActorCreation() throws Exception {
         long initialCount = ActorSystemMetrics.getInstance().getActiveActors();
 
-        actorSystem.spawn(
-                           TestActor.Command.class,
-                           "test-actor-1",
-                           TestActor.create(),
-                           Duration.ofSeconds(3))
-                   .toCompletableFuture()
-                   .get(3, TimeUnit.SECONDS);
+        actorSystem
+                .spawn(TestActor.Command.class, "test-actor-1", TestActor.create(), Duration.ofSeconds(3))
+                .toCompletableFuture()
+                .get(3, TimeUnit.SECONDS);
 
         long afterFirstActor = ActorSystemMetrics.getInstance().getActiveActors();
-        assertEquals(initialCount + 1, afterFirstActor,
-                     "Active actors count should increase by 1 after creating an actor");
+        assertEquals(
+                initialCount + 1, afterFirstActor, "Active actors count should increase by 1 after creating an actor");
 
-        actorSystem.spawn(
-                           TestActor.Command.class,
-                           "test-actor-2",
-                           TestActor.create(),
-                           Duration.ofSeconds(3))
-                   .toCompletableFuture()
-                   .get(3, TimeUnit.SECONDS);
+        actorSystem
+                .spawn(TestActor.Command.class, "test-actor-2", TestActor.create(), Duration.ofSeconds(3))
+                .toCompletableFuture()
+                .get(3, TimeUnit.SECONDS);
 
         Thread.sleep(200);
         long afterSecondActor = ActorSystemMetrics.getInstance().getActiveActors();
-        assertEquals(initialCount + 2, afterSecondActor,
-                     "Active actors count should increase by 2 after creating two actors");
+        assertEquals(
+                initialCount + 2,
+                afterSecondActor,
+                "Active actors count should increase by 2 after creating two actors");
     }
 
     @Test
@@ -81,20 +75,16 @@ class ActorLifecycleEventInterceptorImplTest {
         List<ActorRef<TestActor.Command>> actors = new ArrayList<>();
 
         for (int i = 0; i < 3; i++) {
-            ActorRef<TestActor.Command> actor = actorSystem.spawn(
-                                                                   TestActor.Command.class,
-                                                                   "multi-test-actor-" + i,
-                                                                   TestActor.create(),
-                                                                   Duration.ofSeconds(3))
-                                                           .toCompletableFuture()
-                                                           .get(3, TimeUnit.SECONDS);
+            ActorRef<TestActor.Command> actor = actorSystem
+                    .spawn(TestActor.Command.class, "multi-test-actor-" + i, TestActor.create(), Duration.ofSeconds(3))
+                    .toCompletableFuture()
+                    .get(3, TimeUnit.SECONDS);
             actors.add(actor);
         }
 
         Thread.sleep(200);
         long finalCount = ActorSystemMetrics.getInstance().getActiveActors();
-        assertEquals(initialCount + 3, finalCount,
-                     "Active actors count should increase by 3 after creating 3 actors");
+        assertEquals(initialCount + 3, finalCount, "Active actors count should increase by 3 after creating 3 actors");
     }
 
     @Test
@@ -102,25 +92,24 @@ class ActorLifecycleEventInterceptorImplTest {
         Thread.sleep(500); // Wait for system initialization
         long initialCount = ActorSystemMetrics.getInstance().getActiveActors();
 
-        ActorRef<TestActor.Command> actor = actorSystem.spawn(
-                                                               TestActor.Command.class,
-                                                               "test-actor-terminate",
-                                                               TestActor.create(),
-                                                               Duration.ofSeconds(3))
-                                                       .toCompletableFuture()
-                                                       .get(3, TimeUnit.SECONDS);
+        ActorRef<TestActor.Command> actor = actorSystem
+                .spawn(TestActor.Command.class, "test-actor-terminate", TestActor.create(), Duration.ofSeconds(3))
+                .toCompletableFuture()
+                .get(3, TimeUnit.SECONDS);
 
         Thread.sleep(200);
         long afterCreation = ActorSystemMetrics.getInstance().getActiveActors();
-        assertEquals(initialCount + 1, afterCreation,
-                     "Active actors count should increase by 1 after creating an actor");
+        assertEquals(
+                initialCount + 1, afterCreation, "Active actors count should increase by 1 after creating an actor");
 
         actor.tell(new TestActor.Stop());
 
         Thread.sleep(500);
         long afterTermination = ActorSystemMetrics.getInstance().getActiveActors();
-        assertEquals(initialCount, afterTermination,
-                     "Active actors count should return to initial value after actor termination");
+        assertEquals(
+                initialCount,
+                afterTermination,
+                "Active actors count should return to initial value after actor termination");
     }
 
     @Test
@@ -130,41 +119,39 @@ class ActorLifecycleEventInterceptorImplTest {
         List<ActorRef<TestActor.Command>> actors = new ArrayList<>();
 
         for (int i = 0; i < 5; i++) {
-            ActorRef<TestActor.Command> actor = actorSystem.spawn(
-                                                                   TestActor.Command.class,
-                                                                   "test-actor-mixed-" + i,
-                                                                   TestActor.create(),
-                                                                   Duration.ofSeconds(3))
-                                                           .toCompletableFuture()
-                                                           .get(3, TimeUnit.SECONDS);
+            ActorRef<TestActor.Command> actor = actorSystem
+                    .spawn(TestActor.Command.class, "test-actor-mixed-" + i, TestActor.create(), Duration.ofSeconds(3))
+                    .toCompletableFuture()
+                    .get(3, TimeUnit.SECONDS);
             actors.add(actor);
         }
 
         Thread.sleep(200);
         long afterFiveActors = ActorSystemMetrics.getInstance().getActiveActors();
-        assertEquals(initialCount + 5, afterFiveActors,
-                     "Active actors count should increase by 5 after creating 5 actors");
+        assertEquals(
+                initialCount + 5, afterFiveActors, "Active actors count should increase by 5 after creating 5 actors");
 
         actors.get(0).tell(new TestActor.Stop());
         actors.get(1).tell(new TestActor.Stop());
 
         Thread.sleep(500);
         long afterTwoStopped = ActorSystemMetrics.getInstance().getActiveActors();
-        assertEquals(initialCount + 3, afterTwoStopped,
-                     "Active actors count should decrease by 2 after terminating 2 actors");
+        assertEquals(
+                initialCount + 3,
+                afterTwoStopped,
+                "Active actors count should decrease by 2 after terminating 2 actors");
 
-        actorSystem.spawn(
-                           TestActor.Command.class,
-                           "test-actor-new",
-                           TestActor.create(),
-                           Duration.ofSeconds(3))
-                   .toCompletableFuture()
-                   .get(3, TimeUnit.SECONDS);
+        actorSystem
+                .spawn(TestActor.Command.class, "test-actor-new", TestActor.create(), Duration.ofSeconds(3))
+                .toCompletableFuture()
+                .get(3, TimeUnit.SECONDS);
 
         Thread.sleep(200);
         long afterNewActor = ActorSystemMetrics.getInstance().getActiveActors();
-        assertEquals(initialCount + 4, afterNewActor,
-                     "Active actors count should increase by 1 after creating 1 more actor");
+        assertEquals(
+                initialCount + 4,
+                afterNewActor,
+                "Active actors count should increase by 1 after creating 1 more actor");
     }
 
     static class TestActor {
@@ -181,17 +168,16 @@ class ActorLifecycleEventInterceptorImplTest {
         public static class Stop implements Command {}
 
         public static Behavior<Command> create() {
-            return Behaviors.setup(ctx ->
-                                           Behaviors.receive(Command.class)
-                                                    .onMessage(SayHello.class, msg -> {
-                                                        ctx.getLog().info("Hello: {}", msg.message);
-                                                        return Behaviors.same();
-                                                    })
-                                                    .onMessage(Stop.class, msg -> {
-                                                        ctx.getLog().info("Stopping actor");
-                                                        return Behaviors.stopped();
-                                                    })
-                                                    .build());
+            return Behaviors.setup(ctx -> Behaviors.receive(Command.class)
+                    .onMessage(SayHello.class, msg -> {
+                        ctx.getLog().info("Hello: {}", msg.message);
+                        return Behaviors.same();
+                    })
+                    .onMessage(Stop.class, msg -> {
+                        ctx.getLog().info("Stopping actor");
+                        return Behaviors.stopped();
+                    })
+                    .build());
         }
     }
 }

@@ -7,9 +7,9 @@ import org.springframework.context.annotation.Primary;
 
 @Configuration
 public class CustomOverrideConfiguration {
-	@Bean
-	@Primary
-	public RootGuardianSupplierWrapper customRootGuardianSupplierWrapper() {
-		return new RootGuardianSupplierWrapper(CustomTestRootGuardian::create);
-	}
+    @Bean
+    @Primary
+    public RootGuardianSupplierWrapper customRootGuardianSupplierWrapper() {
+        return new RootGuardianSupplierWrapper(CustomTestRootGuardian::create);
+    }
 }

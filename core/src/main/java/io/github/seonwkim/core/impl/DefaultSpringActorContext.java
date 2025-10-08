@@ -6,7 +6,9 @@ public class DefaultSpringActorContext implements SpringActorContext {
 
     private final String id;
 
-    public DefaultSpringActorContext(String id) {this.id = id;}
+    public DefaultSpringActorContext(String id) {
+        this.id = id;
+    }
 
     @Override
     public String actorId() {

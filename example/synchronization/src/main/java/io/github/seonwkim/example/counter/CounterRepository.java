@@ -11,15 +11,13 @@ import org.springframework.data.repository.query.Param;
  */
 public interface CounterRepository extends JpaRepository<Counter, String> {
 
-	/**
-	 * Finds a counter by its ID using a native SQL query with a FOR UPDATE lock. This ensures that
-	 * the row is locked for writing during the transaction.
-	 *
-	 * @param counterId The ID of the counter to lock
-	 * @return An Optional containing the counter if found
-	 */
-	@Query(
-			value = "SELECT * FROM counter WHERE counter_id = :counterId FOR UPDATE",
-			nativeQuery = true)
-	Optional<Counter> findByIdWithLock(@Param("counterId") String counterId);
+    /**
+     * Finds a counter by its ID using a native SQL query with a FOR UPDATE lock. This ensures that
+     * the row is locked for writing during the transaction.
+     *
+     * @param counterId The ID of the counter to lock
+     * @return An Optional containing the counter if found
+     */
+    @Query(value = "SELECT * FROM counter WHERE counter_id = :counterId FOR UPDATE", nativeQuery = true)
+    Optional<Counter> findByIdWithLock(@Param("counterId") String counterId);
 }

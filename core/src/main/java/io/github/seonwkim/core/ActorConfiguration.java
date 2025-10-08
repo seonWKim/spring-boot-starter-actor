@@ -1,17 +1,15 @@
 package io.github.seonwkim.core;
 
+import io.github.seonwkim.core.impl.DefaultSpringActorSystemBuilder;
+import io.github.seonwkim.core.shard.ShardedActor;
+import io.github.seonwkim.core.shard.ShardedActorRegistry;
 import java.util.Map;
-
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
-
-import io.github.seonwkim.core.impl.DefaultSpringActorSystemBuilder;
-import io.github.seonwkim.core.shard.ShardedActor;
-import io.github.seonwkim.core.shard.ShardedActorRegistry;
 
 @Configuration
 public class ActorConfiguration {
@@ -59,8 +57,7 @@ public class ActorConfiguration {
      */
     @Bean
     @ConditionalOnMissingBean(RootGuardianSupplierWrapper.class)
-    public RootGuardianSupplierWrapper rootGuardianSupplierWrapper(
-            ActorTypeRegistry actorTypeRegistry) {
+    public RootGuardianSupplierWrapper rootGuardianSupplierWrapper(ActorTypeRegistry actorTypeRegistry) {
         return new RootGuardianSupplierWrapper(() -> RootGuardian.create(actorTypeRegistry));
     }
 
@@ -78,16 +75,16 @@ public class ActorConfiguration {
         Map<String, SpringActor> actorBeans = context.getBeansOfType(SpringActor.class);
 
         for (SpringActor actorBean : actorBeans.values()) {
-            registry.register(
-                    actorBean.getClass(),
-                    actorContext -> {
-                        try {
-                            return actorBean.create(actorContext);
-                        } catch (Exception e) {
-                            throw new RuntimeException(
-                                    "Failed to invoke create(id) on " + actorBean.getClass().getName(), e);
-                        }
-                    });
+            registry.register(actorBean.getClass(), actorContext -> {
+                try {
+                    return actorBean.create(actorContext);
+                } catch (Exception e) {
+                    throw new RuntimeException(
+                            "Failed to invoke create(id) on "
+                                    + actorBean.getClass().getName(),
+                            e);
+                }
+            });
         }
 
         return registry;
@@ -110,8 +107,8 @@ public class ActorConfiguration {
     }
 
     /**
-     * Creates a PekkoProperties bean with the given environment.
-     * This bean provides configuration properties for the Pekko actor system.
+     * Creates a PekkoProperties bean with the given environment. This bean provides configuration
+     * properties for the Pekko actor system.
      *
      * @param environment The Spring environment
      * @return A PekkoProperties instance

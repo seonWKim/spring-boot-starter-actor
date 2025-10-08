@@ -120,8 +120,7 @@ class InvokeAllAdviceEventInterceptorsHolderTest {
             }
 
             @Override
-            public void onExit(Object messages, long startTime) {
-            }
+            public void onExit(Object messages, long startTime) {}
         };
 
         var interceptor2 = new InvokeAllAdviceEventInterceptorsHolder.InvokeAllAdviceEventInterceptor() {
@@ -131,8 +130,7 @@ class InvokeAllAdviceEventInterceptorsHolderTest {
             }
 
             @Override
-            public void onExit(Object messages, long startTime) {
-            }
+            public void onExit(Object messages, long startTime) {}
         };
 
         // When

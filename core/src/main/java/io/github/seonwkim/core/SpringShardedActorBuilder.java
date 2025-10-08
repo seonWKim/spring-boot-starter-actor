@@ -5,11 +5,11 @@ import org.apache.pekko.cluster.sharding.typed.javadsl.EntityRef;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
 
 /**
- * A fluent builder for creating references to sharded actors.
- * This builder simplifies the process of getting a reference to a sharded actor entity
- * by providing a clean, fluent API.
+ * A fluent builder for creating references to sharded actors. This builder simplifies the process
+ * of getting a reference to a sharded actor entity by providing a clean, fluent API.
  *
  * <p>Example usage:
+ *
  * <pre>
  * var counter = actorSystem.sharded(CounterActor.class)
  *     .withId("counter-123")
@@ -19,12 +19,12 @@ import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
  * @param <T> The type of commands that the sharded actor can handle
  */
 public class SpringShardedActorBuilder<T> {
-    
+
     private final SpringActorSystem actorSystem;
     private final Class<? extends ShardedActor<T>> actorClass;
     private String entityId;
     private EntityTypeKey<T> typeKey;
-    
+
     /**
      * Creates a new SpringShardedActorBuilder.
      *
@@ -36,7 +36,7 @@ public class SpringShardedActorBuilder<T> {
         this.actorClass = actorClass;
         this.typeKey = resolveTypeKey(actorClass);
     }
-    
+
     /**
      * Sets the entity ID for the sharded actor reference.
      *
@@ -50,10 +50,10 @@ public class SpringShardedActorBuilder<T> {
         this.entityId = entityId;
         return this;
     }
-    
+
     /**
-     * Optionally sets a custom EntityTypeKey. If not set, the builder will attempt
-     * to resolve it from the actor class.
+     * Optionally sets a custom EntityTypeKey. If not set, the builder will attempt to resolve it from
+     * the actor class.
      *
      * @param typeKey The entity type key
      * @return This builder for method chaining
@@ -65,39 +65,41 @@ public class SpringShardedActorBuilder<T> {
         this.typeKey = typeKey;
         return this;
     }
-    
+
     /**
      * Builds and returns the SpringShardedActorRef.
      *
      * @return A SpringShardedActorRef to the sharded actor entity
-     * @throws IllegalStateException If the entity ID has not been set or if cluster sharding is not configured
+     * @throws IllegalStateException If the entity ID has not been set or if cluster sharding is not
+     *     configured
      */
     public SpringShardedActorRef<T> get() {
         if (entityId == null) {
             throw new IllegalStateException("Entity ID must be set using withId() before calling get()");
         }
-        
+
         if (typeKey == null) {
-            throw new IllegalStateException("Unable to resolve EntityTypeKey for " + actorClass.getName() + 
-                ". Please ensure the actor has a static TYPE_KEY field or use withTypeKey() to provide one.");
+            throw new IllegalStateException("Unable to resolve EntityTypeKey for "
+                    + actorClass.getName()
+                    + ". Please ensure the actor has a static TYPE_KEY field or use withTypeKey() to provide one.");
         }
-        
+
         if (actorSystem.getClusterSharding() == null) {
             throw new IllegalStateException("Cluster sharding not configured");
         }
-        
+
         final EntityRef<T> entityRef = actorSystem.getClusterSharding().entityRefFor(typeKey, entityId);
         return new SpringShardedActorRef<>(actorSystem.getRaw().scheduler(), entityRef);
     }
-    
+
     /**
-     * Attempts to resolve the EntityTypeKey from the actor class.
-     * This method looks for a static field named TYPE_KEY in the actor class.
+     * Attempts to resolve the EntityTypeKey from the actor class. This method looks for a static
+     * field named TYPE_KEY in the actor class.
      *
      * @param actorClass The sharded actor class
      * @return The resolved EntityTypeKey, or null if not found
      */
-    // TODO: Use ShardedActorRegistry to retrieve EntityTypeKey based on actorClass 
+    // TODO: Use ShardedActorRegistry to retrieve EntityTypeKey based on actorClass
     @SuppressWarnings("unchecked")
     private EntityTypeKey<T> resolveTypeKey(Class<? extends ShardedActor<T>> actorClass) {
         try {
@@ -115,7 +117,7 @@ public class SpringShardedActorBuilder<T> {
                 // Field not found or not accessible
             }
         }
-        
+
         return null;
     }
 }

@@ -1,26 +1,23 @@
 package io.github.seonwkim.example;
 
-import java.io.IOException;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-
-import org.springframework.stereotype.Component;
-import org.springframework.web.socket.CloseStatus;
-import org.springframework.web.socket.TextMessage;
-import org.springframework.web.socket.WebSocketSession;
-import org.springframework.web.socket.handler.TextWebSocketHandler;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-
 import io.github.seonwkim.core.SpringActorRef;
 import io.github.seonwkim.core.SpringActorSystem;
 import io.github.seonwkim.example.UserActor.Connect;
 import io.github.seonwkim.example.UserActor.JoinRoom;
 import io.github.seonwkim.example.UserActor.LeaveRoom;
 import io.github.seonwkim.example.UserActor.SendMessage;
+import java.io.IOException;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import org.springframework.stereotype.Component;
+import org.springframework.web.socket.CloseStatus;
+import org.springframework.web.socket.TextMessage;
+import org.springframework.web.socket.WebSocketSession;
+import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 /**
  * WebSocket handler for chat messages. Handles WebSocket connections and messages, and connects
@@ -31,11 +28,9 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
 
     private final ObjectMapper objectMapper;
     private final SpringActorSystem actorSystem;
-    private final ConcurrentMap<String, SpringActorRef<UserActor.Command>> userActors =
-            new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, SpringActorRef<UserActor.Command>> userActors = new ConcurrentHashMap<>();
 
-    public ChatWebSocketHandler(
-            ObjectMapper objectMapper, SpringActorSystem actorSystem) {
+    public ChatWebSocketHandler(ObjectMapper objectMapper, SpringActorSystem actorSystem) {
         this.objectMapper = objectMapper;
         this.actorSystem = actorSystem;
     }
@@ -47,13 +42,10 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         UserActor.UserActorContext userActorContext =
                 new UserActor.UserActorContext(actorSystem, objectMapper, userId, session);
 
-        actorSystem.spawn(UserActor.class)
-                   .withContext(userActorContext)
-                   .start()
-                   .thenAccept(userActor -> {
-                       userActors.put(userId, userActor);
-                       userActor.tell(new Connect());
-                   });
+        actorSystem.spawn(UserActor.class).withContext(userActorContext).start().thenAccept(userActor -> {
+            userActors.put(userId, userActor);
+            userActor.tell(new Connect());
+        });
     }
 
     @Override

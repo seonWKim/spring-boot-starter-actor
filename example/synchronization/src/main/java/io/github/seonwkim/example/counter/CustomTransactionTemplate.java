@@ -7,8 +7,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class CustomTransactionTemplate {
 
-	@Transactional
-	public <T> T runInTransaction(Supplier<T> block) {
-		return block.get();
-	}
+    @Transactional
+    public <T> T runInTransaction(Supplier<T> block) {
+        return block.get();
+    }
 }

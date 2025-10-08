@@ -5,9 +5,8 @@ import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Scheduler;
 
 /**
- * Builder for creating instances of {@link SpringActorRef}.
- * This builder provides a fluent API for constructing SpringActorRef instances
- * with various configurations.
+ * Builder for creating instances of {@link SpringActorRef}. This builder provides a fluent API for
+ * constructing SpringActorRef instances with various configurations.
  *
  * @param <T> The type of messages that the actor can handle
  */

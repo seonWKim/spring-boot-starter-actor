@@ -4,11 +4,12 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
- * Registry for message invocation event interceptors that monitors individual message processing in actors.
+ * Registry for message invocation event interceptors that monitors individual message processing in
+ * actors.
  *
- * <p>The holder captures both entry and exit points of message processing, enabling precise timing measurements
- * and correlation of processing events. This granular visibility is essential for understanding actual
- * message processing behavior in production systems.</p>
+ * <p>The holder captures both entry and exit points of message processing, enabling precise timing
+ * measurements and correlation of processing events. This granular visibility is essential for
+ * understanding actual message processing behavior in production systems.
  */
 public class InvokeAdviceEventInterceptorsHolder {
     private static final Queue<InvokeAdviceEventInterceptor> holder = new ConcurrentLinkedQueue<>();

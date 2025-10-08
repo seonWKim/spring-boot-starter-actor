@@ -11,25 +11,25 @@ import reactor.core.publisher.Mono;
 @RestController
 public class HelloController {
 
-	private final HelloService helloService;
+    private final HelloService helloService;
 
-	/**
-	 * Creates a new HelloController with the given service.
-	 *
-	 * @param helloService The service for interacting with HelloActors
-	 */
-	public HelloController(HelloService helloService) {
-		this.helloService = helloService;
-	}
+    /**
+     * Creates a new HelloController with the given service.
+     *
+     * @param helloService The service for interacting with HelloActors
+     */
+    public HelloController(HelloService helloService) {
+        this.helloService = helloService;
+    }
 
-	/**
-	 * Endpoint to send a hello message to the actor and get a response. This is a simple GET endpoint
-	 * that requires no parameters.
-	 *
-	 * @return A Mono containing the response from the actor
-	 */
-	@GetMapping("/hello")
-	public Mono<String> hello() {
-		return helloService.hello();
-	}
+    /**
+     * Endpoint to send a hello message to the actor and get a response. This is a simple GET endpoint
+     * that requires no parameters.
+     *
+     * @return A Mono containing the response from the actor
+     */
+    @GetMapping("/hello")
+    public Mono<String> hello() {
+        return helloService.hello();
+    }
 }

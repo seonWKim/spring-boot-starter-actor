@@ -8,19 +8,19 @@ import reactor.core.publisher.Mono;
  */
 public interface CounterService {
 
-	/**
-	 * Increments the counter value by 1 and returns the new value. This operation is synchronized to
-	 * ensure consistency.
-	 *
-	 * @param counterId The ID of the counter to increment
-	 */
-	void increment(String counterId);
+    /**
+     * Increments the counter value by 1 and returns the new value. This operation is synchronized to
+     * ensure consistency.
+     *
+     * @param counterId The ID of the counter to increment
+     */
+    void increment(String counterId);
 
-	/**
-	 * Gets the current value of the counter.
-	 *
-	 * @param counterId The ID of the counter to get
-	 * @return A Mono containing the current counter value
-	 */
-	Mono<Long> getValue(String counterId);
+    /**
+     * Gets the current value of the counter.
+     *
+     * @param counterId The ID of the counter to get
+     * @return A Mono containing the current counter value
+     */
+    Mono<Long> getValue(String counterId);
 }

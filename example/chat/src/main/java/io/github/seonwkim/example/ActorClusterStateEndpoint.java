@@ -11,14 +11,14 @@ import org.springframework.stereotype.Component;
 @Endpoint(id = "actor-cluster-state")
 public class ActorClusterStateEndpoint {
 
-	private final SpringActorSystem springActorSystem;
+    private final SpringActorSystem springActorSystem;
 
-	public ActorClusterStateEndpoint(SpringActorSystem springActorSystem) {
-		this.springActorSystem = springActorSystem;
-	}
+    public ActorClusterStateEndpoint(SpringActorSystem springActorSystem) {
+        this.springActorSystem = springActorSystem;
+    }
 
-	@ReadOperation
-	public Map<String, Object> getClusterState() {
-		return MetricsUtils.getClusterState(springActorSystem);
-	}
+    @ReadOperation
+    public Map<String, Object> getClusterState() {
+        return MetricsUtils.getClusterState(springActorSystem);
+    }
 }

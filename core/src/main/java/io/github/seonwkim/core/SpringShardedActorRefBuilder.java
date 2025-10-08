@@ -5,9 +5,8 @@ import org.apache.pekko.actor.typed.Scheduler;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityRef;
 
 /**
- * Builder for creating instances of {@link SpringShardedActorRef}.
- * This builder provides a fluent API for constructing SpringShardedActorRef instances
- * with various configurations.
+ * Builder for creating instances of {@link SpringShardedActorRef}. This builder provides a fluent
+ * API for constructing SpringShardedActorRef instances with various configurations.
  *
  * @param <T> The type of messages that the actor can handle
  */

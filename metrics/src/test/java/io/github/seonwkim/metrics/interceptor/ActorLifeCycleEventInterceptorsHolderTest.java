@@ -3,7 +3,6 @@ package io.github.seonwkim.metrics.interceptor;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.concurrent.atomic.AtomicBoolean;
-
 import org.junit.jupiter.api.Test;
 
 class ActorLifeCycleEventInterceptorsHolderTest {
@@ -100,7 +99,7 @@ class ActorLifeCycleEventInterceptorsHolderTest {
         // Then
         assertTrue(interceptorCalled.get(), "Interceptor should have been called");
     }
-    
+
     @Test
     void testReset() {
         // Given

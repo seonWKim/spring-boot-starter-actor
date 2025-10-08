@@ -18,80 +18,76 @@ import org.springframework.core.env.Environment;
  * "spring.actor" to a map and normalizes comma-separated lists.
  */
 public class ActorProperties implements EnvironmentAware {
-	private final Map<String, Object> config = new HashMap<>();
+    private final Map<String, Object> config = new HashMap<>();
 
-	/**
-	 * Sets the environment and binds properties with the prefix "spring.actor" to the config map.
-	 * This method is called by Spring to inject the environment.
-	 *
-	 * @param environment The Spring environment
-	 */
-	@Override
-	public void setEnvironment(Environment environment) {
-		if (!(environment instanceof ConfigurableEnvironment)) {
-			return;
-		}
-		Binder binder = Binder.get(environment);
+    /**
+     * Sets the environment and binds properties with the prefix "spring.actor" to the config map.
+     * This method is called by Spring to inject the environment.
+     *
+     * @param environment The Spring environment
+     */
+    @Override
+    public void setEnvironment(Environment environment) {
+        if (!(environment instanceof ConfigurableEnvironment)) {
+            return;
+        }
+        Binder binder = Binder.get(environment);
 
-		Map<String, Object> actorConfig =
-				binder
-						.bind(
-								ConfigurationPropertyName.of("spring.actor"),
-								Bindable.mapOf(String.class, Object.class))
-						.orElse(Collections.emptyMap());
+        Map<String, Object> actorConfig = binder.bind(
+                        ConfigurationPropertyName.of("spring.actor"), Bindable.mapOf(String.class, Object.class))
+                .orElse(Collections.emptyMap());
 
-		Map<String, Object> normalized = normalizeCommaSeparatedLists(actorConfig);
-		this.config.putAll(normalized);
-	}
+        Map<String, Object> normalized = normalizeCommaSeparatedLists(actorConfig);
+        this.config.putAll(normalized);
+    }
 
-	/**
-	 * Normalizes comma-separated lists in the input map. If a string value contains commas, it is
-	 * split into a list of strings. This method recursively processes nested maps.
-	 *
-	 * @param input The input map to normalize
-	 * @return A new map with normalized values
-	 */
-	public Map<String, Object> normalizeCommaSeparatedLists(Map<String, Object> input) {
-		Map<String, Object> normalized = new HashMap<>();
+    /**
+     * Normalizes comma-separated lists in the input map. If a string value contains commas, it is
+     * split into a list of strings. This method recursively processes nested maps.
+     *
+     * @param input The input map to normalize
+     * @return A new map with normalized values
+     */
+    public Map<String, Object> normalizeCommaSeparatedLists(Map<String, Object> input) {
+        Map<String, Object> normalized = new HashMap<>();
 
-		for (Map.Entry<String, Object> entry : input.entrySet()) {
-			String key = entry.getKey();
-			Object value = entry.getValue();
+        for (Map.Entry<String, Object> entry : input.entrySet()) {
+            String key = entry.getKey();
+            Object value = entry.getValue();
 
-			if (value instanceof Map) {
-				// Safe cast: instanceof check ensures value is Map<String, Object>
-				normalized.put(key, normalizeCommaSeparatedLists((Map<String, Object>) value));
-			} else if (value instanceof String) {
-				// Safe cast: instanceof check ensures value is String
-				String str = ((String) value).trim();
-				if (looksLikeCommaSeparatedList(str)) {
-					List<String> items =
-							Arrays.stream(str.split(","))
-									.map(String::trim)
-									.filter(s -> !s.isEmpty())
-									.collect(Collectors.toList());
-					normalized.put(key, items);
-				} else {
-					normalized.put(key, str);
-				}
-			} else {
-				normalized.put(key, value);
-			}
-		}
+            if (value instanceof Map) {
+                // Safe cast: instanceof check ensures value is Map<String, Object>
+                normalized.put(key, normalizeCommaSeparatedLists((Map<String, Object>) value));
+            } else if (value instanceof String) {
+                // Safe cast: instanceof check ensures value is String
+                String str = ((String) value).trim();
+                if (looksLikeCommaSeparatedList(str)) {
+                    List<String> items = Arrays.stream(str.split(","))
+                            .map(String::trim)
+                            .filter(s -> !s.isEmpty())
+                            .collect(Collectors.toList());
+                    normalized.put(key, items);
+                } else {
+                    normalized.put(key, str);
+                }
+            } else {
+                normalized.put(key, value);
+            }
+        }
 
-		return normalized;
-	}
+        return normalized;
+    }
 
-	private boolean looksLikeCommaSeparatedList(String str) {
-		return str.contains(",") && !(str.startsWith("[") && str.endsWith("]"));
-	}
+    private boolean looksLikeCommaSeparatedList(String str) {
+        return str.contains(",") && !(str.startsWith("[") && str.endsWith("]"));
+    }
 
-	/**
-	 * Returns an unmodifiable view of the configuration map.
-	 *
-	 * @return An unmodifiable map containing the configuration properties
-	 */
-	public Map<String, Object> getConfig() {
-		return Collections.unmodifiableMap(config);
-	}
+    /**
+     * Returns an unmodifiable view of the configuration map.
+     *
+     * @return An unmodifiable map containing the configuration properties
+     */
+    public Map<String, Object> getConfig() {
+        return Collections.unmodifiableMap(config);
+    }
 }
