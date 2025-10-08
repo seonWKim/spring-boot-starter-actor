@@ -1,20 +1,30 @@
-<div style="text-align: center; margin-top: 30px;">
-  <img src="mkdocs/docs/logo.png" alt="Library Logo" width="320" style="display: block; margin: 0 auto;" />
-</div>
+<table>
+<tr>
+<td width="30%">
+  <img src="mkdocs/docs/logo.png" alt="Library Logo" />
+</td>
+<td>
+  <h2>Spring Boot Starter Actor</h2>
+  <p>A library that integrates Spring Boot with the actor model using <a href="https://pekko.apache.org/">Pekko</a> (an open-source, community-driven fork of Akka).</p>
+</td>
+</tr>
+</table>
 
-# Spring Boot Starter Actor
-
-A library that integrates Spring Boot with the actor model using [Pekko](https://pekko.apache.org/) (an
-open-source, community-driven fork of Akka).
+## Live Demo
 
 <div style="border: 2px solid #ccc; display: inline-block; border-radius: 8px; overflow: hidden;">
   <img src="mkdocs/docs/chat.gif" alt="Demo"/>
 </div>
 
-
 ## Documentation
 
 For comprehensive documentation, visit our [Documentation Site](https://seonwkim.github.io/spring-boot-starter-actor/).
+
+## Motivation
+
+While Spring is widely used in the Java ecosystem, it doesn't natively support actor-related functionality. Actors have proven to be extremely useful for a wide range of use cases including IoT, telecommunications, real-time chat systems, and more. This project aims to bridge that gap by introducing the actor model to the Spring ecosystem.
+
+The goal is to make actor-based programming accessible to Spring developers, and in the future, we hope to see `spring-boot-starter-actor` become an official Spring project.
 
 ## Core Concepts
 
