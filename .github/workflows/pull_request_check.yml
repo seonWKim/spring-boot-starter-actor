@@ -1,0 +1,73 @@
+name: Pull Request Check
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+jobs:
+  test-core:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📦 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: ☕ Set up Java 17
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: 17
+          cache: gradle
+
+      - name: 🧪 Test core module
+        run: |
+          echo "📦 Running ./gradlew :core:test..."
+          ./gradlew :core:test
+          echo "✅ Core tests completed successfully."
+
+  test-core-boot3:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📦 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: ☕ Set up Java 17
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: 17
+          cache: gradle
+
+      - name: 🔄 Sync Boot3 sources
+        run: |
+          echo "📦 Running ./gradlew :core-boot3:syncAllBoot3Sources..."
+          ./gradlew :core-boot3:syncAllBoot3Sources
+          echo "✅ Boot3 sources synced successfully."
+
+      - name: 🧪 Test core-boot3 module
+        run: |
+          echo "📦 Running ./gradlew :core-boot3:test..."
+          ./gradlew :core-boot3:test
+          echo "✅ Core-boot3 tests completed successfully."
+
+  test-metrics:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📦 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: ☕ Set up Java 11
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: 11
+          cache: gradle
+
+      - name: 🧪 Test metrics module
+        run: |
+          echo "📦 Running ./gradlew :metrics:test..."
+          ./gradlew :metrics:test
+          echo "✅ Metrics tests completed successfully."
