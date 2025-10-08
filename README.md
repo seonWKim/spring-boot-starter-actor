@@ -1,41 +1,31 @@
 <table>
 <tr>
-<td width="30%">
+<td width="15%">
   <img src="mkdocs/docs/logo.png" alt="Library Logo" />
 </td>
 <td>
   <h2>Spring Boot Starter Actor</h2>
-  <p>A library that integrates Spring Boot with the actor model using <a href="https://pekko.apache.org/">Pekko</a> (an open-source, community-driven fork of Akka).</p>
+  <p>Bring the power of the actor model to your Spring Boot applications using <a href="https://pekko.apache.org/">Pekko</a> (an open-source fork of Akka).</p>
 </td>
 </tr>
 </table>
+
+## Why spring-boot-starter-actor?
+
+Spring is the go-to framework in the Java ecosystem, but it lacks native support for actors. The actor model is incredibly useful for building scalable, concurrent systems—think IoT platforms, real-time chat, telecommunications, and more.
+
+This library bridges that gap, letting you build actor-based systems with the Spring Boot patterns you already know. The goal? Make actor programming accessible to every Spring developer. We'd love to see this become an official Spring project someday.
+
+**What's the actor model?**
+- **Encapsulation**: Logic and state live inside actors
+- **Message-passing**: Actors communicate by sending messages (no shared state!)
+- **Concurrency**: Built-in isolation makes concurrent programming safer and easier
 
 ## Live Demo
 
 <div style="border: 2px solid #ccc; display: inline-block; border-radius: 8px; overflow: hidden;">
   <img src="mkdocs/docs/chat.gif" alt="Demo"/>
 </div>
-
-## Documentation
-
-For comprehensive documentation, visit our [Documentation Site](https://seonwkim.github.io/spring-boot-starter-actor/).
-
-## Motivation
-
-While Spring is widely used in the Java ecosystem, it doesn't natively support actor-related functionality. Actors have proven to be extremely useful for a wide range of use cases including IoT, telecommunications, real-time chat systems, and more. This project aims to bridge that gap by introducing the actor model to the Spring ecosystem.
-
-The goal is to make actor-based programming accessible to Spring developers, and in the future, we hope to see `spring-boot-starter-actor` become an official Spring project.
-
-## Core Concepts
-
-This project bridges the gap between Spring Boot and the actor model, allowing developers to build 
-applications using familiar Spring Boot patterns while leveraging the power of the actor model for managing
-state and concurrency.
-
-The actor model is a programming paradigm that:
-- Encapsulates logic and state into actors
-- Communicates by sending messages between actors
-- Provides natural isolation and concurrency control
 
 ## Key Features
 
@@ -131,7 +121,7 @@ spring:
 
 ### Creating Actors
 
-Spring Boot Starter Actor makes it easy to create actors by simply implementing an interface and using Spring's `@Component` annotation.
+Creating actors is as simple as implementing an interface and adding `@Component`. Here's how:
 
 #### Simple Actor
 
@@ -248,9 +238,13 @@ public class UserService {
 }
 ```
 
+## Examples
+
+Check out our [full documentation](https://seonwkim.github.io/spring-boot-starter-actor/) for more examples and guides.
+
 ### Try the Demo
 
-Run the chat example with multiple nodes:
+Want to see it in action? Run the chat example with multiple nodes:
 
 ```shell
 # Start 3 chat application instances on ports 8080, 8081, and 8082
@@ -291,49 +285,30 @@ To stop the Docker deployment:
 $ docker-compose down
 ```
 
-## Metrics and Monitoring
+## Monitoring
 
-The library includes a metrics module for monitoring actor performance and a ready-to-use monitoring stack based on Prometheus and Grafana.
+Need to monitor your actors? We've got you covered with built-in metrics and a ready-to-use Prometheus + Grafana stack.
 
-### Running the Monitoring Stack
+**Quick start:**
 
-1. Start the chat application cluster:
 ```shell
-$ sh cluster-start.sh chat io.github.seonwkim.example.SpringPekkoApplication 8080 2551 3
-```
-
-2. Start the monitoring stack:
-```shell
+# Start the monitoring stack
 $ cd scripts/monitoring && docker-compose up -d
 ```
 
-3. Access the monitoring dashboards:
-   - Prometheus: http://localhost:9090
-   - Grafana: http://localhost:3000 (username: admin, password: admin)
+Access dashboards at:
+- **Prometheus**: http://localhost:9090
+- **Grafana**: http://localhost:3000 (admin/admin)
 
-4. Shutdown the monitoring stack when done:
-```shell
-$ cd scripts/monitoring && docker-compose down -v
-```
+The dashboards show message processing times, message counts by type, and other actor performance metrics.
 
-The monitoring setup provides dashboards for visualizing actor metrics, including message processing times and message counts by type.
+## Contributing
 
-## Contributions 
+Contributions are welcome! Here's how to get started:
 
-We welcome and appreciate your contributions! To ensure a smooth collaboration process, please follow these guidelines:
+1. **Create an issue** describing your contribution
+2. **Open a PR** with a clear explanation of your changes
+3. **Run code formatting**: `./gradlew spotlessApply`
+4. **Make sure tests pass** before submitting
 
-- **Create an Issue First**  
-  Before opening a pull request (PR), create an issue ticket that clearly describes the purpose of your contribution.  
-
-- **Submit a Pull Request (PR)**  
-  Once the issue has been created and discussed, open a PR referencing the issue. Make sure to provide a detailed explanation of the changes introduced.
-
-- **Code Quality and Style**  
-  Ensure that your code follows the project’s style guidelines. You can automatically apply formatting by running:
-  ```bash
-  ./gradlew spotlessApply
-  ```
-  
-- **Testing**
-  All tests must pass before your PR can be merged.
-  Please run the test suite locally and confirm everything is working as expected.
+We appreciate your help in making this library better!
