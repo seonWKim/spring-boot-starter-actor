@@ -10,8 +10,6 @@ import io.github.seonwkim.core.SpringActorSystemBuilder;
 import io.github.seonwkim.core.shard.ShardEnvelope;
 import io.github.seonwkim.core.shard.ShardedActor;
 import io.github.seonwkim.core.shard.ShardedActorRegistry;
-
-import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -106,8 +104,7 @@ public class DefaultSpringActorSystemBuilder implements SpringActorSystemBuilder
                 .withFallback(ConfigFactory.load());
         final String name = config.hasPath("pekko.name") ? config.getString("pekko.name") : DEFAULT_SYSTEM_NAME;
 
-        final ActorSystem<RootGuardian.Command> actorSystem =
-                ActorSystem.create(supplier.get(), name, config);
+        final ActorSystem<RootGuardian.Command> actorSystem = ActorSystem.create(supplier.get(), name, config);
         final boolean isClusterMode = Objects.equals(config.getString("pekko.actor.provider"), "cluster");
 
         if (!isClusterMode) {
