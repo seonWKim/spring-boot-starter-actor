@@ -10,6 +10,8 @@ import io.github.seonwkim.core.SpringActorSystemBuilder;
 import io.github.seonwkim.core.shard.ShardEnvelope;
 import io.github.seonwkim.core.shard.ShardedActor;
 import io.github.seonwkim.core.shard.ShardedActorRegistry;
+
+import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -105,22 +107,24 @@ public class DefaultSpringActorSystemBuilder implements SpringActorSystemBuilder
         final String name = config.hasPath("pekko.name") ? config.getString("pekko.name") : DEFAULT_SYSTEM_NAME;
 
         final ActorSystem<RootGuardian.Command> actorSystem =
-                ActorSystem.create(supplier.getSupplier().get(), name, config);
+                ActorSystem.create(supplier.get(), name, config);
         final boolean isClusterMode = Objects.equals(config.getString("pekko.actor.provider"), "cluster");
 
         if (!isClusterMode) {
             return new SpringActorSystem(actorSystem);
-        } else {
-            if (applicationEventPublisher == null) {
-                throw new IllegalArgumentException("ApplicationEventPublisher is not set");
-            }
-            final Cluster cluster = Cluster.get(actorSystem);
-            final ClusterSharding clusterSharding = ClusterSharding.get(actorSystem);
-            for (ShardedActor actor : shardedActorRegistry.getAll()) {
-                initShardedActor(clusterSharding, actor);
-            }
-            return new SpringActorSystem(actorSystem, cluster, clusterSharding, applicationEventPublisher);
         }
+
+        if (applicationEventPublisher == null) {
+            throw new IllegalArgumentException("ApplicationEventPublisher is not set");
+        }
+
+        final Cluster cluster = Cluster.get(actorSystem);
+        final ClusterSharding clusterSharding = ClusterSharding.get(actorSystem);
+        for (ShardedActor actor : shardedActorRegistry.getAll()) {
+            initShardedActor(clusterSharding, actor);
+        }
+
+        return new SpringActorSystem(actorSystem, cluster, clusterSharding, applicationEventPublisher);
     }
 
     /**
