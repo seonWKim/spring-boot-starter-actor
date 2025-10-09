@@ -21,6 +21,9 @@ public class DefaultShardingMessageExtractor<T> extends ShardingMessageExtractor
      * @param numberOfShards The number of shards to distribute entities across
      */
     public DefaultShardingMessageExtractor(int numberOfShards) {
+        if (numberOfShards <= 0) {
+            throw new IllegalArgumentException("numberOfShards must be positive");
+        }
         this.numberOfShards = numberOfShards;
     }
 
