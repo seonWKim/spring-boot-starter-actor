@@ -25,7 +25,7 @@ public class RootGuardianSupplierWrapper {
      *
      * @return The supplier of RootGuardian behaviors
      */
-    public Supplier<Behavior<Command>> getSupplier() {
-        return supplier;
+    public Behavior<Command> get() {
+        return supplier.get();
     }
 }

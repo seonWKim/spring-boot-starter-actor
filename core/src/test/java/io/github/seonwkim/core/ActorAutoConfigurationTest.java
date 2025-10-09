@@ -89,7 +89,7 @@ public class ActorAutoConfigurationTest {
             RootGuardianSupplierWrapper wrapper = context.getBean(RootGuardianSupplierWrapper.class);
             assertNotNull(wrapper);
 
-            Behavior<RootGuardian.Command> behavior = wrapper.getSupplier().get();
+            Behavior<RootGuardian.Command> behavior = wrapper.get();
             assertNotNull(behavior);
 
             assertEquals(
