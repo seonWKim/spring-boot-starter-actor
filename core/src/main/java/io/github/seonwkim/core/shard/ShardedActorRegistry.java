@@ -16,7 +16,7 @@ public class ShardedActorRegistry {
     /**
      * Singleton instance of the registry. This instance can be used when a shared registry is needed.
      */
-    public static ShardedActorRegistry INSTANCE = new ShardedActorRegistry();
+    public static final ShardedActorRegistry INSTANCE = new ShardedActorRegistry();
 
     /**
      * Registers a sharded actor with the registry. The actor is indexed by its entity type key.
