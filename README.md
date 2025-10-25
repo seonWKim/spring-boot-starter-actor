@@ -150,25 +150,61 @@ public class HelloActor implements SpringActor<HelloActor, HelloActor.Command> {
 }
 ```
 
-Spawn and use the actor in your service:
+Spawn and use the actor in your service using the **lazy reference pattern** (recommended to avoid blocking Spring startup):
 
 ```java
 @Service
 public class MyService {
-    private final SpringActorRef<HelloActor.Command> helloActor;
+    private final SpringActorSystem springActorSystem;
+    private volatile SpringActorRef<HelloActor.Command> helloActor;
 
     public MyService(SpringActorSystem springActorSystem) {
-        this.helloActor = springActorSystem
-            .spawn(HelloActor.class)
-            .withId("default")
-            .startAndWait();
+        this.springActorSystem = springActorSystem;
+    }
+
+    private SpringActorRef<HelloActor.Command> getActor() {
+        if (helloActor == null) {
+            synchronized (this) {
+                if (helloActor == null) {
+                    helloActor = springActorSystem
+                        .spawn(HelloActor.class)
+                        .withId("default")
+                        .startAndWait();
+                }
+            }
+        }
+        return helloActor;
     }
 
     public void greet(String message) {
-        helloActor.tell(new HelloActor.SayHello(message));
+        getActor().tell(new HelloActor.SayHello(message));
     }
 }
 ```
+
+> **Why lazy initialization?** Spawning actors in the constructor blocks Spring application startup. The lazy reference pattern defers actor spawning until first use, making startup faster and more predictable.
+
+#### Request-Response Pattern (Ask Pattern)
+
+For request-response communication, use the **fluent ask builder** for advanced timeout handling and error recovery:
+
+```java
+// Simple ask with default timeout
+CompletionStage<String> response = actor.ask(GetValue::new);
+
+// Fluent builder with custom timeout and fallback
+CompletionStage<String> response = actor
+    .askBuilder(GetValue::new)
+    .withTimeout(Duration.ofSeconds(5))
+    .onTimeout(() -> "default-value")
+    .execute();
+```
+
+**Benefits of the fluent ask builder:**
+- Set custom timeouts per request
+- Provide default values on timeout
+- Clean, readable syntax for complex scenarios
+- Type-safe builder pattern
 
 #### Sharded Entities (for Distributed Systems)
 
