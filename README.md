@@ -165,7 +165,7 @@ public class MyService {
     }
 
     public void greet(String message) {
-        helloActor.tell(() -> new HelloActor.SayHello(message));
+        helloActor.tell(new HelloActor.SayHello(message));
     }
 }
 ```
@@ -233,7 +233,7 @@ public class UserService {
                 .withId(userId)
                 .get();
 
-        userActor.tell(() -> new UserActor.UpdateProfile(name));
+        userActor.tell(new UserActor.UpdateProfile(name));
     }
 }
 ```

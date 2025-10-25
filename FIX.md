@@ -8,38 +8,6 @@ This document outlines concrete developer experience (DX) improvements identifie
 
 ## Priority 1: Critical Issues (Breaking DX)
 
-### 1.1 Documentation Mismatch - Lambda `tell()` API
-
-**Status:** CRITICAL - README shows API that doesn't exist
-
-**Location:** README.md:168, 236
-
-**Current Documentation (Incorrect):**
-```java
-// README shows this (doesn't work):
-helloActor.tell(() -> new HelloActor.SayHello(message));
-userActor.tell(() -> new UserActor.UpdateProfile(name));
-```
-
-**Actual Working Code:**
-```java
-helloActor.tell(new HelloActor.SayHello(message));
-userActor.tell(new UserActor.UpdateProfile(name));
-```
-
-**Fix Options:**
-1. **Option A:** Update README to match actual API
-2. **Option B:** Implement the lambda API in `SpringActorRef.tell()`
-   ```java
-   public void tell(Supplier<T> messageSupplier) {
-       actorRef.tell(messageSupplier.get());
-   }
-   ```
-
-**Recommendation:** Option A (update docs) - lambda API provides no real benefit
-
----
-
 ### 1.2 Unsafe Reflection in `SpringShardedActorBuilder`
 
 **Status:** CRITICAL - Instantiates Spring beans outside container
