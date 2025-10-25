@@ -12,6 +12,7 @@ import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
  */
 public class ShardedActorRegistry {
     private final Map<EntityTypeKey<?>, ShardedActor<?>> registry = new HashMap<>();
+    private final Map<Class<?>, ShardedActor<?>> classIndex = new HashMap<>();
 
     /**
      * Singleton instance of the registry. This instance can be used when a shared registry is needed.
@@ -19,13 +20,15 @@ public class ShardedActorRegistry {
     public static final ShardedActorRegistry INSTANCE = new ShardedActorRegistry();
 
     /**
-     * Registers a sharded actor with the registry. The actor is indexed by its entity type key.
+     * Registers a sharded actor with the registry. The actor is indexed by both its entity type key
+     * and its class for fast lookups.
      *
      * @param actor The sharded actor to register
      * @param <T> The type of messages that the actor can handle
      */
     public <T> void register(ShardedActor<T> actor) {
         registry.put(actor.typeKey(), actor);
+        classIndex.put(actor.getClass(), actor);
     }
 
     /**
@@ -51,12 +54,7 @@ public class ShardedActorRegistry {
      */
     @SuppressWarnings("unchecked")
     public <T> ShardedActor<T> getByClass(Class<? extends ShardedActor<T>> actorClass) {
-        for (ShardedActor<?> actor : registry.values()) {
-            if (actorClass.isInstance(actor)) {
-                return (ShardedActor<T>) actor;
-            }
-        }
-        return null;
+        return (ShardedActor<T>) classIndex.get(actorClass);
     }
 
     /**
