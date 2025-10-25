@@ -168,11 +168,11 @@ public class SpringActorSystem implements DisposableBean {
      * @param <C> The type of commands that the actor can handle
      * @return A builder for configuring and spawning the actor
      */
-    public <A extends SpringActor<A, C>, C> SpringActorSpawnBuilder<A, C> spawn(Class<A> actorClass) {
+    public <A extends SpringActorWithContext<A, C, ?>, C> SpringActorSpawnBuilder<A, C> spawn(Class<A> actorClass) {
         return new SpringActorSpawnBuilder<>(this, actorClass);
     }
 
-    protected <A extends SpringActor<A, C>, C> CompletionStage<SpringActorRef<C>> spawn(
+    protected <A extends SpringActorWithContext<A, C, ?>, C> CompletionStage<SpringActorRef<C>> spawn(
             Class<A> actorClass,
             SpringActorContext actorContext,
             MailboxSelector mailboxSelector,

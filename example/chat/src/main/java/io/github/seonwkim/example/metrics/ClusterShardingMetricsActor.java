@@ -1,7 +1,7 @@
 package io.github.seonwkim.example.metrics;
 
-import io.github.seonwkim.core.SpringActor;
 import io.github.seonwkim.core.SpringActorContext;
+import io.github.seonwkim.core.SpringActorWithContext;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tags;
 import java.util.Map;
@@ -13,7 +13,11 @@ import org.apache.pekko.cluster.sharding.ShardRegion.CurrentShardRegionState;
 import org.springframework.stereotype.Component;
 
 @Component
-public class ClusterShardingMetricsActor implements SpringActor<ClusterShardingMetricsActor, CurrentShardRegionState> {
+public class ClusterShardingMetricsActor
+        implements SpringActorWithContext<
+                ClusterShardingMetricsActor,
+                CurrentShardRegionState,
+                ClusterShardingMetricsActor.ClusterShardingMetricsExporterContext> {
 
     public static class ClusterShardingMetricsExporterContext implements SpringActorContext {
 
@@ -32,12 +36,8 @@ public class ClusterShardingMetricsActor implements SpringActor<ClusterShardingM
     }
 
     @Override
-    public Behavior<CurrentShardRegionState> create(SpringActorContext actorContext) {
-        if (!(actorContext instanceof ClusterShardingMetricsExporterContext)) {
-            throw new IllegalStateException("Must be ClusterShardingMetricsExporterContext");
-        }
-
-        final ClusterShardingMetricsExporterContext context = (ClusterShardingMetricsExporterContext) actorContext;
+    public Behavior<CurrentShardRegionState> create(ClusterShardingMetricsExporterContext context) {
+        // No casting needed - type-safe!
         return Behaviors.setup(ctx -> Behaviors.receive(CurrentShardRegionState.class)
                 .onMessage(CurrentShardRegionState.class, msg -> handle(msg, context.meterRegistry))
                 .build());

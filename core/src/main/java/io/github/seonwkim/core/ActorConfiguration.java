@@ -62,19 +62,21 @@ public class ActorConfiguration {
     }
 
     /**
-     * Creates an ActorTypeRegistry bean and registers all SpringActor beans in the application
-     * context. For each SpringActor, it registers the create method from the SpringActor interface.
+     * Creates an ActorTypeRegistry bean and registers all SpringActorWithContext beans in the
+     * application context. This includes both SpringActor and SpringActorWithContext implementations.
      *
      * @param context The Spring application context
-     * @return An ActorTypeRegistry with all SpringActor beans registered
+     * @return An ActorTypeRegistry with all SpringActorWithContext beans registered
      */
     @Bean
     @ConditionalOnMissingBean(ActorTypeRegistry.class)
+    @SuppressWarnings({"rawtypes", "unchecked"})
     public ActorTypeRegistry actorTypeRegistry(ApplicationContext context) {
         ActorTypeRegistry registry = new ActorTypeRegistry();
-        Map<String, SpringActor> actorBeans = context.getBeansOfType(SpringActor.class);
+        // SpringActor extends SpringActorWithContext, so this gets both
+        Map<String, SpringActorWithContext> actorBeans = context.getBeansOfType(SpringActorWithContext.class);
 
-        for (SpringActor actorBean : actorBeans.values()) {
+        for (SpringActorWithContext actorBean : actorBeans.values()) {
             registry.register(actorBean.getClass(), actorContext -> {
                 try {
                     return actorBean.create(actorContext);

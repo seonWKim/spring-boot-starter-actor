@@ -20,10 +20,11 @@ public class ActorTypeRegistry {
      *
      * @param actorClass The actor class to register
      * @param factory The factory for creating actor behaviors
-     * @param <A> The type of the actor (must extend SpringActor)
+     * @param <A> The type of the actor (must extend SpringActorWithContext)
      * @param <C> The type of commands the actor handles
+     * @param <CTX> The type of context the actor requires
      */
-    public <A extends SpringActor<A, C>, C> void register(
+    public <A extends SpringActorWithContext<A, C, CTX>, C, CTX extends SpringActorContext> void register(
             Class<A> actorClass, Function<SpringActorContext, Behavior<C>> factory) {
         // Safe cast due to type erasure - the generic types ensure compile-time safety
         @SuppressWarnings("unchecked")
@@ -55,14 +56,15 @@ public class ActorTypeRegistry {
      *
      * @param actorClass The actor class to create a behavior for
      * @param actorContext The context to use for creating the behavior
-     * @param <A> The type of the actor (must extend SpringActor)
+     * @param <A> The type of the actor (must extend SpringActorWithContext)
      * @param <C> The type of commands the actor handles
+     * @param <CTX> The type of context the actor requires
      * @return A behavior for the given actor class and context
      * @throws IllegalArgumentException If no factory is registered for the given actor class
      */
     @SuppressWarnings("unchecked")
-    public <A extends SpringActor<A, C>, C> Behavior<C> createTypedBehavior(
-            Class<A> actorClass, SpringActorContext actorContext) {
+    public <A extends SpringActorWithContext<A, C, CTX>, C, CTX extends SpringActorContext>
+            Behavior<C> createTypedBehavior(Class<A> actorClass, SpringActorContext actorContext) {
         // Safe cast: register method ensures type consistency
         return (Behavior<C>) createBehavior(actorClass, actorContext);
     }

@@ -46,7 +46,8 @@ class SpringActorSystemTest {
 
     @Component
     static class CustomActorContextActor
-            implements SpringActor<CustomActorContextActor, CustomActorContextActor.Command> {
+            implements SpringActorWithContext<
+                    CustomActorContextActor, CustomActorContextActor.Command, CustomActorContext> {
 
         public interface Command {}
 
@@ -59,7 +60,7 @@ class SpringActorSystemTest {
         }
 
         @Override
-        public Behavior<Command> create(SpringActorContext context) {
+        public Behavior<Command> create(CustomActorContext context) {
             return Behaviors.setup(ctx -> Behaviors.receive(Command.class)
                     .onMessage(SayHello.class, msg -> {
                         msg.replyTo.tell(context.actorId());

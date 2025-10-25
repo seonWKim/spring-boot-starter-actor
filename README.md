@@ -151,6 +151,7 @@ public class HelloActor implements SpringActor<HelloActor, HelloActor.Command> {
 ```
 
 Spawn and use the actor in your service using the **lazy reference pattern** (recommended to avoid blocking Spring startup):
+TODO: Fix this because this is too verbose 
 
 ```java
 @Service

@@ -4,9 +4,9 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.github.seonwkim.core.SpringActor;
 import io.github.seonwkim.core.SpringActorContext;
 import io.github.seonwkim.core.SpringActorSystem;
+import io.github.seonwkim.core.SpringActorWithContext;
 import io.github.seonwkim.core.SpringShardedActorRef;
 import io.github.seonwkim.core.serialization.JsonSerializable;
 import java.io.IOException;
@@ -19,7 +19,7 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
 @Component
-public class UserActor implements SpringActor<UserActor, UserActor.Command> {
+public class UserActor implements SpringActorWithContext<UserActor, UserActor.Command, UserActor.UserActorContext> {
 
     public interface Command extends JsonSerializable {}
 
@@ -126,17 +126,13 @@ public class UserActor implements SpringActor<UserActor, UserActor.Command> {
     }
 
     @Override
-    public Behavior<Command> create(SpringActorContext actorContext) {
-        if (!(actorContext instanceof UserActorContext userActorContext)) {
-            throw new IllegalStateException("Must be UserActorContext");
-        }
-
+    public Behavior<Command> create(UserActorContext actorContext) {
         return Behaviors.setup(context -> new UserActorBehavior(
                         context,
-                        userActorContext.actorSystem,
-                        userActorContext.objectMapper,
-                        userActorContext.userId,
-                        userActorContext.session)
+                        actorContext.actorSystem,
+                        actorContext.objectMapper,
+                        actorContext.userId,
+                        actorContext.session)
                 .create());
     }
 

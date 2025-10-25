@@ -24,7 +24,7 @@ public class SpringActorRef<T> {
     private final ActorRef<T> actorRef;
     private final Duration defaultTimeout;
     private final ActorSystem<RootGuardian.Command> actorSystem;
-    private final Class<? extends SpringActor<?, T>> actorClass;
+    private final Class<? extends SpringActorWithContext<?, T, ?>> actorClass;
     private final SpringActorContext actorContext;
 
     /**
@@ -84,7 +84,7 @@ public class SpringActorRef<T> {
             ActorRef<T> actorRef,
             Duration defaultTimeout,
             ActorSystem<RootGuardian.Command> actorSystem,
-            Class<? extends SpringActor<?, T>> actorClass,
+            Class<? extends SpringActorWithContext<?, T, ?>> actorClass,
             SpringActorContext actorContext) {
         this.scheduler = scheduler;
         this.actorRef = actorRef;

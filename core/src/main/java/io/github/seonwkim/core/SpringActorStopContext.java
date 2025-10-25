@@ -13,7 +13,7 @@ import java.time.Duration;
  * @param <C> The type of commands that the actor can handle
  */
 @Deprecated
-public class SpringActorStopContext<A extends SpringActor<A, C>, C> {
+public class SpringActorStopContext<A extends SpringActorWithContext<A, C, ?>, C> {
     private final Class<A> actorClass;
     private final SpringActorContext actorContext;
     private final Duration timeout;
@@ -64,7 +64,7 @@ public class SpringActorStopContext<A extends SpringActor<A, C>, C> {
      * @param <A> The type of the actor
      * @param <C> The type of commands that the actor can handle
      */
-    public static class Builder<A extends SpringActor<A, C>, C> {
+    public static class Builder<A extends SpringActorWithContext<A, C, ?>, C> {
         private final Class<A> actorClass;
         private SpringActorContext actorContext;
         private Duration duration = Duration.ofSeconds(3);

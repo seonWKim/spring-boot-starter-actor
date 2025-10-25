@@ -12,7 +12,7 @@ import org.apache.pekko.actor.typed.MailboxSelector;
  * @param <A> The type of the actor
  * @param <C> The type of commands that the actor can handle
  */
-public class SpringActorSpawnBuilder<A extends SpringActor<A, C>, C> {
+public class SpringActorSpawnBuilder<A extends SpringActorWithContext<A, C, ?>, C> {
     private final SpringActorSystem actorSystem;
     private final Class<A> actorClass;
     private String actorId;
