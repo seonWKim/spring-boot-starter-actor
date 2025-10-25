@@ -93,22 +93,6 @@ public class SpringShardedActorRef<T> {
     }
 
     /**
-     * Queries the sharded actor with a message and expects a response, using the default timeout.
-     * This is a convenience method equivalent to {@code ask(messageFactory, defaultTimeout)}.
-     *
-     * <p>This method is ideal for simple request-response patterns where you don't need
-     * to customize the timeout or error handling. For more control, use {@link #askBuilder(Function)}.
-     *
-     * @param messageFactory A function that creates a message given a reply-to actor reference
-     * @param <REQ> The type of the request message
-     * @param <RES> The type of the response message
-     * @return A CompletionStage that will be completed with the response
-     */
-    public <REQ extends T, RES> CompletionStage<RES> query(Function<ActorRef<RES>, REQ> messageFactory) {
-        return ask(messageFactory, defaultTimeout);
-    }
-
-    /**
      * Creates a fluent builder for asking the sharded actor a question with advanced options.
      * This builder allows setting timeout, timeout handlers, and error handlers.
      *

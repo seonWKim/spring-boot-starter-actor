@@ -223,9 +223,9 @@ actor.tell(new ProcessOrder("order-123"));
 
 #### Request-Response (Ask)
 
-**Simple queries (default 3s timeout):**
+**Default timeout (3 seconds):**
 ```java
-CompletionStage<OrderStatus> status = actor.query(GetOrderStatus::new);
+CompletionStage<OrderStatus> status = actor.ask(GetOrderStatus::new);
 ```
 
 **Custom timeout:**
@@ -246,8 +246,7 @@ CompletionStage<OrderStatus> status = actor
 **Choosing the right pattern:**
 | Pattern | Use When |
 |---------|----------|
-| `query()` | Default choice for request-response |
-| `ask()` | Need custom timeout |
+| `ask()` | Default choice for request-response |
 | `askBuilder()` | Need error handling or fallback values |
 
 ### 5. Local vs Sharded Actors
@@ -485,7 +484,7 @@ class OrderActorTest {
 
         // Test request-response
         CompletionStage<OrderStatus> future =
-            actor.query(OrderActor.GetStatus::new);
+            actor.ask(OrderActor.GetStatus::new);
 
         OrderStatus status = future.toCompletableFuture()
             .get(3, TimeUnit.SECONDS);
@@ -559,7 +558,7 @@ public class GreetingService {
 
     public CompletionStage<String> greet(String name) {
         return getActor().thenCompose(actor ->
-            actor.query(replyTo -> new GreetingActor.Greet(name, replyTo))
+            actor.ask(replyTo -> new GreetingActor.Greet(name, replyTo))
         );
     }
 }
@@ -681,7 +680,7 @@ class OrderService {
 
     public CompletionStage<Order> processOrder(String id) {
         return getActor().thenCompose(actor ->
-            actor.query(replyTo -> new ProcessOrder(id, replyTo))
+            actor.ask(replyTo -> new ProcessOrder(id, replyTo))
         );
     }
 }
