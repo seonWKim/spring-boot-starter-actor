@@ -41,6 +41,6 @@ public class HelloService {
     public Mono<String> hello() {
         // Send a SayHello message to the actor using the query() method
         // query() is a convenience method that uses the default timeout
-        return Mono.fromCompletionStage(helloActor.query(HelloActor.SayHello::new));
+        return Mono.fromCompletionStage(helloActor.ask(HelloActor.SayHello::new));
     }
 }

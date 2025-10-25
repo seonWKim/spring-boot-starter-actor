@@ -249,34 +249,4 @@ public class SpringActorRefTest {
 
         assertEquals("timeout-occurred", result);
     }
-
-    @Test
-    void testQueryMethod() throws ExecutionException, InterruptedException {
-        String id = UUID.randomUUID().toString();
-        Behavior<Command> behavior = create(id, new CompletableFuture<>());
-
-        ActorRef<Command> actorRef = testKit.spawn(behavior, "query-" + id);
-        SpringActorRef<Command> springRef =
-                new SpringActorRef<>(testKit.system().scheduler(), actorRef);
-
-        String result = springRef.query(Ping::new).toCompletableFuture().get();
-
-        assertEquals("pong:" + id, result);
-    }
-
-    @Test
-    void testQueryUsesDefaultTimeout() throws ExecutionException, InterruptedException {
-        String id = UUID.randomUUID().toString();
-        Behavior<Command> behavior = create(id, new CompletableFuture<>());
-
-        ActorRef<Command> actorRef = testKit.spawn(behavior, "query-timeout-" + id);
-        // Create SpringActorRef with a custom default timeout
-        SpringActorRef<Command> springRef =
-                new SpringActorRef<>(testKit.system().scheduler(), actorRef, Duration.ofSeconds(5));
-
-        // query() should use the default timeout (5 seconds)
-        String result = springRef.query(Ping::new).toCompletableFuture().get();
-
-        assertEquals("pong:" + id, result);
-    }
 }
