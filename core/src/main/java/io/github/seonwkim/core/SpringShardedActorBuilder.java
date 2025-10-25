@@ -90,8 +90,9 @@ public class SpringShardedActorBuilder<T> {
         ShardedActorRegistry registry = actorSystem.getShardedActorRegistry();
 
         if (registry == null) {
-            throw new IllegalStateException("ShardedActorRegistry is not available. "
-                    + "Ensure you're using SpringActorSystemBuilder or Spring Boot auto-configuration with @EnableActorSupport.");
+            throw new IllegalStateException(
+                    "ShardedActorRegistry is not available. "
+                            + "Ensure you're using SpringActorSystemBuilder or Spring Boot auto-configuration with @EnableActorSupport.");
         }
 
         ShardedActor<T> actor = registry.getByClass(actorClass);

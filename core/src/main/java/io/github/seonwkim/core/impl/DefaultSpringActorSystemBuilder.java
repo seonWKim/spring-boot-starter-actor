@@ -121,7 +121,8 @@ public class DefaultSpringActorSystemBuilder implements SpringActorSystemBuilder
             initShardedActor(clusterSharding, actor);
         }
 
-        return new SpringActorSystem(actorSystem, cluster, clusterSharding, applicationEventPublisher, shardedActorRegistry);
+        return new SpringActorSystem(
+                actorSystem, cluster, clusterSharding, applicationEventPublisher, shardedActorRegistry);
     }
 
     /**

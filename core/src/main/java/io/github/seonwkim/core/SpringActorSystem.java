@@ -4,10 +4,9 @@ import io.github.seonwkim.core.RootGuardian.Spawned;
 import io.github.seonwkim.core.behavior.ClusterEventBehavior;
 import io.github.seonwkim.core.impl.DefaultRootGuardian;
 import io.github.seonwkim.core.shard.ShardedActor;
+import io.github.seonwkim.core.shard.ShardedActorRegistry;
 import java.time.Duration;
 import java.util.concurrent.CompletionStage;
-
-import io.github.seonwkim.core.shard.ShardedActorRegistry;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.ActorSystem;
 import org.apache.pekko.actor.typed.MailboxSelector;

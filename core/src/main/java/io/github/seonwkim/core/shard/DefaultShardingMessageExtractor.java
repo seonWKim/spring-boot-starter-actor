@@ -9,16 +9,39 @@ import org.apache.pekko.cluster.sharding.typed.ShardingMessageExtractor;
  * cluster. It extracts entity IDs from ShardEnvelope objects and calculates shard IDs based on a
  * hash of the entity ID.
  *
+ * <p>The default number of shards is 100, which provides a good balance for most use cases:
+ * <ul>
+ *   <li>Low traffic (&lt;100 entities): 10-30 shards</li>
+ *   <li>Medium traffic (100-10k entities): 50-100 shards</li>
+ *   <li>High traffic (10k+ entities): 100-300 shards</li>
+ * </ul>
+ *
+ * <p>Note: The number of shards cannot be changed after deployment without data migration.
+ *
  * @param <T> The type of messages that the actor can handle
  */
 public class DefaultShardingMessageExtractor<T> extends ShardingMessageExtractor<ShardEnvelope<T>, T> {
 
+    /**
+     * Default number of shards (100). This value provides a good balance for most use cases,
+     * supporting up to ~10,000 entities with good distribution.
+     */
+    public static final int DEFAULT_SHARDS = 100;
+
     private final int numberOfShards;
+
+    /**
+     * Creates a new DefaultShardingMessageExtractor with the default number of shards (100).
+     */
+    public DefaultShardingMessageExtractor() {
+        this(DEFAULT_SHARDS);
+    }
 
     /**
      * Creates a new DefaultShardingMessageExtractor with the given number of shards.
      *
      * @param numberOfShards The number of shards to distribute entities across
+     * @throws IllegalArgumentException if numberOfShards is not positive
      */
     public DefaultShardingMessageExtractor(int numberOfShards) {
         if (numberOfShards <= 0) {

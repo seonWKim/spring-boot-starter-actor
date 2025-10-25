@@ -209,10 +209,12 @@ public class UserActor implements ShardedActor<UserActor.Command> {
         );
     }
 
-    @Override
-    public ShardingMessageExtractor<ShardEnvelope<Command>, Command> extractor() {
-        return new DefaultShardingMessageExtractor<>(100);
-    }
+    // The extractor() method is optional - defaults to 100 shards
+    // Override only if you need a different number of shards:
+    // @Override
+    // public ShardingMessageExtractor<ShardEnvelope<Command>, Command> extractor() {
+    //     return new DefaultShardingMessageExtractor<>(200);
+    // }
 }
 ```
 

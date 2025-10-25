@@ -3,15 +3,12 @@ package io.github.seonwkim.example;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.github.seonwkim.core.serialization.JsonSerializable;
-import io.github.seonwkim.core.shard.DefaultShardingMessageExtractor;
-import io.github.seonwkim.core.shard.ShardEnvelope;
 import io.github.seonwkim.core.shard.ShardedActor;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
-import org.apache.pekko.cluster.sharding.typed.ShardingMessageExtractor;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityContext;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
 import org.springframework.stereotype.Component;
@@ -131,10 +128,5 @@ public class ChatRoomActor implements ShardedActor<ChatRoomActor.Command> {
      */
     private void broadcastCommand(Map<String, ActorRef<UserActor.Command>> connectedUsers, UserActor.Command command) {
         connectedUsers.values().forEach(userRef -> userRef.tell(command));
-    }
-
-    @Override
-    public ShardingMessageExtractor<ShardEnvelope<Command>, Command> extractor() {
-        return new DefaultShardingMessageExtractor<>(3);
     }
 }
