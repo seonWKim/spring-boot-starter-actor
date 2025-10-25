@@ -61,8 +61,11 @@ public class ActorCounterService implements CounterService {
         var actorRef =
                 springActorSystem.sharded(CounterActor.class).withId(counterId).get();
 
-        // Send a get value message to the actor and get the response
-        CompletionStage<Long> response = actorRef.ask(replyTo -> new CounterActor.GetValue(replyTo), TIMEOUT);
+        // Send a get value message to the actor using the fluent ask builder
+        CompletionStage<Long> response = actorRef
+                .askBuilder(CounterActor.GetValue::new)
+                .withTimeout(TIMEOUT)
+                .execute();
 
         return Mono.fromCompletionStage(response);
     }

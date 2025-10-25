@@ -37,9 +37,11 @@ public class HelloService {
         SpringShardedActorRef<HelloActor.Command> actorRef =
                 springActorSystem.sharded(HelloActor.class).withId(entityId).get();
 
-        // Send the message to the actor and get the response
-        CompletionStage<String> response =
-                actorRef.ask(replyTo -> new HelloActor.SayHello(replyTo, message), Duration.ofSeconds(3));
+        // Send the message to the actor using the fluent ask builder
+        CompletionStage<String> response = actorRef
+                .<HelloActor.SayHello, String>askBuilder(replyTo -> new HelloActor.SayHello(replyTo, message))
+                .withTimeout(Duration.ofSeconds(3))
+                .execute();
 
         // Convert the CompletionStage to a Mono for reactive programming
         return Mono.fromCompletionStage(response);

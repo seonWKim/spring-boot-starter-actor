@@ -39,7 +39,10 @@ public class HelloService {
      * @return A Mono containing the response from the actor
      */
     public Mono<String> hello() {
-        // Send a SayHello message to the actor and convert the response to a Mono
-        return Mono.fromCompletionStage(helloActor.ask(HelloActor.SayHello::new, Duration.ofSeconds(3)));
+        // Send a SayHello message to the actor using the fluent ask builder
+        return Mono.fromCompletionStage(helloActor
+                .askBuilder(HelloActor.SayHello::new)
+                .withTimeout(Duration.ofSeconds(3))
+                .execute());
     }
 }
