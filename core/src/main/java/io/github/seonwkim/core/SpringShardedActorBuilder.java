@@ -22,7 +22,6 @@ import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
 public class SpringShardedActorBuilder<T> {
 
     private final SpringActorSystem actorSystem;
-    private final Class<? extends ShardedActor<T>> actorClass;
     private String entityId;
     private EntityTypeKey<T> typeKey;
 
@@ -34,7 +33,6 @@ public class SpringShardedActorBuilder<T> {
      */
     public SpringShardedActorBuilder(SpringActorSystem actorSystem, Class<? extends ShardedActor<T>> actorClass) {
         this.actorSystem = actorSystem;
-        this.actorClass = actorClass;
         this.typeKey = resolveTypeKey(actorClass);
     }
 
