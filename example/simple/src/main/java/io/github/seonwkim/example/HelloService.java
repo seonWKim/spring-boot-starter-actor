@@ -39,10 +39,8 @@ public class HelloService {
      * @return A Mono containing the response from the actor
      */
     public Mono<String> hello() {
-        // Send a SayHello message to the actor using the fluent ask builder
-        return Mono.fromCompletionStage(helloActor
-                .askBuilder(HelloActor.SayHello::new)
-                .withTimeout(Duration.ofSeconds(3))
-                .execute());
+        // Send a SayHello message to the actor using the query() method
+        // query() is a convenience method that uses the default timeout
+        return Mono.fromCompletionStage(helloActor.query(HelloActor.SayHello::new));
     }
 }

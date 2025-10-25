@@ -38,8 +38,8 @@ public class HelloService {
                 springActorSystem.sharded(HelloActor.class).withId(entityId).get();
 
         // Send the message to the actor using the fluent ask builder
-        CompletionStage<String> response = actorRef
-                .<HelloActor.SayHello, String>askBuilder(replyTo -> new HelloActor.SayHello(replyTo, message))
+        CompletionStage<String> response = actorRef.<HelloActor.SayHello, String>askBuilder(
+                        replyTo -> new HelloActor.SayHello(replyTo, message))
                 .withTimeout(Duration.ofSeconds(3))
                 .execute();
 

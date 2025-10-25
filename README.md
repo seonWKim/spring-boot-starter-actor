@@ -186,13 +186,16 @@ public class MyService {
 
 #### Request-Response Pattern (Ask Pattern)
 
-For request-response communication, use the **fluent ask builder** for advanced timeout handling and error recovery:
+For request-response communication, choose the approach that fits your needs:
 
 ```java
-// Simple ask with default timeout
-CompletionStage<String> response = actor.ask(GetValue::new);
+// Simplest: query() uses the default timeout (3 seconds)
+CompletionStage<String> response = actor.query(GetValue::new);
 
-// Fluent builder with custom timeout and fallback
+// With custom timeout: use ask()
+CompletionStage<String> response = actor.ask(GetValue::new, Duration.ofSeconds(5));
+
+// Advanced: fluent builder with timeout handling and fallback values
 CompletionStage<String> response = actor
     .askBuilder(GetValue::new)
     .withTimeout(Duration.ofSeconds(5))
@@ -200,11 +203,10 @@ CompletionStage<String> response = actor
     .execute();
 ```
 
-**Benefits of the fluent ask builder:**
-- Set custom timeouts per request
-- Provide default values on timeout
-- Clean, readable syntax for complex scenarios
-- Type-safe builder pattern
+**When to use each approach:**
+- **`query()`**: Simple cases with default timeout (recommended for most use cases)
+- **`ask()`**: When you need a custom timeout
+- **`askBuilder()`**: When you need advanced error handling or fallback values
 
 #### Sharded Entities (for Distributed Systems)
 
