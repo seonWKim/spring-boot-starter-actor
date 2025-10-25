@@ -43,6 +43,23 @@ public class ShardedActorRegistry {
     }
 
     /**
+     * Retrieves a sharded actor by its class.
+     *
+     * @param actorClass The class of the sharded actor
+     * @param <T> The type of messages that the actor can handle
+     * @return The sharded actor with the given class, or null if not found
+     */
+    @SuppressWarnings("unchecked")
+    public <T> ShardedActor<T> getByClass(Class<? extends ShardedActor<T>> actorClass) {
+        for (ShardedActor<?> actor : registry.values()) {
+            if (actorClass.isInstance(actor)) {
+                return (ShardedActor<T>) actor;
+            }
+        }
+        return null;
+    }
+
+    /**
      * Returns all registered sharded actors.
      *
      * @return A collection of all registered sharded actors

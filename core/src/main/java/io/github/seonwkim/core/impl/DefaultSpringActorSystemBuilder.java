@@ -108,7 +108,7 @@ public class DefaultSpringActorSystemBuilder implements SpringActorSystemBuilder
         final boolean isClusterMode = Objects.equals(config.getString("pekko.actor.provider"), "cluster");
 
         if (!isClusterMode) {
-            return new SpringActorSystem(actorSystem);
+            return new SpringActorSystem(actorSystem, shardedActorRegistry);
         }
 
         if (applicationEventPublisher == null) {
@@ -121,7 +121,7 @@ public class DefaultSpringActorSystemBuilder implements SpringActorSystemBuilder
             initShardedActor(clusterSharding, actor);
         }
 
-        return new SpringActorSystem(actorSystem, cluster, clusterSharding, applicationEventPublisher);
+        return new SpringActorSystem(actorSystem, cluster, clusterSharding, applicationEventPublisher, shardedActorRegistry);
     }
 
     /**

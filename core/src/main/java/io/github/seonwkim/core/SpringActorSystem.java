@@ -6,6 +6,8 @@ import io.github.seonwkim.core.impl.DefaultRootGuardian;
 import io.github.seonwkim.core.shard.ShardedActor;
 import java.time.Duration;
 import java.util.concurrent.CompletionStage;
+
+import io.github.seonwkim.core.shard.ShardedActorRegistry;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.ActorSystem;
 import org.apache.pekko.actor.typed.MailboxSelector;
@@ -45,6 +47,8 @@ public class SpringActorSystem implements DisposableBean {
 
     @Nullable private final ClusterSharding clusterSharding;
 
+    @Nullable private final ShardedActorRegistry shardedActorRegistry;
+
     /**
      * Creates a new SpringActorSystem in local mode.
      *
@@ -54,6 +58,22 @@ public class SpringActorSystem implements DisposableBean {
         this.actorSystem = actorSystem;
         this.cluster = null;
         this.clusterSharding = null;
+        this.shardedActorRegistry = null;
+    }
+
+    /**
+     * Creates a new SpringActorSystem in local mode with a sharded actor registry.
+     *
+     * @param actorSystem The underlying Pekko ActorSystem
+     * @param shardedActorRegistry The sharded actor registry (for type resolution)
+     */
+    public SpringActorSystem(
+            ActorSystem<RootGuardian.Command> actorSystem,
+            io.github.seonwkim.core.shard.ShardedActorRegistry shardedActorRegistry) {
+        this.actorSystem = actorSystem;
+        this.cluster = null;
+        this.clusterSharding = null;
+        this.shardedActorRegistry = shardedActorRegistry;
     }
 
     /**
@@ -70,9 +90,29 @@ public class SpringActorSystem implements DisposableBean {
             Cluster cluster,
             ClusterSharding clusterSharding,
             ApplicationEventPublisher publisher) {
+        this(actorSystem, cluster, clusterSharding, publisher, null);
+    }
+
+    /**
+     * Creates a new SpringActorSystem in cluster mode with a sharded actor registry. This constructor
+     * also sets up a listener for cluster events and publishes them as Spring application events.
+     *
+     * @param actorSystem The underlying Pekko ActorSystem
+     * @param cluster The Pekko Cluster
+     * @param clusterSharding The Pekko ClusterSharding
+     * @param publisher The Spring ApplicationEventPublisher for publishing cluster events
+     * @param shardedActorRegistry The sharded actor registry (for type resolution)
+     */
+    public SpringActorSystem(
+            ActorSystem<RootGuardian.Command> actorSystem,
+            Cluster cluster,
+            ClusterSharding clusterSharding,
+            ApplicationEventPublisher publisher,
+            io.github.seonwkim.core.shard.ShardedActorRegistry shardedActorRegistry) {
         this.actorSystem = actorSystem;
         this.cluster = cluster;
         this.clusterSharding = clusterSharding;
+        this.shardedActorRegistry = shardedActorRegistry;
 
         ActorRef<ClusterEvent.ClusterDomainEvent> listener = actorSystem.systemActorOf(
                 ClusterEventBehavior.create(publisher), "cluster-event-listener", Props.empty());
@@ -99,6 +139,15 @@ public class SpringActorSystem implements DisposableBean {
 
     @Nullable public ClusterSharding getClusterSharding() {
         return clusterSharding;
+    }
+
+    /**
+     * Returns the ShardedActorRegistry if this SpringActorSystem was created with one.
+     *
+     * @return The ShardedActorRegistry, or null if not available
+     */
+    @Nullable public io.github.seonwkim.core.shard.ShardedActorRegistry getShardedActorRegistry() {
+        return shardedActorRegistry;
     }
 
     /**
