@@ -125,5 +125,106 @@ class SpringActorSystemTest {
                             .join(),
                     actorContext.actorId());
         }
+
+        @Test
+        void existsReturnsFalseForNonExistentActor(ApplicationContext context) {
+            SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
+
+            // Check that an actor that was never spawned doesn't exist
+            boolean exists = actorSystem.exists(TestHelloActor.class, "non-existent-actor");
+
+            assertThat(exists).isFalse();
+        }
+
+        @Test
+        void existsReturnsTrueForSpawnedActor(ApplicationContext context) {
+            SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
+
+            final String actorId = "exists-test-actor";
+
+            // Verify actor doesn't exist before spawning
+            assertThat(actorSystem.exists(TestHelloActor.class, actorId)).isFalse();
+
+            // Spawn the actor
+            actorSystem.spawn(TestHelloActor.class).withId(actorId).startAndWait();
+
+            // Verify actor exists after spawning
+            assertThat(actorSystem.exists(TestHelloActor.class, actorId)).isTrue();
+        }
+
+        @Test
+        void getReturnsNullForNonExistentActor(ApplicationContext context) {
+            SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
+
+            // Get an actor that was never spawned
+            SpringActorRef<TestHelloActor.Command> actorRef =
+                    actorSystem.get(TestHelloActor.class, "non-existent-actor");
+
+            assertThat(actorRef).isNull();
+        }
+
+        @Test
+        void getReturnsValidRefForSpawnedActor(ApplicationContext context) {
+            SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
+
+            final String actorId = "get-test-actor";
+
+            // Spawn the actor
+            SpringActorRef<TestHelloActor.Command> spawnedRef =
+                    actorSystem.spawn(TestHelloActor.class).withId(actorId).startAndWait();
+            assertThat(spawnedRef).isNotNull();
+
+            // Get the actor using get()
+            SpringActorRef<TestHelloActor.Command> retrievedRef =
+                    actorSystem.get(TestHelloActor.class, actorId);
+
+            assertThat(retrievedRef).isNotNull();
+
+            // Verify we can use the retrieved ref to send messages
+            Object response = retrievedRef.ask(SayHello::new).toCompletableFuture().join();
+            assertEquals("hello world!!", response);
+        }
+
+        @Test
+        void existsReturnsFalseAfterActorStopped(ApplicationContext context) throws InterruptedException {
+            SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
+
+            final String actorId = "stop-test-actor";
+
+            // Spawn the actor
+            SpringActorRef<TestHelloActor.Command> actorRef =
+                    actorSystem.spawn(TestHelloActor.class).withId(actorId).startAndWait();
+
+            // Verify actor exists
+            assertThat(actorSystem.exists(TestHelloActor.class, actorId)).isTrue();
+
+            // Stop the actor
+            actorRef.stop();
+
+            // Wait a bit for the actor to stop
+            Thread.sleep(100);
+
+            // Verify actor no longer exists
+            assertThat(actorSystem.exists(TestHelloActor.class, actorId)).isFalse();
+        }
+
+        @Test
+        void getAndExistsWorkWithDifferentActorIds(ApplicationContext context) {
+            SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
+
+            // Spawn multiple actors with different IDs
+            actorSystem.spawn(TestHelloActor.class).withId("actor-1").startAndWait();
+            actorSystem.spawn(TestHelloActor.class).withId("actor-2").startAndWait();
+
+            // Verify each exists independently
+            assertThat(actorSystem.exists(TestHelloActor.class, "actor-1")).isTrue();
+            assertThat(actorSystem.exists(TestHelloActor.class, "actor-2")).isTrue();
+            assertThat(actorSystem.exists(TestHelloActor.class, "actor-3")).isFalse();
+
+            // Verify get works for each
+            assertThat(actorSystem.get(TestHelloActor.class, "actor-1")).isNotNull();
+            assertThat(actorSystem.get(TestHelloActor.class, "actor-2")).isNotNull();
+            assertThat(actorSystem.get(TestHelloActor.class, "actor-3")).isNull();
+        }
     }
 }
