@@ -172,6 +172,84 @@ public class SpringActorSystem implements DisposableBean {
         return new SpringActorSpawnBuilder<>(this, actorClass);
     }
 
+    /**
+     * Checks if an actor with the given class and ID exists in the actor system.
+     *
+     * @param actorClass The class of the actor
+     * @param actorId The ID of the actor
+     * @param <A> The type of the actor
+     * @param <C> The type of commands that the actor can handle
+     * @return true if the actor exists, false otherwise
+     */
+    public <A extends SpringActorWithContext<A, C, ?>, C> boolean exists(Class<A> actorClass, String actorId) {
+        SpringActorContext actorContext = new SpringActorContext() {
+            @Override
+            public String actorId() {
+                return actorId;
+            }
+        };
+
+        try {
+            RootGuardian.ExistsResponse response = AskPattern.ask(
+                            actorSystem,
+                            (ActorRef<RootGuardian.ExistsResponse> replyTo) ->
+                                    new RootGuardian.CheckExists(actorClass, actorContext, replyTo),
+                            Duration.ofMillis(100),
+                            actorSystem.scheduler())
+                    .toCompletableFuture()
+                    .join();
+            return response.exists;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Gets a reference to an existing actor with the given class and ID.
+     *
+     * @param actorClass The class of the actor
+     * @param actorId The ID of the actor
+     * @param <A> The type of the actor
+     * @param <C> The type of commands that the actor can handle
+     * @return A SpringActorRef to the actor if it exists, or null if not found
+     */
+    @Nullable
+    public <A extends SpringActorWithContext<A, C, ?>, C> SpringActorRef<C> get(Class<A> actorClass, String actorId) {
+        SpringActorContext actorContext = new SpringActorContext() {
+            @Override
+            public String actorId() {
+                return actorId;
+            }
+        };
+
+        try {
+            RootGuardian.GetActorResponse<?> response = AskPattern.ask(
+                            actorSystem,
+                            (ActorRef<RootGuardian.GetActorResponse<?>> replyTo) ->
+                                    new RootGuardian.GetActor(actorClass, actorContext, replyTo),
+                            Duration.ofMillis(100),
+                            actorSystem.scheduler())
+                    .toCompletableFuture()
+                    .join();
+
+            if (response.ref == null) {
+                return null;
+            }
+
+            @SuppressWarnings("unchecked")
+            ActorRef<C> typedRef = (ActorRef<C>) response.ref;
+            return new SpringActorRef<>(
+                    actorSystem.scheduler(),
+                    typedRef,
+                    Duration.ofSeconds(3),
+                    actorSystem,
+                    actorClass,
+                    actorContext);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     protected <A extends SpringActorWithContext<A, C, ?>, C> CompletionStage<SpringActorRef<C>> spawn(
             Class<A> actorClass,
             SpringActorContext actorContext,

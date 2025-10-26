@@ -18,12 +18,6 @@ public interface RootGuardian {
     interface Command {}
 
     /**
-     * Interface for results of stopping an actor. Implementations of this interface are returned in
-     * response to a StopActor command.
-     */
-    interface StopResult extends Command {}
-
-    /**
      * Command to spawn a new actor. This command is sent to the root guardian to create a new actor
      * of the specified type with the given ID.
      */
@@ -62,6 +56,66 @@ public interface RootGuardian {
     }
 
     /**
+     * Command to get an existing actor reference by looking it up in the actor context.
+     */
+    class GetActor implements Command {
+        public final Class<?> actorClass;
+        public final SpringActorContext actorContext;
+        public final ActorRef<GetActorResponse<?>> replyTo;
+
+        public GetActor(
+                Class<?> actorClass,
+                SpringActorContext actorContext,
+                ActorRef<GetActorResponse<?>> replyTo) {
+            this.actorClass = actorClass;
+            this.actorContext = actorContext;
+            this.replyTo = replyTo;
+        }
+    }
+
+    /**
+     * Response containing an actor reference if found, or null if not found.
+     *
+     * @param <T> The type of messages that the actor can handle
+     */
+    class GetActorResponse<T> {
+        public final ActorRef<T> ref;
+
+        public GetActorResponse(ActorRef<T> ref) {
+            this.ref = ref;
+        }
+    }
+
+    /**
+     * Command to check if an actor exists by looking it up in the actor context.
+     */
+    class CheckExists implements Command {
+        public final Class<?> actorClass;
+        public final SpringActorContext actorContext;
+        public final ActorRef<ExistsResponse> replyTo;
+
+        public CheckExists(
+                Class<?> actorClass,
+                SpringActorContext actorContext,
+                ActorRef<ExistsResponse> replyTo) {
+            this.actorClass = actorClass;
+            this.actorContext = actorContext;
+            this.replyTo = replyTo;
+        }
+    }
+
+    /**
+     * Response indicating whether an actor exists.
+     */
+    class ExistsResponse {
+        public final boolean exists;
+
+        public ExistsResponse(boolean exists) {
+            this.exists = exists;
+        }
+    }
+
+    /**
      * Response message containing a reference to a spawned actor. This message is sent in response to
      * a SpawnActor command.
      *
@@ -80,18 +134,6 @@ public interface RootGuardian {
             this.ref = ref;
         }
     }
-
-    /**
-     * Response message indicating that an actor was successfully stopped. This message is sent in
-     * response to a StopActor command when the actor is found and stopped.
-     */
-    class Stopped implements StopResult {}
-
-    /**
-     * Response message indicating that an actor was not found and could not be stopped. This message
-     * is sent in response to a StopActor command when the actor is not found.
-     */
-    class ActorNotFound implements StopResult {}
 
     /**
      * Creates the default RootGuardian behavior using the given actor type registry.

@@ -41,13 +41,15 @@ public class DefaultRootGuardian implements RootGuardian {
     }
 
     /**
-     * Creates the behavior for this DefaultRootGuardian. The behavior handles SpawnActor commands.
+     * Creates the behavior for this DefaultRootGuardian. The behavior handles SpawnActor, GetActor, and CheckExists commands.
      *
      * @return A behavior for this DefaultRootGuardian
      */
     private Behavior<Command> behavior() {
         return Behaviors.setup(ctx -> Behaviors.receive(Command.class)
                 .onMessage(SpawnActor.class, this::handleSpawnActor)
+                .onMessage(GetActor.class, this::handleGetActor)
+                .onMessage(CheckExists.class, this::handleCheckExists)
                 .build());
     }
 
@@ -68,6 +70,36 @@ public class DefaultRootGuardian implements RootGuardian {
         ActorRef<?> ref = ctx.spawn(behavior, key, msg.mailboxSelector);
 
         msg.replyTo.tell(new Spawned<>(ref));
+        return Behaviors.same();
+    }
+
+    /**
+     * Handles a GetActor command by looking up a child actor using the actor context.
+     * No caching is used - the lookup is performed directly on the actor context.
+     *
+     * @param msg The GetActor command
+     * @return The same behavior
+     */
+    public Behavior<RootGuardian.Command> handleGetActor(GetActor msg) {
+        String key = buildActorKey(msg.actorClass, msg.actorContext);
+        ActorRef<?> ref = ctx.getChild(key).orElse(null);
+
+        msg.replyTo.tell(new GetActorResponse<>(ref));
+        return Behaviors.same();
+    }
+
+    /**
+     * Handles a CheckExists command by checking if a child actor exists using the actor context.
+     * No caching is used - the lookup is performed directly on the actor context.
+     *
+     * @param msg The CheckExists command
+     * @return The same behavior
+     */
+    public Behavior<RootGuardian.Command> handleCheckExists(CheckExists msg) {
+        String key = buildActorKey(msg.actorClass, msg.actorContext);
+        boolean exists = ctx.getChild(key).isPresent();
+
+        msg.replyTo.tell(new ExistsResponse(exists));
         return Behaviors.same();
     }
 
