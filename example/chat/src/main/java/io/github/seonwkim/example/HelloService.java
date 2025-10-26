@@ -21,10 +21,11 @@ public class HelloService {
         SpringShardedActorRef<HelloActor.Command> actorRef =
                 springActorSystem.sharded(HelloActor.class).withId(entityId).get();
 
-        // Send the message to the actor using the fluent ask builder
+        // Send the message using the fluent ask builder with timeout and error handling
         CompletionStage<String> response = actorRef.<HelloActor.SayHello, String>askBuilder(
                         replyTo -> new HelloActor.SayHello(replyTo, message))
                 .withTimeout(Duration.ofSeconds(3))
+                .onTimeout(() -> "Request timed out for entity: " + entityId)
                 .execute();
 
         // Convert the CompletionStage to a Mono for reactive programming

@@ -8,8 +8,8 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
 /**
- * Service that handles interactions with the HelloActor. It serves as an intermediary between the
- * REST API and the actor system.
+ * Service that handles interactions with sharded HelloActor instances. Demonstrates best practices
+ * for working with sharded actors in a cluster environment.
  */
 @Service
 public class HelloService {
@@ -26,7 +26,10 @@ public class HelloService {
     }
 
     /**
-     * Sends a hello message to an actor entity and returns the response.
+     * Sends a hello message to a sharded actor entity. Best practice for sharded actors: - Get
+     * reference on each request (references are lightweight) - No need to cache (entities are
+     * managed by cluster sharding) - No need to check existence (entities are created on-demand) -
+     * Use askBuilder for timeout and error handling
      *
      * @param message The message to send
      * @param entityId The ID of the entity to send the message to
@@ -37,10 +40,11 @@ public class HelloService {
         SpringShardedActorRef<HelloActor.Command> actorRef =
                 springActorSystem.sharded(HelloActor.class).withId(entityId).get();
 
-        // Send the message to the actor using the fluent ask builder
+        // Send the message using the fluent ask builder with timeout and error handling
         CompletionStage<String> response = actorRef.<HelloActor.SayHello, String>askBuilder(
                         replyTo -> new HelloActor.SayHello(replyTo, message))
                 .withTimeout(Duration.ofSeconds(3))
+                .onTimeout(() -> "Request timed out for entity: " + entityId)
                 .execute();
 
         // Convert the CompletionStage to a Mono for reactive programming

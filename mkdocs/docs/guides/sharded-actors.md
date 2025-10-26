@@ -169,14 +169,24 @@ public class HelloService {
         this.springActorSystem = springActorSystem;
     }
 
+    /**
+     * Best practice for sharded actors:
+     * - Get reference on each request (references are lightweight)
+     * - No need to cache (entities are managed by cluster sharding)
+     * - No need to check existence (entities are created on-demand)
+     * - Use askBuilder for timeout and error handling
+     */
     public Mono<String> hello(String message, String entityId) {
-        // Get a reference to the actor entity
+        // Get a reference to the sharded actor entity
         SpringShardedActorRef<HelloActor.Command> actorRef =
                 springActorSystem.sharded(HelloActor.class).withId(entityId).get();
 
-        // Send the message to the actor and get the response
-        CompletionStage<String> response =
-                actorRef.ask(replyTo -> new HelloActor.SayHello(replyTo, message), Duration.ofSeconds(3));
+        // Send the message using the fluent ask builder with timeout and error handling
+        CompletionStage<String> response = actorRef.askBuilder(
+                        replyTo -> new HelloActor.SayHello(replyTo, message))
+                .withTimeout(Duration.ofSeconds(3))
+                .onTimeout(() -> "Request timed out for entity: " + entityId)
+                .execute();
 
         // Convert the CompletionStage to a Mono for reactive programming
         return Mono.fromCompletionStage(response);
@@ -191,6 +201,40 @@ The `sharded` method creates a builder that:
 3. Returns the actor reference with `get()`
 
 The builder pattern provides a more fluent API and automatically resolves the `EntityTypeKey` from the actor class.
+
+### Key Differences from Regular Actors
+
+**Sharded actors behave differently from regular actors:**
+
+1. **No `start()` needed**: Entities are created automatically when the first message arrives
+2. **Always available**: Entity references are always valid, even if the entity isn't currently running
+3. **Auto-distribution**: Entities are automatically distributed across cluster nodes
+4. **Auto-passivation**: Entities are automatically stopped after idle timeout (configurable)
+5. **Lightweight references**: Getting a reference doesn't create the entity, so no caching needed
+6. **No exists/get checks**: The cluster sharding coordinator manages entity lifecycle
+
+**Example - Regular Actor vs Sharded Actor:**
+
+```java
+// Regular Actor - needs explicit lifecycle management
+CompletionStage<SpringActorRef<Command>> actor = actorSystem
+    .exists(MyActor.class, "actor-1")
+    .thenCompose(exists -> {
+        if (exists) {
+            return actorSystem.get(MyActor.class, "actor-1");
+        } else {
+            return actorSystem.spawn(MyActor.class)
+                .withId("actor-1")
+                .start();
+        }
+    });
+
+// Sharded Actor - just get the reference and use it
+SpringShardedActorRef<Command> actor = actorSystem
+    .sharded(MyShardedActor.class)
+    .withId("actor-1")
+    .get();
+```
 
 ## Using Sharded Actors in a REST Controller
 
@@ -246,6 +290,29 @@ public ShardingMessageExtractor<ShardEnvelope<Command>, Command> extractor() {
 
 The `DefaultShardingMessageExtractor` takes a parameter that specifies the number of shards to use. More shards
 allow for finer-grained distribution but increase overhead.
+
+## Best Practices for Sharded Actors
+
+1. **Don't Cache References**: Get references on each request - they're lightweight and don't create entities
+2. **Use askBuilder**: Always use `askBuilder()` with timeout and error handling for production code
+3. **Design for Idempotency**: Messages may be redelivered during rebalancing, so design handlers to be idempotent
+4. **Choose Entity IDs Wisely**: Use natural business keys for even distribution across shards
+5. **Avoid Cross-Entity Dependencies**: Minimize communication between entities to reduce network overhead
+6. **Monitor Shard Distribution**: Use built-in metrics to ensure entities are evenly distributed
+7. **Configure Passivation**: Tune idle timeout based on your use case to balance memory and startup costs
+8. **Use JSON Serialization**: Prefer `JsonSerializable` over Java serialization for better performance and compatibility
+
+## Comparison: Regular vs Sharded Actors
+
+| Feature | Regular Actor | Sharded Actor |
+|---------|--------------|---------------|
+| Lifecycle | Manual (spawn/start/stop) | Automatic (on-demand) |
+| Distribution | Single node | Distributed across cluster |
+| Reference Creation | Heavy (creates actor) | Lightweight (just reference) |
+| Caching | Required for performance | Not needed |
+| Existence Check | Use `exists()` | Not needed |
+| Serialization | Not required | Required (`JsonSerializable`) |
+| Use Case | Local, long-lived actors | Distributed, large-scale entities |
 
 ## Next Steps
 

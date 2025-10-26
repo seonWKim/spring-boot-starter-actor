@@ -190,14 +190,111 @@ You can gracefully stop actors when they are no longer needed:
 actorRef.stop(); 
 ```
 
+## Actor Lifecycle Operations
+
+### Checking if an Actor Exists
+
+Check if an actor is already running before creating a new instance:
+
+```java
+CompletionStage<Boolean> exists = actorSystem
+    .exists(MyActor.class, "my-actor-1");
+
+// With custom timeout
+exists = actorSystem.exists(MyActor.class, "my-actor-1", Duration.ofMillis(500));
+```
+
+### Getting an Existing Actor Reference
+
+Retrieve a reference to an existing actor without creating a new instance:
+
+```java
+CompletionStage<SpringActorRef<Command>> actorRef = actorSystem
+    .get(MyActor.class, "my-actor-1");
+
+// With custom timeout
+actorRef = actorSystem.get(MyActor.class, "my-actor-1", Duration.ofMillis(500));
+
+// Returns null if actor doesn't exist
+```
+
+### Get or Create Pattern
+
+Use the exists and get methods together to implement a "get or create" pattern:
+
+```java
+actorSystem.exists(MyActor.class, "my-actor-1")
+    .thenCompose(exists -> {
+        if (exists) {
+            return actorSystem.get(MyActor.class, "my-actor-1");
+        } else {
+            return actorSystem.spawn(MyActor.class)
+                .withId("my-actor-1")
+                .start();
+        }
+    });
+```
+
+### Lazy Initialization Pattern
+
+**Best Practice**: Use lazy initialization with caching to avoid blocking application startup and prevent creating multiple instances:
+
+```java
+@Service
+public class HelloService {
+    private final SpringActorSystem actorSystem;
+    private final AtomicReference<CompletionStage<SpringActorRef<HelloActor.Command>>> actorRef =
+            new AtomicReference<>();
+
+    public HelloService(SpringActorSystem actorSystem) {
+        this.actorSystem = actorSystem;
+    }
+
+    /**
+     * Lazily initializes the actor on first use and caches the reference
+     * for subsequent calls. This avoids blocking startup and prevents
+     * creating multiple instances of the same actor.
+     */
+    private CompletionStage<SpringActorRef<HelloActor.Command>> getActor() {
+        return actorRef.updateAndGet(existing -> {
+            if (existing != null) {
+                return existing;
+            }
+
+            // Check if actor exists, get it if it does, otherwise create it
+            return actorSystem
+                    .exists(HelloActor.class, "hello-actor")
+                    .thenCompose(exists -> {
+                        if (exists) {
+                            return actorSystem.get(HelloActor.class, "hello-actor");
+                        } else {
+                            return actorSystem
+                                    .spawn(HelloActor.class)
+                                    .withId("hello-actor")
+                                    .withTimeout(Duration.ofSeconds(3))
+                                    .start();
+                        }
+                    });
+        });
+    }
+
+    public Mono<String> hello() {
+        return Mono.fromCompletionStage(
+                getActor().thenCompose(actor -> actor.ask(HelloActor.SayHello::new)));
+    }
+}
+```
+
 ## Best Practices
 
-1. **Actor Hierarchy**: Organize actors in a hierarchy to manage their lifecycle and supervision.
-2. **Message Immutability**: Ensure that messages sent to actors are immutable to prevent concurrency issues.
-3. **Timeout Handling**: Always specify reasonable timeouts for ask operations and handle timeout exceptions.
-4. **Non-Blocking Operations**: Avoid blocking operations inside actors, as they can lead to thread starvation.
-5. **Actor Naming**: Use meaningful and unique names for actors to make debugging easier.
-6. **Prefer Fluent API**: Use the fluent builder API for spawning actors as it provides better readability and type safety.
+1. **Lazy Initialization**: Use lazy initialization with caching to avoid blocking application startup and prevent creating duplicate actors.
+2. **Get or Create Pattern**: Check if an actor exists before spawning to reuse existing instances.
+3. **Actor Hierarchy**: Organize actors in a hierarchy to manage their lifecycle and supervision.
+4. **Message Immutability**: Ensure that messages sent to actors are immutable to prevent concurrency issues.
+5. **Timeout Handling**: Always specify reasonable timeouts for ask operations and handle timeout exceptions using `askBuilder().onTimeout()`.
+6. **Non-Blocking Operations**: Avoid blocking operations inside actors, as they can lead to thread starvation.
+7. **Actor Naming**: Use meaningful and unique names for actors to make debugging easier.
+8. **Prefer Fluent API**: Use the fluent builder API for spawning actors as it provides better readability and type safety.
 
 ## Next Steps
 

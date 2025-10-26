@@ -12,14 +12,17 @@
 
 ## Why spring-boot-starter-actor?
 
-Spring is the go-to framework in the Java ecosystem, but it lacks native support for actors. The actor model is incredibly useful for building scalable, concurrent systems—think IoT platforms, real-time chat, telecommunications, and more.
+This library brings Pekko actors to Spring Boot. Build scalable, concurrent systems—real-time chat, IoT platforms, event processing—using familiar Spring patterns.
 
-This library bridges that gap, letting you build actor-based systems with the Spring Boot patterns you already know. The goal? Make actor programming accessible to every Spring developer. We'd love to see this become an official Spring project someday.
+**Key Features:**
+- Auto-configuration with Spring Boot
+- Full Spring dependency injection support
+- Local and cluster mode support
+- Built-in metrics and monitoring
 
-**What's the actor model?**
-- **Encapsulation**: Logic and state live inside actors
-- **Message-passing**: Actors communicate by sending messages (no shared state!)
-- **Concurrency**: Built-in isolation makes concurrent programming safer and easier
+<div style="border: 2px solid #ccc; display: inline-block; border-radius: 8px; overflow: hidden; margin: 20px 0;">
+  <img src="mkdocs/docs/chat.gif" alt="Live Demo - Distributed Chat Application"/>
+</div>
 
 ## Installation
 
@@ -92,414 +95,13 @@ public class MyApplication {
 }
 ```
 
-## Core Concepts
+## Quick Start
 
-### The Actor Model in 30 Seconds
+### Basic Setup
 
-- **Actors** are isolated units that process messages one at a time
-- **Messages** are sent asynchronously (no shared state)
-- **Concurrency** is handled automatically—no locks, no race conditions
-- **Location transparency** means actors can run locally or distributed across nodes
-
-### Spring Integration
-
-Actors are Spring `@Component` beans, so you can:
-- Inject Spring dependencies into actors
-- Use Spring configuration (`application.yml`)
-- Leverage Spring Boot auto-configuration
-
-## Best Practices
-
-### 1. When to Use Actors
-
-**Use actors for:**
-- **Stateful workflows** (order processing, game sessions, user sessions)
-- **High concurrency** (processing thousands of concurrent requests)
-- **Event-driven systems** (chat, notifications, real-time updates)
-- **Distributed systems** (microservices that need location transparency)
-
-**Stick with Spring services for:**
-- **Stateless operations** (simple CRUD, request-response APIs)
-- **Database-heavy operations** (complex queries, transactions)
-- **Synchronous workflows** (traditional REST endpoints)
-
-### 2. Actor Lifecycle: Lazy Initialization Pattern
-
-**✅ Recommended: Lazy async initialization**
-```java
-@Service
-public class OrderService {
-    private final SpringActorSystem actorSystem;
-    private final AtomicReference<CompletionStage<SpringActorRef<OrderActor.Command>>> actorRef;
-
-    public OrderService(SpringActorSystem actorSystem) {
-        this.actorSystem = actorSystem;
-        this.actorRef = new AtomicReference<>();
-    }
-
-    private CompletionStage<SpringActorRef<OrderActor.Command>> getActor() {
-        return actorRef.updateAndGet(existing -> {
-            if (existing != null) return existing;
-            return actorSystem
-                .spawn(OrderActor.class)
-                .withId("order-processor")
-                .start();
-        });
-    }
-
-    public CompletionStage<Void> processOrder(Order order) {
-        return getActor().thenAccept(actor ->
-            actor.tell(new OrderActor.ProcessOrder(order))
-        );
-    }
-}
-```
-
-**Why?** Spawning actors during Spring initialization blocks application startup. Lazy async initialization defers spawning until first use without blocking.
-
-**❌ Avoid: Blocking constructor initialization**
-```java
-// This blocks Spring startup!
-public OrderService(SpringActorSystem actorSystem) {
-    this.orderActor = actorSystem.spawn(OrderActor.class)
-        .withId("order-processor")
-        .startAndWait(); // Blocks here
-}
-```
-
-### 3. Message Design
-
-**Make messages immutable and serializable:**
+Add `@EnableActorSupport` and start creating actors:
 
 ```java
-@Component
-public class OrderActor implements SpringActor<OrderActor, OrderActor.Command> {
-
-    public interface Command {}
-
-    // Immutable message with final fields
-    public static class ProcessOrder implements Command {
-        public final String orderId;
-        public final BigDecimal amount;
-
-        public ProcessOrder(String orderId, BigDecimal amount) {
-            this.orderId = orderId;
-            this.amount = amount;
-        }
-    }
-
-    // Request-response message
-    public static class GetOrderStatus implements Command {
-        public final ActorRef<OrderStatus> replyTo;
-
-        public GetOrderStatus(ActorRef<OrderStatus> replyTo) {
-            this.replyTo = replyTo;
-        }
-    }
-}
-```
-
-**For clustered actors, use `JsonSerializable`:**
-```java
-public interface Command extends JsonSerializable {}
-
-public static class ProcessOrder implements Command {
-    public final String orderId;
-
-    @JsonCreator
-    public ProcessOrder(@JsonProperty("orderId") String orderId) {
-        this.orderId = orderId;
-    }
-}
-```
-
-### 4. Communication Patterns
-
-#### Fire-and-Forget (Tell)
-Use when you don't need a response:
-```java
-actor.tell(new ProcessOrder("order-123"));
-```
-
-#### Request-Response (Ask)
-
-**Default timeout (3 seconds):**
-```java
-CompletionStage<OrderStatus> status = actor.ask(GetOrderStatus::new);
-```
-
-**Custom timeout:**
-```java
-CompletionStage<OrderStatus> status =
-    actor.ask(GetOrderStatus::new, Duration.ofSeconds(10));
-```
-
-**Advanced with error handling:**
-```java
-CompletionStage<OrderStatus> status = actor
-    .askBuilder(GetOrderStatus::new)
-    .withTimeout(Duration.ofSeconds(10))
-    .onTimeout(() -> OrderStatus.UNKNOWN)
-    .execute();
-```
-
-**Choosing the right pattern:**
-| Pattern | Use When |
-|---------|----------|
-| `ask()` | Default choice for request-response |
-| `askBuilder()` | Need error handling or fallback values |
-
-### 5. Local vs Sharded Actors
-
-#### Local Actors (Single Instance)
-Use for singletons or when you manage lifecycle:
-
-```java
-@Component
-public class HelloActor implements SpringActor<HelloActor, HelloActor.Command> {
-
-    public interface Command {}
-
-    public static class SayHello implements Command {
-        public final ActorRef<String> replyTo;
-        public SayHello(ActorRef<String> replyTo) {
-            this.replyTo = replyTo;
-        }
-    }
-
-    @Override
-    public Behavior<Command> create(SpringActorContext actorContext) {
-        return Behaviors.receive(Command.class)
-            .onMessage(SayHello.class, msg -> {
-                msg.replyTo.tell("Hello from " + actorContext.actorId());
-                return Behaviors.same();
-            })
-            .build();
-    }
-}
-```
-
-**Usage:**
-```java
-SpringActorRef<Command> actor = actorSystem
-    .spawn(HelloActor.class)
-    .withId("hello-1")
-    .startAndWait();
-```
-
-#### Sharded Actors (Distributed)
-Use for distributed state or when you need automatic scaling:
-
-```java
-@Component
-public class UserSessionActor implements ShardedActor<UserSessionActor.Command> {
-
-    public static final EntityTypeKey<Command> TYPE_KEY =
-        EntityTypeKey.create(Command.class, "UserSession");
-
-    public interface Command extends JsonSerializable {}
-
-    public static class UpdateActivity implements Command {
-        public final String activity;
-
-        @JsonCreator
-        public UpdateActivity(@JsonProperty("activity") String activity) {
-            this.activity = activity;
-        }
-    }
-
-    @Override
-    public EntityTypeKey<Command> typeKey() {
-        return TYPE_KEY;
-    }
-
-    @Override
-    public Behavior<Command> create(EntityContext<Command> ctx) {
-        String userId = ctx.getEntityId();
-        return Behaviors.receive(Command.class)
-            .onMessage(UpdateActivity.class, msg -> {
-                // Handle message
-                return Behaviors.same();
-            })
-            .build();
-    }
-}
-```
-
-**Usage (location transparent):**
-```java
-SpringShardedActorRef<Command> userSession = actorSystem
-    .sharded(UserSessionActor.class)
-    .withId("user-123")  // Automatically routed to correct node
-    .get();
-
-userSession.tell(new UpdateActivity("logged-in"));
-```
-
-**When to use sharded actors:**
-- You have many instances (1000s of user sessions, game rooms, etc.)
-- You need horizontal scaling across cluster nodes
-- You want automatic load balancing
-- You need location transparency (don't care which node handles it)
-
-### 6. State Management
-
-Actors manage state safely through message processing:
-
-```java
-@Override
-public Behavior<Command> create(EntityContext<Command> ctx) {
-    return Behaviors.setup(context ->
-        active(0, new ArrayList<>())  // Initial state
-    );
-}
-
-private Behavior<Command> active(int count, List<String> events) {
-    return Behaviors.receive(Command.class)
-        .onMessage(IncrementCounter.class, msg -> {
-            // Return new behavior with updated state
-            return active(count + 1, events);
-        })
-        .onMessage(AddEvent.class, msg -> {
-            events.add(msg.event);  // Mutable collections are OK
-            return Behaviors.same();
-        })
-        .onMessage(GetState.class, msg -> {
-            msg.replyTo.tell(new State(count, new ArrayList<>(events)));
-            return Behaviors.same();
-        })
-        .build();
-}
-```
-
-**State management rules:**
-- ✅ Primitive types can be immutable (return new behavior)
-- ✅ Collections can be mutable (single-threaded access guaranteed)
-- ✅ Always return `Behaviors.same()` or new behavior
-- ❌ Never share state between actors
-- ❌ Never expose mutable state outside actor
-
-### 7. Error Handling and Supervision
-
-Actors can supervise child actors and handle failures:
-
-```java
-@Override
-public Behavior<Command> create(SpringActorContext actorContext) {
-    return Behaviors.setup(ctx -> {
-        // Spawn supervised child
-        ActorRef<ChildActor.Command> child = ctx.spawn(
-            ChildActor.create(),
-            "child-actor",
-            SupervisorStrategy.restart()  // Restart on failure
-        );
-
-        return Behaviors.receive(Command.class)
-            .onMessage(DelegateToChild.class, msg -> {
-                child.tell(msg.childCommand);
-                return Behaviors.same();
-            })
-            .build();
-    });
-}
-```
-
-### 8. Spring Dependency Injection
-
-Inject Spring beans into actors:
-
-```java
-@Component
-public class OrderActor implements SpringActor<OrderActor, OrderActor.Command> {
-
-    private final OrderRepository orderRepository;
-    private final PaymentService paymentService;
-
-    // Constructor injection works as expected
-    public OrderActor(OrderRepository orderRepository,
-                      PaymentService paymentService) {
-        this.orderRepository = orderRepository;
-        this.paymentService = paymentService;
-    }
-
-    @Override
-    public Behavior<Command> create(SpringActorContext actorContext) {
-        return Behaviors.receive(Command.class)
-            .onMessage(ProcessOrder.class, msg -> {
-                // Use injected dependencies
-                Order order = orderRepository.findById(msg.orderId);
-                paymentService.processPayment(order);
-                return Behaviors.same();
-            })
-            .build();
-    }
-}
-```
-
-### 9. Configuration
-
-Configure actors via `application.yml`:
-
-```yaml
-spring:
-  actor:
-    pekko:
-      actor:
-        provider: local  # or "cluster"
-
-      # Cluster configuration (when provider is "cluster")
-      remote:
-        artery:
-          canonical:
-            hostname: "127.0.0.1"
-            port: 2551
-
-      cluster:
-        seed-nodes:
-          - "pekko://MyActorSystem@127.0.0.1:2551"
-
-        # Sharding configuration
-        sharding:
-          number-of-shards: 100
-```
-
-### 10. Testing
-
-Test actors using Pekko's TestKit:
-
-```java
-@SpringBootTest
-class OrderActorTest {
-
-    @Autowired
-    private SpringActorSystem actorSystem;
-
-    @Test
-    void testOrderProcessing() {
-        // Spawn test actor
-        SpringActorRef<OrderActor.Command> actor = actorSystem
-            .spawn(OrderActor.class)
-            .withId("test-order")
-            .startAndWait();
-
-        // Test request-response
-        CompletionStage<OrderStatus> future =
-            actor.ask(OrderActor.GetStatus::new);
-
-        OrderStatus status = future.toCompletableFuture()
-            .get(3, TimeUnit.SECONDS);
-
-        assertEquals(OrderStatus.PENDING, status);
-    }
-}
-```
-
-## Quick Start Example
-
-Here's a complete example showing a simple actor:
-
-```java
-// 1. Enable actor support
 @SpringBootApplication
 @EnableActorSupport
 public class Application {
@@ -507,22 +109,19 @@ public class Application {
         SpringApplication.run(Application.class, args);
     }
 }
+```
 
-// 2. Define actor
+### Simple Actor Example
+
+Create an actor by implementing `SpringActor`:
+
+```java
 @Component
-public class GreetingActor implements SpringActor<GreetingActor, GreetingActor.Command> {
+public class GreeterActor implements SpringActor<GreeterActor, GreeterActor.Command> {
 
     public interface Command {}
 
-    public static class Greet implements Command {
-        public final String name;
-        public final ActorRef<String> replyTo;
-
-        public Greet(String name, ActorRef<String> replyTo) {
-            this.name = name;
-            this.replyTo = replyTo;
-        }
-    }
+    public record Greet(String name, ActorRef<String> replyTo) implements Command {}
 
     @Override
     public Behavior<Command> create(SpringActorContext actorContext) {
@@ -534,45 +133,358 @@ public class GreetingActor implements SpringActor<GreetingActor, GreetingActor.C
             .build();
     }
 }
+```
 
-// 3. Use actor in service
+### Using Actors in Services
+
+Inject `SpringActorSystem` and use it to interact with actors:
+
+```java
 @Service
-public class GreetingService {
+public class GreeterService {
     private final SpringActorSystem actorSystem;
-    private final AtomicReference<CompletionStage<SpringActorRef<GreetingActor.Command>>> actorRef;
 
-    public GreetingService(SpringActorSystem actorSystem) {
+    public GreeterService(SpringActorSystem actorSystem) {
         this.actorSystem = actorSystem;
-        this.actorRef = new AtomicReference<>();
-    }
-
-    private CompletionStage<SpringActorRef<GreetingActor.Command>> getActor() {
-        return actorRef.updateAndGet(existing -> {
-            if (existing != null) return existing;
-            return actorSystem
-                .spawn(GreetingActor.class)
-                .withId("greeter")
-                .start();
-        });
     }
 
     public CompletionStage<String> greet(String name) {
-        return getActor().thenCompose(actor ->
-            actor.ask(replyTo -> new GreetingActor.Greet(name, replyTo))
-        );
+        return actorSystem.spawn(GreeterActor.class)
+            .withId("greeter")
+            .start()
+            .thenCompose(actor -> actor.ask(
+                replyTo -> new GreeterActor.Greet(name, replyTo)
+            ));
     }
 }
 ```
 
-## Live Examples
+### Actor Lifecycle Operations
 
-### Chat Application Demo
+**Create and Start an Actor:**
+```java
+// Start a new actor instance
+CompletionStage<SpringActorRef<Command>> actorRef = actorSystem
+    .spawn(MyActor.class)
+    .withId("my-actor-1")
+    .withTimeout(Duration.ofSeconds(5))  // Optional: custom timeout
+    .start();
+```
 
-<div style="border: 2px solid #ccc; display: inline-block; border-radius: 8px; overflow: hidden;">
-  <img src="mkdocs/docs/chat.gif" alt="Demo"/>
-</div>
+**Get Reference to Existing Actor:**
+```java
+// Get an existing actor (returns null if not found)
+CompletionStage<SpringActorRef<Command>> actorRef = actorSystem
+    .get(MyActor.class, "my-actor-1");
 
-Run the distributed chat example:
+// With custom timeout
+actorRef = actorSystem.get(MyActor.class, "my-actor-1", Duration.ofMillis(500));
+```
+
+**Check if Actor Exists:**
+```java
+// Check if actor is running
+CompletionStage<Boolean> exists = actorSystem
+    .exists(MyActor.class, "my-actor-1");
+
+// With custom timeout
+exists = actorSystem.exists(MyActor.class, "my-actor-1", Duration.ofMillis(500));
+
+// Example: Get or create pattern
+actorSystem.exists(MyActor.class, "my-actor-1")
+    .thenCompose(exists -> {
+        if (exists) {
+            return actorSystem.get(MyActor.class, "my-actor-1");
+        } else {
+            return actorSystem.spawn(MyActor.class)
+                .withId("my-actor-1")
+                .start();
+        }
+    });
+```
+
+**Stop an Actor:**
+```java
+// Stop a running actor
+actorRef.thenAccept(actor -> actor.stop());
+```
+
+## Core Concepts
+
+### Actor Lifecycle: Lazy Initialization
+
+Use lazy initialization to avoid blocking application startup:
+
+```java
+private final AtomicReference<CompletionStage<SpringActorRef<Command>>> actorRef = new AtomicReference<>();
+
+private CompletionStage<SpringActorRef<Command>> getActor() {
+    return actorRef.updateAndGet(existing ->
+        existing != null ? existing : actorSystem.spawn(MyActor.class).withId("my-actor").start()
+    );
+}
+```
+
+### Communication Patterns
+
+**Fire-and-forget (tell):**
+```java
+actor.tell(new ProcessOrder("order-123"));
+```
+
+**Request-response (ask):**
+```java
+CompletionStage<String> response = actor.ask(GetValue::new);
+CompletionStage<String> response = actor.ask(GetValue::new, Duration.ofSeconds(10));
+```
+
+**With error handling:**
+```java
+CompletionStage<String> response = actor.askBuilder(GetValue::new)
+    .withTimeout(Duration.ofSeconds(5))
+    .onTimeout(() -> "default-value")
+    .execute();
+```
+
+### Sharded Actors (Cluster Mode)
+
+For distributed systems, use sharded actors. Entities are automatically created on-demand and distributed across cluster nodes:
+
+**Define a Sharded Actor:**
+```java
+@Component
+public class UserSessionActor implements ShardedActor<UserSessionActor.Command> {
+
+    public static final EntityTypeKey<Command> TYPE_KEY =
+        EntityTypeKey.create(Command.class, "UserSession");
+
+    public interface Command extends JsonSerializable {}
+
+    public record UpdateActivity(String activity) implements Command {}
+    public record GetActivity(ActorRef<String> replyTo) implements Command {}
+
+    @Override
+    public EntityTypeKey<Command> typeKey() {
+        return TYPE_KEY;
+    }
+
+    @Override
+    public Behavior<Command> create(EntityContext<Command> ctx) {
+        return Behaviors.setup(context -> new UserSessionBehavior(ctx.getEntityId()).create());
+    }
+
+    private static class UserSessionBehavior {
+        private final String userId;
+        private String activity = "idle";
+
+        UserSessionBehavior(String userId) {
+            this.userId = userId;
+        }
+
+        Behavior<Command> create() {
+            return Behaviors.receive(Command.class)
+                .onMessage(UpdateActivity.class, msg -> {
+                    this.activity = msg.activity;
+                    return Behaviors.same();
+                })
+                .onMessage(GetActivity.class, msg -> {
+                    msg.replyTo.tell(activity);
+                    return Behaviors.same();
+                })
+                .build();
+        }
+    }
+}
+```
+
+**Using Sharded Actors:**
+```java
+// Fire-and-forget messaging
+SpringShardedActorRef<Command> actor = actorSystem
+    .sharded(UserSessionActor.class)
+    .withId("user-123")
+    .get();
+
+actor.tell(new UpdateActivity("logged-in"));
+
+// Request-response messaging
+CompletionStage<String> activity = actor.ask(GetActivity::new);
+
+// With timeout and error handling
+CompletionStage<String> activityWithFallback = actor
+    .askBuilder(GetActivity::new)
+    .withTimeout(Duration.ofSeconds(5))
+    .onTimeout(() -> "unknown")
+    .execute();
+```
+
+**Key Differences from Regular Actors:**
+- Sharded actors are created **automatically** when first message arrives (no `start()` needed)
+- Entity references are always valid, even if the entity isn't currently running
+- Entities are automatically distributed across cluster nodes
+- Entities are passivated after idle timeout (configurable)
+- Use `get()` to obtain a reference (not `start()`)
+
+### Spring Dependency Injection
+
+Actors are Spring components, so constructor injection works:
+
+```java
+@Component
+public class OrderActor implements SpringActor<OrderActor, OrderActor.Command> {
+
+    private final OrderRepository orderRepository;
+
+    public OrderActor(OrderRepository orderRepository) {
+        this.orderRepository = orderRepository;
+    }
+
+    @Override
+    public Behavior<Command> create(SpringActorContext actorContext) {
+        return Behaviors.receive(Command.class)
+            .onMessage(ProcessOrder.class, msg -> {
+                Order order = orderRepository.findById(msg.orderId);
+                return Behaviors.same();
+            })
+            .build();
+    }
+}
+```
+
+### Configuration
+
+**Local mode** (default):
+```yaml
+spring:
+  actor:
+    pekko:
+      actor:
+        provider: local
+```
+
+**Cluster mode:**
+```yaml
+spring:
+  actor:
+    pekko:
+      actor:
+        provider: cluster
+      remote:
+        artery:
+          canonical:
+            hostname: "127.0.0.1"
+            port: 2551
+      cluster:
+        seed-nodes:
+          - "pekko://MyActorSystem@127.0.0.1:2551"
+```
+
+## Advanced Features
+
+### Spring Boot 3 Support
+
+This library fully supports both Spring Boot 2.7.x and 3.2.x:
+
+**Spring Boot 2.7.x:**
+```gradle
+implementation 'io.github.seonwkim:spring-boot-starter-actor:0.0.38'
+```
+
+**Spring Boot 3.2.x:**
+```gradle
+implementation 'io.github.seonwkim:spring-boot-starter-actor_3:0.0.38'
+```
+
+The API is identical across both versions. Simply choose the appropriate artifact based on your Spring Boot version. The `_3` suffix indicates Boot 3 compatibility.
+
+### Custom Metrics and Monitoring
+
+Export custom actor metrics to Prometheus for monitoring:
+
+**1. Create a Metrics Exporter Actor:**
+```java
+@Component
+public class CustomMetricsActor implements ShardedActor<CustomMetricsActor.Command> {
+
+    public static final EntityTypeKey<Command> TYPE_KEY =
+        EntityTypeKey.create(Command.class, "CustomMetrics");
+
+    private final MeterRegistry meterRegistry;
+
+    public CustomMetricsActor(MeterRegistry meterRegistry) {
+        this.meterRegistry = meterRegistry;
+    }
+
+    public interface Command extends JsonSerializable {}
+
+    public record RecordMetric(String name, double value, String... tags) implements Command {}
+
+    @Override
+    public Behavior<Command> create(EntityContext<Command> ctx) {
+        return Behaviors.receive(Command.class)
+            .onMessage(RecordMetric.class, msg -> {
+                meterRegistry.counter(msg.name, msg.tags).increment(msg.value);
+                return Behaviors.same();
+            })
+            .build();
+    }
+
+    @Override
+    public EntityTypeKey<Command> typeKey() {
+        return TYPE_KEY;
+    }
+}
+```
+
+**2. Use the Metrics Actor:**
+```java
+@Service
+public class OrderService {
+    private final SpringActorSystem actorSystem;
+
+    public void processOrder(Order order) {
+        // ... process order ...
+
+        // Record custom metric
+        var metricsActor = actorSystem.sharded(CustomMetricsActor.class)
+            .withId("metrics")
+            .get();
+
+        metricsActor.tell(new RecordMetric(
+            "orders.processed",
+            1.0,
+            "status", order.status,
+            "region", order.region
+        ));
+    }
+}
+```
+
+**3. Built-in Cluster Metrics:**
+
+The library provides built-in metrics for cluster sharding:
+
+```yaml
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health,info,prometheus,metrics"
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+```
+
+Available metrics include:
+- `pekko.cluster.members` - Number of cluster members
+- `pekko.cluster.shards` - Number of active shards per region
+- `pekko.cluster.entities` - Number of active entities per shard region
+- Custom actor metrics via MeterRegistry injection
+
+## Running Examples
+
+### Chat Application (Distributed)
 
 ```bash
 # Start 3-node cluster on ports 8080, 8081, 8082
@@ -605,86 +517,6 @@ Access:
 - **Prometheus**: http://localhost:9090
 - **Grafana**: http://localhost:3000 (admin/admin)
 
-## Migration Guide
-
-### From Plain Akka/Pekko
-
-**Before:**
-```java
-ActorSystem<Void> system = ActorSystem.create(...);
-ActorRef<Command> actor = system.systemActorOf(...);
-```
-
-**After:**
-```java
-@EnableActorSupport  // In Spring Boot app
-class MyApp {}
-
-@Service
-class MyService {
-    private final AtomicReference<CompletionStage<SpringActorRef<Command>>> actorRef;
-
-    MyService(SpringActorSystem actorSystem) {
-        this.actorRef = new AtomicReference<>();
-    }
-
-    private CompletionStage<SpringActorRef<Command>> getActor() {
-        return actorRef.updateAndGet(existing -> {
-            if (existing != null) return existing;
-            return actorSystem
-                .spawn(MyActor.class)
-                .withId("my-actor")
-                .start();
-        });
-    }
-}
-```
-
-### From Spring @Async
-
-**Before:**
-```java
-@Service
-class OrderService {
-    @Async
-    public CompletableFuture<Order> processOrder(String id) {
-        // Processing logic
-    }
-}
-```
-
-**After (with actor):**
-```java
-@Component
-class OrderActor implements SpringActor<OrderActor, Command> {
-    // Actor handles concurrency safely
-}
-
-@Service
-class OrderService {
-    private final AtomicReference<CompletionStage<SpringActorRef<Command>>> actorRef;
-
-    OrderService(SpringActorSystem actorSystem) {
-        this.actorRef = new AtomicReference<>();
-    }
-
-    private CompletionStage<SpringActorRef<Command>> getActor() {
-        return actorRef.updateAndGet(existing -> {
-            if (existing != null) return existing;
-            return actorSystem
-                .spawn(OrderActor.class)
-                .withId("order-processor")
-                .start();
-        });
-    }
-
-    public CompletionStage<Order> processOrder(String id) {
-        return getActor().thenCompose(actor ->
-            actor.ask(replyTo -> new ProcessOrder(id, replyTo))
-        );
-    }
-}
-```
 
 ## Contributing
 
