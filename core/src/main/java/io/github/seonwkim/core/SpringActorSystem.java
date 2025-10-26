@@ -287,9 +287,9 @@ public class SpringActorSystem implements DisposableBean {
      */
     public <A extends SpringActorWithContext<A, C, ?>, C> CompletionStage<SpringActorRef<C>> getOrSpawn(
             Class<A> actorClass, String actorId, Duration timeout) {
-        return exists(actorClass, actorId, defaultQueryTimeout).thenCompose(exists -> {
+        return exists(actorClass, actorId, timeout).thenCompose(exists -> {
             if (exists) {
-                return get(actorClass, actorId, defaultQueryTimeout);
+                return get(actorClass, actorId, timeout);
             } else {
                 return actor(actorClass).withId(actorId).withTimeout(timeout).start();
             }
