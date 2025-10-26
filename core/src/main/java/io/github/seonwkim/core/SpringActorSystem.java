@@ -48,6 +48,10 @@ public class SpringActorSystem implements DisposableBean {
 
     @Nullable private final ShardedActorRegistry shardedActorRegistry;
 
+    private final Duration defaultQueryTimeout = Duration.ofMillis(100);
+
+    private final Duration defaultActorRefTimeout = Duration.ofSeconds(3);
+
     /**
      * Creates a new SpringActorSystem in local mode.
      *
@@ -183,7 +187,7 @@ public class SpringActorSystem implements DisposableBean {
      */
     public <A extends SpringActorWithContext<A, C, ?>, C> CompletionStage<Boolean> exists(
             Class<A> actorClass, String actorId) {
-        return exists(actorClass, actorId, Duration.ofMillis(100));
+        return exists(actorClass, actorId, defaultQueryTimeout);
     }
 
     /**
@@ -221,7 +225,7 @@ public class SpringActorSystem implements DisposableBean {
      */
     public <A extends SpringActorWithContext<A, C, ?>, C> CompletionStage<SpringActorRef<C>> get(
             Class<A> actorClass, String actorId) {
-        return get(actorClass, actorId, Duration.ofMillis(100));
+        return get(actorClass, actorId, defaultQueryTimeout);
     }
 
     /**
@@ -254,7 +258,7 @@ public class SpringActorSystem implements DisposableBean {
                     return new SpringActorRef<>(
                             actorSystem.scheduler(),
                             typedRef,
-                            Duration.ofSeconds(3));
+                            defaultActorRefTimeout);
                 })
                 .exceptionally(throwable -> null);
     }
@@ -278,7 +282,7 @@ public class SpringActorSystem implements DisposableBean {
                     return new SpringActorRef<>(
                             actorSystem.scheduler(),
                             typedRef,
-                            Duration.ofSeconds(3));
+                            defaultActorRefTimeout);
                 });
     }
 
