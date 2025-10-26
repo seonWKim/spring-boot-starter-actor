@@ -218,9 +218,24 @@ actorRef = actorSystem.get(MyActor.class, "my-actor-1", Duration.ofMillis(500));
 // Returns null if actor doesn't exist
 ```
 
-### Get or Create Pattern
+### Get or Create Pattern (Recommended)
 
-Use the exists and get methods together to implement a "get or create" pattern:
+**Simple Approach - Use `getOrSpawn`:**
+
+The `getOrSpawn` method automatically handles the exists/get/spawn logic:
+
+```java
+// Recommended: Use getOrSpawn for simplified actor lifecycle management
+CompletionStage<SpringActorRef<Command>> actorRef = actorSystem
+    .getOrSpawn(MyActor.class, "my-actor-1");
+
+// With custom timeout
+actorRef = actorSystem.getOrSpawn(MyActor.class, "my-actor-1", Duration.ofSeconds(5));
+```
+
+**Manual Approach (for advanced cases):**
+
+If you need more control, you can manually check exists and spawn:
 
 ```java
 actorSystem.exists(MyActor.class, "my-actor-1")
@@ -237,7 +252,34 @@ actorSystem.exists(MyActor.class, "my-actor-1")
 
 ### Lazy Initialization Pattern
 
-**Best Practice**: Use lazy initialization with caching to avoid blocking application startup and prevent creating multiple instances:
+**Simple Approach (Recommended for most cases):**
+
+Use `getOrSpawn` directly - it's simple, efficient, and handles the lifecycle automatically:
+
+```java
+@Service
+public class HelloService {
+    private final SpringActorSystem actorSystem;
+
+    public HelloService(SpringActorSystem actorSystem) {
+        this.actorSystem = actorSystem;
+    }
+
+    /**
+     * getOrSpawn handles the exists/get/spawn logic automatically.
+     * This is the recommended approach for most use cases.
+     */
+    public Mono<String> hello() {
+        return Mono.fromCompletionStage(
+                actorSystem.getOrSpawn(HelloActor.class, "hello-actor")
+                        .thenCompose(actor -> actor.ask(HelloActor.SayHello::new)));
+    }
+}
+```
+
+**With Caching (For high-frequency access):**
+
+If the same actor is accessed very frequently, cache the reference to avoid repeated lookups:
 
 ```java
 @Service
@@ -252,30 +294,12 @@ public class HelloService {
 
     /**
      * Lazily initializes the actor on first use and caches the reference
-     * for subsequent calls. This avoids blocking startup and prevents
-     * creating multiple instances of the same actor.
+     * for subsequent calls. Use this for high-frequency access scenarios.
      */
     private CompletionStage<SpringActorRef<HelloActor.Command>> getActor() {
-        return actorRef.updateAndGet(existing -> {
-            if (existing != null) {
-                return existing;
-            }
-
-            // Check if actor exists, get it if it does, otherwise create it
-            return actorSystem
-                    .exists(HelloActor.class, "hello-actor")
-                    .thenCompose(exists -> {
-                        if (exists) {
-                            return actorSystem.get(HelloActor.class, "hello-actor");
-                        } else {
-                            return actorSystem
-                                    .spawn(HelloActor.class)
-                                    .withId("hello-actor")
-                                    .withTimeout(Duration.ofSeconds(3))
-                                    .start();
-                        }
-                    });
-        });
+        return actorRef.updateAndGet(existing ->
+                existing != null ? existing : actorSystem.getOrSpawn(HelloActor.class, "hello-actor")
+        );
     }
 
     public Mono<String> hello() {
@@ -287,8 +311,8 @@ public class HelloService {
 
 ## Best Practices
 
-1. **Lazy Initialization**: Use lazy initialization with caching to avoid blocking application startup and prevent creating duplicate actors.
-2. **Get or Create Pattern**: Check if an actor exists before spawning to reuse existing instances.
+1. **Use getOrSpawn**: For most cases, use `getOrSpawn()` instead of manually checking exists/get/spawn - it's simpler and reduces boilerplate.
+2. **Lazy Initialization**: Use lazy initialization to avoid blocking application startup. For simple cases, use `getOrSpawn` directly; for high-frequency access, add caching with `AtomicReference`.
 3. **Actor Hierarchy**: Organize actors in a hierarchy to manage their lifecycle and supervision.
 4. **Message Immutability**: Ensure that messages sent to actors are immutable to prevent concurrency issues.
 5. **Timeout Handling**: Always specify reasonable timeouts for ask operations and handle timeout exceptions using `askBuilder().onTimeout()`.

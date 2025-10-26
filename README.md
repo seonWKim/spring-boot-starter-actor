@@ -181,6 +181,16 @@ CompletionStage<SpringActorRef<Command>> actorRef = actorSystem
 actorRef = actorSystem.get(MyActor.class, "my-actor-1", Duration.ofMillis(500));
 ```
 
+**Get or Create Actor (Recommended):**
+```java
+// Simplified approach - automatically gets existing or spawns new actor
+CompletionStage<SpringActorRef<Command>> actorRef = actorSystem
+    .getOrSpawn(MyActor.class, "my-actor-1");
+
+// With custom timeout
+actorRef = actorSystem.getOrSpawn(MyActor.class, "my-actor-1", Duration.ofSeconds(5));
+```
+
 **Check if Actor Exists:**
 ```java
 // Check if actor is running
@@ -189,18 +199,6 @@ CompletionStage<Boolean> exists = actorSystem
 
 // With custom timeout
 exists = actorSystem.exists(MyActor.class, "my-actor-1", Duration.ofMillis(500));
-
-// Example: Get or create pattern
-actorSystem.exists(MyActor.class, "my-actor-1")
-    .thenCompose(exists -> {
-        if (exists) {
-            return actorSystem.get(MyActor.class, "my-actor-1");
-        } else {
-            return actorSystem.spawn(MyActor.class)
-                .withId("my-actor-1")
-                .start();
-        }
-    });
 ```
 
 **Stop an Actor:**
@@ -215,12 +213,22 @@ actorRef.thenAccept(actor -> actor.stop());
 
 Use lazy initialization to avoid blocking application startup:
 
+**Simple Approach (Recommended for most cases):**
+```java
+// Use getOrSpawn directly - simple and efficient
+public CompletionStage<String> processMessage(String msg) {
+    return actorSystem.getOrSpawn(MyActor.class, "my-actor")
+        .thenCompose(actor -> actor.ask(replyTo -> new ProcessMessage(msg, replyTo)));
+}
+```
+
+**With Caching (For high-frequency access):**
 ```java
 private final AtomicReference<CompletionStage<SpringActorRef<Command>>> actorRef = new AtomicReference<>();
 
 private CompletionStage<SpringActorRef<Command>> getActor() {
     return actorRef.updateAndGet(existing ->
-        existing != null ? existing : actorSystem.spawn(MyActor.class).withId("my-actor").start()
+        existing != null ? existing : actorSystem.getOrSpawn(MyActor.class, "my-actor")
     );
 }
 ```
@@ -396,91 +404,6 @@ implementation 'io.github.seonwkim:spring-boot-starter-actor_3:0.0.38'
 ```
 
 The API is identical across both versions. Simply choose the appropriate artifact based on your Spring Boot version. The `_3` suffix indicates Boot 3 compatibility.
-
-### Custom Metrics and Monitoring
-
-Export custom actor metrics to Prometheus for monitoring:
-
-**1. Create a Metrics Exporter Actor:**
-```java
-@Component
-public class CustomMetricsActor implements ShardedActor<CustomMetricsActor.Command> {
-
-    public static final EntityTypeKey<Command> TYPE_KEY =
-        EntityTypeKey.create(Command.class, "CustomMetrics");
-
-    private final MeterRegistry meterRegistry;
-
-    public CustomMetricsActor(MeterRegistry meterRegistry) {
-        this.meterRegistry = meterRegistry;
-    }
-
-    public interface Command extends JsonSerializable {}
-
-    public record RecordMetric(String name, double value, String... tags) implements Command {}
-
-    @Override
-    public Behavior<Command> create(EntityContext<Command> ctx) {
-        return Behaviors.receive(Command.class)
-            .onMessage(RecordMetric.class, msg -> {
-                meterRegistry.counter(msg.name, msg.tags).increment(msg.value);
-                return Behaviors.same();
-            })
-            .build();
-    }
-
-    @Override
-    public EntityTypeKey<Command> typeKey() {
-        return TYPE_KEY;
-    }
-}
-```
-
-**2. Use the Metrics Actor:**
-```java
-@Service
-public class OrderService {
-    private final SpringActorSystem actorSystem;
-
-    public void processOrder(Order order) {
-        // ... process order ...
-
-        // Record custom metric
-        var metricsActor = actorSystem.sharded(CustomMetricsActor.class)
-            .withId("metrics")
-            .get();
-
-        metricsActor.tell(new RecordMetric(
-            "orders.processed",
-            1.0,
-            "status", order.status,
-            "region", order.region
-        ));
-    }
-}
-```
-
-**3. Built-in Cluster Metrics:**
-
-The library provides built-in metrics for cluster sharding:
-
-```yaml
-management:
-  endpoints:
-    web:
-      exposure:
-        include: "health,info,prometheus,metrics"
-  metrics:
-    export:
-      prometheus:
-        enabled: true
-```
-
-Available metrics include:
-- `pekko.cluster.members` - Number of cluster members
-- `pekko.cluster.shards` - Number of active shards per region
-- `pekko.cluster.entities` - Number of active entities per shard region
-- Custom actor metrics via MeterRegistry injection
 
 ## Running Examples
 

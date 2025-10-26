@@ -255,12 +255,46 @@ public class SpringActorSystem implements DisposableBean {
 
                     @SuppressWarnings("unchecked")
                     ActorRef<C> typedRef = (ActorRef<C>) response.ref;
-                    return new SpringActorRef<>(
-                            actorSystem.scheduler(),
-                            typedRef,
-                            defaultActorRefTimeout);
+                    return new SpringActorRef<>(actorSystem.scheduler(), typedRef, defaultActorRefTimeout);
                 })
                 .exceptionally(throwable -> null);
+    }
+
+    /**
+     * Gets a reference to an existing actor, or spawns a new one if it doesn't exist.
+     * This is a convenience method that combines exists/get/spawn logic.
+     *
+     * @param actorClass The class of the actor
+     * @param actorId The ID of the actor
+     * @param <A> The type of the actor
+     * @param <C> The type of commands that the actor can handle
+     * @return A CompletionStage that completes with a SpringActorRef (either existing or newly created)
+     */
+    public <A extends SpringActorWithContext<A, C, ?>, C> CompletionStage<SpringActorRef<C>> getOrSpawn(
+            Class<A> actorClass, String actorId) {
+        return getOrSpawn(actorClass, actorId, defaultActorRefTimeout);
+    }
+
+    /**
+     * Gets a reference to an existing actor, or spawns a new one if it doesn't exist with a custom timeout.
+     * This is a convenience method that combines exists/get/spawn logic.
+     *
+     * @param actorClass The class of the actor
+     * @param actorId The ID of the actor
+     * @param timeout The maximum time to wait for the response
+     * @param <A> The type of the actor
+     * @param <C> The type of commands that the actor can handle
+     * @return A CompletionStage that completes with a SpringActorRef (either existing or newly created)
+     */
+    public <A extends SpringActorWithContext<A, C, ?>, C> CompletionStage<SpringActorRef<C>> getOrSpawn(
+            Class<A> actorClass, String actorId, Duration timeout) {
+        return exists(actorClass, actorId, defaultQueryTimeout).thenCompose(exists -> {
+            if (exists) {
+                return get(actorClass, actorId, defaultQueryTimeout);
+            } else {
+                return spawn(actorClass).withId(actorId).withTimeout(timeout).start();
+            }
+        });
     }
 
     protected <A extends SpringActorWithContext<A, C, ?>, C> CompletionStage<SpringActorRef<C>> spawn(
@@ -279,10 +313,7 @@ public class SpringActorSystem implements DisposableBean {
                     // Safe cast: spawn context ensures actor class matches command type C
                     @SuppressWarnings("unchecked")
                     ActorRef<C> typedRef = (ActorRef<C>) spawned.ref;
-                    return new SpringActorRef<>(
-                            actorSystem.scheduler(),
-                            typedRef,
-                            defaultActorRefTimeout);
+                    return new SpringActorRef<>(actorSystem.scheduler(), typedRef, defaultActorRefTimeout);
                 });
     }
 

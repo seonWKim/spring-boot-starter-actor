@@ -1,18 +1,12 @@
 package io.github.seonwkim.example;
 
-import io.github.seonwkim.core.SpringActorRef;
 import io.github.seonwkim.core.SpringActorSystem;
-
-import java.time.Duration;
-import java.util.concurrent.CompletionStage;
-import java.util.concurrent.atomic.AtomicReference;
-
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
 /**
- * Service that handles interactions with the HelloActor. It serves as an intermediary between the
- * REST API and the actor system. Uses lazy initialization to avoid blocking application startup.
+ * Service that handles interactions with the HelloActor. Demonstrates the simplified getOrSpawn
+ * pattern for actor lifecycle management.
  */
 @Service
 public class HelloService {
@@ -22,8 +16,13 @@ public class HelloService {
         this.actorSystem = actorSystem;
     }
 
+    /**
+     * Best practice: Use getOrSpawn for simple cases where you don't need caching.
+     * It automatically handles the exists -> get -> spawn logic in a single call.
+     */
     public Mono<String> hello() {
-        return Mono.fromCompletionStage(actorSystem.get(HelloActor.class, "hello-actor")
+        return Mono.fromCompletionStage(actorSystem
+                .getOrSpawn(HelloActor.class, "hello-actor")
                 .thenCompose(actor -> actor.ask(HelloActor.SayHello::new)));
     }
 }
