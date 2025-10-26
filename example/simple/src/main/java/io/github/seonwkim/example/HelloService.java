@@ -1,9 +1,9 @@
 package io.github.seonwkim.example;
 
-import io.github.seonwkim.core.SpringActorRef;
 import io.github.seonwkim.core.SpringActorSystem;
-import io.github.seonwkim.example.HelloActor.Command;
+
 import java.time.Duration;
+
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
@@ -13,34 +13,17 @@ import reactor.core.publisher.Mono;
  */
 @Service
 public class HelloService {
+    private final SpringActorSystem actorSystem;
 
-    private final SpringActorRef<Command> helloActor;
-
-    /**
-     * Creates a new HelloService with the given actor system. Initializes a single HelloActor
-     * instance that will be used for all requests.
-     *
-     * @param springActorSystem The Spring actor system
-     */
-    public HelloService(SpringActorSystem springActorSystem) {
-        // Spawn a single actor with the name "default" using the simplified API
-        // Note: In a production environment, consider using a non-blocking approach
-        // instead of startAndWait() which blocks the current thread
-        this.helloActor = springActorSystem
-                .spawn(HelloActor.class)
-                .withId("default")
-                .withTimeout(Duration.ofSeconds(3))
-                .startAndWait();
+    public HelloService(SpringActorSystem actorSystem) {
+        this.actorSystem = actorSystem;
     }
 
-    /**
-     * Sends a hello message to the actor and returns the response.
-     *
-     * @return A Mono containing the response from the actor
-     */
     public Mono<String> hello() {
-        // Send a SayHello message to the actor using the query() method
-        // query() is a convenience method that uses the default timeout
-        return Mono.fromCompletionStage(helloActor.ask(HelloActor.SayHello::new));
+        return Mono.fromCompletionStage(actorSystem.spawn(HelloActor.class)
+                .withId("hello-actor")
+                .withTimeout(Duration.ofSeconds(3))
+                .start()
+                .thenCompose(helloActor -> helloActor.ask(HelloActor.SayHello::new)));
     }
 }

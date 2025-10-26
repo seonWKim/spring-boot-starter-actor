@@ -61,22 +61,6 @@ public interface RootGuardian {
         }
     }
 
-    /** Sends a command to stop an existing actor managed by the actor management system. */
-    class StopActor implements Command {
-        public final Class<?> actorClass;
-        /** The context of the actor to be stopped */
-        public final SpringActorContext actorContext;
-        /** The actor reference to reply to with the stop result */
-        public final ActorRef<StopResult> replyTo;
-
-        /** Creates a new StopActor command. */
-        public StopActor(Class<?> actorClass, SpringActorContext actorContext, ActorRef<StopResult> replyTo) {
-            this.actorClass = actorClass;
-            this.actorContext = actorContext;
-            this.replyTo = replyTo;
-        }
-    }
-
     /**
      * Response message containing a reference to a spawned actor. This message is sent in response to
      * a SpawnActor command.

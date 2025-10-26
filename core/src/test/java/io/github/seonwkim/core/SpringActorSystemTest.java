@@ -4,8 +4,6 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.seonwkim.core.RootGuardian.ActorNotFound;
-import io.github.seonwkim.core.RootGuardian.Stopped;
 import io.github.seonwkim.core.SpringActorSystemTest.TestHelloActor.SayHello;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
@@ -105,11 +103,8 @@ class SpringActorSystemTest {
 
             assertEquals(actorRef.ask(SayHello::new).toCompletableFuture().join(), "hello world!!");
 
-            // Stop the actor using the new simplified API
-            assertEquals(actorRef.stop().toCompletableFuture().join().getClass(), Stopped.class);
-
-            // Try to stop the same actor again using actorRef.stop, should return ActorNotFound
-            assertEquals(actorRef.stop().toCompletableFuture().join().getClass(), ActorNotFound.class);
+            // Stop the actor using the simplified API (fire-and-forget)
+            actorRef.stop();
         }
 
         @Test

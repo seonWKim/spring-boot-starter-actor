@@ -3,8 +3,6 @@ package io.github.seonwkim.core.impl;
 import io.github.seonwkim.core.ActorTypeRegistry;
 import io.github.seonwkim.core.RootGuardian;
 import io.github.seonwkim.core.SpringActorContext;
-import java.util.HashMap;
-import java.util.Map;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
@@ -12,8 +10,7 @@ import org.apache.pekko.actor.typed.javadsl.Behaviors;
 
 /**
  * Default implementation of the {@code RootGuardian} interface. This class manages the lifecycle of
- * actors and maintains references to them. It handles commands for spawning actors and returns
- * references to them.
+ * actors by handling spawn commands.
  */
 public class DefaultRootGuardian implements RootGuardian {
 
@@ -31,8 +28,6 @@ public class DefaultRootGuardian implements RootGuardian {
     private final ActorContext<Command> ctx;
     /** The actor type registry */
     private final ActorTypeRegistry registry;
-    /** Map of actor references by key */
-    private final Map<String, ActorRef<?>> actorRefs = new HashMap<>();
 
     /**
      * Creates a new DefaultRootGuardian with the given actor context and actor type registry.
@@ -46,22 +41,22 @@ public class DefaultRootGuardian implements RootGuardian {
     }
 
     /**
-     * Creates the behavior for this DefaultRootGuardian. The behavior handles SpawnActor commands by
-     * creating or retrieving actor references.
+     * Creates the behavior for this DefaultRootGuardian. The behavior handles SpawnActor commands.
      *
      * @return A behavior for this DefaultRootGuardian
      */
     private Behavior<Command> behavior() {
         return Behaviors.setup(ctx -> Behaviors.receive(Command.class)
                 .onMessage(SpawnActor.class, this::handleSpawnActor)
-                .onMessage(StopActor.class, this::handleStopActor)
                 .build());
     }
 
     /**
-     * Handles a SpawnActor command by creating or retrieving an actor reference. If an actor with the
-     * given command class and ID already exists, its reference is returned. Otherwise, a new actor is
-     * created and its reference is returned.
+     * Handles a SpawnActor command by creating a new actor. Each spawn request creates a new actor
+     * instance. Users should implement their own caching if they want to reuse actor references.
+     *
+     * <p>If an actor with the same name already exists, Pekko will throw an InvalidActorNameException.
+     * Users should either use unique IDs or implement caching to reuse actor references.
      *
      * @param msg The SpawnActor command
      * @return The same behavior, as this handler doesn't change the behavior
@@ -69,39 +64,10 @@ public class DefaultRootGuardian implements RootGuardian {
     public Behavior<RootGuardian.Command> handleSpawnActor(SpawnActor msg) {
         String key = buildActorKey(msg.actorClass, msg.actorContext);
 
-        ActorRef<?> ref;
-        if (actorRefs.containsKey(key)) {
-            ref = actorRefs.get(key);
-        } else {
-            Behavior<?> behavior = registry.createBehavior(msg.actorClass, msg.actorContext);
-            ref = ctx.spawn(behavior, key, msg.mailboxSelector);
-            actorRefs.put(key, ref);
-        }
+        Behavior<?> behavior = registry.createBehavior(msg.actorClass, msg.actorContext);
+        ActorRef<?> ref = ctx.spawn(behavior, key, msg.mailboxSelector);
 
         msg.replyTo.tell(new Spawned<>(ref));
-        return Behaviors.same();
-    }
-
-    /**
-     * Handles a StopActor command by stopping an actor and removing its reference. If an actor with
-     * the given command class and ID exists, it is stopped and a Stopped message is sent to the
-     * reply-to actor. Otherwise, an ActorNotFound message is sent.
-     *
-     * @param msg The StopActor command
-     * @return The same behavior, as this handler doesn't change the behavior
-     */
-    public Behavior<RootGuardian.Command> handleStopActor(StopActor msg) {
-        String key = buildActorKey(msg.actorClass, msg.actorContext);
-
-        final ActorRef<?> actorRef = actorRefs.get(key);
-        if (actorRef != null) {
-            actorRefs.remove(key);
-            ctx.stop(actorRef);
-            msg.replyTo.tell(new Stopped());
-        } else {
-            msg.replyTo.tell(new ActorNotFound());
-        }
-
         return Behaviors.same();
     }
 

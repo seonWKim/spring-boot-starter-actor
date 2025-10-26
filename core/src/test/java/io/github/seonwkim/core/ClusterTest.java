@@ -140,7 +140,6 @@ public class ClusterTest {
         SpringActorSystem system3 = context3.getBean(SpringActorSystem.class);
         waitUntilClusterInitialized();
 
-        System.out.println("Cluster is configured 🚀");
         SpringShardedActorRef<TestShardedActor.Command> sharedActor1 =
                 system1.sharded(TestShardedActor.class).withId("shared-entity").get();
         SpringShardedActorRef<TestShardedActor.Command> sharedActor2 =
@@ -152,7 +151,7 @@ public class ClusterTest {
         sharedActor2.tell(new TestShardedActor.Ping("hello shard2"));
         sharedActor3.tell(new TestShardedActor.Ping("hello shard3"));
 
-        Thread.sleep(500); // wait for messages to be processed
+        Thread.sleep(2000); // wait for messages to be processed (increased for cluster message propagation)
         TestShardedActor.State state = sharedActor1
                 .ask(GetState::new, Duration.ofSeconds(10)) // takes long on the CI/CD
                 .toCompletableFuture()

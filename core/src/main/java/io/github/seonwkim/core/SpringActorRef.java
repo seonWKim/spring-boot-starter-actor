@@ -1,11 +1,11 @@
 package io.github.seonwkim.core;
 
-import io.github.seonwkim.core.RootGuardian.StopResult;
-import io.github.seonwkim.core.impl.DefaultRootGuardian;
 import java.time.Duration;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
+
+import org.apache.pekko.actor.PoisonPill;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.ActorSystem;
 import org.apache.pekko.actor.typed.Scheduler;
@@ -164,33 +164,15 @@ public class SpringActorRef<T> {
     }
 
     /**
-     * Stops this actor asynchronously.
+     * Stops this actor by sending a PoisonPill message. This is a convenience method that terminates
+     * the actor gracefully after processing all messages currently in its mailbox.
      *
-     * @return A CompletionStage that completes when the stop command has been processed
-     * @throws IllegalStateException If this SpringActorRef was created without metadata
+     * <p>Note: This method does not wait for the actor to terminate. The actor will stop
+     * asynchronously after processing pending messages.
      */
-    public CompletionStage<StopResult> stop() {
-        return stop(Duration.ofSeconds(3));
-    }
-
-    /**
-     * Stops this actor asynchronously with a custom timeout.
-     *
-     * @param timeout The maximum time to wait for the stop operation to complete
-     * @return A CompletionStage that completes when the stop command has been processed
-     * @throws IllegalStateException If this SpringActorRef was created without metadata
-     */
-    public CompletionStage<StopResult> stop(Duration timeout) {
-        if (actorSystem == null || actorClass == null || actorContext == null) {
-            throw new IllegalStateException("Cannot stop actor: SpringActorRef was created without required metadata. "
-                    + "Use SpringActorSystem.spawn() to create actors with full metadata support.");
-        }
-
-        return AskPattern.ask(
-                actorSystem,
-                (ActorRef<StopResult> replyTo) -> new DefaultRootGuardian.StopActor(actorClass, actorContext, replyTo),
-                timeout,
-                scheduler);
+    @SuppressWarnings("unchecked")
+    public void stop() {
+        actorRef.tell((T) PoisonPill.getInstance());
     }
 
     /**
