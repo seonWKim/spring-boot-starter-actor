@@ -183,13 +183,28 @@ public class SpringActorSystem implements DisposableBean {
      */
     public <A extends SpringActorWithContext<A, C, ?>, C> CompletionStage<Boolean> exists(
             Class<A> actorClass, String actorId) {
+        return exists(actorClass, actorId, Duration.ofMillis(100));
+    }
+
+    /**
+     * Checks if an actor with the given class and ID exists in the actor system with a custom timeout.
+     *
+     * @param actorClass The class of the actor
+     * @param actorId The ID of the actor
+     * @param timeout The maximum time to wait for the response
+     * @param <A> The type of the actor
+     * @param <C> The type of commands that the actor can handle
+     * @return A CompletionStage that completes with true if the actor exists, false otherwise
+     */
+    public <A extends SpringActorWithContext<A, C, ?>, C> CompletionStage<Boolean> exists(
+            Class<A> actorClass, String actorId, Duration timeout) {
         SpringActorContext actorContext = () -> actorId;
 
         return AskPattern.ask(
                         actorSystem,
                         (ActorRef<RootGuardian.ExistsResponse> replyTo) ->
                                 new RootGuardian.CheckExists(actorClass, actorContext, replyTo),
-                        Duration.ofMillis(100),
+                        timeout,
                         actorSystem.scheduler())
                 .thenApply(response -> response.exists)
                 .exceptionally(throwable -> false);
@@ -206,13 +221,28 @@ public class SpringActorSystem implements DisposableBean {
      */
     public <A extends SpringActorWithContext<A, C, ?>, C> CompletionStage<SpringActorRef<C>> get(
             Class<A> actorClass, String actorId) {
+        return get(actorClass, actorId, Duration.ofMillis(100));
+    }
+
+    /**
+     * Gets a reference to an existing actor with the given class and ID with a custom timeout.
+     *
+     * @param actorClass The class of the actor
+     * @param actorId The ID of the actor
+     * @param timeout The maximum time to wait for the response
+     * @param <A> The type of the actor
+     * @param <C> The type of commands that the actor can handle
+     * @return A CompletionStage that completes with a SpringActorRef if found, or null if not found
+     */
+    public <A extends SpringActorWithContext<A, C, ?>, C> CompletionStage<SpringActorRef<C>> get(
+            Class<A> actorClass, String actorId, Duration timeout) {
         SpringActorContext actorContext = () -> actorId;
 
         return AskPattern.ask(
                         actorSystem,
                         (ActorRef<RootGuardian.GetActorResponse<?>> replyTo) ->
                                 new RootGuardian.GetActor(actorClass, actorContext, replyTo),
-                        Duration.ofMillis(100),
+                        timeout,
                         actorSystem.scheduler())
                 .thenApply(response -> {
                     if (response.ref == null) {
