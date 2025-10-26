@@ -6,7 +6,6 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 import org.apache.pekko.actor.PoisonPill;
 import org.apache.pekko.actor.typed.ActorRef;
-import org.apache.pekko.actor.typed.ActorSystem;
 import org.apache.pekko.actor.typed.Scheduler;
 import org.apache.pekko.actor.typed.javadsl.AskPattern;
 import org.apache.pekko.japi.function.Function;
@@ -22,9 +21,6 @@ public class SpringActorRef<T> {
     private final Scheduler scheduler;
     private final ActorRef<T> actorRef;
     private final Duration defaultTimeout;
-    private final ActorSystem<RootGuardian.Command> actorSystem;
-    private final Class<? extends SpringActorWithContext<?, T, ?>> actorClass;
-    private final SpringActorContext actorContext;
 
     /**
      * Creates a builder for SpringActorRef.
@@ -42,55 +38,26 @@ public class SpringActorRef<T> {
     public static final int DEFAULT_TIMEOUT_SECONDS = 3;
 
     /**
-     * Creates a new SpringActorRef with the given scheduler and actor reference. This constructor is
-     * deprecated in favor of the constructor with metadata.
+     * Creates a new SpringActorRef with the given scheduler and actor reference.
      *
      * @param scheduler The scheduler to use for asking messages
      * @param actorRef The actor reference to wrap
-     * @deprecated Use the constructor with actor metadata instead
      */
-    @Deprecated
     public SpringActorRef(Scheduler scheduler, ActorRef<T> actorRef) {
         this(scheduler, actorRef, Duration.ofSeconds(DEFAULT_TIMEOUT_SECONDS));
     }
 
     /**
      * Creates a new SpringActorRef with the given scheduler, actor reference, and default timeout.
-     * This constructor is deprecated in favor of the constructor with metadata.
      *
      * @param scheduler The scheduler to use for asking messages
      * @param actorRef The actor reference to wrap
      * @param defaultTimeout The default timeout for ask operations
-     * @deprecated Use the constructor with actor metadata instead
      */
-    @Deprecated
     public SpringActorRef(Scheduler scheduler, ActorRef<T> actorRef, Duration defaultTimeout) {
-        this(scheduler, actorRef, defaultTimeout, null, null, null);
-    }
-
-    /**
-     * Creates a new SpringActorRef with full metadata for enhanced operations.
-     *
-     * @param scheduler The scheduler to use for asking messages
-     * @param actorRef The actor reference to wrap
-     * @param defaultTimeout The default timeout for ask operations
-     * @param actorSystem The actor system (can be null for legacy compatibility)
-     * @param actorClass The actor class (can be null for legacy compatibility)
-     * @param actorContext The actor context (can be null for legacy compatibility)
-     */
-    public SpringActorRef(
-            Scheduler scheduler,
-            ActorRef<T> actorRef,
-            Duration defaultTimeout,
-            ActorSystem<RootGuardian.Command> actorSystem,
-            Class<? extends SpringActorWithContext<?, T, ?>> actorClass,
-            SpringActorContext actorContext) {
         this.scheduler = scheduler;
         this.actorRef = actorRef;
         this.defaultTimeout = defaultTimeout;
-        this.actorSystem = actorSystem;
-        this.actorClass = actorClass;
-        this.actorContext = actorContext;
     }
 
     /**

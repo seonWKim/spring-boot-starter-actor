@@ -254,10 +254,7 @@ public class SpringActorSystem implements DisposableBean {
                     return new SpringActorRef<>(
                             actorSystem.scheduler(),
                             typedRef,
-                            Duration.ofSeconds(3),
-                            actorSystem,
-                            actorClass,
-                            actorContext);
+                            Duration.ofSeconds(3));
                 })
                 .exceptionally(throwable -> null);
     }
@@ -281,10 +278,7 @@ public class SpringActorSystem implements DisposableBean {
                     return new SpringActorRef<>(
                             actorSystem.scheduler(),
                             typedRef,
-                            Duration.ofSeconds(3),
-                            actorSystem,
-                            actorClass,
-                            actorContext);
+                            Duration.ofSeconds(3));
                 });
     }
 
