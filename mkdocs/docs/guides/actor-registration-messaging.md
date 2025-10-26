@@ -102,7 +102,7 @@ public class HelloService {
     public HelloService(SpringActorSystem springActorSystem) {
         // Spawn an actor using the fluent builder API
         this.helloActor = springActorSystem
-                .spawn(HelloActor.class)
+                .actor(HelloActor.class)
                 .withId("default")
                 .withTimeout(Duration.ofSeconds(3))
                 .startAndWait();
@@ -124,7 +124,7 @@ public class HelloService {
     public HelloService(SpringActorSystem springActorSystem) {
         // Spawn asynchronously
         this.helloActor = springActorSystem
-                .spawn(HelloActor.class)
+                .actor(HelloActor.class)
                 .withId("default")
                 .withTimeout("3s")  // Can use string format
                 .start();
@@ -146,7 +146,7 @@ The fluent API supports additional configuration options:
 
 ```java
 SpringActorRef<HelloActor.Command> actor = springActorSystem
-        .spawn(HelloActor.class)
+        .actor(HelloActor.class)
         .withId("myActor")
         .withTimeout(Duration.ofSeconds(5))
         .withMailbox("bounded")  // or "unbounded", "default"
@@ -243,7 +243,7 @@ actorSystem.exists(MyActor.class, "my-actor-1")
         if (exists) {
             return actorSystem.get(MyActor.class, "my-actor-1");
         } else {
-            return actorSystem.spawn(MyActor.class)
+            return actorSystem.actor(MyActor.class)
                 .withId("my-actor-1")
                 .start();
         }

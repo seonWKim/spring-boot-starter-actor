@@ -149,7 +149,7 @@ public class GreeterService {
     }
 
     public CompletionStage<String> greet(String name) {
-        return actorSystem.spawn(GreeterActor.class)
+        return actorSystem.actor(GreeterActor.class)
             .withId("greeter")
             .start()
             .thenCompose(actor -> actor.ask(
@@ -165,7 +165,7 @@ public class GreeterService {
 ```java
 // Start a new actor instance
 CompletionStage<SpringActorRef<Command>> actorRef = actorSystem
-    .spawn(MyActor.class)
+    .actor(MyActor.class)
     .withId("my-actor-1")
     .withTimeout(Duration.ofSeconds(5))  // Optional: custom timeout
     .start();

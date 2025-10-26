@@ -223,7 +223,7 @@ CompletionStage<SpringActorRef<Command>> actor = actorSystem
         if (exists) {
             return actorSystem.get(MyActor.class, "actor-1");
         } else {
-            return actorSystem.spawn(MyActor.class)
+            return actorSystem.actor(MyActor.class)
                 .withId("actor-1")
                 .start();
         }

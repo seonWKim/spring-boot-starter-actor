@@ -154,25 +154,24 @@ public class SpringActorSystem implements DisposableBean {
     }
 
     /**
-     * Creates a fluent builder for spawning an actor with the given actor class. This provides a more
-     * convenient API for configuring and spawning actors.
+     * Creates a fluent builder for configuring and spawning an actor with the given actor class.
      *
      * <p>Example usage:
      *
      * <pre>
      * SpringActorRef&lt;Command&gt; actor = actorSystem
-     *     .spawn(HelloActor.class)
+     *     .actor(HelloActor.class)
      *     .withId("myActor")
      *     .withTimeout(Duration.ofSeconds(5))
      *     .start();
      * </pre>
      *
-     * @param actorClass The class of the actor to spawn
+     * @param actorClass The class of the actor
      * @param <A> The type of the actor
      * @param <C> The type of commands that the actor can handle
      * @return A builder for configuring and spawning the actor
      */
-    public <A extends SpringActorWithContext<A, C, ?>, C> SpringActorSpawnBuilder<A, C> spawn(Class<A> actorClass) {
+    public <A extends SpringActorWithContext<A, C, ?>, C> SpringActorSpawnBuilder<A, C> actor(Class<A> actorClass) {
         return new SpringActorSpawnBuilder<>(this, actorClass);
     }
 
@@ -292,7 +291,7 @@ public class SpringActorSystem implements DisposableBean {
             if (exists) {
                 return get(actorClass, actorId, defaultQueryTimeout);
             } else {
-                return spawn(actorClass).withId(actorId).withTimeout(timeout).start();
+                return actor(actorClass).withId(actorId).withTimeout(timeout).start();
             }
         });
     }

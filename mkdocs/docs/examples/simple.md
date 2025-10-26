@@ -82,7 +82,7 @@ public class HelloService {
     public HelloService(SpringActorSystem springActorSystem) {
         // Spawn a single actor using the simplified fluent API
         this.helloActor = springActorSystem
-                .spawn(HelloActor.class)
+                .actor(HelloActor.class)
                 .withId("default")
                 .withTimeout(Duration.ofSeconds(3))
                 .startAndWait();

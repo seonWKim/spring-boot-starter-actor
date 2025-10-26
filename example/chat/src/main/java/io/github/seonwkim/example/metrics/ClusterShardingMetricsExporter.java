@@ -26,13 +26,14 @@ public class ClusterShardingMetricsExporter {
     public ClusterShardingMetricsExporter(MeterRegistry meterRegistry, SpringActorSystem springActorSystem) {
         this.springActorSystem = springActorSystem;
         this.metricsActors = springActorSystem
-                .spawn(ClusterShardingMetricsActor.class)
+                .actor(ClusterShardingMetricsActor.class)
                 .withContext(new ClusterShardingMetricsExporterContext("exporter", meterRegistry))
                 .startAndWait();
     }
 
     @PostConstruct
     private void init() {
+        assert springActorSystem.getClusterSharding() != null;
         final ActorRef<ClusterShardingQuery> shardStateActor =
                 springActorSystem.getClusterSharding().shardState();
 

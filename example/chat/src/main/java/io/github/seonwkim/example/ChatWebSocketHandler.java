@@ -42,7 +42,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         UserActor.UserActorContext userActorContext =
                 new UserActor.UserActorContext(actorSystem, objectMapper, userId, session);
 
-        actorSystem.spawn(UserActor.class).withContext(userActorContext).start().thenAccept(userActor -> {
+        actorSystem.actor(UserActor.class).withContext(userActorContext).start().thenAccept(userActor -> {
             userActors.put(userId, userActor);
             userActor.tell(new Connect());
         });

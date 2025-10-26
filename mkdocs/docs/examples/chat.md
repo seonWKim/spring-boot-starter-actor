@@ -425,7 +425,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
                         .actorContext(userActorContext)
                         .build();
 
-        actorSystem.spawn(spawnContext)
+        actorSystem.actor(spawnContext)
                    .thenAccept(userActor -> {
                        userActors.put(userId, userActor);
                        userActor.tell(new Connect());

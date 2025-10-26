@@ -47,7 +47,7 @@ class ActorLifecycleEventInterceptorImplTest {
         long initialCount = ActorSystemMetrics.getInstance().getActiveActors();
 
         actorSystem
-                .spawn(TestActor.Command.class, "test-actor-1", TestActor.create(), Duration.ofSeconds(3))
+                .actor(TestActor.Command.class, "test-actor-1", TestActor.create(), Duration.ofSeconds(3))
                 .toCompletableFuture()
                 .get(3, TimeUnit.SECONDS);
 
@@ -56,7 +56,7 @@ class ActorLifecycleEventInterceptorImplTest {
                 initialCount + 1, afterFirstActor, "Active actors count should increase by 1 after creating an actor");
 
         actorSystem
-                .spawn(TestActor.Command.class, "test-actor-2", TestActor.create(), Duration.ofSeconds(3))
+                .actor(TestActor.Command.class, "test-actor-2", TestActor.create(), Duration.ofSeconds(3))
                 .toCompletableFuture()
                 .get(3, TimeUnit.SECONDS);
 
@@ -76,7 +76,7 @@ class ActorLifecycleEventInterceptorImplTest {
 
         for (int i = 0; i < 3; i++) {
             ActorRef<TestActor.Command> actor = actorSystem
-                    .spawn(TestActor.Command.class, "multi-test-actor-" + i, TestActor.create(), Duration.ofSeconds(3))
+                    .actor(TestActor.Command.class, "multi-test-actor-" + i, TestActor.create(), Duration.ofSeconds(3))
                     .toCompletableFuture()
                     .get(3, TimeUnit.SECONDS);
             actors.add(actor);
@@ -93,7 +93,7 @@ class ActorLifecycleEventInterceptorImplTest {
         long initialCount = ActorSystemMetrics.getInstance().getActiveActors();
 
         ActorRef<TestActor.Command> actor = actorSystem
-                .spawn(TestActor.Command.class, "test-actor-terminate", TestActor.create(), Duration.ofSeconds(3))
+                .actor(TestActor.Command.class, "test-actor-terminate", TestActor.create(), Duration.ofSeconds(3))
                 .toCompletableFuture()
                 .get(3, TimeUnit.SECONDS);
 
@@ -120,7 +120,7 @@ class ActorLifecycleEventInterceptorImplTest {
 
         for (int i = 0; i < 5; i++) {
             ActorRef<TestActor.Command> actor = actorSystem
-                    .spawn(TestActor.Command.class, "test-actor-mixed-" + i, TestActor.create(), Duration.ofSeconds(3))
+                    .actor(TestActor.Command.class, "test-actor-mixed-" + i, TestActor.create(), Duration.ofSeconds(3))
                     .toCompletableFuture()
                     .get(3, TimeUnit.SECONDS);
             actors.add(actor);
@@ -142,7 +142,7 @@ class ActorLifecycleEventInterceptorImplTest {
                 "Active actors count should decrease by 2 after terminating 2 actors");
 
         actorSystem
-                .spawn(TestActor.Command.class, "test-actor-new", TestActor.create(), Duration.ofSeconds(3))
+                .actor(TestActor.Command.class, "test-actor-new", TestActor.create(), Duration.ofSeconds(3))
                 .toCompletableFuture()
                 .get(3, TimeUnit.SECONDS);
 
