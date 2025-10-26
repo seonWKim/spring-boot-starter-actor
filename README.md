@@ -44,10 +44,10 @@ dependencyManagement {
 }
 
 // Spring Boot 2.7.x
-implementation 'io.github.seonwkim:spring-boot-starter-actor:0.0.38'
+implementation 'io.github.seonwkim:spring-boot-starter-actor:0.1.0'
 
 // Spring Boot 3.2.x
-implementation 'io.github.seonwkim:spring-boot-starter-actor_3:0.0.38'
+implementation 'io.github.seonwkim:spring-boot-starter-actor_3:0.1.0'
 ```
 
 **Maven:**
@@ -68,14 +68,14 @@ implementation 'io.github.seonwkim:spring-boot-starter-actor_3:0.0.38'
 <dependency>
   <groupId>io.github.seonwkim</groupId>
   <artifactId>spring-boot-starter-actor</artifactId>
-  <version>0.0.38</version>
+  <version>0.1.0</version>
 </dependency>
 
 <!-- Spring Boot 3.2.x -->
 <dependency>
   <groupId>io.github.seonwkim</groupId>
   <artifactId>spring-boot-starter-actor_3</artifactId>
-  <version>0.0.38</version>
+  <version>0.1.0</version>
 </dependency>
 ```
 
@@ -395,12 +395,12 @@ This library fully supports both Spring Boot 2.7.x and 3.2.x:
 
 **Spring Boot 2.7.x:**
 ```gradle
-implementation 'io.github.seonwkim:spring-boot-starter-actor:0.0.38'
+implementation 'io.github.seonwkim:spring-boot-starter-actor:0.1.0'
 ```
 
 **Spring Boot 3.2.x:**
 ```gradle
-implementation 'io.github.seonwkim:spring-boot-starter-actor_3:0.0.38'
+implementation 'io.github.seonwkim:spring-boot-starter-actor_3:0.1.0'
 ```
 
 The API is identical across both versions. Simply choose the appropriate artifact based on your Spring Boot version. The `_3` suffix indicates Boot 3 compatibility.

@@ -20,11 +20,11 @@ dependencyManagement {
     }
 }
 
-// Gradle(spring boot 2.7.x) 
-implementation 'io.github.seonwkim:spring-boot-starter-actor:0.0.38'
+// Gradle(spring boot 2.7.x)
+implementation 'io.github.seonwkim:spring-boot-starter-actor:0.1.0'
 
-// Gradle(spring boot 3.2.x) 
-implementation 'io.github.seonwkim:spring-boot-starter-actor_3:0.0.38'
+// Gradle(spring boot 3.2.x)
+implementation 'io.github.seonwkim:spring-boot-starter-actor_3:0.1.0'
 ```
 
 ```xml
@@ -45,14 +45,14 @@ implementation 'io.github.seonwkim:spring-boot-starter-actor_3:0.0.38'
 <dependency>
   <groupId>io.github.seonwkim</groupId>
   <artifactId>spring-boot-starter-actor</artifactId>
-  <version>0.0.38</version>
+  <version>0.1.0</version>
 </dependency>
 
 <!-- Maven(spring boot 3.2.x) -->
 <dependency>
   <groupId>io.github.seonwkim</groupId>
   <artifactId>spring-boot-starter-actor_3</artifactId>
-  <version>0.0.38</version>
+  <version>0.1.0</version>
 </dependency>
 ```
 
