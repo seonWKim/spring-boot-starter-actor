@@ -131,7 +131,9 @@ class SpringActorSystemTest {
             SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
 
             // Check that an actor that was never spawned doesn't exist
-            boolean exists = actorSystem.exists(TestHelloActor.class, "non-existent-actor");
+            boolean exists = actorSystem.exists(TestHelloActor.class, "non-existent-actor")
+                    .toCompletableFuture()
+                    .join();
 
             assertThat(exists).isFalse();
         }
@@ -143,13 +145,15 @@ class SpringActorSystemTest {
             final String actorId = "exists-test-actor";
 
             // Verify actor doesn't exist before spawning
-            assertThat(actorSystem.exists(TestHelloActor.class, actorId)).isFalse();
+            assertThat(actorSystem.exists(TestHelloActor.class, actorId).toCompletableFuture().join())
+                    .isFalse();
 
             // Spawn the actor
             actorSystem.spawn(TestHelloActor.class).withId(actorId).startAndWait();
 
             // Verify actor exists after spawning
-            assertThat(actorSystem.exists(TestHelloActor.class, actorId)).isTrue();
+            assertThat(actorSystem.exists(TestHelloActor.class, actorId).toCompletableFuture().join())
+                    .isTrue();
         }
 
         @Test
@@ -157,8 +161,10 @@ class SpringActorSystemTest {
             SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
 
             // Get an actor that was never spawned
-            SpringActorRef<TestHelloActor.Command> actorRef =
-                    actorSystem.get(TestHelloActor.class, "non-existent-actor");
+            SpringActorRef<TestHelloActor.Command> actorRef = actorSystem
+                    .get(TestHelloActor.class, "non-existent-actor")
+                    .toCompletableFuture()
+                    .join();
 
             assertThat(actorRef).isNull();
         }
@@ -175,8 +181,10 @@ class SpringActorSystemTest {
             assertThat(spawnedRef).isNotNull();
 
             // Get the actor using get()
-            SpringActorRef<TestHelloActor.Command> retrievedRef =
-                    actorSystem.get(TestHelloActor.class, actorId);
+            SpringActorRef<TestHelloActor.Command> retrievedRef = actorSystem
+                    .get(TestHelloActor.class, actorId)
+                    .toCompletableFuture()
+                    .join();
 
             assertThat(retrievedRef).isNotNull();
 
@@ -196,7 +204,8 @@ class SpringActorSystemTest {
                     actorSystem.spawn(TestHelloActor.class).withId(actorId).startAndWait();
 
             // Verify actor exists
-            assertThat(actorSystem.exists(TestHelloActor.class, actorId)).isTrue();
+            assertThat(actorSystem.exists(TestHelloActor.class, actorId).toCompletableFuture().join())
+                    .isTrue();
 
             // Stop the actor
             actorRef.stop();
@@ -205,7 +214,8 @@ class SpringActorSystemTest {
             Thread.sleep(100);
 
             // Verify actor no longer exists
-            assertThat(actorSystem.exists(TestHelloActor.class, actorId)).isFalse();
+            assertThat(actorSystem.exists(TestHelloActor.class, actorId).toCompletableFuture().join())
+                    .isFalse();
         }
 
         @Test
@@ -217,14 +227,20 @@ class SpringActorSystemTest {
             actorSystem.spawn(TestHelloActor.class).withId("actor-2").startAndWait();
 
             // Verify each exists independently
-            assertThat(actorSystem.exists(TestHelloActor.class, "actor-1")).isTrue();
-            assertThat(actorSystem.exists(TestHelloActor.class, "actor-2")).isTrue();
-            assertThat(actorSystem.exists(TestHelloActor.class, "actor-3")).isFalse();
+            assertThat(actorSystem.exists(TestHelloActor.class, "actor-1").toCompletableFuture().join())
+                    .isTrue();
+            assertThat(actorSystem.exists(TestHelloActor.class, "actor-2").toCompletableFuture().join())
+                    .isTrue();
+            assertThat(actorSystem.exists(TestHelloActor.class, "actor-3").toCompletableFuture().join())
+                    .isFalse();
 
             // Verify get works for each
-            assertThat(actorSystem.get(TestHelloActor.class, "actor-1")).isNotNull();
-            assertThat(actorSystem.get(TestHelloActor.class, "actor-2")).isNotNull();
-            assertThat(actorSystem.get(TestHelloActor.class, "actor-3")).isNull();
+            assertThat(actorSystem.get(TestHelloActor.class, "actor-1").toCompletableFuture().join())
+                    .isNotNull();
+            assertThat(actorSystem.get(TestHelloActor.class, "actor-2").toCompletableFuture().join())
+                    .isNotNull();
+            assertThat(actorSystem.get(TestHelloActor.class, "actor-3").toCompletableFuture().join())
+                    .isNull();
         }
     }
 }

@@ -179,29 +179,20 @@ public class SpringActorSystem implements DisposableBean {
      * @param actorId The ID of the actor
      * @param <A> The type of the actor
      * @param <C> The type of commands that the actor can handle
-     * @return true if the actor exists, false otherwise
+     * @return A CompletionStage that completes with true if the actor exists, false otherwise
      */
-    public <A extends SpringActorWithContext<A, C, ?>, C> boolean exists(Class<A> actorClass, String actorId) {
-        SpringActorContext actorContext = new SpringActorContext() {
-            @Override
-            public String actorId() {
-                return actorId;
-            }
-        };
+    public <A extends SpringActorWithContext<A, C, ?>, C> CompletionStage<Boolean> exists(
+            Class<A> actorClass, String actorId) {
+        SpringActorContext actorContext = () -> actorId;
 
-        try {
-            RootGuardian.ExistsResponse response = AskPattern.ask(
-                            actorSystem,
-                            (ActorRef<RootGuardian.ExistsResponse> replyTo) ->
-                                    new RootGuardian.CheckExists(actorClass, actorContext, replyTo),
-                            Duration.ofMillis(100),
-                            actorSystem.scheduler())
-                    .toCompletableFuture()
-                    .join();
-            return response.exists;
-        } catch (Exception e) {
-            return false;
-        }
+        return AskPattern.ask(
+                        actorSystem,
+                        (ActorRef<RootGuardian.ExistsResponse> replyTo) ->
+                                new RootGuardian.CheckExists(actorClass, actorContext, replyTo),
+                        Duration.ofMillis(100),
+                        actorSystem.scheduler())
+                .thenApply(response -> response.exists)
+                .exceptionally(throwable -> false);
     }
 
     /**
@@ -211,43 +202,34 @@ public class SpringActorSystem implements DisposableBean {
      * @param actorId The ID of the actor
      * @param <A> The type of the actor
      * @param <C> The type of commands that the actor can handle
-     * @return A SpringActorRef to the actor if it exists, or null if not found
+     * @return A CompletionStage that completes with a SpringActorRef if found, or null if not found
      */
-    @Nullable
-    public <A extends SpringActorWithContext<A, C, ?>, C> SpringActorRef<C> get(Class<A> actorClass, String actorId) {
-        SpringActorContext actorContext = new SpringActorContext() {
-            @Override
-            public String actorId() {
-                return actorId;
-            }
-        };
+    public <A extends SpringActorWithContext<A, C, ?>, C> CompletionStage<SpringActorRef<C>> get(
+            Class<A> actorClass, String actorId) {
+        SpringActorContext actorContext = () -> actorId;
 
-        try {
-            RootGuardian.GetActorResponse<?> response = AskPattern.ask(
+        return AskPattern.ask(
+                        actorSystem,
+                        (ActorRef<RootGuardian.GetActorResponse<?>> replyTo) ->
+                                new RootGuardian.GetActor(actorClass, actorContext, replyTo),
+                        Duration.ofMillis(100),
+                        actorSystem.scheduler())
+                .thenApply(response -> {
+                    if (response.ref == null) {
+                        return null;
+                    }
+
+                    @SuppressWarnings("unchecked")
+                    ActorRef<C> typedRef = (ActorRef<C>) response.ref;
+                    return new SpringActorRef<>(
+                            actorSystem.scheduler(),
+                            typedRef,
+                            Duration.ofSeconds(3),
                             actorSystem,
-                            (ActorRef<RootGuardian.GetActorResponse<?>> replyTo) ->
-                                    new RootGuardian.GetActor(actorClass, actorContext, replyTo),
-                            Duration.ofMillis(100),
-                            actorSystem.scheduler())
-                    .toCompletableFuture()
-                    .join();
-
-            if (response.ref == null) {
-                return null;
-            }
-
-            @SuppressWarnings("unchecked")
-            ActorRef<C> typedRef = (ActorRef<C>) response.ref;
-            return new SpringActorRef<>(
-                    actorSystem.scheduler(),
-                    typedRef,
-                    Duration.ofSeconds(3),
-                    actorSystem,
-                    actorClass,
-                    actorContext);
-        } catch (Exception e) {
-            return null;
-        }
+                            actorClass,
+                            actorContext);
+                })
+                .exceptionally(throwable -> null);
     }
 
     protected <A extends SpringActorWithContext<A, C, ?>, C> CompletionStage<SpringActorRef<C>> spawn(
