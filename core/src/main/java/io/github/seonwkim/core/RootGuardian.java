@@ -63,10 +63,7 @@ public interface RootGuardian {
         public final SpringActorContext actorContext;
         public final ActorRef<GetActorResponse<?>> replyTo;
 
-        public GetActor(
-                Class<?> actorClass,
-                SpringActorContext actorContext,
-                ActorRef<GetActorResponse<?>> replyTo) {
+        public GetActor(Class<?> actorClass, SpringActorContext actorContext, ActorRef<GetActorResponse<?>> replyTo) {
             this.actorClass = actorClass;
             this.actorContext = actorContext;
             this.replyTo = replyTo;
@@ -94,10 +91,7 @@ public interface RootGuardian {
         public final SpringActorContext actorContext;
         public final ActorRef<ExistsResponse> replyTo;
 
-        public CheckExists(
-                Class<?> actorClass,
-                SpringActorContext actorContext,
-                ActorRef<ExistsResponse> replyTo) {
+        public CheckExists(Class<?> actorClass, SpringActorContext actorContext, ActorRef<ExistsResponse> replyTo) {
             this.actorClass = actorClass;
             this.actorContext = actorContext;
             this.replyTo = replyTo;

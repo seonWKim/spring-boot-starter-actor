@@ -1,9 +1,7 @@
 package io.github.seonwkim.example;
 
 import io.github.seonwkim.core.SpringActorSystem;
-
 import java.time.Duration;
-
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
@@ -20,7 +18,8 @@ public class HelloService {
     }
 
     public Mono<String> hello() {
-        return Mono.fromCompletionStage(actorSystem.spawn(HelloActor.class)
+        return Mono.fromCompletionStage(actorSystem
+                .spawn(HelloActor.class)
                 .withId("hello-actor")
                 .withTimeout(Duration.ofSeconds(3))
                 .start()
