@@ -3,6 +3,7 @@ import { MessageInput } from "./MessageInput"
 import type { MessageData } from "./Message"
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"
 import { Badge } from "./ui/badge"
+import { Avatar } from "./Avatar"
 import { Wifi, WifiOff, Users } from "lucide-react"
 
 interface ChatPanelProps {
@@ -56,7 +57,10 @@ export function ChatPanel({
           {userId && (
             <>
               <span>•</span>
-              <span>ID: {userId.substring(0, 8)}...</span>
+              <div className="flex items-center gap-1">
+                <Avatar userId={userId} size="sm" />
+                <span>You</span>
+              </div>
             </>
           )}
         </div>
