@@ -9,22 +9,22 @@ import io.github.seonwkim.example.UserActor.Connect;
 import io.github.seonwkim.example.UserActor.JoinRoom;
 import io.github.seonwkim.example.UserActor.LeaveRoom;
 import io.github.seonwkim.example.UserActor.SendMessage;
-import java.io.IOException;
+import org.springframework.stereotype.Component;
+import org.springframework.web.reactive.socket.WebSocketHandler;
+import org.springframework.web.reactive.socket.WebSocketSession;
+import reactor.core.publisher.Mono;
+import reactor.core.publisher.Sinks;
+
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import org.springframework.stereotype.Component;
-import org.springframework.web.socket.CloseStatus;
-import org.springframework.web.socket.TextMessage;
-import org.springframework.web.socket.WebSocketSession;
-import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 /**
- * WebSocket handler for chat messages. Handles WebSocket connections and messages, and connects
- * them to the actor system.
+ * Reactive WebSocket handler for chat messages. Uses Spring WebFlux for non-blocking WebSocket handling.
+ * This handler is fully compatible with BlockHound and the actor model.
  */
 @Component
-public class ChatWebSocketHandler extends TextWebSocketHandler {
+public class ChatWebSocketHandler implements WebSocketHandler {
 
     private final ObjectMapper objectMapper;
     private final SpringActorSystem actorSystem;
@@ -36,47 +36,68 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     }
 
     @Override
-    public void afterConnectionEstablished(WebSocketSession session) {
+    public Mono<Void> handle(WebSocketSession session) {
         String userId = UUID.randomUUID().toString();
-        session.getAttributes().put("userId", userId);
+
+        // Create a sink for sending messages to the client (non-blocking)
+        Sinks.Many<String> sink = Sinks.many().multicast().onBackpressureBuffer();
+
+        // Create UserActor context with the message sink
         UserActor.UserActorContext userActorContext =
-                new UserActor.UserActorContext(actorSystem, objectMapper, userId, session);
+                new UserActor.UserActorContext(actorSystem, objectMapper, userId, sink);
 
-        actorSystem.actor(UserActor.class).withContext(userActorContext).start().thenAccept(userActor -> {
-            userActors.put(userId, userActor);
-            userActor.tell(new Connect());
+        // Start the actor
+        actorSystem.actor(UserActor.class)
+                .withContext(userActorContext)
+                .start()
+                .thenAccept(userActor -> {
+                    userActors.put(userId, userActor);
+                    userActor.tell(new Connect());
+                });
+
+        // Handle incoming messages from client
+        Mono<Void> input = session.receive()
+                .map(msg -> msg.getPayloadAsText())
+                .flatMap(payload -> handleMessage(userId, payload))
+                .then();
+
+        // Send outgoing messages to client
+        Mono<Void> output = session.send(
+                sink.asFlux()
+                        .map(session::textMessage)
+        );
+
+        // Run input and output concurrently, cleanup when done
+        return Mono.zip(input, output)
+                .doFinally(signalType -> cleanup(userId))
+                .then();
+    }
+
+    private Mono<Void> handleMessage(String userId, String payload) {
+        return Mono.fromRunnable(() -> {
+            try {
+                JsonNode json = objectMapper.readTree(payload);
+                String type = json.get("type").asText();
+
+                switch (type) {
+                    case "join":
+                        handleJoinRoom(userId, json);
+                        break;
+                    case "leave":
+                        handleLeaveRoom(userId);
+                        break;
+                    case "message":
+                        handleChatMessage(userId, json);
+                        break;
+                    default:
+                        // Unknown message type - log or ignore
+                        break;
+                }
+            } catch (Exception e) {
+                // Log error but don't break the stream
+                e.printStackTrace();
+            }
         });
-    }
-
-    @Override
-    protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
-        String userId = (String) session.getAttributes().get("userId");
-        JsonNode payload = objectMapper.readTree(message.getPayload());
-        String type = payload.get("type").asText();
-
-        switch (type) {
-            case "join":
-                handleJoinRoom(userId, payload);
-                break;
-            case "leave":
-                handleLeaveRoom(userId);
-                break;
-            case "message":
-                handleChatMessage(userId, payload);
-                break;
-            default:
-                sendErrorMessage(session, "Unknown message type: " + type);
-        }
-    }
-
-    @Override
-    public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
-        final String userId = (String) session.getAttributes().get("userId");
-        final var userActor = getUserActor(userId);
-        if (userId != null && userActor != null) {
-            userActor.stop();
-            userActors.remove(userId);
-        }
     }
 
     private void handleJoinRoom(String userId, JsonNode payload) {
@@ -106,20 +127,14 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         if (userId == null) {
             return null;
         }
-
         return userActors.get(userId);
     }
 
-    private void sendErrorMessage(WebSocketSession session, String errorMessage) {
-        try {
-            if (session.isOpen()) {
-                ObjectNode response = objectMapper.createObjectNode();
-                response.put("type", "error");
-                response.put("message", errorMessage);
-                session.sendMessage(new TextMessage(objectMapper.writeValueAsString(response)));
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
+    private void cleanup(String userId) {
+        final var userActor = getUserActor(userId);
+        if (userActor != null) {
+            userActor.stop();
+            userActors.remove(userId);
         }
     }
 }

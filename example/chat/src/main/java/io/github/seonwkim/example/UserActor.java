@@ -9,14 +9,11 @@ import io.github.seonwkim.core.SpringActorSystem;
 import io.github.seonwkim.core.SpringActorWithContext;
 import io.github.seonwkim.core.SpringShardedActorRef;
 import io.github.seonwkim.core.serialization.JsonSerializable;
-import java.io.IOException;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
-import org.springframework.web.socket.TextMessage;
-import org.springframework.web.socket.WebSocketSession;
 
 @Component
 public class UserActor implements SpringActorWithContext<UserActor, UserActor.Command, UserActor.UserActorContext> {
@@ -107,16 +104,19 @@ public class UserActor implements SpringActorWithContext<UserActor, UserActor.Co
     public static class UserActorContext implements SpringActorContext {
         private final SpringActorSystem actorSystem;
         private final ObjectMapper objectMapper;
-        private final WebSocketSession session;
+        private final reactor.core.publisher.Sinks.Many<String> messageSink;
 
         private final String userId;
 
         public UserActorContext(
-                SpringActorSystem actorSystem, ObjectMapper objectMapper, String userId, WebSocketSession session) {
+                SpringActorSystem actorSystem,
+                ObjectMapper objectMapper,
+                String userId,
+                reactor.core.publisher.Sinks.Many<String> messageSink) {
             this.actorSystem = actorSystem;
             this.objectMapper = objectMapper;
             this.userId = userId;
-            this.session = session;
+            this.messageSink = messageSink;
         }
 
         @Override
@@ -132,7 +132,7 @@ public class UserActor implements SpringActorWithContext<UserActor, UserActor.Co
                         actorContext.actorSystem,
                         actorContext.objectMapper,
                         actorContext.userId,
-                        actorContext.session)
+                        actorContext.messageSink)
                 .create());
     }
 
@@ -142,7 +142,7 @@ public class UserActor implements SpringActorWithContext<UserActor, UserActor.Co
         private final ObjectMapper objectMapper;
 
         private final String userId;
-        private final WebSocketSession session;
+        private final reactor.core.publisher.Sinks.Many<String> messageSink;
 
         @Nullable private String currentRoomId;
 
@@ -151,12 +151,12 @@ public class UserActor implements SpringActorWithContext<UserActor, UserActor.Co
                 SpringActorSystem actorSystem,
                 ObjectMapper objectMapper,
                 String userId,
-                WebSocketSession session) {
+                reactor.core.publisher.Sinks.Many<String> messageSink) {
             this.context = context;
             this.actorSystem = actorSystem;
             this.objectMapper = objectMapper;
             this.userId = userId;
-            this.session = session;
+            this.messageSink = messageSink;
         }
 
         public Behavior<UserActor.Command> create() {
@@ -256,10 +256,10 @@ public class UserActor implements SpringActorWithContext<UserActor, UserActor.Co
                 eventNode.put("type", type);
                 builder.build(eventNode);
 
-                if (session.isOpen()) {
-                    session.sendMessage(new TextMessage(objectMapper.writeValueAsString(eventNode)));
-                }
-            } catch (IOException e) {
+                // Non-blocking emit to reactive sink
+                String json = objectMapper.writeValueAsString(eventNode);
+                messageSink.tryEmitNext(json);
+            } catch (Exception e) {
                 context.getLog().error("Failed to send message to WebSocket", e);
             }
         }

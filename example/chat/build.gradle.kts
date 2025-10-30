@@ -13,18 +13,27 @@ dependencyManagement {
 	}
 }
 
+configurations {
+	all {
+		exclude(group = "org.springframework.boot", module = "spring-boot-starter-tomcat")
+	}
+}
+
 dependencies {
 	implementation(project(":core"))
 	implementation(project(":metrics"))
 
 	implementation("org.springframework.boot:spring-boot-starter")
 	implementation("org.springframework.boot:spring-boot-starter-webflux")
-	implementation("org.springframework.boot:spring-boot-starter-websocket")
+	// Removed spring-boot-starter-websocket (blocking WebSocket, uses Tomcat)
 
 	implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
 	implementation("org.springframework.boot:spring-boot-starter-actuator")
 	implementation("io.micrometer:micrometer-registry-prometheus")
 	implementation("com.fasterxml.jackson.core:jackson-databind")
+
+	// BlockHound for detecting blocking calls
+	implementation("io.projectreactor.tools:blockhound:1.0.9.RELEASE")
 
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
