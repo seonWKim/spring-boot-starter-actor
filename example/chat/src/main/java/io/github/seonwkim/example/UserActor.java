@@ -2,8 +2,6 @@ package io.github.seonwkim.example;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.github.seonwkim.core.SpringActorContext;
 import io.github.seonwkim.core.SpringActorSystem;
 import io.github.seonwkim.core.SpringActorWithContext;
@@ -103,18 +101,15 @@ public class UserActor implements SpringActorWithContext<UserActor, UserActor.Co
 
     public static class UserActorContext implements SpringActorContext {
         private final SpringActorSystem actorSystem;
-        private final ObjectMapper objectMapper;
         private final reactor.core.publisher.Sinks.Many<String> messageSink;
 
         private final String userId;
 
         public UserActorContext(
                 SpringActorSystem actorSystem,
-                ObjectMapper objectMapper,
                 String userId,
                 reactor.core.publisher.Sinks.Many<String> messageSink) {
             this.actorSystem = actorSystem;
-            this.objectMapper = objectMapper;
             this.userId = userId;
             this.messageSink = messageSink;
         }
@@ -130,7 +125,6 @@ public class UserActor implements SpringActorWithContext<UserActor, UserActor.Co
         return Behaviors.setup(context -> new UserActorBehavior(
                         context,
                         actorContext.actorSystem,
-                        actorContext.objectMapper,
                         actorContext.userId,
                         actorContext.messageSink)
                 .create());
@@ -139,7 +133,6 @@ public class UserActor implements SpringActorWithContext<UserActor, UserActor.Co
     public static class UserActorBehavior {
         private final ActorContext<UserActor.Command> context;
         private final SpringActorSystem actorSystem;
-        private final ObjectMapper objectMapper;
 
         private final String userId;
         private final reactor.core.publisher.Sinks.Many<String> messageSink;
@@ -149,12 +142,10 @@ public class UserActor implements SpringActorWithContext<UserActor, UserActor.Co
         public UserActorBehavior(
                 ActorContext<Command> context,
                 SpringActorSystem actorSystem,
-                ObjectMapper objectMapper,
                 String userId,
                 reactor.core.publisher.Sinks.Many<String> messageSink) {
             this.context = context;
             this.actorSystem = actorSystem;
-            this.objectMapper = objectMapper;
             this.userId = userId;
             this.messageSink = messageSink;
         }
@@ -172,8 +163,8 @@ public class UserActor implements SpringActorWithContext<UserActor, UserActor.Co
         }
 
         private Behavior<Command> onConnect(Connect connect) {
-            sendEvent("connected", builder -> {
-                builder.put("userId", userId);
+            sendEvent("connected", json -> {
+                json.append(",\"userId\":\"").append(escapeJson(userId)).append("\"");
             });
 
             return Behaviors.same();
@@ -182,8 +173,8 @@ public class UserActor implements SpringActorWithContext<UserActor, UserActor.Co
         private Behavior<Command> onJoinRoom(JoinRoom command) {
             currentRoomId = command.roomId;
             final var roomActor = getRoomActor();
-            sendEvent("joined", builder -> {
-                builder.put("roomId", currentRoomId);
+            sendEvent("joined", json -> {
+                json.append(",\"roomId\":\"").append(escapeJson(currentRoomId)).append("\"");
             });
 
             roomActor.tell(new ChatRoomActor.JoinRoom(userId, context.getSelf()));
@@ -196,8 +187,8 @@ public class UserActor implements SpringActorWithContext<UserActor, UserActor.Co
                 return Behaviors.same();
             }
 
-            sendEvent("left", builder -> {
-                builder.put("roomId", currentRoomId);
+            sendEvent("left", json -> {
+                json.append(",\"roomId\":\"").append(escapeJson(currentRoomId)).append("\"");
             });
 
             final var roomActor = getRoomActor();
@@ -219,26 +210,26 @@ public class UserActor implements SpringActorWithContext<UserActor, UserActor.Co
         }
 
         private Behavior<Command> onJoinRoomEvent(JoinRoomEvent event) {
-            sendEvent("user_joined", builder -> {
-                builder.put("userId", event.userId);
-                builder.put("roomId", currentRoomId);
+            sendEvent("user_joined", json -> {
+                json.append(",\"userId\":\"").append(escapeJson(event.userId)).append("\"");
+                json.append(",\"roomId\":\"").append(escapeJson(currentRoomId)).append("\"");
             });
             return Behaviors.same();
         }
 
         private Behavior<Command> onLeaveRoomEvent(LeaveRoomEvent event) {
-            sendEvent("user_left", builder -> {
-                builder.put("userId", event.userId);
-                builder.put("roomId", currentRoomId);
+            sendEvent("user_left", json -> {
+                json.append(",\"userId\":\"").append(escapeJson(event.userId)).append("\"");
+                json.append(",\"roomId\":\"").append(escapeJson(currentRoomId)).append("\"");
             });
             return Behaviors.same();
         }
 
         private Behavior<Command> onSendMessageEvent(SendMessageEvent event) {
-            sendEvent("message", builder -> {
-                builder.put("userId", event.userId);
-                builder.put("message", event.message);
-                builder.put("roomId", currentRoomId);
+            sendEvent("message", json -> {
+                json.append(",\"userId\":\"").append(escapeJson(event.userId)).append("\"");
+                json.append(",\"message\":\"").append(escapeJson(event.message)).append("\"");
+                json.append(",\"roomId\":\"").append(escapeJson(currentRoomId)).append("\"");
             });
             return Behaviors.same();
         }
@@ -252,21 +243,36 @@ public class UserActor implements SpringActorWithContext<UserActor, UserActor.Co
 
         private void sendEvent(String type, EventBuilder builder) {
             try {
-                ObjectNode eventNode = objectMapper.createObjectNode();
-                eventNode.put("type", type);
-                builder.build(eventNode);
+                // Build JSON string directly to avoid blocking Jackson serialization
+                StringBuilder json = new StringBuilder();
+                json.append("{\"type\":\"").append(escapeJson(type)).append("\"");
 
-                // Non-blocking emit to reactive sink
-                String json = objectMapper.writeValueAsString(eventNode);
-                messageSink.tryEmitNext(json);
+                builder.build(json);
+
+                json.append("}");
+                messageSink.tryEmitNext(json.toString());
             } catch (Exception e) {
                 context.getLog().error("Failed to send message to WebSocket", e);
             }
         }
 
+        /**
+         * Escape JSON string values to prevent injection and ensure valid JSON.
+         * This is a simple escaping for common characters.
+         */
+        private String escapeJson(String value) {
+            if (value == null) return "";
+            return value
+                .replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r")
+                .replace("\t", "\\t");
+        }
+
         @FunctionalInterface
         private interface EventBuilder {
-            void build(ObjectNode node);
+            void build(StringBuilder json);
         }
     }
 }
