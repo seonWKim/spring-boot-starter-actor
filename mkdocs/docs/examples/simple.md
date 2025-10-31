@@ -56,18 +56,32 @@ public class HelloActor implements SpringActor<HelloActor, HelloActor.Command> {
             // Call prestart hook for initialization logic
             onPrestart();
 
-            return Behaviors.receive(Command.class)
+            // Create the base behavior
+            Behavior<Command> behavior = Behaviors.receive(Command.class)
                     .onMessage(SayHello.class, this::onSayHello)
+                    .onMessage(TriggerFailure.class, this::onTriggerFailure)
                     // Signal handlers for lifecycle events
                     .onSignal(PreRestart.class, this::onPreRestart)
                     .onSignal(PostStop.class, this::onPostStop)
                     .build();
+
+            // Wrap with supervision strategy to restart on failure
+            return Behaviors.supervise(behavior)
+                    .onFailure(SupervisorStrategy.restart()
+                            .withLimit(10, Duration.ofMinutes(1)));
         }
 
         private Behavior<Command> onSayHello(SayHello msg) {
             // Send response
             msg.replyTo.tell("Hello from actor " + actorContext.actorId());
             return Behaviors.same();
+        }
+
+        private Behavior<Command> onTriggerFailure(TriggerFailure msg) {
+            // Throw exception to trigger restart (requires supervision strategy)
+            ctx.getLog().warn("Triggering failure for actor {}", actorContext.actorId());
+            msg.replyTo.tell("Triggering failure - actor will restart");
+            throw new RuntimeException("Intentional failure to demonstrate PreRestart");
         }
 
         private void onPrestart() {
@@ -177,9 +191,37 @@ The prestart hook is useful for:
 - Loading initial state or configuration
 - Logging actor startup
 
+### Supervision Strategy
+
+**Important:** To enable actor restarts on failure, you must wrap your behavior with a supervision strategy. By default, Pekko stops actors when they throw exceptions. A supervision strategy tells Pekko what to do when an actor fails.
+
+```java
+// Create the base behavior
+Behavior<Command> behavior = Behaviors.receive(Command.class)
+    .onMessage(SayHello.class, this::onSayHello)
+    .onSignal(PreRestart.class, this::onPreRestart)
+    .build();
+
+// Wrap with supervision strategy to restart on failure
+return Behaviors.supervise(behavior)
+    .onFailure(SupervisorStrategy.restart()
+        .withLimit(10, Duration.ofMinutes(1)));
+```
+
+This supervision strategy:
+- **Restarts** the actor when any exception is thrown
+- Limits restarts to **10 times within 1 minute** to prevent infinite restart loops
+- Enables the **PreRestart signal** to be triggered before restart
+
+Common supervision strategies:
+- **`restart()`**: Restart the actor, discarding its state
+- **`resume()`**: Resume processing, keeping the actor's state
+- **`stop()`**: Stop the actor permanently (default behavior)
+- **`restartWithBackoff()`**: Restart with exponential backoff delays
+
 ### PreRestart Signal
 
-The `PreRestart` signal is sent to an actor before it is restarted due to a failure. This is useful for:
+The `PreRestart` signal is sent to an actor before it is restarted due to a failure. **Note: This requires a supervision strategy with restart behavior.** This is useful for:
 
 - Cleaning up resources that won't be automatically released (e.g., closing database connections, file handles)
 - Logging the state before restart for debugging
@@ -201,24 +243,56 @@ The `PostStop` signal is sent when an actor is stopped, either gracefully or due
 
 To implement lifecycle hooks in your actor:
 
-1. **PreStart**: Call a method directly in `create()` before returning the behavior
+1. **PreStart**: Call a method directly in `create()` before building the behavior
 2. **PreRestart and PostStop**: Use the `onSignal` method when building your behavior
+3. **Supervision Strategy**: Wrap the behavior with `Behaviors.supervise()` to enable restarts
 
 ```java
 public Behavior<Command> create() {
-    // PreStart: call directly
+    // 1. PreStart: call directly
     onPrestart();
 
-    return Behaviors.receive(Command.class)
+    // 2. Build behavior with signal handlers
+    Behavior<Command> behavior = Behaviors.receive(Command.class)
         .onMessage(SayHello.class, this::onSayHello)
-        // Signals: use onSignal
         .onSignal(PreRestart.class, this::onPreRestart)
         .onSignal(PostStop.class, this::onPostStop)
         .build();
+
+    // 3. Wrap with supervision strategy to enable restart
+    return Behaviors.supervise(behavior)
+        .onFailure(SupervisorStrategy.restart()
+            .withLimit(10, Duration.ofMinutes(1)));
 }
 ```
 
 The signal handlers should return `Behaviors.same()` to indicate that the actor should continue with its normal lifecycle behavior.
+
+### Testing Lifecycle Hooks
+
+The simple example provides API endpoints to test each lifecycle hook:
+
+#### 1. Test PreStart Hook
+```bash
+curl http://localhost:8080/hello
+```
+Check the logs for: `PreStart hook for id=hello-actor`
+
+#### 2. Test PreRestart Signal
+```bash
+curl http://localhost:8080/hello/restart
+```
+This triggers an intentional failure. Check the logs for:
+- `Triggering failure for actor hello-actor`
+- `Actor hello-actor is being restarted due to failure` (PreRestart)
+- `PreStart hook for id=hello-actor` (actor restarts and PreStart is called again)
+
+#### 3. Test PostStop Signal
+```bash
+curl http://localhost:8080/hello/stop
+```
+This stops the actor using `SpringActorRef.stop()`. Check the logs for:
+- `Actor hello-actor is stopping. Performing cleanup...` (PostStop)
 
 ## Configuration
 
