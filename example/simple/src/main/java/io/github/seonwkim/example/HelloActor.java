@@ -6,9 +6,12 @@ import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.PostStop;
 import org.apache.pekko.actor.typed.PreRestart;
+import org.apache.pekko.actor.typed.SupervisorStrategy;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.springframework.stereotype.Component;
+
+import java.time.Duration;
 
 /**
  * Actor that handles hello messages in a simple (non-clustered) environment. It responds with a
@@ -71,17 +74,25 @@ public class HelloActor implements SpringActor<HelloActor, HelloActor.Command> {
         /**
          * Creates the initial behavior for the actor with lifecycle hooks.
          * Uses onSignal to handle PreRestart and PostStop signals.
+         * Wraps the behavior with supervision strategy to restart on failure.
          *
          * @return The behavior for handling messages and signals
          */
         public Behavior<Command> create() {
             onPrestart();
-            return Behaviors.receive(Command.class)
+
+            // Create the base behavior
+            Behavior<Command> behavior = Behaviors.receive(Command.class)
                     .onMessage(SayHello.class, this::onSayHello)
                     .onMessage(TriggerFailure.class, this::onTriggerFailure)
                     .onSignal(PreRestart.class, this::onPreRestart)
                     .onSignal(PostStop.class, this::onPostStop)
                     .build();
+
+            // Wrap with supervision strategy to restart on any exception
+            return Behaviors.supervise(behavior)
+                    .onFailure(SupervisorStrategy.restart()
+                            .withLimit(10, Duration.ofMinutes(1)));
         }
 
         /**
