@@ -25,4 +25,28 @@ public class HelloService {
                 .getOrSpawn(HelloActor.class, "hello-actor")
                 .thenCompose(actor -> actor.ask(HelloActor.SayHello::new)));
     }
+
+    /**
+     * Triggers a failure in the actor, causing it to restart.
+     * This demonstrates the PreRestart signal handler.
+     */
+    public Mono<String> triggerRestart() {
+        return Mono.fromCompletionStage(actorSystem
+                .getOrSpawn(HelloActor.class, "hello-actor")
+                .thenCompose(actor -> actor.ask(HelloActor.TriggerFailure::new)));
+    }
+
+    /**
+     * Stops the actor gracefully using SpringActorRef.stop().
+     * This demonstrates the PostStop signal handler.
+     */
+    public Mono<String> stopActor() {
+        return Mono.fromCompletionStage(actorSystem
+                .getOrSpawn(HelloActor.class, "hello-actor")
+                .thenCompose(actor -> {
+                    actor.stop();
+                    return Mono.just("Actor stopped - PostStop signal will be triggered")
+                            .toFuture();
+                }));
+    }
 }

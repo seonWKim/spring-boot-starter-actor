@@ -29,6 +29,15 @@ public class HelloActor implements SpringActor<HelloActor, HelloActor.Command> {
         }
     }
 
+    /** Command to trigger an exception and cause the actor to restart (tests PreRestart signal). */
+    public static class TriggerFailure implements Command {
+        public final ActorRef<String> replyTo;
+
+        public TriggerFailure(ActorRef<String> replyTo) {
+            this.replyTo = replyTo;
+        }
+    }
+
     /**
      * Creates the behavior for this actor when it's started.
      *
@@ -69,6 +78,7 @@ public class HelloActor implements SpringActor<HelloActor, HelloActor.Command> {
             onPrestart();
             return Behaviors.receive(Command.class)
                     .onMessage(SayHello.class, this::onSayHello)
+                    .onMessage(TriggerFailure.class, this::onTriggerFailure)
                     .onSignal(PreRestart.class, this::onPreRestart)
                     .onSignal(PostStop.class, this::onPostStop)
                     .build();
@@ -88,6 +98,21 @@ public class HelloActor implements SpringActor<HelloActor, HelloActor.Command> {
             msg.replyTo.tell("Hello from actor " + actorContext.actorId());
 
             return Behaviors.same();
+        }
+
+        /**
+         * Handles TriggerFailure commands by throwing an exception.
+         * This will trigger the PreRestart signal handler.
+         *
+         * @param msg The TriggerFailure message
+         * @return Never returns (throws exception)
+         */
+        private Behavior<Command> onTriggerFailure(TriggerFailure msg) {
+            ctx.getLog().warn("Triggering failure for actor {}", actorContext.actorId());
+            // Reply before throwing to confirm the command was received
+            msg.replyTo.tell("Triggering failure - actor will restart");
+            // Throw exception to trigger restart
+            throw new RuntimeException("Intentional failure to demonstrate PreRestart signal");
         }
 
         private void onPrestart() {

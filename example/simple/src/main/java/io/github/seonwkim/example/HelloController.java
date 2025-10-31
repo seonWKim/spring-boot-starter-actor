@@ -32,4 +32,26 @@ public class HelloController {
     public Mono<String> hello() {
         return helloService.hello();
     }
+
+    /**
+     * Endpoint to trigger a failure in the actor, causing it to restart.
+     * This demonstrates the PreRestart lifecycle hook.
+     *
+     * @return A Mono containing confirmation that the restart was triggered
+     */
+    @GetMapping("/hello/restart")
+    public Mono<String> triggerRestart() {
+        return helloService.triggerRestart();
+    }
+
+    /**
+     * Endpoint to stop the actor gracefully.
+     * This demonstrates the PostStop lifecycle hook.
+     *
+     * @return A Mono containing confirmation that the actor was stopped
+     */
+    @GetMapping("/hello/stop")
+    public Mono<String> stopActor() {
+        return helloService.stopActor();
+    }
 }
