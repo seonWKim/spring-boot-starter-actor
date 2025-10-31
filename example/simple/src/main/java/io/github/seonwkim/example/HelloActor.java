@@ -4,6 +4,8 @@ import io.github.seonwkim.core.SpringActor;
 import io.github.seonwkim.core.SpringActorContext;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
+import org.apache.pekko.actor.typed.PostStop;
+import org.apache.pekko.actor.typed.PreRestart;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.springframework.stereotype.Component;
@@ -58,13 +60,17 @@ public class HelloActor implements SpringActor<HelloActor, HelloActor.Command> {
         }
 
         /**
-         * Creates the initial behavior for the actor.
+         * Creates the initial behavior for the actor with lifecycle hooks.
+         * Uses onSignal to handle PreRestart and PostStop signals.
          *
-         * @return The behavior for handling messages
+         * @return The behavior for handling messages and signals
          */
         public Behavior<Command> create() {
+            onPrestart();
             return Behaviors.receive(Command.class)
                     .onMessage(SayHello.class, this::onSayHello)
+                    .onSignal(PreRestart.class, this::onPreRestart)
+                    .onSignal(PostStop.class, this::onPostStop)
                     .build();
         }
 
@@ -80,6 +86,50 @@ public class HelloActor implements SpringActor<HelloActor, HelloActor.Command> {
 
             // Send a response back to the caller
             msg.replyTo.tell("Hello from actor " + actorContext.actorId());
+
+            return Behaviors.same();
+        }
+
+        private void onPrestart() {
+            ctx.getLog().info("PreStart hook for id={}", actorContext.actorId());
+        }
+
+        /**
+         * Called before the actor is restarted due to a failure.
+         * This is a good place to clean up resources or log state before restart.
+         *
+         * @param signal The PreRestart signal
+         * @return The same behavior (actor will be restarted)
+         */
+        private Behavior<Command> onPreRestart(PreRestart signal) {
+            ctx.getLog().warn(
+                "Actor {} is being restarted due to failure",
+                actorContext.actorId()
+            );
+
+            // You can perform cleanup here before the actor restarts
+            // For example: closing connections, releasing resources, etc.
+            // Note: State will be lost unless you implement state persistence
+
+            return Behaviors.same();
+        }
+
+        /**
+         * Called when the actor is stopped (either gracefully or due to failure).
+         * This is a good place to release resources and perform final cleanup.
+         *
+         * @param signal The PostStop signal
+         * @return The same behavior
+         */
+        private Behavior<Command> onPostStop(PostStop signal) {
+            ctx.getLog().info(
+                "Actor {} is stopping. Performing cleanup...",
+                actorContext.actorId()
+            );
+
+            // Perform cleanup here
+            // For example: close database connections, release file handles,
+            // flush buffers, notify other systems, etc.
 
             return Behaviors.same();
         }
