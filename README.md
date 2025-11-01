@@ -209,30 +209,6 @@ actorRef.thenAccept(actor -> actor.stop());
 
 ## Core Concepts
 
-### Actor Lifecycle: Lazy Initialization
-
-Use lazy initialization to avoid blocking application startup:
-
-**Simple Approach (Recommended for most cases):**
-```java
-// Use getOrSpawn directly - simple and efficient
-public CompletionStage<String> processMessage(String msg) {
-    return actorSystem.getOrSpawn(MyActor.class, "my-actor")
-        .thenCompose(actor -> actor.ask(replyTo -> new ProcessMessage(msg, replyTo)));
-}
-```
-
-**With Caching (For high-frequency access):**
-```java
-private final AtomicReference<CompletionStage<SpringActorRef<Command>>> actorRef = new AtomicReference<>();
-
-private CompletionStage<SpringActorRef<Command>> getActor() {
-    return actorRef.updateAndGet(existing ->
-        existing != null ? existing : actorSystem.getOrSpawn(MyActor.class, "my-actor")
-    );
-}
-```
-
 ### Communication Patterns
 
 **Fire-and-forget (tell):**
