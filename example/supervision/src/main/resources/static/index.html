@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Actor Supervision Visualizer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .panel {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .panel h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .controls {
+            grid-column: 1 / -1;
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .control-group input,
+        .control-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        .control-group input:focus,
+        .control-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-warning {
+            background: #ffc107;
+            color: #333;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .hierarchy-view {
+            min-height: 300px;
+            background: white;
+            border-radius: 6px;
+            padding: 15px;
+            overflow-y: auto;
+            max-height: 500px;
+        }
+
+        .supervisor-node {
+            margin-bottom: 20px;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .supervisor-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .supervisor-header button {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 6px 12px;
+            font-size: 0.9em;
+        }
+
+        .supervisor-header button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .workers-container {
+            padding: 15px;
+            background: #f8f9fa;
+        }
+
+        .worker-node {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 10px;
+            transition: all 0.3s;
+        }
+
+        .worker-node:hover {
+            border-color: #667eea;
+            transform: translateX(5px);
+        }
+
+        .worker-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .worker-name {
+            font-weight: bold;
+            color: #333;
+            font-size: 1.1em;
+        }
+
+        .worker-strategy {
+            display: inline-block;
+            padding: 4px 12px;
+            background: #e3f2fd;
+            color: #1976d2;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .worker-actions {
+            display: flex;
+            gap: 5px;
+            margin-top: 8px;
+        }
+
+        .worker-actions button {
+            padding: 6px 12px;
+            font-size: 0.85em;
+        }
+
+        .logs-panel {
+            grid-column: 1 / -1;
+        }
+
+        .logs-container {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            border-radius: 6px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            overflow-y: auto;
+            max-height: 400px;
+            line-height: 1.6;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            word-wrap: break-word;
+        }
+
+        .log-entry .timestamp {
+            color: #569cd6;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #999;
+            padding: 40px;
+            font-style: italic;
+        }
+
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+        }
+
+        .status-connected {
+            background: #28a745;
+            box-shadow: 0 0 8px #28a745;
+        }
+
+        .status-disconnected {
+            background: #dc3545;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            font-size: 0.9em;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎭 Actor Supervision Visualizer</h1>
+            <p>Visualize and test hierarchical actor supervision strategies</p>
+            <div class="connection-status">
+                <span class="status-indicator" id="connectionStatus"></span>
+                <span id="connectionText">Connecting...</span>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <!-- Controls Panel -->
+            <div class="panel controls">
+                <h2>🎮 Controls</h2>
+
+                <div class="control-group">
+                    <label for="supervisorId">Supervisor ID</label>
+                    <input type="text" id="supervisorId" placeholder="e.g., supervisor-1" value="supervisor-1">
+                </div>
+
+                <div class="button-group">
+                    <button class="btn-primary" onclick="createSupervisor()">
+                        🚀 Create Supervisor
+                    </button>
+                    <button class="btn-danger" onclick="deleteSupervisor()">
+                        🗑️ Delete Supervisor
+                    </button>
+                </div>
+
+                <hr style="margin: 20px 0; border: none; border-top: 1px solid #ddd;">
+
+                <div class="control-group">
+                    <label for="workerId">Worker ID</label>
+                    <input type="text" id="workerId" placeholder="e.g., worker-1" value="worker-1">
+                </div>
+
+                <div class="control-group">
+                    <label for="strategy">Supervision Strategy</label>
+                    <select id="strategy">
+                        <option value="restart">Restart (unlimited)</option>
+                        <option value="restart-limited">Restart (limited: 3 times/min)</option>
+                        <option value="stop">Stop on failure</option>
+                        <option value="resume">Resume (ignore failure)</option>
+                    </select>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn-primary" onclick="createWorker()">
+                        👷 Create Worker
+                    </button>
+                </div>
+
+                <hr style="margin: 20px 0; border: none; border-top: 1px solid #ddd;">
+
+                <div class="control-group">
+                    <label for="taskName">Task Name</label>
+                    <input type="text" id="taskName" placeholder="e.g., process-data" value="task-1">
+                </div>
+
+                <div class="button-group">
+                    <button class="btn-success" onclick="sendWork()">
+                        📬 Send Work
+                    </button>
+                    <button class="btn-warning" onclick="triggerFailure()">
+                        💥 Trigger Failure
+                    </button>
+                    <button class="btn-danger" onclick="stopWorker()">
+                        🛑 Stop Worker
+                    </button>
+                </div>
+
+                <hr style="margin: 20px 0; border: none; border-top: 1px solid #ddd;">
+
+                <button class="btn-primary" onclick="refreshHierarchy()" style="width: 100%;">
+                    🔄 Refresh Hierarchy
+                </button>
+            </div>
+
+            <!-- Hierarchy Panel -->
+            <div class="panel">
+                <h2>🌳 Actor Hierarchy</h2>
+                <div class="hierarchy-view" id="hierarchyView">
+                    <div class="empty-state">
+                        No supervisors created yet. Create a supervisor to get started!
+                    </div>
+                </div>
+            </div>
+
+            <!-- Logs Panel -->
+            <div class="panel logs-panel">
+                <h2>📝 Live Actor Logs</h2>
+                <div class="logs-container" id="logsContainer">
+                    <div class="log-entry">Waiting for log events...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let eventSource = null;
+
+        // Initialize SSE connection
+        function initSSE() {
+            eventSource = new EventSource('/api/logs/stream');
+
+            eventSource.addEventListener('log', (event) => {
+                addLogEntry(event.data);
+            });
+
+            eventSource.onopen = () => {
+                updateConnectionStatus(true);
+            };
+
+            eventSource.onerror = () => {
+                updateConnectionStatus(false);
+                // Retry connection after 3 seconds
+                setTimeout(() => {
+                    eventSource.close();
+                    initSSE();
+                }, 3000);
+            };
+        }
+
+        function updateConnectionStatus(connected) {
+            const statusIndicator = document.getElementById('connectionStatus');
+            const statusText = document.getElementById('connectionText');
+
+            if (connected) {
+                statusIndicator.className = 'status-indicator status-connected pulse';
+                statusText.textContent = 'Connected to log stream';
+            } else {
+                statusIndicator.className = 'status-indicator status-disconnected';
+                statusText.textContent = 'Disconnected - Reconnecting...';
+            }
+        }
+
+        function addLogEntry(message) {
+            const logsContainer = document.getElementById('logsContainer');
+
+            // Clear the "waiting" message on first log
+            if (logsContainer.children.length === 1 &&
+                logsContainer.children[0].textContent.includes('Waiting')) {
+                logsContainer.innerHTML = '';
+            }
+
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            logEntry.textContent = message;
+            logsContainer.appendChild(logEntry);
+
+            // Auto-scroll to bottom
+            logsContainer.scrollTop = logsContainer.scrollHeight;
+
+            // Limit to last 100 logs
+            while (logsContainer.children.length > 100) {
+                logsContainer.removeChild(logsContainer.firstChild);
+            }
+        }
+
+        async function createSupervisor() {
+            const supervisorId = document.getElementById('supervisorId').value;
+            if (!supervisorId) {
+                alert('Please enter a supervisor ID');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/supervisors', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ supervisorId })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    addLogEntry(`✅ ${result.message}`);
+                    refreshHierarchy();
+                } else {
+                    addLogEntry(`❌ ${result.message}`);
+                }
+            } catch (error) {
+                addLogEntry(`❌ Error: ${error.message}`);
+            }
+        }
+
+        async function deleteSupervisor() {
+            const supervisorId = document.getElementById('supervisorId').value;
+            if (!supervisorId) {
+                alert('Please enter a supervisor ID');
+                return;
+            }
+
+            if (!confirm(`Are you sure you want to delete supervisor "${supervisorId}"?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/supervisors/${supervisorId}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    addLogEntry(`✅ ${result.message}`);
+                    refreshHierarchy();
+                } else {
+                    addLogEntry(`❌ ${result.message}`);
+                }
+            } catch (error) {
+                addLogEntry(`❌ Error: ${error.message}`);
+            }
+        }
+
+        async function createWorker() {
+            const supervisorId = document.getElementById('supervisorId').value;
+            const workerId = document.getElementById('workerId').value;
+            const strategy = document.getElementById('strategy').value;
+
+            if (!supervisorId || !workerId) {
+                alert('Please enter both supervisor ID and worker ID');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/workers', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ supervisorId, workerId, strategy })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    addLogEntry(`✅ ${result.message}`);
+                    refreshHierarchy();
+                } else {
+                    addLogEntry(`❌ ${result.message}`);
+                }
+            } catch (error) {
+                addLogEntry(`❌ Error: ${error.message}`);
+            }
+        }
+
+        async function sendWork() {
+            const supervisorId = document.getElementById('supervisorId').value;
+            const workerId = document.getElementById('workerId').value;
+            const taskName = document.getElementById('taskName').value;
+
+            if (!supervisorId || !workerId) {
+                alert('Please enter both supervisor ID and worker ID');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/workers/${workerId}/work`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ supervisorId, taskName })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    addLogEntry(`✅ Work sent to ${workerId}: ${taskName}`);
+                } else {
+                    addLogEntry(`❌ ${result.message}`);
+                }
+            } catch (error) {
+                addLogEntry(`❌ Error: ${error.message}`);
+            }
+        }
+
+        async function triggerFailure() {
+            const supervisorId = document.getElementById('supervisorId').value;
+            const workerId = document.getElementById('workerId').value;
+
+            if (!supervisorId || !workerId) {
+                alert('Please enter both supervisor ID and worker ID');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/workers/${workerId}/fail`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ supervisorId })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    addLogEntry(`✅ Failure triggered in ${workerId}`);
+                } else {
+                    addLogEntry(`❌ ${result.message}`);
+                }
+            } catch (error) {
+                addLogEntry(`❌ Error: ${error.message}`);
+            }
+        }
+
+        async function stopWorker() {
+            const supervisorId = document.getElementById('supervisorId').value;
+            const workerId = document.getElementById('workerId').value;
+
+            if (!supervisorId || !workerId) {
+                alert('Please enter both supervisor ID and worker ID');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/workers/${workerId}?supervisorId=${supervisorId}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    addLogEntry(`✅ ${result.message}`);
+                    refreshHierarchy();
+                } else {
+                    addLogEntry(`❌ ${result.message}`);
+                }
+            } catch (error) {
+                addLogEntry(`❌ Error: ${error.message}`);
+            }
+        }
+
+        async function refreshHierarchy() {
+            try {
+                const response = await fetch('/api/hierarchy');
+                const data = await response.json();
+
+                const hierarchyView = document.getElementById('hierarchyView');
+
+                if (!data.supervisors || data.supervisors.length === 0) {
+                    hierarchyView.innerHTML = '<div class="empty-state">No supervisors created yet. Create a supervisor to get started!</div>';
+                    return;
+                }
+
+                let html = '';
+                data.supervisors.forEach(supervisor => {
+                    html += `
+                        <div class="supervisor-node">
+                            <div class="supervisor-header">
+                                <span>🎭 Supervisor: ${supervisor.supervisorId}</span>
+                                <button onclick="document.getElementById('supervisorId').value='${supervisor.supervisorId}'; deleteSupervisor();">
+                                    Delete
+                                </button>
+                            </div>
+                            <div class="workers-container">
+                    `;
+
+                    if (supervisor.workers && supervisor.workers.length > 0) {
+                        supervisor.workers.forEach(worker => {
+                            html += `
+                                <div class="worker-node">
+                                    <div class="worker-header">
+                                        <span class="worker-name">👷 ${worker.workerId}</span>
+                                        <span class="worker-strategy">${worker.strategy}</span>
+                                    </div>
+                                    <div style="font-size: 0.8em; color: #666; margin-top: 4px;">
+                                        ${worker.path}
+                                    </div>
+                                    <div class="worker-actions">
+                                        <button class="btn-success" onclick="document.getElementById('supervisorId').value='${supervisor.supervisorId}'; document.getElementById('workerId').value='${worker.workerId}'; sendWork();">
+                                            Send Work
+                                        </button>
+                                        <button class="btn-warning" onclick="document.getElementById('supervisorId').value='${supervisor.supervisorId}'; document.getElementById('workerId').value='${worker.workerId}'; triggerFailure();">
+                                            Trigger Failure
+                                        </button>
+                                        <button class="btn-danger" onclick="document.getElementById('supervisorId').value='${supervisor.supervisorId}'; document.getElementById('workerId').value='${worker.workerId}'; stopWorker();">
+                                            Stop
+                                        </button>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                    } else {
+                        html += '<div class="empty-state">No workers yet. Create a worker to get started!</div>';
+                    }
+
+                    html += `
+                            </div>
+                        </div>
+                    `;
+                });
+
+                hierarchyView.innerHTML = html;
+            } catch (error) {
+                addLogEntry(`❌ Error refreshing hierarchy: ${error.message}`);
+            }
+        }
+
+        // Initialize on page load
+        initSSE();
+        refreshHierarchy();
+
+        // Auto-refresh hierarchy every 5 seconds
+        setInterval(refreshHierarchy, 5000);
+    </script>
+</body>
+</html>

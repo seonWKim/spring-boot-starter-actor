@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: actor-supervision-example
+
+  actor:
+    pekko:
+      loglevel: INFO
+      actor:
+        provider: local
+
+server:
+  port: 8080
+
+logging:
+  level:
+    io.github.seonwkim: INFO
+    org.apache.pekko: INFO
