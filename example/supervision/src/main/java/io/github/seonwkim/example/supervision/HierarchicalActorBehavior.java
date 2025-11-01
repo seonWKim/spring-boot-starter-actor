@@ -296,7 +296,20 @@ public class HierarchicalActorBehavior<C> {
                 .thenApply(v -> {
                     List<ActorHierarchy.ActorNode> children = new ArrayList<>();
                     for (CompletableFuture<ActorHierarchy.ActorNode> future : childFutures) {
-                        children.add(future.join());
+                        ActorHierarchy.ActorNode childNode = future.join();
+                        // Enrich child with strategy from parent's childStrategies map
+                        String childStrategy = childStrategies.get(childNode.actorId);
+                        if (childStrategy != null) {
+                            childNode = new ActorHierarchy.ActorNode(
+                                childNode.actorId,
+                                childNode.actorType,
+                                childStrategy,  // Pass parent's strategy for this child
+                                childNode.path,
+                                childNode.failureCount,
+                                childNode.children
+                            );
+                        }
+                        children.add(childNode);
                     }
                     return children;
                 })

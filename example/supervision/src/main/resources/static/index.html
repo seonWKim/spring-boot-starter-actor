@@ -613,6 +613,34 @@
             group.appendChild(circle);
             group.appendChild(text);
 
+            // Add strategy label below the node for workers
+            if (node.type === 'worker' && node.strategy && node.strategy !== 'Supervisor') {
+                const strategyLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                strategyLabel.setAttribute('x', node.x);
+                strategyLabel.setAttribute('y', node.y + node.radius + 18);
+                strategyLabel.setAttribute('text-anchor', 'middle');
+                strategyLabel.setAttribute('fill', '#666');
+                strategyLabel.setAttribute('font-size', '11px');
+                strategyLabel.setAttribute('font-weight', '500');
+
+                // Shorten strategy text for display
+                let strategyText = node.strategy;
+                if (node.strategy.startsWith('Restart')) {
+                    if (node.strategy.includes('max')) {
+                        strategyText = 'restart-lim';
+                    } else {
+                        strategyText = 'restart';
+                    }
+                } else if (node.strategy.startsWith('Stop')) {
+                    strategyText = 'stop';
+                } else if (node.strategy.startsWith('Resume')) {
+                    strategyText = 'resume';
+                }
+
+                strategyLabel.textContent = strategyText;
+                group.appendChild(strategyLabel);
+            }
+
             // Add failure count badge for workers (if > 0)
             if (node.type === 'worker' && node.failureCount > 0) {
                 const badgeRadius = 12;
