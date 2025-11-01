@@ -114,6 +114,10 @@ val runCoreBoot3Test = tasks.register<Exec>("runCoreBoot3Test") {
     commandLine("./gradlew", ":core-boot3:test")
 }
 
+val runMetricsTest = tasks.register<Exec>("runMetricsTest") {
+    commandLine("./gradlew", ":metrics:test")
+}
+
 tasks.register("runTest") {
     group = "verification"
     description = "Run core and core-boot3 tests step-by-step"
@@ -121,4 +125,5 @@ tasks.register("runTest") {
     dependsOn(runCoreTest)
     dependsOn(syncBoot3Sources)
     dependsOn(runCoreBoot3Test)
+    dependsOn(runMetricsTest)
 }
