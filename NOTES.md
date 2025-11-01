@@ -1,0 +1,1 @@
+- should we store a copy of child under the parent actor ? 
