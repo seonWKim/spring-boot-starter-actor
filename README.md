@@ -389,6 +389,16 @@ spring:
 
 ## Advanced Features
 
+### Supervision and Fault Tolerance
+
+Spring Boot Starter Actor provides robust supervision strategies for building self-healing, fault-tolerant systems. The interactive supervision example demonstrates real-time failure handling with visual actor hierarchies:
+
+<div style="border: 2px solid #ccc; display: inline-block; border-radius: 8px; overflow: hidden; margin: 20px 0;">
+  <img src="mkdocs/docs/supervision.png" alt="Supervision Interactive Demo - Actor Hierarchy Visualization"/>
+</div>
+
+Learn more in the [Supervision Guide](https://seonwkim.github.io/spring-boot-starter-actor/examples/supervision/).
+
 ### Spring Boot 3 Support
 
 This library fully supports both Spring Boot 2.7.x and 3.2.x:

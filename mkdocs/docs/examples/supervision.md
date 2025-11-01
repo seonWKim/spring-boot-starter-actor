@@ -16,6 +16,12 @@ The supervision example provides:
 - **Hands-on testing** of different supervision strategies
 - **Multi-level hierarchies** demonstrating supervision at arbitrary depth
 
+## Demo
+
+<div style="border: 2px solid #ccc; display: inline-block; border-radius: 8px; overflow: hidden; margin: 20px 0;">
+  <img src="../supervision.png" alt="Supervision Interactive Demo - Actor Hierarchy Visualization"/>
+</div>
+
 ## Source Code
 
 Complete source
