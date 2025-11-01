@@ -22,7 +22,7 @@ public class SupervisionController {
 
     private final SpringActorSystem actorSystem;
     private final LogPublisher logPublisher;
-    private final Map<String, SpringActorRef<SupervisorActor.Command>> supervisors =
+    private final Map<String, SpringActorRef<HierarchicalActor.Command>> supervisors =
             new ConcurrentHashMap<>();
 
     public SupervisionController(SpringActorSystem actorSystem, LogPublisher logPublisher) {
@@ -34,7 +34,7 @@ public class SupervisionController {
 
     private void createDefaultSupervisor() {
         try {
-            SpringActorRef<SupervisorActor.Command> supervisor =
+            SpringActorRef<HierarchicalActor.Command> supervisor =
                     actorSystem
                             .actor(SupervisorActor.class)
                             .withId("root-supervisor")
@@ -79,8 +79,8 @@ public class SupervisionController {
         }
 
         try {
-            SpringActorRef<SupervisorActor.Command> supervisor =
-                    actorSystem
+            SpringActorRef<HierarchicalActor.Command> supervisor =
+                    (SpringActorRef<HierarchicalActor.Command>) (SpringActorRef<?>) actorSystem
                             .actor(SupervisorActor.class)
                             .withId(supervisorId)
                             .withTimeout(Duration.ofSeconds(5))
@@ -123,7 +123,7 @@ public class SupervisionController {
 
         // Check if parent is the root supervisor
         if ("root-supervisor".equals(parentId) || "supervisor".equals(parentType)) {
-            SpringActorRef<SupervisorActor.Command> supervisor = supervisors.get(parentId);
+            SpringActorRef<HierarchicalActor.Command> supervisor = supervisors.get(parentId);
             if (supervisor == null) {
                 return CompletableFuture.completedFuture(
                         ResponseEntity.badRequest()
@@ -132,12 +132,12 @@ public class SupervisionController {
 
             return supervisor
                     .ask(
-                            (org.apache.pekko.actor.typed.ActorRef<SupervisorActor.SpawnResult> replyTo) ->
-                                    new SupervisorActor.SpawnWorker(childId, strategy, replyTo))
+                            (org.apache.pekko.actor.typed.ActorRef<ActorHierarchy.SpawnResult> replyTo) ->
+                                    new HierarchicalActor.SpawnChild(childId, strategy, replyTo))
                     .toCompletableFuture()
                     .thenApply(
                             resultObj -> {
-                                SupervisorActor.SpawnResult result = (SupervisorActor.SpawnResult) resultObj;
+                                ActorHierarchy.SpawnResult result = (ActorHierarchy.SpawnResult) resultObj;
                                 if (result.success) {
                                     return ResponseEntity.ok(
                                             toMap(
@@ -165,7 +165,7 @@ public class SupervisionController {
                                                             "Failed to create child: " + ex.getMessage())));
         } else {
             // Parent is a worker - route through root supervisor
-            SpringActorRef<SupervisorActor.Command> rootSupervisor = supervisors.get("root-supervisor");
+            SpringActorRef<HierarchicalActor.Command> rootSupervisor = supervisors.get("root-supervisor");
             if (rootSupervisor == null) {
                 return CompletableFuture.completedFuture(
                         ResponseEntity.badRequest()
@@ -174,7 +174,7 @@ public class SupervisionController {
 
             return rootSupervisor
                     .ask((org.apache.pekko.actor.typed.ActorRef<ActorHierarchy.SpawnResult> replyTo) ->
-                            new SupervisorActor.RouteSpawnChild(parentId, childId, strategy, replyTo))
+                            new HierarchicalActor.RouteSpawnChild(parentId, childId, strategy, replyTo))
                     .toCompletableFuture()
                     .thenApply(
                             resultObj -> {
@@ -223,7 +223,7 @@ public class SupervisionController {
                             .body(Map.of("success", false, "message", "workerId is required")));
         }
 
-        SpringActorRef<SupervisorActor.Command> supervisor = supervisors.get(supervisorId);
+        SpringActorRef<HierarchicalActor.Command> supervisor = supervisors.get(supervisorId);
         if (supervisor == null) {
             return CompletableFuture.completedFuture(
                     ResponseEntity.badRequest()
@@ -232,12 +232,12 @@ public class SupervisionController {
 
         return supervisor
                 .ask(
-                        (org.apache.pekko.actor.typed.ActorRef<SupervisorActor.SpawnResult> replyTo) ->
-                                new SupervisorActor.SpawnWorker(workerId, strategy, replyTo))
+                        (org.apache.pekko.actor.typed.ActorRef<ActorHierarchy.SpawnResult> replyTo) ->
+                                new HierarchicalActor.SpawnChild(workerId, strategy, replyTo))
                 .toCompletableFuture()
                 .thenApply(
                         resultObj -> {
-                            SupervisorActor.SpawnResult result = (SupervisorActor.SpawnResult) resultObj;
+                            ActorHierarchy.SpawnResult result = (ActorHierarchy.SpawnResult) resultObj;
                             if (result.success) {
                                 return ResponseEntity.ok(
                                         toMap(
@@ -275,7 +275,7 @@ public class SupervisionController {
         String supervisorId = request.get("supervisorId");
         String taskName = request.getOrDefault("taskName", "default-task");
 
-        SpringActorRef<SupervisorActor.Command> supervisor = supervisors.get(supervisorId);
+        SpringActorRef<HierarchicalActor.Command> supervisor = supervisors.get(supervisorId);
         if (supervisor == null) {
             return CompletableFuture.completedFuture(
                     ResponseEntity.badRequest()
@@ -284,12 +284,12 @@ public class SupervisionController {
 
         return supervisor
                 .ask(
-                        (org.apache.pekko.actor.typed.ActorRef<WorkerActor.WorkResult> replyTo) ->
-                                new SupervisorActor.RouteWork(workerId, taskName, replyTo))
+                        (org.apache.pekko.actor.typed.ActorRef<HierarchicalActor.WorkResult> replyTo) ->
+                                new HierarchicalActor.RouteToChild(workerId, taskName, replyTo))
                 .toCompletableFuture()
                 .thenApply(
                         resultObj -> {
-                            WorkerActor.WorkResult result = (WorkerActor.WorkResult) resultObj;
+                            HierarchicalActor.WorkResult result = (HierarchicalActor.WorkResult) resultObj;
                             return ResponseEntity.ok(
                                     toMap(
                                             "success",
@@ -321,7 +321,7 @@ public class SupervisionController {
             @PathVariable String workerId, @RequestBody Map<String, String> request) {
         String supervisorId = request.get("supervisorId");
 
-        SpringActorRef<SupervisorActor.Command> supervisor = supervisors.get(supervisorId);
+        SpringActorRef<HierarchicalActor.Command> supervisor = supervisors.get(supervisorId);
         if (supervisor == null) {
             return CompletableFuture.completedFuture(
                     ResponseEntity.badRequest()
@@ -331,7 +331,7 @@ public class SupervisionController {
         return supervisor
                 .ask(
                         (org.apache.pekko.actor.typed.ActorRef<String> replyTo) ->
-                                new SupervisorActor.TriggerWorkerFailure(workerId, replyTo))
+                                new HierarchicalActor.TriggerChildFailure(workerId, replyTo))
                 .toCompletableFuture()
                 .thenApply(
                         result ->
@@ -362,7 +362,7 @@ public class SupervisionController {
     public CompletableFuture<ResponseEntity<Map<String, Object>>> stopWorker(
             @PathVariable String workerId, @RequestParam String supervisorId) {
 
-        SpringActorRef<SupervisorActor.Command> supervisor = supervisors.get(supervisorId);
+        SpringActorRef<HierarchicalActor.Command> supervisor = supervisors.get(supervisorId);
         if (supervisor == null) {
             return CompletableFuture.completedFuture(
                     ResponseEntity.badRequest()
@@ -372,7 +372,7 @@ public class SupervisionController {
         return supervisor
                 .ask(
                         (org.apache.pekko.actor.typed.ActorRef<String> replyTo) ->
-                                new SupervisorActor.StopWorker(workerId, replyTo))
+                                new HierarchicalActor.StopChild(workerId, replyTo))
                 .toCompletableFuture()
                 .thenApply(
                         result ->
@@ -401,7 +401,7 @@ public class SupervisionController {
     @DeleteMapping("/supervisors/{supervisorId}")
     public ResponseEntity<Map<String, Object>> deleteSupervisor(
             @PathVariable String supervisorId) {
-        SpringActorRef<SupervisorActor.Command> supervisor = supervisors.remove(supervisorId);
+        SpringActorRef<HierarchicalActor.Command> supervisor = supervisors.remove(supervisorId);
 
         if (supervisor == null) {
             return ResponseEntity.badRequest()
@@ -425,7 +425,7 @@ public class SupervisionController {
         }
 
         // Get the root supervisor
-        SpringActorRef<SupervisorActor.Command> supervisor = supervisors.get("root-supervisor");
+        SpringActorRef<HierarchicalActor.Command> supervisor = supervisors.get("root-supervisor");
         if (supervisor == null) {
             return CompletableFuture.completedFuture(
                     ResponseEntity.ok(toMap("root", null)));
@@ -434,7 +434,7 @@ public class SupervisionController {
         return supervisor
                 .ask(
                         (org.apache.pekko.actor.typed.ActorRef<ActorHierarchy.ActorNode> replyTo) ->
-                                new SupervisorActor.GetHierarchy(replyTo))
+                                new HierarchicalActor.GetHierarchy(replyTo))
                 .toCompletableFuture()
                 .thenApply(
                         nodeObj -> {
