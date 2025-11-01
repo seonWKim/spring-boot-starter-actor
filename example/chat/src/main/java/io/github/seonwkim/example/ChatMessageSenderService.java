@@ -30,8 +30,10 @@ public class ChatMessageSenderService {
      */
     public void sendMessage(String roomId, String userId, String message) {
         try {
-            SpringShardedActorRef<ChatRoomActor.Command> roomRef =
-                    springActorSystem.sharded(ChatRoomActor.class).withId(roomId).get();
+            SpringShardedActorRef<ChatRoomActor.Command> roomRef = springActorSystem
+                    .sharded(ChatRoomActor.class)
+                    .withId(roomId)
+                    .get();
 
             ChatRoomActor.SendMessage sendMessageCmd = new ChatRoomActor.SendMessage(userId, message);
             roomRef.tell(sendMessageCmd);

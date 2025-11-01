@@ -1,12 +1,11 @@
 package io.github.seonwkim.example;
 
+import java.util.Map;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.reactive.HandlerMapping;
 import org.springframework.web.reactive.handler.SimpleUrlHandlerMapping;
 import org.springframework.web.reactive.socket.server.support.WebSocketHandlerAdapter;
-
-import java.util.Map;
 
 /**
  * Configuration for reactive WebSocket support using Spring WebFlux.

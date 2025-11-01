@@ -29,25 +29,19 @@ public class ChatMessageController {
     @PostMapping("/send")
     public ResponseEntity<SendMessageResponse> sendMessage(@RequestBody SendMessageRequest request) {
         if (request.getRoomId() == null || request.getRoomId().isEmpty()) {
-            return ResponseEntity.badRequest()
-                    .body(new SendMessageResponse(false, "Room ID is required"));
+            return ResponseEntity.badRequest().body(new SendMessageResponse(false, "Room ID is required"));
         }
 
         if (request.getUserId() == null || request.getUserId().isEmpty()) {
-            return ResponseEntity.badRequest()
-                    .body(new SendMessageResponse(false, "User ID is required"));
+            return ResponseEntity.badRequest().body(new SendMessageResponse(false, "User ID is required"));
         }
 
         if (request.getMessage() == null || request.getMessage().isEmpty()) {
-            return ResponseEntity.badRequest()
-                    .body(new SendMessageResponse(false, "Message is required"));
+            return ResponseEntity.badRequest().body(new SendMessageResponse(false, "Message is required"));
         }
 
         try {
-            chatMessageSenderService.sendMessage(
-                    request.getRoomId(),
-                    request.getUserId(),
-                    request.getMessage());
+            chatMessageSenderService.sendMessage(request.getRoomId(), request.getUserId(), request.getMessage());
 
             return ResponseEntity.ok(new SendMessageResponse(true, "Message sent successfully"));
         } catch (Exception e) {

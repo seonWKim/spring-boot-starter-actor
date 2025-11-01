@@ -80,10 +80,7 @@ public interface SpringActorContext {
      * @return an ActorRef to the spawned child actor
      */
     default <A extends SpringActorWithContext<A, C, ?>, C> ActorRef<C> spawnChild(
-            ActorContext<?> pekkoContext,
-            Class<A> actorClass,
-            String childId
-    ) {
+            ActorContext<?> pekkoContext, Class<A> actorClass, String childId) {
         return spawnChild(pekkoContext, actorClass, childId, SupervisorStrategy.restart());
     }
 
@@ -130,16 +127,11 @@ public interface SpringActorContext {
      * @return an ActorRef to the spawned child actor
      */
     default <A extends SpringActorWithContext<A, C, ?>, C> ActorRef<C> spawnChild(
-            ActorContext<?> pekkoContext,
-            Class<A> actorClass,
-            String childId,
-            SupervisorStrategy strategy
-    ) {
+            ActorContext<?> pekkoContext, Class<A> actorClass, String childId, SupervisorStrategy strategy) {
         ActorTypeRegistry reg = registry();
         if (reg == null) {
             throw new IllegalStateException(
-                "Registry not available. Ensure the actor was spawned through SpringActorSystem."
-            );
+                    "Registry not available. Ensure the actor was spawned through SpringActorSystem.");
         }
 
         // Create a child context with the same registry

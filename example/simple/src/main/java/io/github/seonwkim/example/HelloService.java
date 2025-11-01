@@ -41,9 +41,8 @@ public class HelloService {
      * This demonstrates the PostStop signal handler.
      */
     public Mono<String> stopActor() {
-        return Mono.fromCompletionStage(actorSystem
-                .getOrSpawn(HelloActor.class, "hello-actor")
-                .thenCompose(actor -> {
+        return Mono.fromCompletionStage(
+                actorSystem.getOrSpawn(HelloActor.class, "hello-actor").thenCompose(actor -> {
                     actor.stop();
                     return Mono.just("Actor stopped - PostStop signal will be triggered")
                             .toFuture();

@@ -8,6 +8,9 @@ import io.github.seonwkim.example.UserActor.Connect;
 import io.github.seonwkim.example.UserActor.JoinRoom;
 import io.github.seonwkim.example.UserActor.LeaveRoom;
 import io.github.seonwkim.example.UserActor.SendMessage;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -17,10 +20,6 @@ import org.springframework.web.reactive.socket.WebSocketSession;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 import reactor.core.scheduler.Schedulers;
-
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 /**
  * Reactive WebSocket handler for chat messages. Uses Spring WebFlux for non-blocking WebSocket handling.
@@ -48,39 +47,35 @@ public class ChatWebSocketHandler implements WebSocketHandler {
         Sinks.Many<String> sink = Sinks.many().multicast().onBackpressureBuffer();
 
         // Create UserActor context with the message sink
-        UserActor.UserActorContext userActorContext =
-                new UserActor.UserActorContext(actorSystem, userId, sink);
+        UserActor.UserActorContext userActorContext = new UserActor.UserActorContext(actorSystem, userId, sink);
 
         // Convert CompletionStage to Mono and wait for actor to be ready before processing messages
-        return Mono.fromCompletionStage(
-                actorSystem.actor(UserActor.class)
+        return Mono.fromCompletionStage(actorSystem
+                        .actor(UserActor.class)
                         .withContext(userActorContext)
-                        .start()
-        )
-        .flatMap(userActor -> {
-            // Actor is now ready - store it and send connect message
-            userActors.put(userId, userActor);
-            userActor.tell(new Connect());
-            log.info("UserActor started for user {}", userId);
+                        .start())
+                .flatMap(userActor -> {
+                    // Actor is now ready - store it and send connect message
+                    userActors.put(userId, userActor);
+                    userActor.tell(new Connect());
+                    log.info("UserActor started for user {}", userId);
 
-            // Now process messages - actor is guaranteed to be ready
-            Mono<Void> input = session.receive()
-                    .map(WebSocketMessage::getPayloadAsText)
-                    .flatMap(payload -> handleMessage(userId, payload))
-                    .then();
+                    // Now process messages - actor is guaranteed to be ready
+                    Mono<Void> input = session.receive()
+                            .map(WebSocketMessage::getPayloadAsText)
+                            .flatMap(payload -> handleMessage(userId, payload))
+                            .then();
 
-            // Send outgoing messages to client
-            Mono<Void> output = session.send(
-                    sink.asFlux().map(session::textMessage)
-            );
+                    // Send outgoing messages to client
+                    Mono<Void> output = session.send(sink.asFlux().map(session::textMessage));
 
-            // Run input and output concurrently, cleanup when done
-            return Mono.zip(input, output)
-                    .doFinally(signalType -> {
-                        cleanup(userId);
-                    })
-                    .then();
-        });
+                    // Run input and output concurrently, cleanup when done
+                    return Mono.zip(input, output)
+                            .doFinally(signalType -> {
+                                cleanup(userId);
+                            })
+                            .then();
+                });
     }
 
     /**
@@ -88,45 +83,48 @@ public class ChatWebSocketHandler implements WebSocketHandler {
      */
     private Mono<Void> handleMessage(String userId, String payload) {
         return Mono.fromCallable(() -> {
-            try {
-                // Blocking JSON parsing - safe because we're on boundedElastic scheduler
-                JsonNode json = objectMapper.readTree(payload);
-                JsonNode typeNode = json.get("type");
+                    try {
+                        // Blocking JSON parsing - safe because we're on boundedElastic scheduler
+                        JsonNode json = objectMapper.readTree(payload);
+                        JsonNode typeNode = json.get("type");
 
-                if (typeNode == null || typeNode.isNull()) {
-                    log.warn("Message from user {} missing 'type' field", userId);
-                    return null;
-                }
+                        if (typeNode == null || typeNode.isNull()) {
+                            log.warn("Message from user {} missing 'type' field", userId);
+                            return null;
+                        }
 
-                String type = typeNode.asText();
-                log.debug("Handling message type '{}' from user {}", type, userId);
+                        String type = typeNode.asText();
+                        log.debug("Handling message type '{}' from user {}", type, userId);
 
-                switch (type) {
-                    case "join":
-                        handleJoinRoom(userId, json);
-                        break;
-                    case "leave":
-                        handleLeaveRoom(userId);
-                        break;
-                    case "message":
-                        handleChatMessage(userId, json);
-                        break;
-                    default:
-                        log.warn("Unknown message type '{}' from user {}", type, userId);
-                        break;
-                }
-                return null;
-            } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
-                log.error("Failed to parse JSON from user {}: {}", userId,
-                    payload.substring(0, Math.min(100, payload.length())), e);
-                return null;
-            } catch (Exception e) {
-                log.error("Error handling message from user {}", userId, e);
-                return null;
-            }
-        })
-        .subscribeOn(Schedulers.boundedElastic())  // Offload blocking JSON parsing
-        .then();
+                        switch (type) {
+                            case "join":
+                                handleJoinRoom(userId, json);
+                                break;
+                            case "leave":
+                                handleLeaveRoom(userId);
+                                break;
+                            case "message":
+                                handleChatMessage(userId, json);
+                                break;
+                            default:
+                                log.warn("Unknown message type '{}' from user {}", type, userId);
+                                break;
+                        }
+                        return null;
+                    } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+                        log.error(
+                                "Failed to parse JSON from user {}: {}",
+                                userId,
+                                payload.substring(0, Math.min(100, payload.length())),
+                                e);
+                        return null;
+                    } catch (Exception e) {
+                        log.error("Error handling message from user {}", userId, e);
+                        return null;
+                    }
+                })
+                .subscribeOn(Schedulers.boundedElastic()) // Offload blocking JSON parsing
+                .then();
     }
 
     private void handleJoinRoom(String userId, JsonNode payload) {

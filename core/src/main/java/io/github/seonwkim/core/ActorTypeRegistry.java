@@ -39,7 +39,7 @@ public class ActorTypeRegistry {
      */
     @SuppressWarnings("unchecked")
     public <A extends SpringActorWithContext<A, C, CTX>, C, CTX extends SpringActorContext>
-    Behavior<C> createTypedBehavior(Class<A> actorClass, SpringActorContext actorContext) {
+            Behavior<C> createTypedBehavior(Class<A> actorClass, SpringActorContext actorContext) {
         // Safe cast: register method ensures type consistency
         return (Behavior<C>) createBehavior(actorClass, actorContext);
     }
@@ -63,9 +63,8 @@ public class ActorTypeRegistry {
         }
 
         // Inject registry if the context doesn't have one
-        SpringActorContext contextWithRegistry = actorContext.registry() == null
-            ? wrapContextWithRegistry(actorContext)
-            : actorContext;
+        SpringActorContext contextWithRegistry =
+                actorContext.registry() == null ? wrapContextWithRegistry(actorContext) : actorContext;
 
         return factory.apply(contextWithRegistry);
     }

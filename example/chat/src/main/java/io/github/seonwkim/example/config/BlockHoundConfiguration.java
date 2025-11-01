@@ -1,10 +1,9 @@
 package io.github.seonwkim.example.config;
 
+import javax.annotation.PostConstruct;
 import org.springframework.context.annotation.Configuration;
 import reactor.blockhound.BlockHound;
 import reactor.blockhound.integration.BlockHoundIntegration;
-
-import javax.annotation.PostConstruct;
 
 /**
  * Configuration for BlockHound to detect blocking calls in non-blocking threads.
@@ -18,9 +17,7 @@ public class BlockHoundConfiguration {
         // Usage: java -Dblockhound.enabled=true -jar app.jar
         String enabled = System.getProperty("blockhound.enabled", "false");
         if ("true".equalsIgnoreCase(enabled)) {
-            BlockHound.builder()
-                    .with(new MinimalBlockHoundIntegration())
-                    .install();
+            BlockHound.builder().with(new MinimalBlockHoundIntegration()).install();
             System.out.println("✓ BlockHound enabled via system property - monitoring Pekko dispatcher threads");
         }
     }
@@ -38,10 +35,8 @@ public class BlockHoundConfiguration {
                 String name = t.getName();
                 // ONLY Pekko dispatcher threads are marked as non-blocking
                 // All other threads (main, Netty, etc.) can block freely
-                return name != null && (
-                    name.contains("-dispatcher-") ||
-                    name.contains("pekko.actor.default-dispatcher")
-                );
+                return name != null
+                        && (name.contains("-dispatcher-") || name.contains("pekko.actor.default-dispatcher"));
             });
 
             // Allow logging even in dispatcher threads (it can sometimes block)
@@ -81,7 +76,8 @@ public class BlockHoundConfiguration {
         if ("true".equalsIgnoreCase(enabled)) {
             System.out.println("✓ BlockHound is active - monitoring Pekko dispatcher threads for blocking operations");
         } else {
-            System.out.println("ℹ BlockHound is disabled - enable with -Dblockhound.enabled=true for development/testing");
+            System.out.println(
+                    "ℹ BlockHound is disabled - enable with -Dblockhound.enabled=true for development/testing");
         }
     }
 }

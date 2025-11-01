@@ -2,6 +2,7 @@ package io.github.seonwkim.example;
 
 import io.github.seonwkim.core.SpringActor;
 import io.github.seonwkim.core.SpringActorContext;
+import java.time.Duration;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.PostStop;
@@ -10,8 +11,6 @@ import org.apache.pekko.actor.typed.SupervisorStrategy;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.springframework.stereotype.Component;
-
-import java.time.Duration;
 
 /**
  * Actor that handles hello messages in a simple (non-clustered) environment. It responds with a
@@ -91,8 +90,7 @@ public class HelloActor implements SpringActor<HelloActor, HelloActor.Command> {
 
             // Wrap with supervision strategy to restart on any exception
             return Behaviors.supervise(behavior)
-                    .onFailure(SupervisorStrategy.restart()
-                            .withLimit(10, Duration.ofMinutes(1)));
+                    .onFailure(SupervisorStrategy.restart().withLimit(10, Duration.ofMinutes(1)));
         }
 
         /**
@@ -138,10 +136,7 @@ public class HelloActor implements SpringActor<HelloActor, HelloActor.Command> {
          * @return The same behavior (actor will be restarted)
          */
         private Behavior<Command> onPreRestart(PreRestart signal) {
-            ctx.getLog().warn(
-                "Actor {} is being restarted due to failure",
-                actorContext.actorId()
-            );
+            ctx.getLog().warn("Actor {} is being restarted due to failure", actorContext.actorId());
 
             // You can perform cleanup here before the actor restarts
             // For example: closing connections, releasing resources, etc.
@@ -158,10 +153,7 @@ public class HelloActor implements SpringActor<HelloActor, HelloActor.Command> {
          * @return The same behavior
          */
         private Behavior<Command> onPostStop(PostStop signal) {
-            ctx.getLog().info(
-                "Actor {} is stopping. Performing cleanup...",
-                actorContext.actorId()
-            );
+            ctx.getLog().info("Actor {} is stopping. Performing cleanup...", actorContext.actorId());
 
             // Perform cleanup here
             // For example: close database connections, release file handles,

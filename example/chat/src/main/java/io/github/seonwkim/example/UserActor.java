@@ -106,9 +106,7 @@ public class UserActor implements SpringActorWithContext<UserActor, UserActor.Co
         private final String userId;
 
         public UserActorContext(
-                SpringActorSystem actorSystem,
-                String userId,
-                reactor.core.publisher.Sinks.Many<String> messageSink) {
+                SpringActorSystem actorSystem, String userId, reactor.core.publisher.Sinks.Many<String> messageSink) {
             this.actorSystem = actorSystem;
             this.userId = userId;
             this.messageSink = messageSink;
@@ -123,10 +121,7 @@ public class UserActor implements SpringActorWithContext<UserActor, UserActor.Co
     @Override
     public Behavior<Command> create(UserActorContext actorContext) {
         return Behaviors.setup(context -> new UserActorBehavior(
-                        context,
-                        actorContext.actorSystem,
-                        actorContext.userId,
-                        actorContext.messageSink)
+                        context, actorContext.actorSystem, actorContext.userId, actorContext.messageSink)
                 .create());
     }
 
@@ -262,12 +257,11 @@ public class UserActor implements SpringActorWithContext<UserActor, UserActor.Co
          */
         private String escapeJson(String value) {
             if (value == null) return "";
-            return value
-                .replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\n", "\\n")
-                .replace("\r", "\\r")
-                .replace("\t", "\\t");
+            return value.replace("\\", "\\\\")
+                    .replace("\"", "\\\"")
+                    .replace("\n", "\\n")
+                    .replace("\r", "\\r")
+                    .replace("\t", "\\t");
         }
 
         @FunctionalInterface
