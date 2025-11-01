@@ -1,27 +1,13 @@
 package io.github.seonwkim.example.supervision;
 
 import java.util.List;
+
 import org.apache.pekko.actor.typed.ActorRef;
 
 /**
  * Shared data structures for actor hierarchy management.
  */
 public class ActorHierarchy {
-
-    /**
-     * Command to spawn a child worker with a supervision strategy.
-     */
-    public static class SpawnChild {
-        public final String childId;
-        public final String strategy;
-        public final ActorRef<SpawnResult> replyTo;
-
-        public SpawnChild(String childId, String strategy, ActorRef<SpawnResult> replyTo) {
-            this.childId = childId;
-            this.strategy = strategy;
-            this.replyTo = replyTo;
-        }
-    }
 
     /**
      * Result of spawning a child.
@@ -35,17 +21,6 @@ public class ActorHierarchy {
             this.childId = childId;
             this.success = success;
             this.message = message;
-        }
-    }
-
-    /**
-     * Command to get the hierarchy information for this actor and its children.
-     */
-    public static class GetHierarchy {
-        public final ActorRef<ActorNode> replyTo;
-
-        public GetHierarchy(ActorRef<ActorNode> replyTo) {
-            this.replyTo = replyTo;
         }
     }
 
@@ -71,23 +46,6 @@ public class ActorHierarchy {
             this.strategy = strategy;
             this.path = path;
             this.children = children;
-        }
-    }
-
-    /**
-     * Helper to parse supervision strategy string into description.
-     */
-    public static String getStrategyDescription(String strategy) {
-        switch (strategy) {
-            case "restart-limited":
-                return "Restart (max 3 times in 1 min)";
-            case "stop":
-                return "Stop on failure";
-            case "resume":
-                return "Resume (ignore failure)";
-            case "restart":
-            default:
-                return "Restart on failure";
         }
     }
 }
