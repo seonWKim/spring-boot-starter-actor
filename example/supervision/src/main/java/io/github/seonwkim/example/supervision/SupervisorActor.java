@@ -111,28 +111,6 @@ public class SupervisorActor
         }
     }
 
-    public static class HierarchyInfo {
-        public final String supervisorId;
-        public final List<WorkerInfo> workers;
-
-        public HierarchyInfo(String supervisorId, List<WorkerInfo> workers) {
-            this.supervisorId = supervisorId;
-            this.workers = workers;
-        }
-    }
-
-    public static class WorkerInfo {
-        public final String workerId;
-        public final String strategy;
-        public final String path;
-
-        public WorkerInfo(String workerId, String strategy, String path) {
-            this.workerId = workerId;
-            this.strategy = strategy;
-            this.path = path;
-        }
-    }
-
     @Override
     public Behavior<Command> create(SpringActorContext actorContext) {
         return Behaviors.setup(ctx -> new SupervisorBehavior(ctx, actorContext, logPublisher).create());
@@ -370,7 +348,6 @@ public class SupervisorActor
 
             ctx.getChildren().forEach(childRef -> {
                 String childName = childRef.path().name();
-                String strategy = childStrategies.getOrDefault(childName, "Unknown");
 
                 // Ask each child for its hierarchy (recursive)
                 ActorRef<WorkerActor.Command> typedChild = (ActorRef<WorkerActor.Command>) (ActorRef<?>) childRef;

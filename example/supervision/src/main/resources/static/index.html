@@ -20,7 +20,7 @@
         }
 
         .container {
-            max-width: 1400px;
+            width: 100%;
             margin: 0 auto;
             background: white;
             border-radius: 12px;
@@ -105,9 +105,9 @@
         }
 
         #tree-svg {
-            width: 100%;
-            height: 100%;
+            min-width: 100%;
             min-height: 600px;
+            display: block;
         }
 
         /* Actor node styles */
@@ -359,7 +359,7 @@
         // Tree layout configuration
         const NODE_RADIUS = 35;
         const LEVEL_HEIGHT = 150;
-        const MIN_HORIZONTAL_SPACING = 120;
+        const MIN_HORIZONTAL_SPACING = 150;
 
         function initSSE() {
             eventSource = new EventSource('/api/logs/stream');
@@ -423,18 +423,23 @@
         function drawTree(rootData) {
             const svg = document.getElementById('tree-svg');
             const svgRect = svg.getBoundingClientRect();
-            const width = svgRect.width;
+            const containerWidth = svgRect.width;
 
             // Clear existing content
             svg.innerHTML = '';
 
             // Calculate tree layout recursively
-            const layoutTree = calculateTreeLayout(rootData, width);
+            const layoutTree = calculateTreeLayout(rootData, containerWidth);
 
             // Calculate total height needed
             const maxDepth = getMaxDepth(layoutTree);
             const height = Math.max(600, (maxDepth + 1) * LEVEL_HEIGHT + 100);
+
+            // Set SVG dimensions to accommodate the full tree width
+            const requiredWidth = Math.max(containerWidth, layoutTree.subtreeWidth + 100);
+            svg.setAttribute('width', requiredWidth);
             svg.setAttribute('height', height);
+            svg.setAttribute('viewBox', `0 0 ${requiredWidth} ${height}`);
 
             // Draw connections first (so they're behind nodes)
             drawConnectionsRecursive(svg, layoutTree);
@@ -450,53 +455,76 @@
             return Math.max(...node.children.map(child => getMaxDepth(child, depth + 1)));
         }
 
-        function calculateTreeLayout(node, containerWidth, depth = 0, parentX = null) {
-            const y = 80 + depth * LEVEL_HEIGHT;
+        function calculateTreeLayout(node, containerWidth, depth = 0) {
+            // First pass: calculate subtree widths bottom-up
+            const treeWithWidths = calculateSubtreeWidths(node);
+
+            // Second pass: assign x positions top-down
+            const totalWidth = treeWithWidths.subtreeWidth;
+            const startX = Math.max(NODE_RADIUS + 50, (containerWidth - totalWidth) / 2);
+
+            assignPositions(treeWithWidths, startX, depth);
+
+            return treeWithWidths;
+        }
+
+        function calculateSubtreeWidths(node) {
             const children = node.children || [];
 
-            // Calculate positions for this node and its children
             const layoutNode = {
                 id: node.actorId,
                 type: node.actorType,
                 strategy: node.strategy,
                 path: node.path,
-                depth: depth,
-                children: []
+                children: [],
+                subtreeWidth: MIN_HORIZONTAL_SPACING
             };
 
             if (children.length === 0) {
-                // Leaf node - position directly under parent or center
-                layoutNode.x = parentX !== null ? parentX : containerWidth / 2;
-                layoutNode.y = y;
+                // Leaf node: minimum width
+                layoutNode.subtreeWidth = MIN_HORIZONTAL_SPACING;
                 return layoutNode;
             }
 
-            // Recursively layout children first
-            const childLayouts = children.map(child =>
-                calculateTreeLayout(child, containerWidth, depth + 1, null)
-            );
-
-            // Calculate horizontal spacing for children
-            const totalChildren = childLayouts.length;
-            const spacing = Math.max(MIN_HORIZONTAL_SPACING, (containerWidth - 100) / (totalChildren + 1));
-            const totalWidth = (totalChildren - 1) * spacing;
-            const startX = (containerWidth - totalWidth) / 2;
-
-            // Position children horizontally
-            childLayouts.forEach((child, index) => {
-                child.x = startX + index * spacing;
-            });
-
-            // Position parent node centered above children
-            if (totalChildren === 1) {
-                layoutNode.x = childLayouts[0].x;
-            } else {
-                layoutNode.x = (childLayouts[0].x + childLayouts[childLayouts.length - 1].x) / 2;
-            }
-            layoutNode.y = y;
+            // Recursively calculate children's widths
+            const childLayouts = children.map(child => calculateSubtreeWidths(child));
             layoutNode.children = childLayouts;
 
+            // This node's subtree width is the sum of all children's subtree widths
+            const totalChildrenWidth = childLayouts.reduce((sum, child) => sum + child.subtreeWidth, 0);
+            layoutNode.subtreeWidth = Math.max(MIN_HORIZONTAL_SPACING, totalChildrenWidth);
+
             return layoutNode;
+        }
+
+        function assignPositions(node, x, depth) {
+            const y = 80 + depth * LEVEL_HEIGHT;
+
+            // Assign position to this node
+            node.depth = depth;
+            node.y = y;
+
+            if (node.children.length === 0) {
+                // Leaf node: position at x
+                node.x = x + MIN_HORIZONTAL_SPACING / 2;
+                return;
+            }
+
+            // Calculate positions for children
+            let currentX = x;
+            node.children.forEach(child => {
+                assignPositions(child, currentX, depth + 1);
+                currentX += child.subtreeWidth;
+            });
+
+            // Position parent centered above children
+            if (node.children.length === 1) {
+                node.x = node.children[0].x;
+            } else {
+                const firstChildX = node.children[0].x;
+                const lastChildX = node.children[node.children.length - 1].x;
+                node.x = (firstChildX + lastChildX) / 2;
+            }
         }
 
         function drawConnectionsRecursive(svg, node) {

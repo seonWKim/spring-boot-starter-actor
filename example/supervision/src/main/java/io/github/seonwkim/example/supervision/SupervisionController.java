@@ -3,6 +3,7 @@ package io.github.seonwkim.example.supervision;
 import io.github.seonwkim.core.SpringActorRef;
 import io.github.seonwkim.core.SpringActorSystem;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -48,7 +49,7 @@ public class SupervisionController {
 
     @SuppressWarnings("unchecked")
     private static Map<String, Object> toMap(Object... keyValues) {
-        Map<String, Object> map = new java.util.HashMap<>();
+        Map<String, Object> map = new HashMap<>();
         for (int i = 0; i < keyValues.length; i += 2) {
             map.put((String) keyValues[i], keyValues[i + 1]);
         }
@@ -70,8 +71,7 @@ public class SupervisionController {
 
         if (supervisors.containsKey(supervisorId)) {
             return ResponseEntity.badRequest()
-                    .body(
-                            Map.of(
+                    .body(Map.of(
                                     "success",
                                     false,
                                     "message",
