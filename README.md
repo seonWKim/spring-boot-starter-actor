@@ -367,7 +367,56 @@ spring:
 
 ### Supervision and Fault Tolerance
 
-Spring Boot Starter Actor provides robust supervision strategies for building self-healing, fault-tolerant systems. The interactive supervision example demonstrates real-time failure handling with visual actor hierarchies:
+Spring Boot Starter Actor provides robust supervision strategies for building self-healing, fault-tolerant systems. When a child actor fails, its parent supervisor can decide how to handle the failure using different strategies.
+
+#### Available Supervision Strategies
+
+**1. Restart Strategy (Default)**
+```java
+@Component
+public class SupervisorActor implements SpringActorWithContext<SupervisorActor, Command, SpringActorContext> {
+
+    @Override
+    public Behavior<Command> create(SpringActorContext actorContext) {
+        return Behaviors.setup(ctx -> {
+            // Spawn child with restart strategy
+            SupervisorStrategy strategy = SupervisorStrategy.restart();
+            actorContext.spawnChild(ctx, WorkerActor.class, "worker-1", strategy);
+
+            return Behaviors.receive(Command.class)
+                .onMessage(Command.class, this::handleMessage)
+                .build();
+        });
+    }
+}
+```
+
+**2. Restart with Limit**
+```java
+// Restart up to 3 times within 1 minute, then stop
+SupervisorStrategy strategy = SupervisorStrategy.restart()
+    .withLimit(3, Duration.ofMinutes(1));
+
+actorContext.spawnChild(ctx, WorkerActor.class, "worker-1", strategy);
+```
+
+**3. Stop Strategy**
+```java
+// Stop the child actor on failure
+SupervisorStrategy strategy = SupervisorStrategy.stop();
+actorContext.spawnChild(ctx, WorkerActor.class, "worker-1", strategy);
+```
+
+**4. Resume Strategy**
+```java
+// Ignore the failure and resume processing
+SupervisorStrategy strategy = SupervisorStrategy.resume();
+actorContext.spawnChild(ctx, WorkerActor.class, "worker-1", strategy);
+```
+
+#### Interactive Demo
+
+The supervision example includes an interactive demo that visualizes actor hierarchies and demonstrates real-time failure handling:
 
 <div style="border: 2px solid #ccc; display: inline-block; border-radius: 8px; overflow: hidden; margin: 20px 0;">
   <img src="mkdocs/docs/supervision.png" alt="Supervision Interactive Demo - Actor Hierarchy Visualization"/>
