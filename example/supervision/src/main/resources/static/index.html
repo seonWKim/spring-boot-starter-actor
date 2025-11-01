@@ -476,7 +476,7 @@
 
             // Second pass: assign x positions top-down
             const totalWidth = treeWithWidths.subtreeWidth;
-            const startX = Math.max(NODE_RADIUS + 50, (containerWidth - totalWidth) / 2);
+            const startX = Math.max(BASE_NODE_RADIUS + 50, (containerWidth - totalWidth) / 2);
 
             assignPositions(treeWithWidths, startX, depth);
 
@@ -797,8 +797,6 @@
         }
 
         async function triggerFailure(workerId) {
-            if (!confirm(`Trigger failure in ${workerId}?`)) return;
-
             hideHoverCard();
 
             try {
@@ -810,16 +808,14 @@
 
                 const result = await response.json();
                 if (!result.success) {
-                    alert(result.message);
+                    console.error('Trigger failure failed:', result.message);
                 }
             } catch (error) {
-                alert('Error: ' + error.message);
+                console.error('Error triggering failure:', error.message);
             }
         }
 
         async function stopWorker(workerId) {
-            if (!confirm(`Stop worker ${workerId}?`)) return;
-
             hideHoverCard();
 
             try {
@@ -831,10 +827,10 @@
                 if (result.success) {
                     refreshHierarchy();
                 } else {
-                    alert(result.message);
+                    console.error('Stop worker failed:', result.message);
                 }
             } catch (error) {
-                alert('Error: ' + error.message);
+                console.error('Error stopping worker:', error.message);
             }
         }
 
