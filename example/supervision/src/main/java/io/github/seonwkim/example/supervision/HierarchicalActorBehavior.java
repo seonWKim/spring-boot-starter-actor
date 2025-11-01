@@ -29,6 +29,7 @@ public class HierarchicalActorBehavior<C> {
     protected final String actorTypeName;
     protected final Class<?> childActorClass;
     protected int tasksCompleted = 0;
+    protected int failureCount = 0;
     protected final Map<String, String> childStrategies = new HashMap<>();
 
     public HierarchicalActorBehavior(
@@ -63,8 +64,9 @@ public class HierarchicalActorBehavior<C> {
 
     protected Behavior<C> onTriggerFailure(HierarchicalActor.TriggerFailure msg) {
         String actorId = actorContext.actorId();
-        ctx.getLog().warn("Worker {} failing intentionally", actorId);
-        logPublisher.publish(String.format("[%s] ⚠️ Failing intentionally!", actorId));
+        failureCount++;
+        ctx.getLog().warn("Worker {} failing intentionally (failure #{})", actorId, failureCount);
+        logPublisher.publish(String.format("[%s] ⚠️ Failing intentionally! (failure #%d)", actorId, failureCount));
 
         msg.replyTo.tell("Failing now");
         throw new RuntimeException("Intentional failure for supervision demonstration");
@@ -306,6 +308,7 @@ public class HierarchicalActorBehavior<C> {
                             canProcessWork ? "worker" : "supervisor",
                             canProcessWork ? null : "Supervisor",
                             ctx.getSelf().path().toString(),
+                            failureCount,
                             children
                     );
                     msg.replyTo.tell(node);
@@ -317,6 +320,7 @@ public class HierarchicalActorBehavior<C> {
                             canProcessWork ? "worker" : "supervisor",
                             canProcessWork ? null : "Supervisor",
                             ctx.getSelf().path().toString(),
+                            failureCount,
                             List.of()
                     );
                     msg.replyTo.tell(node);
@@ -331,13 +335,14 @@ public class HierarchicalActorBehavior<C> {
         String actorId = actorContext.actorId();
         ctx.getLog()
                 .warn(
-                        "Worker {} restarting (tasks completed: {})",
+                        "Worker {} restarting (failures: {}, tasks completed: {})",
                         actorId,
+                        failureCount,
                         tasksCompleted);
         logPublisher.publish(
                 String.format(
-                        "[%s] 🔄 Restarting (state lost: %d tasks completed)",
-                        actorId, tasksCompleted));
+                        "[%s] 🔄 Restarting (failures: %d, state lost: %d tasks completed)",
+                        actorId, failureCount, tasksCompleted));
         return Behaviors.same();
     }
 

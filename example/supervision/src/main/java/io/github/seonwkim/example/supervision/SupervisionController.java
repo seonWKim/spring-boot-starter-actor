@@ -463,6 +463,7 @@ public class SupervisionController {
                 "actorType", node.actorType,
                 "strategy", node.strategy,
                 "path", node.path,
+                "failureCount", node.failureCount,
                 "children", childrenMaps
         );
     }

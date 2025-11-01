@@ -494,6 +494,7 @@
                 type: node.actorType,
                 strategy: node.strategy,
                 path: node.path,
+                failureCount: node.failureCount || 0,
                 radius: nodeRadius, // Store calculated radius
                 children: [],
                 subtreeWidth: MIN_HORIZONTAL_SPACING
@@ -612,6 +613,35 @@
             group.appendChild(circle);
             group.appendChild(text);
 
+            // Add failure count badge for workers (if > 0)
+            if (node.type === 'worker' && node.failureCount > 0) {
+                const badgeRadius = 12;
+                const badgeX = node.x + node.radius;
+                const badgeY = node.y - node.radius * 0.5;
+
+                // Badge circle
+                const badge = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                badge.setAttribute('cx', badgeX);
+                badge.setAttribute('cy', badgeY);
+                badge.setAttribute('r', badgeRadius);
+                badge.setAttribute('fill', '#ff5252');
+                badge.setAttribute('stroke', 'white');
+                badge.setAttribute('stroke-width', 2);
+
+                // Badge text (failure count)
+                const badgeText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                badgeText.setAttribute('x', badgeX);
+                badgeText.setAttribute('y', badgeY + 4);
+                badgeText.setAttribute('text-anchor', 'middle');
+                badgeText.setAttribute('fill', 'white');
+                badgeText.setAttribute('font-size', '11px');
+                badgeText.setAttribute('font-weight', 'bold');
+                badgeText.textContent = node.failureCount;
+
+                group.appendChild(badge);
+                group.appendChild(badgeText);
+            }
+
             // Add event listeners
             group.addEventListener('mouseenter', (e) => showHoverCard(e, node));
             group.addEventListener('mouseleave', hideHoverCard);
@@ -644,6 +674,13 @@
                 html += `<div class="info-row">
                             <span class="info-label">Strategy:</span>
                             <span class="info-value badge">${node.strategy}</span>
+                        </div>`;
+            }
+
+            if (node.type === 'worker' && node.failureCount > 0) {
+                html += `<div class="info-row">
+                            <span class="info-label">Failures:</span>
+                            <span class="info-value" style="color: #ff5252; font-weight: bold;">${node.failureCount}</span>
                         </div>`;
             }
 

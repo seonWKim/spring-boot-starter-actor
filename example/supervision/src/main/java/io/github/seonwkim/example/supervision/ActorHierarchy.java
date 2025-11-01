@@ -33,6 +33,7 @@ public class ActorHierarchy {
         public final String actorType; // "supervisor" or "worker"
         public final String strategy;
         public final String path;
+        public final int failureCount; // Number of failures
         public final List<ActorNode> children; // Recursive children
 
         public ActorNode(
@@ -40,11 +41,13 @@ public class ActorHierarchy {
                 String actorType,
                 String strategy,
                 String path,
+                int failureCount,
                 List<ActorNode> children) {
             this.actorId = actorId;
             this.actorType = actorType;
             this.strategy = strategy;
             this.path = path;
+            this.failureCount = failureCount;
             this.children = children;
         }
     }
