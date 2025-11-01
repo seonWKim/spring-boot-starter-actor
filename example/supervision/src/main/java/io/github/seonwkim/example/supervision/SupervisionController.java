@@ -37,11 +37,11 @@ public class SupervisionController {
             SpringActorRef<HierarchicalActor.Command> supervisor =
                     actorSystem
                             .actor(SupervisorActor.class)
-                            .withId("root-supervisor")
+                            .withId("supervisor")
                             .withTimeout(Duration.ofSeconds(5))
                             .startAndWait();
-            supervisors.put("root-supervisor", supervisor);
-            logPublisher.publish("System initialized with root-supervisor");
+            supervisors.put("supervisor", supervisor);
+            logPublisher.publish("System initialized with supervisor");
         } catch (Exception e) {
             System.err.println("Failed to create default supervisor: " + e.getMessage());
         }
@@ -122,7 +122,7 @@ public class SupervisionController {
         }
 
         // Check if parent is the root supervisor
-        if ("root-supervisor".equals(parentId) || "supervisor".equals(parentType)) {
+        if ("supervisor".equals(parentId) || "supervisor".equals(parentType)) {
             SpringActorRef<HierarchicalActor.Command> supervisor = supervisors.get(parentId);
             if (supervisor == null) {
                 return CompletableFuture.completedFuture(
@@ -165,7 +165,7 @@ public class SupervisionController {
                                                             "Failed to create child: " + ex.getMessage())));
         } else {
             // Parent is a worker - route through root supervisor
-            SpringActorRef<HierarchicalActor.Command> rootSupervisor = supervisors.get("root-supervisor");
+            SpringActorRef<HierarchicalActor.Command> rootSupervisor = supervisors.get("supervisor");
             if (rootSupervisor == null) {
                 return CompletableFuture.completedFuture(
                         ResponseEntity.badRequest()
@@ -213,7 +213,7 @@ public class SupervisionController {
     @PostMapping("/workers")
     public CompletableFuture<ResponseEntity<Map<String, Object>>> createWorker(
             @RequestBody Map<String, String> request) {
-        String supervisorId = request.getOrDefault("supervisorId", "root-supervisor");
+        String supervisorId = request.getOrDefault("supervisorId", "supervisor");
         String workerId = request.get("workerId");
         String strategy = request.getOrDefault("strategy", "restart");
 
@@ -425,7 +425,7 @@ public class SupervisionController {
         }
 
         // Get the root supervisor
-        SpringActorRef<HierarchicalActor.Command> supervisor = supervisors.get("root-supervisor");
+        SpringActorRef<HierarchicalActor.Command> supervisor = supervisors.get("supervisor");
         if (supervisor == null) {
             return CompletableFuture.completedFuture(
                     ResponseEntity.ok(toMap("root", null)));

@@ -13,7 +13,7 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #4CAE50 0%, #45a049 100%);
             min-height: 100vh;
             padding: 20px;
             overflow: hidden;
@@ -31,7 +31,7 @@
         }
 
         .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #4CAE50 0%, #45a049 100%);
             color: white;
             padding: 20px 30px;
             text-align: center;
@@ -63,8 +63,8 @@
             width: 8px;
             height: 8px;
             border-radius: 50%;
-            background: #28a745;
-            box-shadow: 0 0 8px #28a745;
+            background: #66BB6A;
+            box-shadow: 0 0 8px #66BB6A;
             animation: pulse 2s infinite;
         }
 
@@ -122,7 +122,7 @@
 
         .actor-node:hover .actor-circle {
             stroke-width: 3;
-            filter: drop-shadow(0 0 8px rgba(102, 126, 234, 0.6));
+            filter: drop-shadow(0 0 8px rgba(76, 174, 80, 0.6));
         }
 
         .actor-text {
@@ -148,7 +148,7 @@
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
             z-index: 1000;
             min-width: 250px;
-            border: 2px solid #667eea;
+            border: 2px solid #4CAE50;
         }
 
         .hover-card.active {
@@ -156,10 +156,10 @@
         }
 
         .hover-card h3 {
-            color: #667eea;
+            color: #4CAE50;
             margin-bottom: 10px;
             font-size: 1.1em;
-            border-bottom: 2px solid #667eea;
+            border-bottom: 2px solid #4CAE50;
             padding-bottom: 8px;
         }
 
@@ -204,12 +204,12 @@
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #4CAE50 0%, #45a049 100%);
             color: white;
         }
 
         .btn-success {
-            background: #28a745;
+            background: #66BB6A;
             color: white;
         }
 
@@ -252,7 +252,7 @@
 
         .modal-content h3 {
             margin-bottom: 20px;
-            color: #667eea;
+            color: #4CAE50;
         }
 
         .form-group {
@@ -278,7 +278,7 @@
         .form-group input:focus,
         .form-group select:focus {
             outline: none;
-            border-color: #667eea;
+            border-color: #4CAE50;
         }
 
         .modal-actions {
@@ -295,8 +295,8 @@
         .badge {
             display: inline-block;
             padding: 3px 8px;
-            background: #e3f2fd;
-            color: #1976d2;
+            background: #E8F5E9;
+            color: #2E7D32;
             border-radius: 10px;
             font-size: 0.75em;
             font-weight: 600;
@@ -307,7 +307,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🎭 Actor Supervision Tree</h1>
+            <h1>Actor Supervision Tree</h1>
             <p>Interactive hierarchical visualization</p>
             <div class="connection-status">
                 <span class="status-dot" id="statusDot"></span>
@@ -352,14 +352,29 @@
 
     <script>
         let eventSource = null;
-        let currentSupervisorId = 'root-supervisor';
+        let currentSupervisorId = 'supervisor';
         let hierarchyData = null;
         let hideCardTimeout = null;
 
         // Tree layout configuration
-        const NODE_RADIUS = 35;
+        const BASE_NODE_RADIUS = 35;
+        const MIN_NODE_RADIUS = 30;
+        const NODE_PADDING = 15; // Padding inside circle
         const LEVEL_HEIGHT = 150;
         const MIN_HORIZONTAL_SPACING = 150;
+
+        // Calculate node radius based on text width
+        function calculateNodeRadius(text) {
+            // Create a temporary canvas to measure text width
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            context.font = '600 14px "Segoe UI", Tahoma, Geneva, Verdana, sans-serif';
+            const textWidth = context.measureText(text).width;
+
+            // Calculate radius: text width / 2 + padding, with a minimum
+            const calculatedRadius = (textWidth / 2) + NODE_PADDING;
+            return Math.max(MIN_NODE_RADIUS, calculatedRadius);
+        }
 
         function initSSE() {
             eventSource = new EventSource('/api/logs/stream');
@@ -369,7 +384,7 @@
             });
 
             eventSource.onopen = () => {
-                document.getElementById('statusDot').style.background = '#28a745';
+                document.getElementById('statusDot').style.background = '#66BB6A';
                 document.getElementById('statusText').textContent = 'Connected';
             };
 
@@ -471,18 +486,22 @@
         function calculateSubtreeWidths(node) {
             const children = node.children || [];
 
+            // Calculate dynamic radius for this node
+            const nodeRadius = calculateNodeRadius(node.actorId);
+
             const layoutNode = {
                 id: node.actorId,
                 type: node.actorType,
                 strategy: node.strategy,
                 path: node.path,
+                radius: nodeRadius, // Store calculated radius
                 children: [],
                 subtreeWidth: MIN_HORIZONTAL_SPACING
             };
 
             if (children.length === 0) {
-                // Leaf node: minimum width
-                layoutNode.subtreeWidth = MIN_HORIZONTAL_SPACING;
+                // Leaf node: minimum width based on node size
+                layoutNode.subtreeWidth = Math.max(MIN_HORIZONTAL_SPACING, nodeRadius * 2 + 40);
                 return layoutNode;
             }
 
@@ -492,7 +511,7 @@
 
             // This node's subtree width is the sum of all children's subtree widths
             const totalChildrenWidth = childLayouts.reduce((sum, child) => sum + child.subtreeWidth, 0);
-            layoutNode.subtreeWidth = Math.max(MIN_HORIZONTAL_SPACING, totalChildrenWidth);
+            layoutNode.subtreeWidth = Math.max(MIN_HORIZONTAL_SPACING, totalChildrenWidth, nodeRadius * 2 + 40);
 
             return layoutNode;
         }
@@ -541,10 +560,10 @@
         function drawConnection(svg, parent, child) {
             const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
 
-            // Curved line from parent to child
-            const d = `M ${parent.x} ${parent.y + NODE_RADIUS}
+            // Curved line from parent to child using dynamic radii
+            const d = `M ${parent.x} ${parent.y + parent.radius}
                        Q ${parent.x} ${(parent.y + child.y) / 2}
-                         ${child.x} ${child.y - NODE_RADIUS}`;
+                         ${child.x} ${child.y - child.radius}`;
 
             line.setAttribute('d', d);
             line.setAttribute('class', 'connection-line');
@@ -565,33 +584,30 @@
             group.setAttribute('data-actor-id', node.id);
             group.setAttribute('data-actor-type', node.type);
 
-            // Circle
+            // Circle with dynamic radius
             const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
             circle.setAttribute('cx', node.x);
             circle.setAttribute('cy', node.y);
-            circle.setAttribute('r', NODE_RADIUS);
+            circle.setAttribute('r', node.radius); // Use calculated radius
             circle.setAttribute('class', 'actor-circle');
 
             if (node.type === 'supervisor') {
-                circle.setAttribute('fill', '#667eea');
-                circle.setAttribute('stroke', '#5568d3');
+                circle.setAttribute('fill', '#4CAE50');
+                circle.setAttribute('stroke', '#45a049');
             } else {
-                circle.setAttribute('fill', '#28a745');
-                circle.setAttribute('stroke', '#218838');
+                circle.setAttribute('fill', '#66BB6A');
+                circle.setAttribute('stroke', '#4CAE50');
             }
             circle.setAttribute('stroke-width', 2);
 
-            // Text (ID only)
+            // Text (full ID, no truncation)
             const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
             text.setAttribute('x', node.x);
             text.setAttribute('y', node.y + 5);
             text.setAttribute('text-anchor', 'middle');
             text.setAttribute('class', 'actor-text');
             text.setAttribute('fill', 'white');
-
-            // Truncate long IDs
-            const displayId = node.id.length > 12 ? node.id.substring(0, 10) + '...' : node.id;
-            text.textContent = displayId;
+            text.textContent = node.id; // Display full ID
 
             group.appendChild(circle);
             group.appendChild(text);
@@ -658,9 +674,10 @@
             card.innerHTML = html;
             card.classList.add('active');
 
-            // Position the card
+            // Position the card using the node's dynamic radius
+            const nodeRadius = parseFloat(circle.getAttribute('r'));
             const cardWidth = 250;
-            const cardLeft = cx + NODE_RADIUS + 10;
+            const cardLeft = cx + nodeRadius + 10;
             const cardTop = cy - 50;
 
             card.style.left = cardLeft + 'px';
