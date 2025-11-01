@@ -274,8 +274,8 @@ class HierarchicalSupervisionTest {
                     .withId("supervisor-1")
                     .startAndWait();
 
-            // And: Delegate work to a child (spawns on-demand)
-            Object response = supervisor.ask(replyTo ->
+            // And: Delegate work to a child (spawns on-demand with Spring DI)
+            Object result = supervisor.ask(replyTo ->
                 new ParentSupervisorActor.DelegateWork(
                     "worker-1",
                     "restart",
@@ -284,11 +284,12 @@ class HierarchicalSupervisionTest {
                 )
             ).toCompletableFuture().join();
 
-            // Then: The supervisor should confirm delegation
-            assertThat(response).isEqualTo("Delegated to worker-1");
+            // Then: Supervisor confirms delegation
+            assertThat(result).isEqualTo("Delegated to worker-1");
 
-            // And: The child should have processed the task using the injected Spring service
             Thread.sleep(50); // Small delay for async task logging
+
+            // Then: The child should have processed the task using the injected Spring service
             assertThat(taskLogger.getTaskCount("worker-1")).isEqualTo(1);
         }
 
@@ -300,13 +301,13 @@ class HierarchicalSupervisionTest {
             TaskLogger taskLogger = springContext.getBean(TaskLogger.class);
             taskLogger.reset();
 
-            // When: Spawn a parent and delegate work to multiple children
+            // When: Spawn a parent supervisor
             SpringActorRef<ParentSupervisorActor.Command> supervisor = actorSystem
                     .actor(ParentSupervisorActor.class)
                     .withId("supervisor-2")
                     .startAndWait();
 
-            // Delegate to worker-a (spawns on first use)
+            // And: Delegate work to multiple children (spawns on-demand)
             Object resultA = supervisor.ask(replyTo ->
                 new ParentSupervisorActor.DelegateWork(
                     "worker-a",
@@ -317,7 +318,6 @@ class HierarchicalSupervisionTest {
             ).toCompletableFuture().join();
             assertThat(resultA).isEqualTo("Delegated to worker-a");
 
-            // Delegate to worker-b (spawns on first use)
             Object resultB = supervisor.ask(replyTo ->
                 new ParentSupervisorActor.DelegateWork(
                     "worker-b",
@@ -328,7 +328,7 @@ class HierarchicalSupervisionTest {
             ).toCompletableFuture().join();
             assertThat(resultB).isEqualTo("Delegated to worker-b");
 
-            Thread.sleep(50);
+            Thread.sleep(50); // Small delay for async task logging
 
             // Then: Both children should have processed their tasks independently
             assertThat(taskLogger.getTaskCount("worker-a")).isEqualTo(1);
@@ -497,65 +497,6 @@ class HierarchicalSupervisionTest {
 
             // Supervisor spawns a new worker with same ID since old one was stopped
             assertThat(afterStopResult).isEqualTo("Delegated to stop-worker");
-        }
-    }
-
-    @Nested
-    @SpringBootTest(classes = TestApp.class)
-    @TestPropertySource(properties = {"spring.actor.pekko.loglevel=INFO", "spring.actor.pekko.actor.provider=local"})
-    class APIExperienceTests {
-
-        @Test
-        void testSpawnChildAPIIsIntuitive(org.springframework.context.ApplicationContext springContext) {
-            SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
-
-            SpringActorRef<ParentSupervisorActor.Command> supervisor = actorSystem
-                    .actor(ParentSupervisorActor.class)
-                    .withId("supervisor-api-test")
-                    .startAndWait();
-
-            Object result = supervisor.ask(replyTo ->
-                new ParentSupervisorActor.DelegateWork(
-                    "api-child",
-                    "restart",
-                    new ChildWorkerActor.DoTask("api-test", actorSystem.getRaw().ignoreRef()),
-                    replyTo
-                )
-            ).toCompletableFuture().join();
-
-            assertThat(result.toString()).contains("Delegated");
-        }
-
-        @Test
-        void testSpringDIWorksInHierarchy(org.springframework.context.ApplicationContext springContext)
-                throws InterruptedException {
-            // Given: Actor system with Spring-managed service
-            SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
-            TaskLogger taskLogger = springContext.getBean(TaskLogger.class);
-            taskLogger.reset();
-
-            // When: Spawning hierarchical actors and delegating work
-            SpringActorRef<ParentSupervisorActor.Command> supervisor = actorSystem
-                    .actor(ParentSupervisorActor.class)
-                    .withId("supervisor-di-test")
-                    .startAndWait();
-
-            // Delegate work (spawns child on-demand with Spring DI)
-            Object result = supervisor.ask(replyTo ->
-                new ParentSupervisorActor.DelegateWork(
-                    "di-worker",
-                    "restart",
-                    new ChildWorkerActor.DoTask("test-di", actorSystem.getRaw().ignoreRef()),
-                    replyTo
-                )
-            ).toCompletableFuture().join();
-
-            // Then: Supervisor confirms delegation
-            assertThat(result).isEqualTo("Delegated to di-worker");
-
-            Thread.sleep(50); // Small delay for async task logging
-
-            assertThat(taskLogger.getTaskCount("di-worker")).isEqualTo(1);
         }
     }
 }
