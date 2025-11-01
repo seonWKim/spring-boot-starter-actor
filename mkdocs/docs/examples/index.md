@@ -51,6 +51,18 @@ The Chat Example demonstrates how to build a real-time chat application using Sp
 
 This example demonstrates how Spring Boot Starter Actor can be used to build real-world applications efficiently without relying on additional infrastructure components.
 
+### [Supervision Example](supervision.md)
+
+The Supervision Example demonstrates how to build hierarchical actor supervision systems with real-time visualization. It shows:
+
+- Building hierarchical actor systems with arbitrary depth
+- Implementing different supervision strategies (restart, stop, resume)
+- Visualizing actor hierarchies in real-time with an interactive web UI
+- Tracking actor failures and monitoring supervision behavior
+- Creating fault-tolerant systems using the actor model
+
+This example provides insights into how supervision trees can be used to build resilient, self-healing systems with clear failure boundaries.
+
 ### [Monitoring](monitoring.md)
 
 The Monitoring example demonstrates how to monitor and analyze your actor system's performance. It shows:

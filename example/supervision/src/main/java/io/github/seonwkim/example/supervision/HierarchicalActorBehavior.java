@@ -117,9 +117,7 @@ public class HierarchicalActorBehavior<C> {
                         "[%s] 🚀 Spawning child '%s' with strategy: %s",
                         actorId, msg.childId, strategyDescription));
 
-        @SuppressWarnings("unchecked")
-        ActorRef<C> child =
-                (ActorRef<C>) actorContext.spawnChild(ctx,  (Class) childActorClass, msg.childId, strategy);
+        actorContext.spawnChild(ctx, (Class) childActorClass, msg.childId, strategy);
 
         // Track the child strategy
         childStrategies.put(msg.childId, strategyDescription);

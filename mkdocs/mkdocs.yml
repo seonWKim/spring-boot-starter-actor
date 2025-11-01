@@ -42,6 +42,7 @@ nav:
     - Cluster: examples/cluster.md
     - Synchronization: examples/synchronization.md
     - Chat: examples/chat.md
+    - Supervision: examples/supervision.md
     - Monitoring: examples/monitoring.md
   - API Reference: api-reference.md
 
