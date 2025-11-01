@@ -48,6 +48,9 @@ public class ActorTypeRegistry {
      * Creates a behavior for the given actor class and context. This method is used internally when
      * the exact type parameters are unknown at compile time.
      *
+     * <p>If the provided context has a null registry, this method automatically wraps the context
+     * to inject this registry, enabling hierarchical supervision support.
+     *
      * @param actorClass The actor class to create a behavior for
      * @param actorContext The context to use for creating the behavior
      * @return A behavior for the given actor class and context
@@ -58,6 +61,32 @@ public class ActorTypeRegistry {
         if (factory == null) {
             throw new IllegalArgumentException("No factory registered for class: " + actorClass.getName());
         }
-        return factory.apply(actorContext);
+
+        // Inject registry if the context doesn't have one
+        SpringActorContext contextWithRegistry = actorContext.registry() == null
+            ? wrapContextWithRegistry(actorContext)
+            : actorContext;
+
+        return factory.apply(contextWithRegistry);
+    }
+
+    /**
+     * Wraps a context to inject this registry, enabling hierarchical supervision.
+     *
+     * @param originalContext The original context
+     * @return A wrapped context with this registry injected
+     */
+    private SpringActorContext wrapContextWithRegistry(SpringActorContext originalContext) {
+        return new SpringActorContext() {
+            @Override
+            public String actorId() {
+                return originalContext.actorId();
+            }
+
+            @Override
+            public ActorTypeRegistry registry() {
+                return ActorTypeRegistry.this;
+            }
+        };
     }
 }
