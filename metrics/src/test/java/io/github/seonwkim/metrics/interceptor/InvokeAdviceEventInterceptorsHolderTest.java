@@ -36,7 +36,7 @@ class InvokeAdviceEventInterceptorsHolderTest {
 
         assertDoesNotThrow(() -> {
             actorSystem
-                    .actor(
+                    .spawn(
                             TestHelloActor.class,
                             "instrumented-" + UUID.randomUUID(),
                             TestHelloActor.create(),
@@ -71,8 +71,8 @@ class InvokeAdviceEventInterceptorsHolderTest {
 
         assertDoesNotThrow(() -> {
             actorSystem
-                    .actor(
-                            TestHelloActor.Command.class,
+                    .spawn(
+                            TestHelloActor.class,
                             "instrumented-" + UUID.randomUUID(),
                             TestHelloActor.create(),
                             Duration.ofSeconds(3))
