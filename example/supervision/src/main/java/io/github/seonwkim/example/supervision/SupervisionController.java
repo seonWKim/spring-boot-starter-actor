@@ -27,6 +27,23 @@ public class SupervisionController {
     public SupervisionController(SpringActorSystem actorSystem, LogPublisher logPublisher) {
         this.actorSystem = actorSystem;
         this.logPublisher = logPublisher;
+        // Create default supervisor on startup
+        createDefaultSupervisor();
+    }
+
+    private void createDefaultSupervisor() {
+        try {
+            SpringActorRef<SupervisorActor.Command> supervisor =
+                    actorSystem
+                            .actor(SupervisorActor.class)
+                            .withId("root-supervisor")
+                            .withTimeout(Duration.ofSeconds(5))
+                            .startAndWait();
+            supervisors.put("root-supervisor", supervisor);
+            logPublisher.publish("System initialized with root-supervisor");
+        } catch (Exception e) {
+            System.err.println("Failed to create default supervisor: " + e.getMessage());
+        }
     }
 
     @SuppressWarnings("unchecked")
