@@ -1,11 +1,16 @@
-# Actor Supervision Visualizer
+# Actor Supervision Tree Visualizer
 
-An interactive web application to visualize and test actor hierarchies with different supervision strategies.
+An interactive web application with visual tree diagram to visualize and test actor hierarchies with different supervision strategies.
 
 ## Features
 
-- 🎭 **Interactive Actor Hierarchy Visualization** - See your supervisor and worker actors in real-time
-- 🎮 **Dynamic Actor Management** - Create, stop, and restart actors through a web UI
+- 🌳 **Multi-Level Hierarchical Tree** - B+ tree-like visualization with unlimited depth
+- ⭕ **Circle Nodes** - Each actor represented by a colored circle showing only its ID
+- 🔗 **Connection Lines** - Curved SVG paths showing parent-child relationships at all levels
+- 🔄 **Dynamic Hierarchy Querying** - Uses `ctx.getChildren()` to reflect real-time actor state
+- 💡 **Hover Details** - Detailed information and actions appear when hovering over nodes
+- 🎮 **Interactive Actions** - Add children, send work, trigger failures, stop actors directly from hover cards
+- 👶 **Workers Can Have Children** - Any actor (not just supervisors) can spawn and supervise child actors
 - 📊 **Multiple Supervision Strategies**:
   - **Restart (unlimited)**: Restarts failed actors indefinitely
   - **Restart (limited)**: Restarts failed actors up to 3 times per minute
@@ -36,32 +41,58 @@ http://localhost:8080
 
 ## How to Use
 
-### 1. Create a Supervisor
+### Visual Tree Structure
 
-1. Enter a supervisor ID (e.g., `supervisor-1`)
-2. Click **"🚀 Create Supervisor"**
-3. The supervisor will appear in the hierarchy view
+The application displays actors as a tree diagram:
+- **🔵 Blue circles** = Supervisor actors (root-supervisor)
+- **🟢 Green circles** = Worker actors
+- **Gray curved lines** = Parent-child relationships at all levels
+- Circles show only the actor ID (truncated if long)
+- **Multi-level hierarchy** = Workers can have their own children, creating unlimited depth
 
-### 2. Create Workers
+### 1. Add a Child Actor
 
-1. Enter a worker ID (e.g., `worker-1`)
-2. Select a supervision strategy from the dropdown
-3. Click **"👷 Create Worker"**
-4. The worker will appear under the selected supervisor
+1. **Hover** over any circle (supervisor or worker)
+2. Click **"➕ Add Child"** in the hover card
+3. Select a supervision strategy (worker ID is auto-generated)
+4. Click **"Add Child"**
+5. New child appears as a green circle below its parent with a random 6-character ID
 
-### 3. Send Work to Workers
+**Auto-Generated IDs**: Worker IDs are automatically generated as random 6-character alphanumeric strings (e.g., `abc123`, `x7y2k9`). This simplifies the UI and prevents naming conflicts.
 
-1. Select a worker by entering its ID
-2. Enter a task name (e.g., `process-data`)
-3. Click **"📬 Send Work"**
-4. Check the logs to see the task being processed
+**Note**: Any actor can spawn children, not just supervisors! Workers are created under their actual parent (not always the root supervisor). You can create deep hierarchies like:
+```
+root-supervisor
+  ├─ abc123 (worker)
+  │   ├─ x7y2k9 (worker)
+  │   └─ m4n8p1 (worker)
+  └─ q5w3e7 (worker)
+      └─ z9x2c6 (worker)
+          └─ b3v7n4 (worker)
+```
+
+### 2. Send Work to a Worker
+
+1. **Hover** over any worker circle (green)
+2. Click **"📬 Send Work"** in the hover card
+3. Enter a task name when prompted
+4. Check the logs panel to see the task being processed
+
+### 3. View Actor Details
+
+**Hover** over any circle to see:
+- Full actor ID
+- Actor type (supervisor/worker)
+- Supervision strategy (for workers)
+- Actor path
+- Available actions
 
 ### 4. Test Supervision Strategies
 
 #### Test Restart Strategy:
-1. Create a worker with "Restart (unlimited)" strategy
-2. Send some work to the worker
-3. Click **"💥 Trigger Failure"**
+1. Add a worker with "Restart (unlimited)" strategy
+2. Hover over the worker, click **"📬 Send Work"** a few times
+3. Hover over the worker, click **"💥 Trigger Failure"**
 4. Observe in the logs:
    - Worker fails with an error
    - Supervisor restarts the worker
@@ -93,17 +124,12 @@ http://localhost:8080
    - Worker restarts for the first 3 failures
    - After exceeding the limit, the worker is stopped
 
-### 5. Stop Workers Manually
+### 5. Stop a Worker
 
-1. Select a worker by entering its ID
-2. Click **"🛑 Stop Worker"**
-3. The worker will be gracefully stopped and removed from hierarchy
-
-### 6. Delete Supervisors
-
-1. Select a supervisor by entering its ID
-2. Click **"🗑️ Delete Supervisor"**
-3. The supervisor and all its workers will be stopped
+1. Hover over any worker circle
+2. Click **"🛑 Stop"** in the hover card
+3. Confirm the action
+4. Worker circle disappears from the tree
 
 ## API Endpoints
 
@@ -118,12 +144,27 @@ http://localhost:8080
 
 - **DELETE** `/api/supervisors/{supervisorId}` - Delete a supervisor
 
-### Worker Management
+### Child Actor Management (New)
 
-- **POST** `/api/workers` - Create a new worker
+- **POST** `/api/actors/{parentId}/children` - Create a child under any parent (supervisor or worker)
   ```json
   {
-    "supervisorId": "supervisor-1",
+    "childId": "abc123",
+    "strategy": "restart",
+    "parentType": "worker",
+    "parentPath": "akka://SpringActorSystem/user/root-supervisor/worker-1"
+  }
+  ```
+  - `parentType`: `"supervisor"` or `"worker"`
+  - `parentPath`: Required for workers (actor path)
+  - `strategy`: `"restart"`, `"restart-limited"`, `"stop"`, or `"resume"`
+  - This endpoint routes spawn requests through the actor hierarchy
+
+### Worker Management (Legacy)
+
+- **POST** `/api/workers` - Create a new worker under root supervisor
+  ```json
+  {
     "workerId": "worker-1",
     "strategy": "restart"
   }
@@ -160,46 +201,61 @@ http://localhost:8080
 
 ### Components
 
-1. **SupervisorActor**: Parent actor that spawns and manages workers with different supervision strategies
-2. **WorkerActor**: Child actor that processes tasks and can fail on command
-3. **SupervisionController**: REST API for actor management
-4. **LogPublisher**: Service for broadcasting logs via SSE
-5. **Frontend**: Interactive web UI for visualization and control
+1. **SupervisorActor**: Root actor that spawns and manages child actors with different supervision strategies
+2. **WorkerActor**: Actor that processes tasks, can fail on command, and can spawn its own children
+3. **ActorHierarchy**: Shared data structures for recursive hierarchy management
+4. **SupervisionController**: REST API for actor management with recursive hierarchy traversal
+5. **LogPublisher**: Service for broadcasting logs via SSE
+6. **Frontend**: Interactive web UI with recursive tree visualization
 
-### Actor Lifecycle
+### Key Features
+
+- **Dynamic Hierarchy Querying**: Uses `ctx.getChildren()` to query actual actor state instead of manually tracking
+- **Recursive Hierarchy**: Both SupervisorActor and WorkerActor can spawn children, creating unlimited depth
+- **Async Hierarchy Traversal**: Uses `CompletableFuture` to recursively ask all children for their hierarchy
+- **Recursive Child Spawning**: Uses `RouteSpawnChild` command that broadcasts through the tree to find the correct parent at any depth
+  - Supervisor receives spawn request → checks if it's the parent → if not, broadcasts to all children
+  - Each child recursively checks and forwards until the parent is found
+  - The parent actor spawns the child and sends success response
+  - If parent not found, leaf nodes send error responses
+
+### Actor Lifecycle (Multi-Level Example)
 
 ```
-[SupervisorActor]
+[root-supervisor] (Supervisor)
     │
-    ├─[WorkerActor-1] (Restart strategy)
+    ├─[worker-1] (Restart strategy)
     │   ├─ Spawned with supervision
     │   ├─ Processes work
-    │   ├─ Can fail
-    │   └─ Restarted by supervisor on failure
+    │   ├─ Can spawn own children
+    │   ├─ Can fail → Restarted by parent
+    │   │
+    │   └─[worker-1-1] (Stop strategy)
+    │       ├─ Spawned by worker-1
+    │       ├─ Processes work
+    │       └─ Can fail → Stopped by worker-1
     │
-    ├─[WorkerActor-2] (Stop strategy)
-    │   ├─ Spawned with supervision
-    │   ├─ Processes work
-    │   ├─ Can fail
-    │   └─ Stopped by supervisor on failure
-    │
-    └─[WorkerActor-3] (Resume strategy)
+    └─[worker-2] (Resume strategy)
         ├─ Spawned with supervision
         ├─ Processes work
-        ├─ Can fail
-        └─ Continues after failure (state preserved)
+        ├─ Can spawn own children
+        └─ Can fail → Continues (state preserved)
 ```
 
 ## Learning Objectives
 
 This example demonstrates:
 
-1. **Hierarchical Supervision**: How parent actors supervise child actors
-2. **Supervision Strategies**: Different ways to handle actor failures
-3. **Actor Lifecycle**: PreRestart, PostStop signals and state management
-4. **Spring Integration**: Using Spring DI with actors
-5. **Real-time Monitoring**: Streaming logs and visualizing actor hierarchies
-6. **Failure Resilience**: How actors recover from failures
+1. **Multi-Level Hierarchical Supervision**: How actors supervise child actors at any depth
+2. **Supervision Strategies**: Different ways to handle actor failures at each level
+3. **Actor Lifecycle**: PreRestart, PostStop signals and state management across hierarchies
+4. **Spring Integration**: Using Spring DI with actors and hierarchical spawning
+5. **Real-time Monitoring**: Streaming logs and visualizing complex actor hierarchies
+6. **Failure Resilience**: How actors recover from failures and how failures propagate through hierarchies
+7. **Dynamic State Querying**: Using `ctx.getChildren()` to query real actor state instead of manual tracking
+8. **Recursive Actor Patterns**: Workers that can themselves supervise other workers
+9. **Recursive Message Routing**: Broadcasting messages through the hierarchy to find the target actor at arbitrary depth
+10. **Auto-Generated IDs**: Simplifying UX by automatically generating unique actor identifiers
 
 ## Tips
 

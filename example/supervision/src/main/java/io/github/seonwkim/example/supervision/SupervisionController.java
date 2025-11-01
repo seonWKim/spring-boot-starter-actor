@@ -103,25 +103,124 @@ public class SupervisionController {
     }
 
     /**
-     * Create a new worker under a supervisor.
+     * Create a new child actor under any parent (supervisor or worker).
+     */
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    @PostMapping("/actors/{parentId}/children")
+    public CompletableFuture<ResponseEntity<Map<String, Object>>> createChild(
+            @PathVariable String parentId,
+            @RequestBody Map<String, String> request) {
+        String childId = request.get("childId");
+        String strategy = request.getOrDefault("strategy", "restart");
+        String parentType = request.get("parentType"); // "supervisor" or "worker"
+        String parentPath = request.get("parentPath"); // Full actor path
+
+        if (childId == null) {
+            return CompletableFuture.completedFuture(
+                    ResponseEntity.badRequest()
+                            .body(Map.of("success", false, "message", "childId is required")));
+        }
+
+        // Check if parent is the root supervisor
+        if ("root-supervisor".equals(parentId) || "supervisor".equals(parentType)) {
+            SpringActorRef<SupervisorActor.Command> supervisor = supervisors.get(parentId);
+            if (supervisor == null) {
+                return CompletableFuture.completedFuture(
+                        ResponseEntity.badRequest()
+                                .body(Map.of("success", false, "message", "Supervisor not found")));
+            }
+
+            return supervisor
+                    .ask(
+                            (org.apache.pekko.actor.typed.ActorRef<SupervisorActor.SpawnResult> replyTo) ->
+                                    new SupervisorActor.SpawnWorker(childId, strategy, replyTo))
+                    .toCompletableFuture()
+                    .thenApply(
+                            resultObj -> {
+                                SupervisorActor.SpawnResult result = (SupervisorActor.SpawnResult) resultObj;
+                                if (result.success) {
+                                    return ResponseEntity.ok(
+                                            toMap(
+                                                    "success",
+                                                    true,
+                                                    "childId",
+                                                    childId,
+                                                    "strategy",
+                                                    strategy,
+                                                    "message",
+                                                    result.message));
+                                } else {
+                                    return ResponseEntity.badRequest()
+                                            .body(toMap("success", false, "message", result.message));
+                                }
+                            })
+                    .exceptionally(
+                            ex ->
+                                    ResponseEntity.internalServerError()
+                                            .body(
+                                                    Map.of(
+                                                            "success",
+                                                            false,
+                                                            "message",
+                                                            "Failed to create child: " + ex.getMessage())));
+        } else {
+            // Parent is a worker - route through root supervisor
+            SpringActorRef<SupervisorActor.Command> rootSupervisor = supervisors.get("root-supervisor");
+            if (rootSupervisor == null) {
+                return CompletableFuture.completedFuture(
+                        ResponseEntity.badRequest()
+                                .body(Map.of("success", false, "message", "Root supervisor not found")));
+            }
+
+            return rootSupervisor
+                    .ask((org.apache.pekko.actor.typed.ActorRef<ActorHierarchy.SpawnResult> replyTo) ->
+                            new SupervisorActor.RouteSpawnChild(parentId, childId, strategy, replyTo))
+                    .toCompletableFuture()
+                    .thenApply(
+                            resultObj -> {
+                                ActorHierarchy.SpawnResult result = (ActorHierarchy.SpawnResult) resultObj;
+                                if (result.success) {
+                                    return ResponseEntity.ok(
+                                            toMap(
+                                                    "success",
+                                                    true,
+                                                    "childId",
+                                                    childId,
+                                                    "strategy",
+                                                    strategy,
+                                                    "message",
+                                                    result.message));
+                                } else {
+                                    return ResponseEntity.badRequest()
+                                            .body(toMap("success", false, "message", result.message));
+                                }
+                            })
+                    .exceptionally(ex ->
+                            ResponseEntity.internalServerError()
+                                    .body(
+                                            Map.of(
+                                                    "success",
+                                                    false,
+                                                    "message",
+                                                    "Failed to create child: " + ex.getMessage())));
+        }
+    }
+
+    /**
+     * Create a new worker under a supervisor (legacy endpoint for backward compatibility).
      */
     @SuppressWarnings({"rawtypes", "unchecked"})
     @PostMapping("/workers")
     public CompletableFuture<ResponseEntity<Map<String, Object>>> createWorker(
             @RequestBody Map<String, String> request) {
-        String supervisorId = request.get("supervisorId");
+        String supervisorId = request.getOrDefault("supervisorId", "root-supervisor");
         String workerId = request.get("workerId");
         String strategy = request.getOrDefault("strategy", "restart");
 
-        if (supervisorId == null || workerId == null) {
+        if (workerId == null) {
             return CompletableFuture.completedFuture(
                     ResponseEntity.badRequest()
-                            .body(
-                                    Map.of(
-                                            "success",
-                                            false,
-                                            "message",
-                                            "supervisorId and workerId are required")));
+                            .body(Map.of("success", false, "message", "workerId is required")));
         }
 
         SpringActorRef<SupervisorActor.Command> supervisor = supervisors.get(supervisorId);
@@ -315,69 +414,32 @@ public class SupervisionController {
     }
 
     /**
-     * Get the current actor hierarchy.
+     * Get the current actor hierarchy (recursive).
      */
     @SuppressWarnings({"rawtypes", "unchecked"})
     @GetMapping("/hierarchy")
     public CompletableFuture<ResponseEntity<Map<String, Object>>> getHierarchy() {
         if (supervisors.isEmpty()) {
             return CompletableFuture.completedFuture(
-                    ResponseEntity.ok(toMap("supervisors", List.of())));
+                    ResponseEntity.ok(toMap("root", null)));
         }
 
-        List<CompletableFuture<Map<String, Object>>> futures =
-                supervisors.entrySet().stream()
-                        .map(
-                                entry -> {
-                                    String supervisorId = entry.getKey();
-                                    SpringActorRef<SupervisorActor.Command> supervisor =
-                                            entry.getValue();
+        // Get the root supervisor
+        SpringActorRef<SupervisorActor.Command> supervisor = supervisors.get("root-supervisor");
+        if (supervisor == null) {
+            return CompletableFuture.completedFuture(
+                    ResponseEntity.ok(toMap("root", null)));
+        }
 
-                                    return supervisor
-                                            .ask(
-                                                    (org.apache.pekko.actor.typed.ActorRef<SupervisorActor.HierarchyInfo> replyTo) ->
-                                                            new SupervisorActor.GetHierarchy(replyTo))
-                                            .toCompletableFuture()
-                                            .thenApply(
-                                                    hierarchyObj -> {
-                                                        SupervisorActor.HierarchyInfo hierarchy =
-                                                                (SupervisorActor.HierarchyInfo) hierarchyObj;
-                                                        return Map.<String, Object>of(
-                                                                "supervisorId",
-                                                                supervisorId,
-                                                                "workers",
-                                                                hierarchy.workers.stream()
-                                                                        .map(
-                                                                                w ->
-                                                                                        Map
-                                                                                                .<
-                                                                                                        String,
-                                                                                                        Object>
-                                                                                                        of(
-                                                                                                                "workerId",
-                                                                                                                w
-                                                                                                                        .workerId,
-                                                                                                                "strategy",
-                                                                                                                w
-                                                                                                                        .strategy,
-                                                                                                                "path",
-                                                                                                                w
-                                                                                                                        .path))
-                                                                        .collect(
-                                                                                Collectors
-                                                                                        .toList()));
-                                                    });
-                                })
-                        .collect(Collectors.toList());
-
-        return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+        return supervisor
+                .ask(
+                        (org.apache.pekko.actor.typed.ActorRef<ActorHierarchy.ActorNode> replyTo) ->
+                                new SupervisorActor.GetHierarchy(replyTo))
+                .toCompletableFuture()
                 .thenApply(
-                        v -> {
-                            List<Map<String, Object>> supervisorList =
-                                    futures.stream()
-                                            .map(CompletableFuture::join)
-                                            .collect(Collectors.toList());
-                            return ResponseEntity.ok(toMap("supervisors", supervisorList));
+                        nodeObj -> {
+                            ActorHierarchy.ActorNode node = (ActorHierarchy.ActorNode) nodeObj;
+                            return ResponseEntity.ok(toMap("root", convertNodeToMap(node)));
                         })
                 .exceptionally(
                         ex ->
@@ -386,6 +448,23 @@ public class SupervisionController {
                                                 Map.of(
                                                         "error",
                                                         "Failed to get hierarchy: " + ex.getMessage())));
+    }
+
+    /**
+     * Recursively convert ActorNode to Map for JSON serialization.
+     */
+    private Map<String, Object> convertNodeToMap(ActorHierarchy.ActorNode node) {
+        List<Map<String, Object>> childrenMaps = node.children.stream()
+                .map(this::convertNodeToMap)
+                .collect(Collectors.toList());
+
+        return toMap(
+                "actorId", node.actorId,
+                "actorType", node.actorType,
+                "strategy", node.strategy,
+                "path", node.path,
+                "children", childrenMaps
+        );
     }
 
     /**

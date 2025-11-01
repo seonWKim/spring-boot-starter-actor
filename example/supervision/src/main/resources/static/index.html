@@ -16,47 +16,52 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
+            overflow: hidden;
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             background: white;
             border-radius: 12px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
+            height: calc(100vh - 40px);
+            display: flex;
+            flex-direction: column;
         }
 
         .header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 30px;
+            padding: 20px 30px;
             text-align: center;
+            border-radius: 12px 12px 0 0;
         }
 
         .header h1 {
-            font-size: 2em;
-            margin-bottom: 10px;
+            font-size: 1.8em;
+            margin-bottom: 5px;
         }
 
         .header p {
             opacity: 0.9;
+            font-size: 0.9em;
         }
 
         .connection-status {
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            margin-top: 10px;
-            padding: 8px 16px;
+            margin-top: 8px;
+            padding: 6px 12px;
             background: rgba(255, 255, 255, 0.1);
             border-radius: 20px;
-            font-size: 0.9em;
+            font-size: 0.85em;
         }
 
         .status-dot {
-            width: 10px;
-            height: 10px;
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
             background: #28a745;
             box-shadow: 0 0 8px #28a745;
@@ -71,89 +76,131 @@
         .main-content {
             display: grid;
             grid-template-columns: 2fr 1fr;
-            gap: 20px;
-            padding: 20px;
+            gap: 0;
+            flex: 1;
+            overflow: hidden;
         }
 
-        .panel {
+        .tree-panel {
             background: #f8f9fa;
-            border-radius: 8px;
             padding: 20px;
+            overflow: auto;
+            position: relative;
         }
 
-        .panel h2 {
-            color: #667eea;
-            margin-bottom: 15px;
-            font-size: 1.3em;
-            border-bottom: 2px solid #667eea;
-            padding-bottom: 10px;
+        .logs-panel {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            line-height: 1.6;
+            border-left: 2px solid #ddd;
         }
 
-        .tree-container {
-            min-height: 400px;
+        .log-entry {
+            margin-bottom: 5px;
+            word-wrap: break-word;
         }
 
-        .tree-node {
-            margin: 10px 0;
-            padding: 15px;
+        #tree-svg {
+            width: 100%;
+            height: 100%;
+            min-height: 600px;
+        }
+
+        /* Actor node styles */
+        .actor-node {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .actor-circle {
+            transition: all 0.3s ease;
+        }
+
+        .actor-node:hover .actor-circle {
+            stroke-width: 3;
+            filter: drop-shadow(0 0 8px rgba(102, 126, 234, 0.6));
+        }
+
+        .actor-text {
+            font-size: 14px;
+            font-weight: 600;
+            pointer-events: none;
+            user-select: none;
+        }
+
+        .connection-line {
+            stroke: #999;
+            stroke-width: 2;
+            fill: none;
+        }
+
+        /* Tooltip/Hover card */
+        .hover-card {
+            display: none;
+            position: absolute;
             background: white;
             border-radius: 8px;
-            border-left: 4px solid #667eea;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            padding: 15px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            min-width: 250px;
+            border: 2px solid #667eea;
         }
 
-        .tree-node.worker {
-            margin-left: 40px;
-            border-left-color: #28a745;
+        .hover-card.active {
+            display: block;
         }
 
-        .node-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        .hover-card h3 {
+            color: #667eea;
             margin-bottom: 10px;
+            font-size: 1.1em;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 8px;
         }
 
-        .node-title {
-            font-weight: bold;
-            font-size: 1.1em;
+        .hover-card .info-row {
+            margin: 8px 0;
+            font-size: 0.9em;
+        }
+
+        .hover-card .info-label {
+            font-weight: 600;
+            color: #666;
+            display: inline-block;
+            min-width: 80px;
+        }
+
+        .hover-card .info-value {
             color: #333;
         }
 
-        .node-title .icon {
-            margin-right: 8px;
-        }
-
-        .node-badge {
-            display: inline-block;
-            padding: 4px 12px;
-            background: #e3f2fd;
-            color: #1976d2;
-            border-radius: 12px;
-            font-size: 0.85em;
-            font-weight: 600;
-        }
-
-        .node-actions {
+        .hover-card .actions {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #eee;
             display: flex;
             gap: 8px;
             flex-wrap: wrap;
         }
 
-        .btn {
-            padding: 8px 16px;
+        .hover-card button {
+            padding: 6px 12px;
             border: none;
             border-radius: 6px;
-            font-size: 0.9em;
+            font-size: 0.85em;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s;
         }
 
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        .hover-card button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
         }
 
         .btn-primary {
@@ -176,28 +223,7 @@
             color: white;
         }
 
-        .btn-sm {
-            padding: 6px 12px;
-            font-size: 0.85em;
-        }
-
-        .logs-container {
-            background: #1e1e1e;
-            color: #d4d4d4;
-            border-radius: 6px;
-            padding: 15px;
-            font-family: 'Courier New', monospace;
-            font-size: 0.85em;
-            overflow-y: auto;
-            max-height: 600px;
-            line-height: 1.6;
-        }
-
-        .log-entry {
-            margin-bottom: 5px;
-            word-wrap: break-word;
-        }
-
+        /* Modal */
         .modal {
             display: none;
             position: fixed;
@@ -208,7 +234,7 @@
             background: rgba(0, 0, 0, 0.5);
             justify-content: center;
             align-items: center;
-            z-index: 1000;
+            z-index: 2000;
         }
 
         .modal.active {
@@ -263,13 +289,18 @@
 
         .modal-actions button {
             flex: 1;
+            padding: 10px;
         }
 
-        .empty-state {
-            text-align: center;
-            color: #999;
-            padding: 40px;
-            font-style: italic;
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            background: #e3f2fd;
+            color: #1976d2;
+            border-radius: 10px;
+            font-size: 0.75em;
+            font-weight: 600;
+            margin-left: 5px;
         }
     </style>
 </head>
@@ -277,7 +308,7 @@
     <div class="container">
         <div class="header">
             <h1>🎭 Actor Supervision Tree</h1>
-            <p>Interactive hierarchical actor supervision visualization</p>
+            <p>Interactive hierarchical visualization</p>
             <div class="connection-status">
                 <span class="status-dot" id="statusDot"></span>
                 <span id="statusText">Connected</span>
@@ -285,20 +316,13 @@
         </div>
 
         <div class="main-content">
-            <!-- Tree Panel -->
-            <div class="panel">
-                <h2>🌳 Actor Hierarchy</h2>
-                <div class="tree-container" id="treeContainer">
-                    <div class="empty-state">Loading...</div>
-                </div>
+            <div class="tree-panel">
+                <svg id="tree-svg"></svg>
+                <div class="hover-card" id="hoverCard"></div>
             </div>
 
-            <!-- Logs Panel -->
-            <div class="panel">
-                <h2>📝 Live Logs</h2>
-                <div class="logs-container" id="logsContainer">
-                    <div class="log-entry">Waiting for events...</div>
-                </div>
+            <div class="logs-panel" id="logsContainer">
+                <div class="log-entry">Waiting for events...</div>
             </div>
         </div>
     </div>
@@ -306,11 +330,10 @@
     <!-- Add Worker Modal -->
     <div class="modal" id="addWorkerModal">
         <div class="modal-content">
-            <h3>Add Worker</h3>
-            <div class="form-group">
-                <label for="workerIdInput">Worker ID</label>
-                <input type="text" id="workerIdInput" placeholder="e.g., worker-1">
-            </div>
+            <h3>Add Child Actor</h3>
+            <input type="hidden" id="parentActorId">
+            <input type="hidden" id="parentActorType">
+            <input type="hidden" id="parentActorPath">
             <div class="form-group">
                 <label for="strategySelect">Supervision Strategy</label>
                 <select id="strategySelect">
@@ -321,8 +344,8 @@
                 </select>
             </div>
             <div class="modal-actions">
-                <button class="btn btn-primary" onclick="confirmAddWorker()">Add Worker</button>
-                <button class="btn" onclick="closeModal()">Cancel</button>
+                <button class="btn-primary" onclick="confirmAddWorker()">Add Child</button>
+                <button onclick="closeModal()">Cancel</button>
             </div>
         </div>
     </div>
@@ -330,8 +353,14 @@
     <script>
         let eventSource = null;
         let currentSupervisorId = 'root-supervisor';
+        let hierarchyData = null;
+        let hideCardTimeout = null;
 
-        // Initialize SSE connection
+        // Tree layout configuration
+        const NODE_RADIUS = 35;
+        const LEVEL_HEIGHT = 150;
+        const MIN_HORIZONTAL_SPACING = 120;
+
         function initSSE() {
             eventSource = new EventSource('/api/logs/stream');
 
@@ -379,69 +408,285 @@
                 const response = await fetch('/api/hierarchy');
                 const data = await response.json();
 
-                const treeContainer = document.getElementById('treeContainer');
-
-                if (!data.supervisors || data.supervisors.length === 0) {
-                    treeContainer.innerHTML = '<div class="empty-state">No supervisors found</div>';
+                if (!data.root) {
                     return;
                 }
 
-                const supervisor = data.supervisors[0];
-                currentSupervisorId = supervisor.supervisorId;
-
-                let html = `
-                    <div class="tree-node">
-                        <div class="node-header">
-                            <div class="node-title">
-                                <span class="icon">🎭</span> ${supervisor.supervisorId}
-                            </div>
-                        </div>
-                        <div class="node-actions">
-                            <button class="btn btn-primary btn-sm" onclick="showAddWorkerModal()">
-                                ➕ Add Worker
-                            </button>
-                        </div>
-                    </div>
-                `;
-
-                if (supervisor.workers && supervisor.workers.length > 0) {
-                    supervisor.workers.forEach(worker => {
-                        html += `
-                            <div class="tree-node worker">
-                                <div class="node-header">
-                                    <div>
-                                        <div class="node-title">
-                                            <span class="icon">👷</span> ${worker.workerId}
-                                        </div>
-                                        <span class="node-badge">${worker.strategy}</span>
-                                    </div>
-                                </div>
-                                <div class="node-actions">
-                                    <button class="btn btn-success btn-sm" onclick="sendWork('${worker.workerId}')">
-                                        📬 Send Work
-                                    </button>
-                                    <button class="btn btn-warning btn-sm" onclick="triggerFailure('${worker.workerId}')">
-                                        💥 Trigger Failure
-                                    </button>
-                                    <button class="btn btn-danger btn-sm" onclick="stopWorker('${worker.workerId}')">
-                                        🛑 Stop
-                                    </button>
-                                </div>
-                            </div>
-                        `;
-                    });
-                }
-
-                treeContainer.innerHTML = html;
+                hierarchyData = data.root;
+                currentSupervisorId = hierarchyData.actorId;
+                drawTree(hierarchyData);
             } catch (error) {
                 console.error('Error refreshing hierarchy:', error);
             }
         }
 
-        function showAddWorkerModal() {
+        function drawTree(rootData) {
+            const svg = document.getElementById('tree-svg');
+            const svgRect = svg.getBoundingClientRect();
+            const width = svgRect.width;
+
+            // Clear existing content
+            svg.innerHTML = '';
+
+            // Calculate tree layout recursively
+            const layoutTree = calculateTreeLayout(rootData, width);
+
+            // Calculate total height needed
+            const maxDepth = getMaxDepth(layoutTree);
+            const height = Math.max(600, (maxDepth + 1) * LEVEL_HEIGHT + 100);
+            svg.setAttribute('height', height);
+
+            // Draw connections first (so they're behind nodes)
+            drawConnectionsRecursive(svg, layoutTree);
+
+            // Draw nodes on top
+            drawNodesRecursive(svg, layoutTree);
+        }
+
+        function getMaxDepth(node, depth = 0) {
+            if (!node.children || node.children.length === 0) {
+                return depth;
+            }
+            return Math.max(...node.children.map(child => getMaxDepth(child, depth + 1)));
+        }
+
+        function calculateTreeLayout(node, containerWidth, depth = 0, parentX = null) {
+            const y = 80 + depth * LEVEL_HEIGHT;
+            const children = node.children || [];
+
+            // Calculate positions for this node and its children
+            const layoutNode = {
+                id: node.actorId,
+                type: node.actorType,
+                strategy: node.strategy,
+                path: node.path,
+                depth: depth,
+                children: []
+            };
+
+            if (children.length === 0) {
+                // Leaf node - position directly under parent or center
+                layoutNode.x = parentX !== null ? parentX : containerWidth / 2;
+                layoutNode.y = y;
+                return layoutNode;
+            }
+
+            // Recursively layout children first
+            const childLayouts = children.map(child =>
+                calculateTreeLayout(child, containerWidth, depth + 1, null)
+            );
+
+            // Calculate horizontal spacing for children
+            const totalChildren = childLayouts.length;
+            const spacing = Math.max(MIN_HORIZONTAL_SPACING, (containerWidth - 100) / (totalChildren + 1));
+            const totalWidth = (totalChildren - 1) * spacing;
+            const startX = (containerWidth - totalWidth) / 2;
+
+            // Position children horizontally
+            childLayouts.forEach((child, index) => {
+                child.x = startX + index * spacing;
+            });
+
+            // Position parent node centered above children
+            if (totalChildren === 1) {
+                layoutNode.x = childLayouts[0].x;
+            } else {
+                layoutNode.x = (childLayouts[0].x + childLayouts[childLayouts.length - 1].x) / 2;
+            }
+            layoutNode.y = y;
+            layoutNode.children = childLayouts;
+
+            return layoutNode;
+        }
+
+        function drawConnectionsRecursive(svg, node) {
+            if (!node.children || node.children.length === 0) {
+                return;
+            }
+
+            node.children.forEach(child => {
+                drawConnection(svg, node, child);
+                drawConnectionsRecursive(svg, child);
+            });
+        }
+
+        function drawConnection(svg, parent, child) {
+            const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+
+            // Curved line from parent to child
+            const d = `M ${parent.x} ${parent.y + NODE_RADIUS}
+                       Q ${parent.x} ${(parent.y + child.y) / 2}
+                         ${child.x} ${child.y - NODE_RADIUS}`;
+
+            line.setAttribute('d', d);
+            line.setAttribute('class', 'connection-line');
+            svg.appendChild(line);
+        }
+
+        function drawNodesRecursive(svg, node) {
+            drawNode(svg, node);
+
+            if (node.children && node.children.length > 0) {
+                node.children.forEach(child => drawNodesRecursive(svg, child));
+            }
+        }
+
+        function drawNode(svg, node) {
+            const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            group.setAttribute('class', 'actor-node');
+            group.setAttribute('data-actor-id', node.id);
+            group.setAttribute('data-actor-type', node.type);
+
+            // Circle
+            const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            circle.setAttribute('cx', node.x);
+            circle.setAttribute('cy', node.y);
+            circle.setAttribute('r', NODE_RADIUS);
+            circle.setAttribute('class', 'actor-circle');
+
+            if (node.type === 'supervisor') {
+                circle.setAttribute('fill', '#667eea');
+                circle.setAttribute('stroke', '#5568d3');
+            } else {
+                circle.setAttribute('fill', '#28a745');
+                circle.setAttribute('stroke', '#218838');
+            }
+            circle.setAttribute('stroke-width', 2);
+
+            // Text (ID only)
+            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            text.setAttribute('x', node.x);
+            text.setAttribute('y', node.y + 5);
+            text.setAttribute('text-anchor', 'middle');
+            text.setAttribute('class', 'actor-text');
+            text.setAttribute('fill', 'white');
+
+            // Truncate long IDs
+            const displayId = node.id.length > 12 ? node.id.substring(0, 10) + '...' : node.id;
+            text.textContent = displayId;
+
+            group.appendChild(circle);
+            group.appendChild(text);
+
+            // Add event listeners
+            group.addEventListener('mouseenter', (e) => showHoverCard(e, node));
+            group.addEventListener('mouseleave', hideHoverCard);
+
+            svg.appendChild(group);
+        }
+
+        function showHoverCard(event, node) {
+            // Clear any pending hide timeout
+            if (hideCardTimeout) {
+                clearTimeout(hideCardTimeout);
+                hideCardTimeout = null;
+            }
+
+            const card = document.getElementById('hoverCard');
+            const svgRect = document.getElementById('tree-svg').getBoundingClientRect();
+            const group = event.currentTarget;
+            const circle = group.querySelector('circle');
+            const cx = parseFloat(circle.getAttribute('cx'));
+            const cy = parseFloat(circle.getAttribute('cy'));
+
+            let html = `<h3>${node.type === 'supervisor' ? '🎭' : '👷'} ${node.id}</h3>`;
+
+            html += `<div class="info-row">
+                        <span class="info-label">Type:</span>
+                        <span class="info-value">${node.type}</span>
+                    </div>`;
+
+            if (node.strategy) {
+                html += `<div class="info-row">
+                            <span class="info-label">Strategy:</span>
+                            <span class="info-value badge">${node.strategy}</span>
+                        </div>`;
+            }
+
+            if (node.path) {
+                html += `<div class="info-row" style="font-size: 0.75em; color: #666; margin-top: 5px;">
+                            ${node.path}
+                        </div>`;
+            }
+
+            html += '<div class="actions">';
+
+            // All actors can spawn children - pass node type and path
+            html += `<button class="btn-primary" onclick="showAddWorkerModal('${node.id}', '${node.type}', '${node.path || ''}')">➕ Add Child</button>`;
+
+            // Only workers can process work and fail
+            if (node.type === 'worker') {
+                html += `<button class="btn-success" onclick="sendWork('${node.id}')">📬 Send Work</button>`;
+                html += `<button class="btn-warning" onclick="triggerFailure('${node.id}')">💥 Trigger Failure</button>`;
+            }
+
+            // Only workers can be stopped (don't stop the root supervisor)
+            if (node.type === 'worker') {
+                html += `<button class="btn-danger" onclick="stopWorker('${node.id}')">🛑 Stop</button>`;
+            }
+
+            html += '</div>';
+
+            card.innerHTML = html;
+            card.classList.add('active');
+
+            // Position the card
+            const cardWidth = 250;
+            const cardLeft = cx + NODE_RADIUS + 10;
+            const cardTop = cy - 50;
+
+            card.style.left = cardLeft + 'px';
+            card.style.top = cardTop + 'px';
+
+            // Add event listeners to the card itself to keep it visible when hovering
+            card.addEventListener('mouseenter', cancelHideCard);
+            card.addEventListener('mouseleave', scheduleHideCard);
+        }
+
+        function hideHoverCard() {
+            scheduleHideCard();
+        }
+
+        function scheduleHideCard() {
+            // Clear any existing timeout
+            if (hideCardTimeout) {
+                clearTimeout(hideCardTimeout);
+            }
+
+            // Schedule hide after a short delay (200ms)
+            hideCardTimeout = setTimeout(() => {
+                const card = document.getElementById('hoverCard');
+                card.classList.remove('active');
+                card.removeEventListener('mouseenter', cancelHideCard);
+                card.removeEventListener('mouseleave', scheduleHideCard);
+                hideCardTimeout = null;
+            }, 200);
+        }
+
+        function cancelHideCard() {
+            if (hideCardTimeout) {
+                clearTimeout(hideCardTimeout);
+                hideCardTimeout = null;
+            }
+        }
+
+        // Generate a random short ID (e.g., "abc123")
+        function generateRandomId() {
+            const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+            let id = '';
+            for (let i = 0; i < 6; i++) {
+                id += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return id;
+        }
+
+        function showAddWorkerModal(parentId, parentType, parentPath) {
+            document.getElementById('parentActorId').value = parentId || currentSupervisorId;
+            document.getElementById('parentActorType').value = parentType || 'supervisor';
+            document.getElementById('parentActorPath').value = parentPath || '';
             document.getElementById('addWorkerModal').classList.add('active');
-            document.getElementById('workerIdInput').value = '';
-            document.getElementById('workerIdInput').focus();
+            document.getElementById('strategySelect').focus();
+            hideHoverCard();
         }
 
         function closeModal() {
@@ -449,22 +694,23 @@
         }
 
         async function confirmAddWorker() {
-            const workerId = document.getElementById('workerIdInput').value;
+            const parentId = document.getElementById('parentActorId').value;
+            const parentType = document.getElementById('parentActorType').value;
+            const parentPath = document.getElementById('parentActorPath').value;
             const strategy = document.getElementById('strategySelect').value;
 
-            if (!workerId) {
-                alert('Please enter a worker ID');
-                return;
-            }
+            // Generate a random worker ID
+            const childId = generateRandomId();
 
             try {
-                const response = await fetch('/api/workers', {
+                const response = await fetch(`/api/actors/${parentId}/children`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        supervisorId: currentSupervisorId,
-                        workerId: workerId,
-                        strategy: strategy
+                        childId: childId,
+                        strategy: strategy,
+                        parentType: parentType,
+                        parentPath: parentPath
                     })
                 });
 
@@ -483,6 +729,8 @@
         async function sendWork(workerId) {
             const taskName = prompt('Enter task name:', `task-${Date.now()}`);
             if (!taskName) return;
+
+            hideHoverCard();
 
             try {
                 const response = await fetch(`/api/workers/${workerId}/work`, {
@@ -506,6 +754,8 @@
         async function triggerFailure(workerId) {
             if (!confirm(`Trigger failure in ${workerId}?`)) return;
 
+            hideHoverCard();
+
             try {
                 const response = await fetch(`/api/workers/${workerId}/fail`, {
                     method: 'POST',
@@ -524,6 +774,8 @@
 
         async function stopWorker(workerId) {
             if (!confirm(`Stop worker ${workerId}?`)) return;
+
+            hideHoverCard();
 
             try {
                 const response = await fetch(`/api/workers/${workerId}?supervisorId=${currentSupervisorId}`, {
@@ -548,13 +800,23 @@
 
         // Close modal on ESC
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') closeModal();
+            if (e.key === 'Escape') {
+                closeModal();
+                hideHoverCard();
+            }
         });
 
         // Close modal on outside click
         document.getElementById('addWorkerModal').addEventListener('click', (e) => {
             if (e.target.classList.contains('modal')) {
                 closeModal();
+            }
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            if (hierarchyData) {
+                drawTree(hierarchyData);
             }
         });
     </script>

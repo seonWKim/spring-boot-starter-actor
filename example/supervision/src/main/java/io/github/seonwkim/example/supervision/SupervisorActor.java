@@ -4,12 +4,16 @@ import io.github.seonwkim.core.SpringActorContext;
 import io.github.seonwkim.core.SpringActorWithContext;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.SupervisorStrategy;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
+import org.apache.pekko.actor.typed.javadsl.AskPattern;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.springframework.stereotype.Component;
 
@@ -74,9 +78,23 @@ public class SupervisorActor
     }
 
     public static class GetHierarchy implements Command {
-        public final ActorRef<HierarchyInfo> replyTo;
+        public final ActorRef<ActorHierarchy.ActorNode> replyTo;
 
-        public GetHierarchy(ActorRef<HierarchyInfo> replyTo) {
+        public GetHierarchy(ActorRef<ActorHierarchy.ActorNode> replyTo) {
+            this.replyTo = replyTo;
+        }
+    }
+
+    public static class RouteSpawnChild implements Command {
+        public final String parentId;
+        public final String childId;
+        public final String strategy;
+        public final ActorRef<ActorHierarchy.SpawnResult> replyTo;
+
+        public RouteSpawnChild(String parentId, String childId, String strategy, ActorRef<ActorHierarchy.SpawnResult> replyTo) {
+            this.parentId = parentId;
+            this.childId = childId;
+            this.strategy = strategy;
             this.replyTo = replyTo;
         }
     }
@@ -124,8 +142,8 @@ public class SupervisorActor
         private final ActorContext<Command> ctx;
         private final SpringActorContext actorContext;
         private final LogPublisher logPublisher;
-        // Track workers and their strategies for hierarchy info
-        private final List<WorkerInfo> workerInfos = new ArrayList<>();
+        // Track child strategies (using Map instead of List)
+        private final Map<String, String> childStrategies = new HashMap<>();
 
         SupervisorBehavior(
                 ActorContext<Command> ctx, SpringActorContext actorContext, LogPublisher logPublisher) {
@@ -146,6 +164,7 @@ public class SupervisorActor
                     .onMessage(RouteWork.class, this::onRouteWork)
                     .onMessage(TriggerWorkerFailure.class, this::onTriggerWorkerFailure)
                     .onMessage(StopWorker.class, this::onStopWorker)
+                    .onMessage(RouteSpawnChild.class, this::onRouteSpawnChild)
                     .onMessage(GetHierarchy.class, this::onGetHierarchy)
                     .build();
         }
@@ -197,8 +216,8 @@ public class SupervisorActor
             ActorRef<WorkerActor.Command> worker =
                     actorContext.spawnChild(ctx, WorkerActor.class, msg.workerId, strategy);
 
-            // Track the worker info
-            workerInfos.add(new WorkerInfo(msg.workerId, strategyDescription, worker.path().toString()));
+            // Track the worker strategy
+            childStrategies.put(msg.workerId, strategyDescription);
 
             msg.replyTo.tell(new SpawnResult(msg.workerId, true, "Worker spawned successfully"));
             return Behaviors.same();
@@ -208,23 +227,29 @@ public class SupervisorActor
         private Behavior<Command> onRouteWork(RouteWork msg) {
             String supervisorId = actorContext.actorId();
 
+            // Check if it's a direct child
             Optional<ActorRef<Void>> childOpt = ctx.getChild(msg.workerId);
-            if (childOpt.isEmpty()) {
-                ctx.getLog().warn("Worker {} not found", msg.workerId);
+            if (childOpt.isPresent()) {
+                ActorRef<WorkerActor.Command> worker =
+                        (ActorRef<WorkerActor.Command>) (ActorRef<?>) childOpt.get();
+                ctx.getLog().info("Routing work '{}' to worker {}", msg.taskName, msg.workerId);
                 logPublisher.publish(
-                        String.format("[%s] ⚠️ Worker '%s' not found", supervisorId, msg.workerId));
+                        String.format(
+                                "[%s] 📬 Routing task '%s' to worker '%s'",
+                                supervisorId, msg.taskName, msg.workerId));
+
+                worker.tell(new WorkerActor.ProcessWork(msg.taskName, msg.replyTo));
                 return Behaviors.same();
             }
 
-            ActorRef<WorkerActor.Command> worker =
-                    (ActorRef<WorkerActor.Command>) (ActorRef<?>) childOpt.get();
-            ctx.getLog().info("Routing work '{}' to worker {}", msg.taskName, msg.workerId);
-            logPublisher.publish(
-                    String.format(
-                            "[%s] 📬 Routing task '%s' to worker '%s'",
-                            supervisorId, msg.taskName, msg.workerId));
+            // Not a direct child - recursively forward to all children
+            ctx.getLog().info("Worker {} not a direct child of {}, forwarding to children", msg.workerId, supervisorId);
 
-            worker.tell(new WorkerActor.ProcessWork(msg.taskName, msg.replyTo));
+            for (ActorRef<Void> childRef : (Iterable<ActorRef<Void>>) ctx.getChildren()::iterator) {
+                ActorRef<WorkerActor.Command> worker = (ActorRef<WorkerActor.Command>) (ActorRef<?>) childRef;
+                worker.tell(new WorkerActor.RouteToChild(msg.workerId, msg.taskName, msg.replyTo));
+            }
+
             return Behaviors.same();
         }
 
@@ -232,54 +257,167 @@ public class SupervisorActor
         private Behavior<Command> onTriggerWorkerFailure(TriggerWorkerFailure msg) {
             String supervisorId = actorContext.actorId();
 
+            // Check if it's a direct child
             Optional<ActorRef<Void>> childOpt = ctx.getChild(msg.workerId);
-            if (childOpt.isEmpty()) {
-                ctx.getLog().warn("Worker {} not found", msg.workerId);
+            if (childOpt.isPresent()) {
+                ActorRef<WorkerActor.Command> worker =
+                        (ActorRef<WorkerActor.Command>) (ActorRef<?>) childOpt.get();
+                ctx.getLog().info("Triggering failure in worker {}", msg.workerId);
                 logPublisher.publish(
-                        String.format("[%s] ⚠️ Worker '%s' not found", supervisorId, msg.workerId));
-                msg.replyTo.tell("Worker not found");
+                        String.format(
+                                "[%s] 💥 Triggering failure in worker '%s'", supervisorId, msg.workerId));
+
+                worker.tell(new WorkerActor.TriggerFailure(msg.replyTo));
                 return Behaviors.same();
             }
 
-            ActorRef<WorkerActor.Command> worker =
-                    (ActorRef<WorkerActor.Command>) (ActorRef<?>) childOpt.get();
-            ctx.getLog().info("Triggering failure in worker {}", msg.workerId);
-            logPublisher.publish(
-                    String.format(
-                            "[%s] 💥 Triggering failure in worker '%s'", supervisorId, msg.workerId));
+            // Not a direct child - recursively forward to all children
+            ctx.getLog().info("Worker {} not a direct child of {}, forwarding failure trigger to children", msg.workerId, supervisorId);
 
-            worker.tell(new WorkerActor.TriggerFailure(msg.replyTo));
+            for (ActorRef<Void> childRef : (Iterable<ActorRef<Void>>) ctx.getChildren()::iterator) {
+                ActorRef<WorkerActor.Command> worker = (ActorRef<WorkerActor.Command>) (ActorRef<?>) childRef;
+                worker.tell(new WorkerActor.TriggerChildFailure(msg.workerId, msg.replyTo));
+            }
+
             return Behaviors.same();
         }
 
+        @SuppressWarnings("unchecked")
         private Behavior<Command> onStopWorker(StopWorker msg) {
             String supervisorId = actorContext.actorId();
 
+            // Check if it's a direct child
             Optional<ActorRef<Void>> childOpt = ctx.getChild(msg.workerId);
-            if (childOpt.isEmpty()) {
-                ctx.getLog().warn("Worker {} not found", msg.workerId);
+            if (childOpt.isPresent()) {
+                ctx.getLog().info("Stopping worker {}", msg.workerId);
                 logPublisher.publish(
-                        String.format("[%s] ⚠️ Worker '%s' not found", supervisorId, msg.workerId));
-                msg.replyTo.tell("Worker not found");
+                        String.format("[%s] 🛑 Stopping worker '%s'", supervisorId, msg.workerId));
+
+                ctx.stop(childOpt.get());
+
+                // Remove from tracked strategies
+                childStrategies.remove(msg.workerId);
+
+                msg.replyTo.tell("Worker stopped");
                 return Behaviors.same();
             }
 
-            ctx.getLog().info("Stopping worker {}", msg.workerId);
-            logPublisher.publish(
-                    String.format("[%s] 🛑 Stopping worker '%s'", supervisorId, msg.workerId));
+            // Not a direct child - recursively forward to all children
+            ctx.getLog().info("Worker {} not a direct child of {}, forwarding stop request to children", msg.workerId, supervisorId);
 
-            ctx.stop(childOpt.get());
+            for (ActorRef<Void> childRef : (Iterable<ActorRef<Void>>) ctx.getChildren()::iterator) {
+                ActorRef<WorkerActor.Command> worker = (ActorRef<WorkerActor.Command>) (ActorRef<?>) childRef;
+                worker.tell(new WorkerActor.StopChild(msg.workerId, msg.replyTo));
+            }
 
-            // Remove from tracked workers
-            workerInfos.removeIf(info -> info.workerId.equals(msg.workerId));
-
-            msg.replyTo.tell("Worker stopped");
             return Behaviors.same();
         }
 
+        @SuppressWarnings("unchecked")
+        private Behavior<Command> onRouteSpawnChild(RouteSpawnChild msg) {
+            String supervisorId = actorContext.actorId();
+
+            // Check if this supervisor is the parent
+            if (supervisorId.equals(msg.parentId)) {
+                // Spawn directly
+                return onSpawnWorker(new SpawnWorker(msg.childId, msg.strategy,
+                    (ActorRef<SpawnResult>) (ActorRef<?>) msg.replyTo));
+            }
+
+            // Check if the parent is a direct child
+            Optional<ActorRef<Void>> directChildOpt = ctx.getChild(msg.parentId);
+            if (directChildOpt.isPresent()) {
+                // Found the parent as a direct child, send spawn command to it
+                ActorRef<WorkerActor.Command> worker = (ActorRef<WorkerActor.Command>) (ActorRef<?>) directChildOpt.get();
+                worker.tell(new WorkerActor.SpawnChild(msg.childId, msg.strategy, msg.replyTo));
+
+                ctx.getLog().info("Routing spawn of {} to direct child {}", msg.childId, msg.parentId);
+                logPublisher.publish(
+                    String.format("[%s] Routing spawn of '%s' to child '%s'", supervisorId, msg.childId, msg.parentId));
+
+                return Behaviors.same();
+            }
+
+            // Parent not a direct child - recursively forward to ALL children
+            // Each child will check if it's the parent or route further down
+            ctx.getLog().info("Parent {} not a direct child of {}, forwarding to all children", msg.parentId, supervisorId);
+
+            boolean hasChildren = false;
+            for (ActorRef<Void> childRef : (Iterable<ActorRef<Void>>) ctx.getChildren()::iterator) {
+                hasChildren = true;
+                ActorRef<WorkerActor.Command> worker = (ActorRef<WorkerActor.Command>) (ActorRef<?>) childRef;
+
+                // Forward the RouteSpawnChild message to this child
+                // The child will either handle it or forward it further down
+                worker.tell(new WorkerActor.RouteSpawnChild(msg.parentId, msg.childId, msg.strategy, msg.replyTo));
+            }
+
+            // If we have no children and couldn't find the parent, it doesn't exist
+            if (!hasChildren) {
+                ctx.getLog().warn("Parent {} not found in hierarchy under {}", msg.parentId, supervisorId);
+                msg.replyTo.tell(new ActorHierarchy.SpawnResult(msg.childId, false, "Parent not found"));
+            }
+
+            return Behaviors.same();
+        }
+
+        @SuppressWarnings("unchecked")
         private Behavior<Command> onGetHierarchy(GetHierarchy msg) {
             String supervisorId = actorContext.actorId();
-            msg.replyTo.tell(new HierarchyInfo(supervisorId, new ArrayList<>(workerInfos)));
+
+            // Query all children using ctx.getChildren()
+            List<CompletableFuture<ActorHierarchy.ActorNode>> childFutures = new ArrayList<>();
+
+            ctx.getChildren().forEach(childRef -> {
+                String childName = childRef.path().name();
+                String strategy = childStrategies.getOrDefault(childName, "Unknown");
+
+                // Ask each child for its hierarchy (recursive)
+                ActorRef<WorkerActor.Command> typedChild = (ActorRef<WorkerActor.Command>) (ActorRef<?>) childRef;
+                CompletableFuture<ActorHierarchy.ActorNode> future =
+                        AskPattern.<WorkerActor.Command, ActorHierarchy.ActorNode>ask(
+                                typedChild,
+                                replyTo -> new WorkerActor.GetHierarchy(replyTo),
+                                Duration.ofSeconds(3),
+                                ctx.getSystem().scheduler())
+                        .toCompletableFuture();
+
+                childFutures.add(future);
+            });
+
+            // Wait for all children to respond, then send the complete hierarchy
+            CompletableFuture.allOf(childFutures.toArray(new CompletableFuture[0]))
+                    .thenApply(v -> {
+                        List<ActorHierarchy.ActorNode> children = new ArrayList<>();
+                        for (CompletableFuture<ActorHierarchy.ActorNode> future : childFutures) {
+                            children.add(future.join());
+                        }
+                        return children;
+                    })
+                    .thenAccept(children -> {
+                        ActorHierarchy.ActorNode node = new ActorHierarchy.ActorNode(
+                                supervisorId,
+                                "supervisor",
+                                "Supervisor", // Supervisors don't fail, so this is just for display
+                                ctx.getSelf().path().toString(),
+                                children
+                        );
+                        msg.replyTo.tell(node);
+                    })
+                    .exceptionally(ex -> {
+                        ctx.getLog().error("Failed to get hierarchy for supervisor {}", supervisorId, ex);
+                        // Return node with no children on error
+                        ActorHierarchy.ActorNode node = new ActorHierarchy.ActorNode(
+                                supervisorId,
+                                "supervisor",
+                                "Supervisor",
+                                ctx.getSelf().path().toString(),
+                                List.of()
+                        );
+                        msg.replyTo.tell(node);
+                        return null;
+                    });
+
             return Behaviors.same();
         }
     }
