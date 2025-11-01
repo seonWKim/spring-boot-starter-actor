@@ -4,6 +4,7 @@ import io.github.seonwkim.core.impl.DefaultSpringActorContext;
 import java.time.Duration;
 import java.util.concurrent.CompletionStage;
 import org.apache.pekko.actor.typed.MailboxSelector;
+import org.apache.pekko.actor.typed.SupervisorStrategy;
 
 /**
  * A fluent builder for spawning actors with a simplified API. This builder provides a more
@@ -20,6 +21,7 @@ public class SpringActorSpawnBuilder<A extends SpringActorWithContext<A, C, ?>, 
     private Duration timeout = Duration.ofSeconds(3);
     private MailboxSelector mailboxSelector = MailboxSelector.defaultMailbox();
     private boolean isClusterSingleton = false;
+    private SupervisorStrategy supervisorStrategy = null;
 
     /**
      * Creates a new SpringActorSpawnBuilder.
@@ -125,6 +127,18 @@ public class SpringActorSpawnBuilder<A extends SpringActorWithContext<A, C, ?>, 
     }
 
     /**
+     * Sets the supervisor strategy for this actor. The supervisor strategy determines how the
+     * actor will be supervised by its parent (the root guardian).
+     *
+     * @param supervisorStrategy The supervisor strategy (e.g., SupervisorStrategy.restart())
+     * @return This builder
+     */
+    public SpringActorSpawnBuilder<A, C> withSupervisorStrategy(SupervisorStrategy supervisorStrategy) {
+        this.supervisorStrategy = supervisorStrategy;
+        return this;
+    }
+
+    /**
      * Spawns the actor and returns a CompletionStage with the actor reference.
      *
      * @return A CompletionStage that will be completed with a reference to the spawned actor
@@ -138,7 +152,7 @@ public class SpringActorSpawnBuilder<A extends SpringActorWithContext<A, C, ?>, 
             actorContext = new DefaultSpringActorContext(actorId);
         }
 
-        return actorSystem.spawn(actorClass, actorContext, mailboxSelector, isClusterSingleton, timeout);
+        return actorSystem.spawn(actorClass, actorContext, mailboxSelector, isClusterSingleton, supervisorStrategy, timeout);
     }
 
     /**

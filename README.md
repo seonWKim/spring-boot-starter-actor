@@ -373,6 +373,57 @@ Spring Boot Starter Actor provides robust supervision strategies for building se
 
 **1. Restart Strategy (Default)**
 ```java
+// Restart the actor on failure (default behavior)
+SupervisorStrategy strategy = SupervisorStrategy.restart();
+```
+
+**2. Restart with Limit**
+```java
+// Restart up to 3 times within 1 minute, then stop
+SupervisorStrategy strategy = SupervisorStrategy.restart()
+    .withLimit(3, Duration.ofMinutes(1));
+```
+
+**3. Stop Strategy**
+```java
+// Stop the actor on failure
+SupervisorStrategy strategy = SupervisorStrategy.stop();
+```
+
+**4. Resume Strategy**
+```java
+// Ignore the failure and resume processing
+SupervisorStrategy strategy = SupervisorStrategy.resume();
+```
+
+#### Spawning Top-Level Actors with Supervision
+
+You can apply supervision strategies when spawning actors from `SpringActorSystem`:
+
+```java
+@Service
+public class MyService {
+    private final SpringActorSystem actorSystem;
+
+    public MyService(SpringActorSystem actorSystem) {
+        this.actorSystem = actorSystem;
+    }
+
+    public CompletionStage<SpringActorRef<Command>> createSupervisedActor() {
+        // Spawn actor with restart strategy
+        return actorSystem.actor(WorkerActor.class)
+            .withId("worker-1")
+            .withSupervisorStrategy(SupervisorStrategy.restart().withLimit(3, Duration.ofMinutes(1)))
+            .start();
+    }
+}
+```
+
+#### Spawning Child Actors with Supervision
+
+Within an actor, spawn supervised child actors:
+
+```java
 @Component
 public class SupervisorActor implements SpringActorWithContext<SupervisorActor, Command, SpringActorContext> {
 
@@ -389,29 +440,6 @@ public class SupervisorActor implements SpringActorWithContext<SupervisorActor, 
         });
     }
 }
-```
-
-**2. Restart with Limit**
-```java
-// Restart up to 3 times within 1 minute, then stop
-SupervisorStrategy strategy = SupervisorStrategy.restart()
-    .withLimit(3, Duration.ofMinutes(1));
-
-actorContext.spawnChild(ctx, WorkerActor.class, "worker-1", strategy);
-```
-
-**3. Stop Strategy**
-```java
-// Stop the child actor on failure
-SupervisorStrategy strategy = SupervisorStrategy.stop();
-actorContext.spawnChild(ctx, WorkerActor.class, "worker-1", strategy);
-```
-
-**4. Resume Strategy**
-```java
-// Ignore the failure and resume processing
-SupervisorStrategy strategy = SupervisorStrategy.resume();
-actorContext.spawnChild(ctx, WorkerActor.class, "worker-1", strategy);
 ```
 
 #### Interactive Demo

@@ -67,6 +67,11 @@ public class DefaultRootGuardian implements RootGuardian {
         String key = buildActorKey(msg.actorClass, msg.actorContext);
 
         Behavior<?> behavior = registry.createBehavior(msg.actorClass, msg.actorContext);
+
+        if (msg.supervisorStrategy != null) {
+            behavior = Behaviors.supervise(behavior).onFailure(msg.supervisorStrategy);
+        }
+
         ActorRef<?> ref = ctx.spawn(behavior, key, msg.mailboxSelector);
 
         msg.replyTo.tell(new Spawned<>(ref));

@@ -7,10 +7,8 @@ import io.github.seonwkim.core.shard.ShardedActor;
 import io.github.seonwkim.core.shard.ShardedActorRegistry;
 import java.time.Duration;
 import java.util.concurrent.CompletionStage;
-import org.apache.pekko.actor.typed.ActorRef;
-import org.apache.pekko.actor.typed.ActorSystem;
-import org.apache.pekko.actor.typed.MailboxSelector;
-import org.apache.pekko.actor.typed.Props;
+
+import org.apache.pekko.actor.typed.*;
 import org.apache.pekko.actor.typed.javadsl.AskPattern;
 import org.apache.pekko.cluster.ClusterEvent;
 import org.apache.pekko.cluster.sharding.typed.javadsl.ClusterSharding;
@@ -301,11 +299,12 @@ public class SpringActorSystem implements DisposableBean {
             SpringActorContext actorContext,
             MailboxSelector mailboxSelector,
             boolean isClusterSingleton,
+            SupervisorStrategy supervisorStrategy,
             Duration timeout) {
         return AskPattern.ask(
                         actorSystem,
                         (ActorRef<Spawned<?>> replyTo) -> new DefaultRootGuardian.SpawnActor(
-                                actorClass, actorContext, replyTo, mailboxSelector, isClusterSingleton),
+                                actorClass, actorContext, replyTo, mailboxSelector, isClusterSingleton, supervisorStrategy),
                         timeout,
                         actorSystem.scheduler())
                 .thenApply(spawned -> {
