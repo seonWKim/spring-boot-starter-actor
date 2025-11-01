@@ -34,6 +34,17 @@ public class ActorTypeRegistry {
     }
 
     /**
+     * Creates a behavior for the given actor class and context with type safety. This method provides
+     * compile-time type checking for registered actors.
+     */
+    @SuppressWarnings("unchecked")
+    public <A extends SpringActorWithContext<A, C, CTX>, C, CTX extends SpringActorContext>
+    Behavior<C> createTypedBehavior(Class<A> actorClass, SpringActorContext actorContext) {
+        // Safe cast: register method ensures type consistency
+        return (Behavior<C>) createBehavior(actorClass, actorContext);
+    }
+
+    /**
      * Creates a behavior for the given actor class and context. This method is used internally when
      * the exact type parameters are unknown at compile time.
      *
@@ -48,24 +59,5 @@ public class ActorTypeRegistry {
             throw new IllegalArgumentException("No factory registered for class: " + actorClass.getName());
         }
         return factory.apply(actorContext);
-    }
-
-    /**
-     * Creates a behavior for the given actor class and context with type safety. This method provides
-     * compile-time type checking for registered actors.
-     *
-     * @param actorClass The actor class to create a behavior for
-     * @param actorContext The context to use for creating the behavior
-     * @param <A> The type of the actor (must extend SpringActorWithContext)
-     * @param <C> The type of commands the actor handles
-     * @param <CTX> The type of context the actor requires
-     * @return A behavior for the given actor class and context
-     * @throws IllegalArgumentException If no factory is registered for the given actor class
-     */
-    @SuppressWarnings("unchecked")
-    public <A extends SpringActorWithContext<A, C, CTX>, C, CTX extends SpringActorContext>
-            Behavior<C> createTypedBehavior(Class<A> actorClass, SpringActorContext actorContext) {
-        // Safe cast: register method ensures type consistency
-        return (Behavior<C>) createBehavior(actorClass, actorContext);
     }
 }
