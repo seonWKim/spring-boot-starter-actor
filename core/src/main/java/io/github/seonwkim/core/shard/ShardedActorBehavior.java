@@ -145,22 +145,6 @@ public final class ShardedActorBehavior<T> {
         }
 
         /**
-         * Adds a signal handler for a specific signal type.
-         *
-         * <p>The handler receives the state object (from onCreate) and the signal.
-         * If onCreate was not called, the state will be the ActorContext.
-         *
-         * @param type    the signal class to handle
-         * @param handler the handler function that receives state and signal
-         * @param <M>     the signal type
-         * @return this builder for chaining
-         */
-        public <M extends Signal> Builder<T, S> onSignal(Class<M> type, BiFunction<S, M, Behavior<T>> handler) {
-            signalHandlers.add(new SignalHandler<>(type, handler));
-            return this;
-        }
-
-        /**
          * Builds the final ShardedActorBehavior.
          *
          * @return the constructed behavior
@@ -172,14 +156,14 @@ public final class ShardedActorBehavior<T> {
 
                 BehaviorBuilder<T> builder = Behaviors.receive(commandClass);
 
-                // Add all message handlers
+                // Add all message handlers - capture the returned builder each time
                 for (MessageHandler<T, S, ?> handler : messageHandlers) {
-                    handler.addTo(builder, state);
+                    builder = handler.addTo(builder, state);
                 }
 
-                // Add all signal handlers
+                // Add all signal handlers - capture the returned builder each time
                 for (SignalHandler<T, S, ?> handler : signalHandlers) {
-                    handler.addTo(builder, state);
+                    builder = handler.addTo(builder, state);
                 }
 
                 return builder.build();
@@ -200,8 +184,8 @@ public final class ShardedActorBehavior<T> {
                 this.handler = handler;
             }
 
-            void addTo(BehaviorBuilder<T> builder, S state) {
-                builder.onMessage(type, msg -> handler.apply(state, msg));
+            BehaviorBuilder<T> addTo(BehaviorBuilder<T> builder, S state) {
+                return builder.onMessage(type, msg -> handler.apply(state, msg));
             }
         }
 
@@ -217,8 +201,8 @@ public final class ShardedActorBehavior<T> {
                 this.handler = handler;
             }
 
-            void addTo(BehaviorBuilder<T> builder, S state) {
-                builder.onSignal(type, sig -> handler.apply(state, sig));
+            BehaviorBuilder<T> addTo(BehaviorBuilder<T> builder, S state) {
+                return builder.onSignal(type, sig -> handler.apply(state, sig));
             }
         }
     }
