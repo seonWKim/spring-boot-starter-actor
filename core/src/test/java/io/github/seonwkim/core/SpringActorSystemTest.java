@@ -67,7 +67,7 @@ class SpringActorSystemTest {
         }
     }
 
-    static class CustomActorContext implements SpringActorContext {
+    static class CustomActorContext extends SpringActorContext {
 
         private final String actorId;
 
