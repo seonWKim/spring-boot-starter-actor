@@ -7,6 +7,7 @@ import java.util.function.Function;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.Signal;
+import org.apache.pekko.actor.typed.SupervisorStrategy;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.BehaviorBuilder;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
@@ -63,20 +64,6 @@ public final class SpringActorBehavior<C> {
     }
 
     /**
-     * Wraps a Pekko Behavior in a SpringActorBehavior.
-     *
-     * <p>Use this method when you need to wrap a behavior that has been enhanced
-     * with Pekko features like supervision, timers, etc.
-     *
-     * @param behavior the Pekko behavior to wrap
-     * @param <C>      the command type
-     * @return a new SpringActorBehavior wrapping the given behavior
-     */
-    public static <C> SpringActorBehavior<C> wrap(Behavior<C> behavior) {
-        return new SpringActorBehavior<>(behavior);
-    }
-
-    /**
      * Creates a new builder for constructing a SpringActorBehavior.
      *
      * <p>The builder starts with ActorContext as the default state type. Use {@link Builder#onCreate(Function)}
@@ -107,6 +94,7 @@ public final class SpringActorBehavior<C> {
         private final List<MessageHandler<C, S, ?>> messageHandlers = new ArrayList<>();
         private final List<SignalHandler<C, S, ?>> signalHandlers = new ArrayList<>();
         private boolean enableFrameworkCommands = false;
+        private SupervisorStrategy supervisionStrategy = null;
 
         private Builder(
                 Class<C> commandClass, SpringActorContext actorContext, Function<ActorContext<C>, S> onCreateCallback) {
@@ -125,6 +113,27 @@ public final class SpringActorBehavior<C> {
          */
         public Builder<C, S> withFrameworkCommands() {
             this.enableFrameworkCommands = true;
+            return this;
+        }
+
+        /**
+         * Sets the supervision strategy for this actor.
+         *
+         * <p>The supervision strategy determines how the actor should be supervised by its parent
+         * when failures occur. Common strategies include restart, stop, and resume.
+         *
+         * <p>Example usage:
+         * <pre>
+         * {@code
+         * .withSupervisionStrategy(SupervisorStrategy.restart().withLimit(10, Duration.ofMinutes(1)))
+         * }
+         * </pre>
+         *
+         * @param strategy the supervision strategy to apply
+         * @return this builder for chaining
+         */
+        public Builder<C, S> withSupervisionStrategy(SupervisorStrategy strategy) {
+            this.supervisionStrategy = strategy;
             return this;
         }
 
@@ -151,6 +160,7 @@ public final class SpringActorBehavior<C> {
         public <NewS> Builder<C, NewS> onCreate(Function<ActorContext<C>, NewS> callback) {
             Builder<C, NewS> newBuilder = new Builder<>(commandClass, actorContext, callback);
             newBuilder.enableFrameworkCommands = this.enableFrameworkCommands;
+            newBuilder.supervisionStrategy = this.supervisionStrategy;
             return newBuilder;
         }
 
@@ -198,7 +208,14 @@ public final class SpringActorBehavior<C> {
                     // Create the state object
                     S state = onCreateCallback.apply(ctx);
 
-                    return createFrameworkCommandHandlingBehavior(ctx, state);
+                    Behavior<C> behavior = createFrameworkCommandHandlingBehavior(ctx, state);
+
+                    // Apply supervision strategy if provided
+                    if (supervisionStrategy != null) {
+                        behavior = Behaviors.supervise(behavior).onFailure(supervisionStrategy);
+                    }
+
+                    return behavior;
                 });
                 return new SpringActorBehavior<>(behaviorWithFramework);
             } else {
@@ -219,7 +236,14 @@ public final class SpringActorBehavior<C> {
                         builder = handler.addTo(builder, state);
                     }
 
-                    return builder.build();
+                    Behavior<C> behavior = builder.build();
+
+                    // Apply supervision strategy if provided
+                    if (supervisionStrategy != null) {
+                        behavior = Behaviors.supervise(behavior).onFailure(supervisionStrategy);
+                    }
+
+                    return behavior;
                 });
                 return new SpringActorBehavior<>(userBehavior);
             }

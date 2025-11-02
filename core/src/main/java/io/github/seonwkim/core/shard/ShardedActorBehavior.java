@@ -53,20 +53,6 @@ public final class ShardedActorBehavior<T> {
     }
 
     /**
-     * Wraps a Pekko Behavior in a ShardedActorBehavior.
-     *
-     * <p>Use this method when you need to wrap a behavior that has been enhanced
-     * with Pekko features like supervision, timers, etc.
-     *
-     * @param behavior the Pekko behavior to wrap
-     * @param <T>      the message type
-     * @return a new ShardedActorBehavior wrapping the given behavior
-     */
-    public static <T> ShardedActorBehavior<T> wrap(Behavior<T> behavior) {
-        return new ShardedActorBehavior<>(behavior);
-    }
-
-    /**
      * Creates a new builder for constructing a ShardedActorBehavior.
      *
      * <p>The builder starts with ActorContext as the default state type. Use {@link Builder#onCreate(Function)}

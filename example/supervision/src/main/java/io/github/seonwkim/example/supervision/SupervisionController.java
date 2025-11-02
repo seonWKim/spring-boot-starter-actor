@@ -131,7 +131,8 @@ public class SupervisionController {
                                     "message",
                                     resultObj.message));
                         } else {
-                            return ResponseEntity.badRequest().body(toMap("success", false, "message", resultObj.message));
+                            return ResponseEntity.badRequest()
+                                    .body(toMap("success", false, "message", resultObj.message));
                         }
                     })
                     .exceptionally(ex -> ResponseEntity.internalServerError()
@@ -162,7 +163,8 @@ public class SupervisionController {
                                     "message",
                                     resultObj.message));
                         } else {
-                            return ResponseEntity.badRequest().body(toMap("success", false, "message", resultObj.message));
+                            return ResponseEntity.badRequest()
+                                    .body(toMap("success", false, "message", resultObj.message));
                         }
                     })
                     .exceptionally(ex -> ResponseEntity.internalServerError()

@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.Map;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
+import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityContext;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
@@ -69,64 +70,91 @@ public class ChatRoomActor implements ShardedActor<ChatRoomActor.Command> {
     @Override
     public ShardedActorBehavior<Command> create(EntityContext<Command> ctx) {
         final String roomId = ctx.getEntityId();
-        Behavior<Command> behavior = chatRoom(roomId, new HashMap<>());
-        return ShardedActorBehavior.wrap(behavior);
-    }
 
-    /**
-     * Creates the behavior for a chat room with the given room ID and connected users.
-     *
-     * @param roomId The ID of the chat room
-     * @param connectedUsers Map of user IDs to their actor references
-     * @return The behavior for the chat room
-     */
-    private Behavior<Command> chatRoom(String roomId, Map<String, ActorRef<UserActor.Command>> connectedUsers) {
-        return Behaviors.receive(Command.class)
-                .onMessage(JoinRoom.class, msg -> {
-                    // Add the user to the connected users
-                    connectedUsers.put(msg.userId, msg.userRef);
-
-                    // Notify all users that a new user has joined
-                    UserActor.JoinRoomEvent joinRoomEvent = new UserActor.JoinRoomEvent(msg.userId);
-                    broadcastCommand(connectedUsers, joinRoomEvent);
-
-                    return chatRoom(roomId, connectedUsers);
-                })
-                .onMessage(LeaveRoom.class, msg -> {
-                    // Remove the user from connected users
-                    ActorRef<UserActor.Command> userRef = connectedUsers.remove(msg.userId);
-
-                    if (userRef != null) {
-                        // Notify the user that they left the room
-                        UserActor.LeaveRoomEvent leaveRoomEvent = new UserActor.LeaveRoomEvent(msg.userId);
-                        userRef.tell(leaveRoomEvent);
-
-                        // Notify all remaining users that a user has left
-                        broadcastCommand(connectedUsers, leaveRoomEvent);
-                    }
-
-                    return chatRoom(roomId, connectedUsers);
-                })
-                .onMessage(SendMessage.class, msg -> {
-                    // Create a message received command
-                    UserActor.SendMessageEvent receiveMessageCmd =
-                            new UserActor.SendMessageEvent(msg.userId, msg.message);
-
-                    // Broadcast the message to all connected users
-                    broadcastCommand(connectedUsers, receiveMessageCmd);
-
-                    return Behaviors.same();
-                })
+        return ShardedActorBehavior.builder(Command.class, ctx)
+                .onCreate(actorCtx -> new ChatRoomBehavior(actorCtx, roomId))
+                .onMessage(JoinRoom.class, ChatRoomBehavior::onJoinRoom)
+                .onMessage(LeaveRoom.class, ChatRoomBehavior::onLeaveRoom)
+                .onMessage(SendMessage.class, ChatRoomBehavior::onSendMessage)
                 .build();
     }
 
     /**
-     * Broadcasts a command to all connected users.
-     *
-     * @param connectedUsers Map of user IDs to their actor references
-     * @param command The command to broadcast
+     * Behavior handler for chat room actor. Maintains the state of connected users
+     * and handles room operations.
      */
-    private void broadcastCommand(Map<String, ActorRef<UserActor.Command>> connectedUsers, UserActor.Command command) {
-        connectedUsers.values().forEach(userRef -> userRef.tell(command));
+    private static class ChatRoomBehavior {
+        private final ActorContext<Command> ctx;
+        private final String roomId;
+        private final Map<String, ActorRef<UserActor.Command>> connectedUsers = new HashMap<>();
+
+        ChatRoomBehavior(ActorContext<Command> ctx, String roomId) {
+            this.ctx = ctx;
+            this.roomId = roomId;
+        }
+
+        /**
+         * Handles JoinRoom commands by adding the user to the room and notifying all users.
+         *
+         * @param msg The JoinRoom message
+         * @return The next behavior (same in this case)
+         */
+        private Behavior<Command> onJoinRoom(JoinRoom msg) {
+            // Add the user to the connected users
+            connectedUsers.put(msg.userId, msg.userRef);
+
+            // Notify all users that a new user has joined
+            UserActor.JoinRoomEvent joinRoomEvent = new UserActor.JoinRoomEvent(msg.userId);
+            broadcastCommand(joinRoomEvent);
+
+            return Behaviors.same();
+        }
+
+        /**
+         * Handles LeaveRoom commands by removing the user and notifying remaining users.
+         *
+         * @param msg The LeaveRoom message
+         * @return The next behavior (same in this case)
+         */
+        private Behavior<Command> onLeaveRoom(LeaveRoom msg) {
+            // Remove the user from connected users
+            ActorRef<UserActor.Command> userRef = connectedUsers.remove(msg.userId);
+
+            if (userRef != null) {
+                // Notify the user that they left the room
+                UserActor.LeaveRoomEvent leaveRoomEvent = new UserActor.LeaveRoomEvent(msg.userId);
+                userRef.tell(leaveRoomEvent);
+
+                // Notify all remaining users that a user has left
+                broadcastCommand(leaveRoomEvent);
+            }
+
+            return Behaviors.same();
+        }
+
+        /**
+         * Handles SendMessage commands by broadcasting the message to all connected users.
+         *
+         * @param msg The SendMessage message
+         * @return The next behavior (same in this case)
+         */
+        private Behavior<Command> onSendMessage(SendMessage msg) {
+            // Create a message received command
+            UserActor.SendMessageEvent receiveMessageCmd = new UserActor.SendMessageEvent(msg.userId, msg.message);
+
+            // Broadcast the message to all connected users
+            broadcastCommand(receiveMessageCmd);
+
+            return Behaviors.same();
+        }
+
+        /**
+         * Broadcasts a command to all connected users.
+         *
+         * @param command The command to broadcast
+         */
+        private void broadcastCommand(UserActor.Command command) {
+            connectedUsers.values().forEach(userRef -> userRef.tell(command));
+        }
     }
 }

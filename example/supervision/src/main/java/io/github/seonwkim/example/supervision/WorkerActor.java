@@ -40,7 +40,8 @@ public class WorkerActor implements SpringActorWithContext<HierarchicalActor.Com
                 .onMessage(HierarchicalActor.TriggerFailure.class, HierarchicalActorBehavior::onTriggerFailure)
                 .onMessage(HierarchicalActor.SpawnChild.class, HierarchicalActorBehavior::onSpawnChild)
                 .onMessage(HierarchicalActor.RouteToChild.class, HierarchicalActorBehavior::onRouteToChild)
-                .onMessage(HierarchicalActor.TriggerChildFailure.class, HierarchicalActorBehavior::onTriggerChildFailure)
+                .onMessage(
+                        HierarchicalActor.TriggerChildFailure.class, HierarchicalActorBehavior::onTriggerChildFailure)
                 .onMessage(HierarchicalActor.StopChild.class, HierarchicalActorBehavior::onStopChild)
                 .onMessage(HierarchicalActor.RouteSpawnChild.class, HierarchicalActorBehavior::onRouteSpawnChild)
                 .onMessage(HierarchicalActor.GetHierarchy.class, HierarchicalActorBehavior::onGetHierarchy)

@@ -6,6 +6,8 @@ import io.github.seonwkim.core.serialization.JsonSerializable;
 import io.github.seonwkim.core.shard.ShardedActor;
 import io.github.seonwkim.core.shard.ShardedActorBehavior;
 import org.apache.pekko.actor.typed.ActorRef;
+import org.apache.pekko.actor.typed.Behavior;
+import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityContext;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
@@ -48,26 +50,46 @@ public class HelloActor implements ShardedActor<HelloActor.Command> {
      */
     @Override
     public ShardedActorBehavior<Command> create(EntityContext<Command> ctx) {
-        return ShardedActorBehavior.wrap(Behaviors.setup(context -> {
-            String entityId = ctx.getEntityId();
+        final String entityId = ctx.getEntityId();
 
-            return Behaviors.receive(Command.class)
-                    .onMessage(SayHello.class, msg -> {
-                        // Get information about the current node and entity
-                        final String nodeAddress = context.getSystem().address().toString();
+        return ShardedActorBehavior.builder(Command.class, ctx)
+                .onCreate(actorCtx -> new HelloActorBehavior(actorCtx, entityId))
+                .onMessage(SayHello.class, HelloActorBehavior::onSayHello)
+                .build();
+    }
 
-                        // Create a response message with node and entity information
-                        final String message = "Received from entity [" + entityId + "] on node [" + nodeAddress + "]";
+    /**
+     * Behavior handler for hello actor. Holds the entity ID and handles messages.
+     */
+    private static class HelloActorBehavior {
+        private final ActorContext<Command> ctx;
+        private final String entityId;
 
-                        // Send the response back to the caller
-                        msg.replyTo.tell(message);
+        HelloActorBehavior(ActorContext<Command> ctx, String entityId) {
+            this.ctx = ctx;
+            this.entityId = entityId;
+        }
 
-                        // Log the message for debugging
-                        context.getLog().info(message);
+        /**
+         * Handles SayHello commands by responding with node and entity information.
+         *
+         * @param msg The SayHello message
+         * @return The next behavior (same in this case)
+         */
+        private Behavior<Command> onSayHello(SayHello msg) {
+            // Get information about the current node and entity
+            final String nodeAddress = ctx.getSystem().address().toString();
 
-                        return Behaviors.same();
-                    })
-                    .build();
-        }));
+            // Create a response message with node and entity information
+            final String message = "Received from entity [" + entityId + "] on node [" + nodeAddress + "]";
+
+            // Send the response back to the caller
+            msg.replyTo.tell(message);
+
+            // Log the message for debugging
+            ctx.getLog().info(message);
+
+            return Behaviors.same();
+        }
     }
 }
