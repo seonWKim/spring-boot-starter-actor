@@ -160,24 +160,28 @@ class HierarchicalSupervisionTest {
 
     /**
      * A parent supervisor that spawns child workers with different supervision strategies.
-     * This demonstrates the spawnChild() API and supervision in a real-world pattern.
+     * This demonstrates the SpringActorRef child management API in a real-world pattern.
      *
-     * Real-world pattern: Parent spawns children on-demand and uses ctx.getChild() to check existence.
-     * No need to maintain a separate children map - the actor context already tracks children.
+     * <p>Key features demonstrated:
+     * <ul>
+     *   <li>Using {@link SpringActorRef#getChild(Class, String)} to check for existing children</li>
+     *   <li>Using {@link SpringActorRef#spawnChild(Class, String, SupervisorStrategy)} for on-demand spawning</li>
+     *   <li>Async message handling with {@code ctx.pipeToSelf()}</li>
+     *   <li>Framework command handling with {@code .withFrameworkCommands()}</li>
+     * </ul>
      */
     @Component
     static class ParentSupervisorActor
             implements SpringActorWithContext<ParentSupervisorActor.Command, SpringActorContext> {
 
-        public interface Command {}
+        public interface Command extends FrameworkCommand {}
 
         /**
          * Delegates work to a child worker. If the child doesn't exist, spawns it first.
-         * This is a real-world pattern where the supervisor spawns workers on-demand.
          */
         public static class DelegateWork implements Command {
             public final String workerId;
-            public final String strategy; // "restart", "stop", or "resume"
+            public final String strategy; // "restart", "stop", "resume", or "restart-limited"
             public final ChildWorkerActor.Command work;
             public final ActorRef<Object> replyTo;
 
@@ -192,7 +196,12 @@ class HierarchicalSupervisionTest {
 
         @Override
         public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
-            return SpringActorBehavior.wrap(Behaviors.setup(ctx -> new ParentSupervisorBehavior(ctx, actorContext).create()));
+            return SpringActorBehavior.builder(Command.class, actorContext)
+                    .withFrameworkCommands() // Enable framework command handling
+                    .onCreate(ctx -> new ParentSupervisorBehavior(ctx, actorContext))
+                    .onMessage(DelegateWork.class, ParentSupervisorBehavior::onDelegateWork)
+                    .onMessage(ChildReady.class, ParentSupervisorBehavior::onChildReady)
+                    .build();
         }
 
         private static class ParentSupervisorBehavior {
@@ -202,59 +211,179 @@ class HierarchicalSupervisionTest {
             ParentSupervisorBehavior(ActorContext<Command> ctx, SpringActorContext actorContext) {
                 this.ctx = ctx;
                 this.actorContext = actorContext;
-            }
-
-            public Behavior<Command> create() {
                 ctx.getLog().info("ParentSupervisor {} started", actorContext.actorId());
-
-                return Behaviors.receive(Command.class)
-                        .onMessage(DelegateWork.class, this::onDelegateWork)
-                        .build();
             }
 
-            @SuppressWarnings("unchecked")
             private Behavior<Command> onDelegateWork(DelegateWork msg) {
-                // Real-world pattern: Check if child exists using ctx.getChild()
-                // If not, spawn it with the specified strategy
+                // Create SpringActorRef to self for child management
+                SpringActorRef<Command> self = new SpringActorRef<>(ctx.getSystem().scheduler(), ctx.getSelf());
 
-                // Note: ctx.getChild() returns ActorRef<Void>, so we need to cast
-                ActorRef<ChildWorkerActor.Command> child = ctx.getChild(msg.workerId)
-                        .map(ref -> (ActorRef<ChildWorkerActor.Command>) (ActorRef<?>) ref)
-                        .orElse(null);
-
-                if (child == null) {
-                    ctx.getLog().info("Spawning new worker {} with strategy {}", msg.workerId, msg.strategy);
-
-                    SupervisorStrategy strategy;
-                    if ("restart-limited".equals(msg.strategy)) {
-                        strategy = SupervisorStrategy.restart().withLimit(3, Duration.ofMinutes(1));
-                    } else if ("stop".equals(msg.strategy)) {
-                        strategy = SupervisorStrategy.stop();
-                    } else if ("resume".equals(msg.strategy)) {
-                        strategy = SupervisorStrategy.resume();
-                    } else {
-                        strategy = SupervisorStrategy.restart();
-                    }
-
-                    // TODO: spawnChild API not yet implemented
-                    // API EXPERIENCE: Using actorContext.spawnChild() is clean and intuitive
-                    // child = actorContext.spawnChild(ctx, ChildWorkerActor.class, msg.workerId, strategy);
-                    throw new UnsupportedOperationException("spawnChild API not yet implemented");
-                } else {
-                    ctx.getLog().info("Reusing existing worker {}", msg.workerId);
-                }
-
-                // Delegate work to child
-                child.tell(msg.work);
-                msg.replyTo.tell("Delegated to " + msg.workerId);
+                // Try to get existing child first
+                ctx.pipeToSelf(
+                        self.getChild(ChildWorkerActor.class, msg.workerId),
+                        (childRef, failure) -> new ChildReady(msg, childRef, failure));
 
                 return Behaviors.same();
+            }
+
+            private Behavior<Command> onChildReady(ChildReady msg) {
+                if (msg.failure != null) {
+                    ctx.getLog().error("Failed to get/spawn child", msg.failure);
+                    msg.originalMsg.replyTo.tell("Error: " + msg.failure.getMessage());
+                    return Behaviors.same();
+                }
+
+                if (msg.childRef == null) {
+                    // Child doesn't exist, spawn it
+                    return spawnChild(msg.originalMsg);
+                } else {
+                    // Child exists, use it
+                    ctx.getLog().info("Reusing existing worker {}", msg.originalMsg.workerId);
+                    delegateToChild(msg.childRef, msg.originalMsg);
+                    return Behaviors.same();
+                }
+            }
+
+            private Behavior<Command> spawnChild(DelegateWork msg) {
+                ctx.getLog().info("Spawning new worker {} with strategy {}", msg.workerId, msg.strategy);
+
+                SupervisorStrategy strategy = buildStrategy(msg.strategy);
+                SpringActorRef<Command> self = new SpringActorRef<>(ctx.getSystem().scheduler(), ctx.getSelf());
+
+                // Spawn child using SpringActorRef API
+                ctx.pipeToSelf(
+                        self.spawnChild(ChildWorkerActor.class, msg.workerId, strategy),
+                        (childRef, failure) -> new ChildReady(msg, childRef, failure));
+
+                return Behaviors.same();
+            }
+
+            private void delegateToChild(SpringActorRef<ChildWorkerActor.Command> childRef, DelegateWork msg) {
+                childRef.tell(msg.work);
+                msg.replyTo.tell("Delegated to " + msg.workerId);
+            }
+
+            private SupervisorStrategy buildStrategy(String strategyName) {
+                switch (strategyName) {
+                    case "restart-limited":
+                        return SupervisorStrategy.restart().withLimit(3, Duration.ofMinutes(1));
+                    case "stop":
+                        return SupervisorStrategy.stop();
+                    case "resume":
+                        return SupervisorStrategy.resume();
+                    default:
+                        return SupervisorStrategy.restart();
+                }
+            }
+        }
+
+        /**
+         * Internal message indicating a child is ready (either found or spawned).
+         */
+        private static class ChildReady implements Command {
+            final DelegateWork originalMsg;
+            final SpringActorRef<ChildWorkerActor.Command> childRef;
+            final Throwable failure;
+
+            ChildReady(DelegateWork originalMsg, SpringActorRef<ChildWorkerActor.Command> childRef, Throwable failure) {
+                this.originalMsg = originalMsg;
+                this.childRef = childRef;
+                this.failure = failure;
             }
         }
     }
 
     @SpringBootApplication(scanBasePackages = "io.github.seonwkim.core")
     static class TestApp {}
+
+    @Nested
+    @SpringBootTest(classes = TestApp.class)
+    @TestPropertySource(properties = {"spring.actor.pekko.loglevel=INFO", "spring.actor.pekko.actor.provider=local"})
+    class ChildManagementAPITests {
+
+        @Test
+        void testExistsChildReturnsFalseForNonExistent(org.springframework.context.ApplicationContext springContext)
+                throws Exception {
+            // Given: A parent supervisor
+            SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
+            SpringActorRef<ParentSupervisorActor.Command> supervisor = actorSystem
+                    .actor(ParentSupervisorActor.class)
+                    .withId("supervisor-exists-test")
+                    .startAndWait();
+
+            // When: Checking if a child exists that was never spawned
+            Boolean exists = supervisor
+                    .existsChild(ChildWorkerActor.class, "non-existent-child")
+                    .toCompletableFuture()
+                    .get(5, TimeUnit.SECONDS);
+
+            // Then: Should return false
+            assertThat(exists).isFalse();
+        }
+
+        @Test
+        void testGetChildReturnsNullForNonExistent(org.springframework.context.ApplicationContext springContext)
+                throws Exception {
+            // Given: A parent supervisor
+            SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
+            SpringActorRef<ParentSupervisorActor.Command> supervisor = actorSystem
+                    .actor(ParentSupervisorActor.class)
+                    .withId("supervisor-get-test")
+                    .startAndWait();
+
+            // When: Getting a child that doesn't exist
+            SpringActorRef<ChildWorkerActor.Command> childRef = supervisor
+                    .getChild(ChildWorkerActor.class, "non-existent-child")
+                    .toCompletableFuture()
+                    .get(5, TimeUnit.SECONDS);
+
+            // Then: Should return null
+            assertThat(childRef).isNull();
+        }
+
+        @Test
+        void testSpawnChildDirectly(org.springframework.context.ApplicationContext springContext) throws Exception {
+            // Given: A parent supervisor
+            SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
+            SpringActorRef<ParentSupervisorActor.Command> supervisor = actorSystem
+                    .actor(ParentSupervisorActor.class)
+                    .withId("supervisor-spawn-test")
+                    .startAndWait();
+
+            // When: Spawning a child directly using the API
+            SpringActorRef<ChildWorkerActor.Command> childRef = supervisor
+                    .spawnChild(ChildWorkerActor.class, "direct-spawn-child", SupervisorStrategy.restart())
+                    .toCompletableFuture()
+                    .get(5, TimeUnit.SECONDS);
+
+            // Then: Child should be spawned and functional
+            assertThat(childRef).isNotNull();
+
+            // And: Child can receive messages using fluent ask builder
+            String result = (String) childRef
+                    .askBuilder(replyTo -> new ChildWorkerActor.DoTask(
+                            "test-task", (ActorRef<String>) (ActorRef<?>) replyTo))
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
+                    .toCompletableFuture()
+                    .get();
+            assertThat(result).isEqualTo("Completed: test-task");
+
+            // And: Child exists when checked
+            Boolean exists = supervisor
+                    .existsChild(ChildWorkerActor.class, "direct-spawn-child")
+                    .toCompletableFuture()
+                    .get(5, TimeUnit.SECONDS);
+            assertThat(exists).isTrue();
+
+            // And: Can retrieve child ref again
+            SpringActorRef<ChildWorkerActor.Command> retrievedChild = supervisor
+                    .getChild(ChildWorkerActor.class, "direct-spawn-child")
+                    .toCompletableFuture()
+                    .get(5, TimeUnit.SECONDS);
+            assertThat(retrievedChild).isNotNull();
+        }
+    }
 
     @Nested
     @SpringBootTest(classes = TestApp.class)
@@ -274,16 +403,17 @@ class HierarchicalSupervisionTest {
                     .withId("supervisor-1")
                     .startAndWait();
 
-            // And: Delegate work to a child (spawns on-demand with Spring DI)
+            // And: Delegate work to a child (spawns on-demand with Spring DI) using fluent ask builder
             Object result = supervisor
-                    .ask(replyTo -> new ParentSupervisorActor.DelegateWork(
+                    .askBuilder(replyTo -> new ParentSupervisorActor.DelegateWork(
                             "worker-1",
                             "restart",
-                            new ChildWorkerActor.DoTask(
-                                    "test-task", actorSystem.getRaw().ignoreRef()),
+                            new ChildWorkerActor.DoTask("test-task", actorSystem.getRaw().ignoreRef()),
                             replyTo))
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
                     .toCompletableFuture()
-                    .get(5, TimeUnit.SECONDS);
+                    .get();
 
             // Then: Supervisor confirms delegation
             assertThat(result).isEqualTo("Delegated to worker-1");
@@ -308,27 +438,29 @@ class HierarchicalSupervisionTest {
                     .withId("supervisor-2")
                     .startAndWait();
 
-            // And: Delegate work to multiple children (spawns on-demand)
+            // And: Delegate work to multiple children (spawns on-demand) using fluent ask builder
             Object resultA = supervisor
-                    .ask(replyTo -> new ParentSupervisorActor.DelegateWork(
+                    .askBuilder(replyTo -> new ParentSupervisorActor.DelegateWork(
                             "worker-a",
                             "restart",
-                            new ChildWorkerActor.DoTask(
-                                    "task-a", actorSystem.getRaw().ignoreRef()),
+                            new ChildWorkerActor.DoTask("task-a", actorSystem.getRaw().ignoreRef()),
                             replyTo))
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
                     .toCompletableFuture()
-                    .get(5, TimeUnit.SECONDS);
+                    .get();
             assertThat(resultA).isEqualTo("Delegated to worker-a");
 
             Object resultB = supervisor
-                    .ask(replyTo -> new ParentSupervisorActor.DelegateWork(
+                    .askBuilder(replyTo -> new ParentSupervisorActor.DelegateWork(
                             "worker-b",
                             "restart",
-                            new ChildWorkerActor.DoTask(
-                                    "task-b", actorSystem.getRaw().ignoreRef()),
+                            new ChildWorkerActor.DoTask("task-b", actorSystem.getRaw().ignoreRef()),
                             replyTo))
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
                     .toCompletableFuture()
-                    .get(5, TimeUnit.SECONDS);
+                    .get();
             assertThat(resultB).isEqualTo("Delegated to worker-b");
 
             Thread.sleep(50); // Small delay for async task logging
@@ -357,39 +489,45 @@ class HierarchicalSupervisionTest {
 
             // When: Child processes a task successfully (spawns on first use)
             Object taskResult1 = supervisor
-                    .ask(replyTo -> new ParentSupervisorActor.DelegateWork(
+                    .askBuilder(replyTo -> new ParentSupervisorActor.DelegateWork(
                             "restart-worker",
                             "restart",
                             new ChildWorkerActor.DoTask(
                                     "task-before-restart", actorSystem.getRaw().ignoreRef()),
                             replyTo))
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
                     .toCompletableFuture()
-                    .get(5, TimeUnit.SECONDS);
+                    .get();
             assertThat(taskResult1).isEqualTo("Delegated to restart-worker");
 
             // And: Child fails (triggering restart)
             Object failResult = supervisor
-                    .ask(replyTo -> new ParentSupervisorActor.DelegateWork(
+                    .askBuilder(replyTo -> new ParentSupervisorActor.DelegateWork(
                             "restart-worker",
                             "restart",
                             new ChildWorkerActor.Fail(actorSystem.getRaw().ignoreRef()),
                             replyTo))
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
                     .toCompletableFuture()
-                    .get(5, TimeUnit.SECONDS);
+                    .get();
             assertThat(failResult).isEqualTo("Delegated to restart-worker");
 
             Thread.sleep(100); // Wait for restart to complete
 
             // Then: Child should be restarted and able to process new tasks
             Object taskResult2 = supervisor
-                    .ask(replyTo -> new ParentSupervisorActor.DelegateWork(
+                    .askBuilder(replyTo -> new ParentSupervisorActor.DelegateWork(
                             "restart-worker",
                             "restart",
                             new ChildWorkerActor.DoTask(
                                     "task-after-restart", actorSystem.getRaw().ignoreRef()),
                             replyTo))
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
                     .toCompletableFuture()
-                    .get(5, TimeUnit.SECONDS);
+                    .get();
             assertThat(taskResult2).isEqualTo("Delegated to restart-worker");
         }
 
@@ -406,47 +544,55 @@ class HierarchicalSupervisionTest {
 
             // When: Child processes multiple tasks (spawns on first use)
             supervisor
-                    .ask(replyTo -> new ParentSupervisorActor.DelegateWork(
+                    .askBuilder(replyTo -> new ParentSupervisorActor.DelegateWork(
                             "state-worker",
                             "restart",
                             new ChildWorkerActor.DoTask(
                                     "task1", actorSystem.getRaw().ignoreRef()),
                             replyTo))
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
                     .toCompletableFuture()
-                    .get(5, TimeUnit.SECONDS);
+                    .get();
 
             supervisor
-                    .ask(replyTo -> new ParentSupervisorActor.DelegateWork(
+                    .askBuilder(replyTo -> new ParentSupervisorActor.DelegateWork(
                             "state-worker",
                             "restart",
                             new ChildWorkerActor.DoTask(
                                     "task2", actorSystem.getRaw().ignoreRef()),
                             replyTo))
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
                     .toCompletableFuture()
-                    .get(5, TimeUnit.SECONDS);
+                    .get();
 
             // And: Child fails (triggering restart that resets state)
             supervisor
-                    .ask(replyTo -> new ParentSupervisorActor.DelegateWork(
+                    .askBuilder(replyTo -> new ParentSupervisorActor.DelegateWork(
                             "state-worker",
                             "restart",
                             new ChildWorkerActor.Fail(actorSystem.getRaw().ignoreRef()),
                             replyTo))
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
                     .toCompletableFuture()
-                    .get(5, TimeUnit.SECONDS);
+                    .get();
 
             Thread.sleep(100); // Wait for restart
 
             // Then: Actor should be responsive after restart (state reset verified by logs)
             Object result = supervisor
-                    .ask(replyTo -> new ParentSupervisorActor.DelegateWork(
+                    .askBuilder(replyTo -> new ParentSupervisorActor.DelegateWork(
                             "state-worker",
                             "restart",
                             new ChildWorkerActor.DoTask(
                                     "task-after-restart", actorSystem.getRaw().ignoreRef()),
                             replyTo))
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
                     .toCompletableFuture()
-                    .get(5, TimeUnit.SECONDS);
+                    .get();
 
             assertThat(result).isEqualTo("Delegated to state-worker");
         }
@@ -470,25 +616,29 @@ class HierarchicalSupervisionTest {
 
             // When: Child processes a task successfully (spawns on first use)
             Object taskResult = supervisor
-                    .ask(replyTo -> new ParentSupervisorActor.DelegateWork(
+                    .askBuilder(replyTo -> new ParentSupervisorActor.DelegateWork(
                             "stop-worker",
                             "stop",
                             new ChildWorkerActor.DoTask(
                                     "task-before-stop", actorSystem.getRaw().ignoreRef()),
                             replyTo))
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
                     .toCompletableFuture()
-                    .get(5, TimeUnit.SECONDS);
+                    .get();
             assertThat(taskResult).isEqualTo("Delegated to stop-worker");
 
             // And: Child fails (triggering stop strategy - no restart)
             Object failResult = supervisor
-                    .ask(replyTo -> new ParentSupervisorActor.DelegateWork(
+                    .askBuilder(replyTo -> new ParentSupervisorActor.DelegateWork(
                             "stop-worker",
                             "stop",
                             new ChildWorkerActor.Fail(actorSystem.getRaw().ignoreRef()),
                             replyTo))
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
                     .toCompletableFuture()
-                    .get(5, TimeUnit.SECONDS);
+                    .get();
             assertThat(failResult).isEqualTo("Delegated to stop-worker");
 
             Thread.sleep(100); // Wait for child to stop
@@ -496,14 +646,16 @@ class HierarchicalSupervisionTest {
             // Then: Subsequent work delegation spawns a NEW worker (old one was stopped)
             // The new worker will handle the task, demonstrating that stop strategy terminated the old one
             Object afterStopResult = supervisor
-                    .ask(replyTo -> new ParentSupervisorActor.DelegateWork(
+                    .askBuilder(replyTo -> new ParentSupervisorActor.DelegateWork(
                             "stop-worker",
                             "stop",
                             new ChildWorkerActor.DoTask(
                                     "task-after-stop", actorSystem.getRaw().ignoreRef()),
                             replyTo))
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
                     .toCompletableFuture()
-                    .get(5, TimeUnit.SECONDS);
+                    .get();
 
             // Supervisor spawns a new worker with same ID since old one was stopped
             assertThat(afterStopResult).isEqualTo("Delegated to stop-worker");
@@ -533,26 +685,34 @@ class HierarchicalSupervisionTest {
                     .startAndWait();
 
             // When: Actor processes a task successfully
-            String taskResult = (String) worker.ask(replyTo -> new ChildWorkerActor.DoTask(
+            String taskResult = (String) worker
+                    .askBuilder(replyTo -> new ChildWorkerActor.DoTask(
                             "task-before-failure", (ActorRef<String>) (ActorRef<?>) replyTo))
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
                     .toCompletableFuture()
-                    .get(5, TimeUnit.SECONDS);
+                    .get();
             assertThat(taskResult).isEqualTo("Completed: task-before-failure");
 
             // And: Actor fails (triggering restart)
-            String failResult =
-                    (String) worker.ask(replyTo -> new ChildWorkerActor.Fail((ActorRef<String>) (ActorRef<?>) replyTo))
-                            .toCompletableFuture()
-                            .get(5, TimeUnit.SECONDS);
+            String failResult = (String) worker
+                    .askBuilder(replyTo -> new ChildWorkerActor.Fail((ActorRef<String>) (ActorRef<?>) replyTo))
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
+                    .toCompletableFuture()
+                    .get();
             assertThat(failResult).isEqualTo("Failing now");
 
             Thread.sleep(100); // Wait for restart
 
             // Then: Actor should be restarted and able to process new tasks
-            String afterRestartResult = (String) worker.ask(replyTo ->
+            String afterRestartResult = (String) worker
+                    .askBuilder(replyTo ->
                             new ChildWorkerActor.DoTask("task-after-restart", (ActorRef<String>) (ActorRef<?>) replyTo))
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
                     .toCompletableFuture()
-                    .get(5, TimeUnit.SECONDS);
+                    .get();
             assertThat(afterRestartResult).isEqualTo("Completed: task-after-restart");
         }
 
@@ -569,32 +729,42 @@ class HierarchicalSupervisionTest {
                     .startAndWait();
 
             // When: Actor processes multiple tasks
-            worker.ask(replyTo -> new ChildWorkerActor.DoTask("task1", (ActorRef<String>) (ActorRef<?>) replyTo))
+            worker.askBuilder(replyTo -> new ChildWorkerActor.DoTask("task1", (ActorRef<String>) (ActorRef<?>) replyTo))
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
                     .toCompletableFuture()
-                    .get(5, TimeUnit.SECONDS);
-            worker.ask(replyTo -> new ChildWorkerActor.DoTask("task2", (ActorRef<String>) (ActorRef<?>) replyTo))
+                    .get();
+            worker.askBuilder(replyTo -> new ChildWorkerActor.DoTask("task2", (ActorRef<String>) (ActorRef<?>) replyTo))
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
                     .toCompletableFuture()
-                    .get(5, TimeUnit.SECONDS);
+                    .get();
 
             // Then: State should reflect 2 completed tasks
-            Integer stateBefore = (Integer)
-                    worker.ask(replyTo -> new ChildWorkerActor.GetState((ActorRef<Integer>) (ActorRef<?>) replyTo))
-                            .toCompletableFuture()
-                            .get(5, TimeUnit.SECONDS);
+            Integer stateBefore = (Integer) worker
+                    .askBuilder(replyTo -> new ChildWorkerActor.GetState((ActorRef<Integer>) (ActorRef<?>) replyTo))
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
+                    .toCompletableFuture()
+                    .get();
             assertThat(stateBefore).isEqualTo(2);
 
             // When: Actor fails (triggering restart that resets state)
-            worker.ask(replyTo -> new ChildWorkerActor.Fail((ActorRef<String>) (ActorRef<?>) replyTo))
+            worker.askBuilder(replyTo -> new ChildWorkerActor.Fail((ActorRef<String>) (ActorRef<?>) replyTo))
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
                     .toCompletableFuture()
-                    .get(5, TimeUnit.SECONDS);
+                    .get();
 
             Thread.sleep(100); // Wait for restart
 
             // Then: State should be reset to 0 after restart
-            Integer stateAfter = (Integer)
-                    worker.ask(replyTo -> new ChildWorkerActor.GetState((ActorRef<Integer>) (ActorRef<?>) replyTo))
-                            .toCompletableFuture()
-                            .get(5, TimeUnit.SECONDS);
+            Integer stateAfter = (Integer) worker
+                    .askBuilder(replyTo -> new ChildWorkerActor.GetState((ActorRef<Integer>) (ActorRef<?>) replyTo))
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
+                    .toCompletableFuture()
+                    .get();
             assertThat(stateAfter).isEqualTo(0);
         }
 
@@ -611,35 +781,47 @@ class HierarchicalSupervisionTest {
                     .startAndWait();
 
             // When: Actor fails once (first restart)
-            worker.ask(replyTo -> new ChildWorkerActor.Fail((ActorRef<String>) (ActorRef<?>) replyTo))
+            worker.askBuilder(replyTo -> new ChildWorkerActor.Fail((ActorRef<String>) (ActorRef<?>) replyTo))
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
                     .toCompletableFuture()
-                    .get(5, TimeUnit.SECONDS);
+                    .get();
             Thread.sleep(100);
 
             // Then: Actor should still be responsive
-            String result1 = (String) worker.ask(replyTo -> new ChildWorkerActor.DoTask(
+            String result1 = (String) worker
+                    .askBuilder(replyTo -> new ChildWorkerActor.DoTask(
                             "after-first-failure", (ActorRef<String>) (ActorRef<?>) replyTo))
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
                     .toCompletableFuture()
-                    .get(5, TimeUnit.SECONDS);
+                    .get();
             assertThat(result1).isEqualTo("Completed: after-first-failure");
 
             // When: Actor fails again (second restart)
-            worker.ask(replyTo -> new ChildWorkerActor.Fail((ActorRef<String>) (ActorRef<?>) replyTo))
+            worker.askBuilder(replyTo -> new ChildWorkerActor.Fail((ActorRef<String>) (ActorRef<?>) replyTo))
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
                     .toCompletableFuture()
-                    .get(5, TimeUnit.SECONDS);
+                    .get();
             Thread.sleep(100);
 
             // Then: Actor should still be responsive
-            String result2 = (String) worker.ask(replyTo -> new ChildWorkerActor.DoTask(
+            String result2 = (String) worker
+                    .askBuilder(replyTo -> new ChildWorkerActor.DoTask(
                             "after-second-failure", (ActorRef<String>) (ActorRef<?>) replyTo))
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
                     .toCompletableFuture()
-                    .get(5, TimeUnit.SECONDS);
+                    .get();
             assertThat(result2).isEqualTo("Completed: after-second-failure");
 
             // When: Actor fails a third time (exceeds limit, should stop)
-            worker.ask(replyTo -> new ChildWorkerActor.Fail((ActorRef<String>) (ActorRef<?>) replyTo))
+            worker.askBuilder(replyTo -> new ChildWorkerActor.Fail((ActorRef<String>) (ActorRef<?>) replyTo))
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
                     .toCompletableFuture()
-                    .get(5, TimeUnit.SECONDS);
+                    .get();
             Thread.sleep(200);
 
             // Then: Actor should be stopped (ask will timeout or fail)
@@ -663,16 +845,21 @@ class HierarchicalSupervisionTest {
                     .startAndWait();
 
             // When: Actor processes a task successfully
-            String taskResult = (String) worker.ask(replyTo ->
+            String taskResult = (String) worker
+                    .askBuilder(replyTo ->
                             new ChildWorkerActor.DoTask("task-before-stop", (ActorRef<String>) (ActorRef<?>) replyTo))
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
                     .toCompletableFuture()
-                    .get(5, TimeUnit.SECONDS);
+                    .get();
             assertThat(taskResult).isEqualTo("Completed: task-before-stop");
 
             // And: Actor fails (triggering stop - no restart)
-            worker.ask(replyTo -> new ChildWorkerActor.Fail((ActorRef<String>) (ActorRef<?>) replyTo))
+            worker.askBuilder(replyTo -> new ChildWorkerActor.Fail((ActorRef<String>) (ActorRef<?>) replyTo))
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
                     .toCompletableFuture()
-                    .get(5, TimeUnit.SECONDS);
+                    .get();
 
             Thread.sleep(100); // Wait for actor to stop
 
@@ -696,46 +883,61 @@ class HierarchicalSupervisionTest {
                     .startAndWait();
 
             // When: Actor processes tasks before failure
-            worker.ask(replyTo -> new ChildWorkerActor.DoTask("task1", (ActorRef<String>) (ActorRef<?>) replyTo))
+            worker.askBuilder(replyTo -> new ChildWorkerActor.DoTask("task1", (ActorRef<String>) (ActorRef<?>) replyTo))
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
                     .toCompletableFuture()
-                    .get(5, TimeUnit.SECONDS);
-            worker.ask(replyTo -> new ChildWorkerActor.DoTask("task2", (ActorRef<String>) (ActorRef<?>) replyTo))
+                    .get();
+            worker.askBuilder(replyTo -> new ChildWorkerActor.DoTask("task2", (ActorRef<String>) (ActorRef<?>) replyTo))
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
                     .toCompletableFuture()
-                    .get(5, TimeUnit.SECONDS);
+                    .get();
 
             // Then: State should reflect 2 completed tasks
-            Integer stateBefore = (Integer)
-                    worker.ask(replyTo -> new ChildWorkerActor.GetState((ActorRef<Integer>) (ActorRef<?>) replyTo))
-                            .toCompletableFuture()
-                            .get(5, TimeUnit.SECONDS);
+            Integer stateBefore = (Integer) worker
+                    .askBuilder(replyTo -> new ChildWorkerActor.GetState((ActorRef<Integer>) (ActorRef<?>) replyTo))
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
+                    .toCompletableFuture()
+                    .get();
             assertThat(stateBefore).isEqualTo(2);
 
             // When: Actor fails (resume strategy keeps state)
-            worker.ask(replyTo -> new ChildWorkerActor.Fail((ActorRef<String>) (ActorRef<?>) replyTo))
+            worker.askBuilder(replyTo -> new ChildWorkerActor.Fail((ActorRef<String>) (ActorRef<?>) replyTo))
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
                     .toCompletableFuture()
-                    .get(5, TimeUnit.SECONDS);
+                    .get();
 
             Thread.sleep(100);
 
             // Then: State should be preserved (not reset) - this is the key difference from restart
-            Integer stateAfter = (Integer)
-                    worker.ask(replyTo -> new ChildWorkerActor.GetState((ActorRef<Integer>) (ActorRef<?>) replyTo))
-                            .toCompletableFuture()
-                            .get(5, TimeUnit.SECONDS);
+            Integer stateAfter = (Integer) worker
+                    .askBuilder(replyTo -> new ChildWorkerActor.GetState((ActorRef<Integer>) (ActorRef<?>) replyTo))
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
+                    .toCompletableFuture()
+                    .get();
             assertThat(stateAfter).isEqualTo(2); // State preserved!
 
             // And: Actor should still be able to process new tasks
-            String result = (String) worker.ask(replyTo ->
+            String result = (String) worker
+                    .askBuilder(replyTo ->
                             new ChildWorkerActor.DoTask("task-after-resume", (ActorRef<String>) (ActorRef<?>) replyTo))
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
                     .toCompletableFuture()
-                    .get(5, TimeUnit.SECONDS);
+                    .get();
             assertThat(result).isEqualTo("Completed: task-after-resume");
 
             // State incremented after resume
-            Integer finalState = (Integer)
-                    worker.ask(replyTo -> new ChildWorkerActor.GetState((ActorRef<Integer>) (ActorRef<?>) replyTo))
-                            .toCompletableFuture()
-                            .get(5, TimeUnit.SECONDS);
+            Integer finalState = (Integer) worker
+                    .askBuilder(replyTo -> new ChildWorkerActor.GetState((ActorRef<Integer>) (ActorRef<?>) replyTo))
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
+                    .toCompletableFuture()
+                    .get();
             assertThat(finalState).isEqualTo(3);
         }
 
@@ -751,16 +953,21 @@ class HierarchicalSupervisionTest {
                     .startAndWait();
 
             // When: Actor processes a task successfully
-            String taskResult = (String) worker.ask(replyTo -> new ChildWorkerActor.DoTask(
+            String taskResult = (String) worker
+                    .askBuilder(replyTo -> new ChildWorkerActor.DoTask(
                             "task-before-failure", (ActorRef<String>) (ActorRef<?>) replyTo))
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
                     .toCompletableFuture()
-                    .get(5, TimeUnit.SECONDS);
+                    .get();
             assertThat(taskResult).isEqualTo("Completed: task-before-failure");
 
             // And: Actor fails (no supervision means it stops)
-            worker.ask(replyTo -> new ChildWorkerActor.Fail((ActorRef<String>) (ActorRef<?>) replyTo))
+            worker.askBuilder(replyTo -> new ChildWorkerActor.Fail((ActorRef<String>) (ActorRef<?>) replyTo))
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
                     .toCompletableFuture()
-                    .get(5, TimeUnit.SECONDS);
+                    .get();
 
             Thread.sleep(100); // Wait for actor to stop
 

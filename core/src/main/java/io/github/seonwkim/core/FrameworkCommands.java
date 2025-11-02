@@ -71,7 +71,7 @@ public final class FrameworkCommands {
      *
      * @param <C> The command type of the child actor to spawn
      */
-    public static final class SpawnChild<C> {
+    public static final class SpawnChild<C> implements FrameworkCommand {
         public final Class<? extends SpringActorWithContext<C, ?>> actorClass;
         public final SpringActorContext childContext;
         public final SupervisorStrategy strategy;
@@ -118,6 +118,90 @@ public final class FrameworkCommands {
 
         public static <C> SpawnChildResponse<C> alreadyExists(ActorRef<C> existingRef) {
             return new SpawnChildResponse<>(existingRef, false, "Child already exists");
+        }
+    }
+
+    /**
+     * Framework command to get a reference to an existing child actor.
+     *
+     * <p>This command allows actors to retrieve a reference to a child that has already been spawned.
+     *
+     * @param <C> The command type of the child actor
+     */
+    public static final class GetChild<C> implements FrameworkCommand {
+        public final Class<? extends SpringActorWithContext<C, ?>> actorClass;
+        public final String childId;
+        public final ActorRef<GetChildResponse<C>> replyTo;
+
+        public GetChild(
+                Class<? extends SpringActorWithContext<C, ?>> actorClass,
+                String childId,
+                ActorRef<GetChildResponse<C>> replyTo) {
+            this.actorClass = actorClass;
+            this.childId = childId;
+            this.replyTo = replyTo;
+        }
+    }
+
+    /**
+     * Response to a {@link GetChild} command.
+     *
+     * @param <C> The command type of the child actor
+     */
+    public static final class GetChildResponse<C> {
+        public final ActorRef<C> childRef;
+        public final boolean found;
+
+        private GetChildResponse(ActorRef<C> childRef, boolean found) {
+            this.childRef = childRef;
+            this.found = found;
+        }
+
+        public static <C> GetChildResponse<C> found(ActorRef<C> childRef) {
+            return new GetChildResponse<>(childRef, true);
+        }
+
+        public static <C> GetChildResponse<C> notFound() {
+            return new GetChildResponse<>(null, false);
+        }
+    }
+
+    /**
+     * Framework command to check if a child actor exists.
+     *
+     * @param <C> The command type of the child actor
+     */
+    public static final class ExistsChild<C> implements FrameworkCommand {
+        public final Class<? extends SpringActorWithContext<C, ?>> actorClass;
+        public final String childId;
+        public final ActorRef<ExistsChildResponse> replyTo;
+
+        public ExistsChild(
+                Class<? extends SpringActorWithContext<C, ?>> actorClass,
+                String childId,
+                ActorRef<ExistsChildResponse> replyTo) {
+            this.actorClass = actorClass;
+            this.childId = childId;
+            this.replyTo = replyTo;
+        }
+    }
+
+    /**
+     * Response to an {@link ExistsChild} command.
+     */
+    public static final class ExistsChildResponse {
+        public final boolean exists;
+
+        private ExistsChildResponse(boolean exists) {
+            this.exists = exists;
+        }
+
+        public static ExistsChildResponse exists() {
+            return new ExistsChildResponse(true);
+        }
+
+        public static ExistsChildResponse notExists() {
+            return new ExistsChildResponse(false);
         }
     }
 }

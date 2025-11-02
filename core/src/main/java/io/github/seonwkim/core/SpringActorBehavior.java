@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.Signal;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
@@ -148,7 +149,9 @@ public final class SpringActorBehavior<C> {
          * @return a new builder with the evolved state type
          */
         public <NewS> Builder<C, NewS> onCreate(Function<ActorContext<C>, NewS> callback) {
-            return new Builder<>(commandClass, actorContext, callback);
+            Builder<C, NewS> newBuilder = new Builder<>(commandClass, actorContext, callback);
+            newBuilder.enableFrameworkCommands = this.enableFrameworkCommands;
+            return newBuilder;
         }
 
         /**
@@ -189,33 +192,165 @@ public final class SpringActorBehavior<C> {
          * @return the constructed behavior
          */
         public SpringActorBehavior<C> build() {
-            Behavior<C> userBehavior = Behaviors.setup(ctx -> {
-                // Create the state object
-                S state = onCreateCallback.apply(ctx);
-
-                BehaviorBuilder<C> builder = Behaviors.receive(commandClass);
-
-                // Add all message handlers - capture the returned builder each time
-                for (MessageHandler<C, S, ?> handler : messageHandlers) {
-                    builder = handler.addTo(builder, state);
-                }
-
-                // Add all signal handlers - capture the returned builder each time
-                for (SignalHandler<C, S, ?> handler : signalHandlers) {
-                    builder = handler.addTo(builder, state);
-                }
-
-                return builder.build();
-            });
-
             if (enableFrameworkCommands) {
-                // Wrap userBehavior to intercept FrameworkCommand messages
-                Behavior<C> wrappedBehavior = Behaviors.setup(ctx -> Behaviors.intercept(
-                                () -> new FrameworkCommandInterceptor<>(ctx, actorContext), userBehavior));
-                return new SpringActorBehavior<>(wrappedBehavior);
-            }
+                // Wrap with framework command handling
+                Behavior<C> behaviorWithFramework = Behaviors.setup(ctx -> {
+                    // Create the state object
+                    S state = onCreateCallback.apply(ctx);
 
-            return new SpringActorBehavior<>(userBehavior);
+                    return createFrameworkCommandHandlingBehavior(ctx, state);
+                });
+                return new SpringActorBehavior<>(behaviorWithFramework);
+            } else {
+                // No framework commands - just create the user behavior
+                Behavior<C> userBehavior = Behaviors.setup(ctx -> {
+                    // Create the state object
+                    S state = onCreateCallback.apply(ctx);
+
+                    BehaviorBuilder<C> builder = Behaviors.receive(commandClass);
+
+                    // Add all message handlers
+                    for (MessageHandler<C, S, ?> handler : messageHandlers) {
+                        builder = handler.addTo(builder, state);
+                    }
+
+                    // Add all signal handlers
+                    for (SignalHandler<C, S, ?> handler : signalHandlers) {
+                        builder = handler.addTo(builder, state);
+                    }
+
+                    return builder.build();
+                });
+                return new SpringActorBehavior<>(userBehavior);
+            }
+        }
+
+        /**
+         * Creates a behavior that intercepts framework commands before delegating to user handlers.
+         */
+        @SuppressWarnings("unchecked")
+        private Behavior<C> createFrameworkCommandHandlingBehavior(ActorContext<C> ctx, S state) {
+            // Use Object.class to receive both framework commands and user commands
+            return Behaviors.receive(Object.class)
+                    .onMessage(Object.class, msg -> {
+                        // Handle framework commands first
+                        if (msg instanceof FrameworkCommands.SpawnChild) {
+                            handleSpawnChild(ctx, (FrameworkCommands.SpawnChild<?>) msg);
+                            return Behaviors.same();
+                        }
+                        if (msg instanceof FrameworkCommands.GetChild) {
+                            handleGetChild(ctx, (FrameworkCommands.GetChild<?>) msg);
+                            return Behaviors.same();
+                        }
+                        if (msg instanceof FrameworkCommands.ExistsChild) {
+                            handleExistsChild(ctx, (FrameworkCommands.ExistsChild<?>) msg);
+                            return Behaviors.same();
+                        }
+
+                        // If it's a user command, handle it
+                        if (commandClass.isInstance(msg)) {
+                            C typedMsg = (C) msg;
+                            // Try each user message handler
+                            for (MessageHandler<C, S, ?> handler : messageHandlers) {
+                                Behavior<C> result = handler.tryHandle(typedMsg, state);
+                                if (result != null) {
+                                    return (Behavior<Object>) (Behavior<?>) result;
+                                }
+                            }
+                        }
+
+                        return Behaviors.unhandled();
+                    })
+                    .onSignal(Signal.class, sig -> {
+                        // Try each signal handler
+                        for (SignalHandler<C, S, ?> handler : signalHandlers) {
+                            Behavior<C> result = handler.tryHandle(sig, state);
+                            if (result != null) {
+                                return (Behavior<Object>) (Behavior<?>) result;
+                            }
+                        }
+                        return Behaviors.unhandled();
+                    })
+                    .build()
+                    .narrow();
+        }
+
+        /**
+         * Handles SpawnChild framework command.
+         */
+        @SuppressWarnings("unchecked")
+        private <CC> void handleSpawnChild(ActorContext<C> ctx, FrameworkCommands.SpawnChild<CC> msg) {
+            try {
+                ActorTypeRegistry registry = actorContext.registry();
+                if (registry == null) {
+                    msg.replyTo.tell(FrameworkCommands.SpawnChildResponse.failure(
+                            "ActorTypeRegistry is null. Ensure SpringActorContext.registry() returns a non-null registry."));
+                    return;
+                }
+
+                // Build child context and name
+                SpringActorContext childContext = msg.childContext;
+                String childName = buildChildName(msg.actorClass, childContext.actorId());
+
+                // Check if child already exists
+                if (ctx.getChild(childName).isPresent()) {
+                    ActorRef<CC> existingChild = (ActorRef<CC>) ctx.getChild(childName).get();
+                    msg.replyTo.tell(FrameworkCommands.SpawnChildResponse.alreadyExists(existingChild));
+                    return;
+                }
+
+                // Create behavior using Spring DI
+                Behavior<CC> behavior = (Behavior<CC>) registry.createBehavior(msg.actorClass, childContext).asBehavior();
+
+                // Apply supervision if provided
+                if (msg.strategy != null) {
+                    behavior = Behaviors.supervise(behavior).onFailure(msg.strategy);
+                }
+
+                // Spawn the child
+                ActorRef<CC> childRef = ctx.spawn(behavior, childName);
+                msg.replyTo.tell(FrameworkCommands.SpawnChildResponse.success(childRef));
+
+            } catch (Exception e) {
+                ctx.getLog().error("Failed to spawn child actor", e);
+                msg.replyTo.tell(FrameworkCommands.SpawnChildResponse.failure(
+                        "Failed to spawn child: " + e.getMessage()));
+            }
+        }
+
+        /**
+         * Handles GetChild framework command.
+         */
+        @SuppressWarnings("unchecked")
+        private <CC> void handleGetChild(ActorContext<C> ctx, FrameworkCommands.GetChild<CC> msg) {
+            String childName = buildChildName(msg.actorClass, msg.childId);
+
+            if (ctx.getChild(childName).isPresent()) {
+                ActorRef<CC> childRef = (ActorRef<CC>) ctx.getChild(childName).get();
+                msg.replyTo.tell(FrameworkCommands.GetChildResponse.found(childRef));
+            } else {
+                msg.replyTo.tell(FrameworkCommands.GetChildResponse.notFound());
+            }
+        }
+
+        /**
+         * Handles ExistsChild framework command.
+         */
+        private void handleExistsChild(ActorContext<C> ctx, FrameworkCommands.ExistsChild<?> msg) {
+            String childName = buildChildName(msg.actorClass, msg.childId);
+
+            if (ctx.getChild(childName).isPresent()) {
+                msg.replyTo.tell(FrameworkCommands.ExistsChildResponse.exists());
+            } else {
+                msg.replyTo.tell(FrameworkCommands.ExistsChildResponse.notExists());
+            }
+        }
+
+        /**
+         * Builds a unique child name from the actor class and ID.
+         */
+        private static String buildChildName(Class<?> actorClass, String actorId) {
+            return actorClass.getName() + ":" + actorId;
         }
 
         /**
@@ -233,6 +368,14 @@ public final class SpringActorBehavior<C> {
             BehaviorBuilder<C> addTo(BehaviorBuilder<C> builder, S state) {
                 return builder.onMessage(type, msg -> handler.apply(state, msg));
             }
+
+            @SuppressWarnings("unchecked")
+            Behavior<C> tryHandle(C msg, S state) {
+                if (type.isInstance(msg)) {
+                    return handler.apply(state, (M) msg);
+                }
+                return null;
+            }
         }
 
         /**
@@ -249,6 +392,14 @@ public final class SpringActorBehavior<C> {
 
             BehaviorBuilder<C> addTo(BehaviorBuilder<C> builder, S state) {
                 return builder.onSignal(type, sig -> handler.apply(state, sig));
+            }
+
+            @SuppressWarnings("unchecked")
+            Behavior<C> tryHandle(Signal sig, S state) {
+                if (type.isInstance(sig)) {
+                    return handler.apply(state, (M) sig);
+                }
+                return null;
             }
         }
     }
