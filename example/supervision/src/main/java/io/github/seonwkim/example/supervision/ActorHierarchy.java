@@ -2,8 +2,6 @@ package io.github.seonwkim.example.supervision;
 
 import java.util.List;
 
-import org.apache.pekko.actor.typed.ActorRef;
-
 /**
  * Shared data structures for actor hierarchy management.
  */

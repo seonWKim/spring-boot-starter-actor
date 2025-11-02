@@ -19,17 +19,29 @@ public class ActorTypeRegistry {
      *
      * @param actorClass The actor class to register
      * @param factory The factory for creating actor behaviors
-     * @param <A> The type of the actor (must extend SpringActorWithContext)
      * @param <C> The type of commands the actor handles
      * @param <CTX> The type of context the actor requires
      */
-    public <A extends SpringActorWithContext<A, C, CTX>, C, CTX extends SpringActorContext> void register(
-            Class<A> actorClass, Function<SpringActorContext, SpringActorBehavior<C>> factory) {
+    public <C, CTX extends SpringActorContext> void register(
+            Class<? extends SpringActorWithContext<C, CTX>> actorClass,
+            Function<SpringActorContext, SpringActorBehavior<C>> factory) {
         // Safe cast due to type erasure - the generic types ensure compile-time safety
         @SuppressWarnings("unchecked")
         Function<SpringActorContext, SpringActorBehavior<?>> erasedFactory =
                 (Function<SpringActorContext, SpringActorBehavior<?>>) (Function<?, ?>) factory;
-        classToFactory.put(actorClass, erasedFactory);
+        registerInternal(actorClass, erasedFactory);
+    }
+
+    /**
+     * Internal method for registering actors with raw types. Used by the framework when
+     * dealing with Spring beans where exact types are unknown at compile time.
+     *
+     * @param actorClass The actor class to register
+     * @param factory The factory for creating actor behaviors
+     */
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    void registerInternal(Class<?> actorClass, Function<SpringActorContext, SpringActorBehavior<?>> factory) {
+        classToFactory.put(actorClass, factory);
     }
 
     /**
@@ -37,8 +49,8 @@ public class ActorTypeRegistry {
      * compile-time type checking for registered actors.
      */
     @SuppressWarnings("unchecked")
-    public <A extends SpringActorWithContext<A, C, CTX>, C, CTX extends SpringActorContext>
-            SpringActorBehavior<C> createTypedBehavior(Class<A> actorClass, SpringActorContext actorContext) {
+    public <C, CTX extends SpringActorContext> SpringActorBehavior<C> createTypedBehavior(
+            Class<? extends SpringActorWithContext<C, CTX>> actorClass, SpringActorContext actorContext) {
         // Safe cast: register method ensures type consistency
         return (SpringActorBehavior<C>) createBehavior(actorClass, actorContext);
     }

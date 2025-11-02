@@ -11,7 +11,7 @@ package io.github.seonwkim.core;
  * <p>Example usage with custom context:
  * <pre>
  * &#64;Component
- * public class UserActor implements SpringActorWithContext&lt;UserActor, Command, UserActorContext&gt; {
+ * public class UserActor implements SpringActorWithContext&lt;Command, UserActorContext&gt; {
  *     &#64;Override
  *     public SpringActorBehavior&lt;Command&gt; create(UserActorContext context) {
  *         // Type-safe access to custom context - no casting needed!
@@ -30,14 +30,12 @@ package io.github.seonwkim.core;
  * }
  * </pre>
  *
- * @param <A> The actor implementation type (self-reference)
  * @param <C> The command type that this actor handles
  * @param <CTX> The context type that this actor requires (must extend SpringActorContext)
  * @see SpringActor
  * @see SpringActorBehavior
  */
-public interface SpringActorWithContext<
-        A extends SpringActorWithContext<A, C, CTX>, C, CTX extends SpringActorContext> {
+public interface SpringActorWithContext<C, CTX extends SpringActorContext> {
     /**
      * Creates a behavior for this actor. This method is called by the actor system when a new actor
      * is created.

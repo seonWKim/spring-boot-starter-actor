@@ -77,7 +77,7 @@ public class ActorConfiguration {
         Map<String, SpringActorWithContext> actorBeans = context.getBeansOfType(SpringActorWithContext.class);
 
         for (SpringActorWithContext actorBean : actorBeans.values()) {
-            registry.register(actorBean.getClass(), actorContext -> {
+            registry.registerInternal(actorBean.getClass(), actorContext -> {
                 try {
                     return actorBean.create(actorContext);
                 } catch (Exception e) {

@@ -22,8 +22,7 @@ public class SupervisionController {
 
     private final SpringActorSystem actorSystem;
     private final LogPublisher logPublisher;
-    private final Map<String, SpringActorRef<HierarchicalActor.Command>> supervisors =
-            new ConcurrentHashMap<>();
+    private final Map<String, SpringActorRef<HierarchicalActor.Command>> supervisors = new ConcurrentHashMap<>();
 
     public SupervisionController(SpringActorSystem actorSystem, LogPublisher logPublisher) {
         this.actorSystem = actorSystem;
@@ -34,12 +33,11 @@ public class SupervisionController {
 
     private void createDefaultSupervisor() {
         try {
-            SpringActorRef<HierarchicalActor.Command> supervisor =
-                    actorSystem
-                            .actor(SupervisorActor.class)
-                            .withId("supervisor")
-                            .withTimeout(Duration.ofSeconds(5))
-                            .startAndWait();
+            SpringActorRef<HierarchicalActor.Command> supervisor = actorSystem
+                    .actor(SupervisorActor.class)
+                    .withId("supervisor")
+                    .withTimeout(Duration.ofSeconds(5))
+                    .startAndWait();
             supervisors.put("supervisor", supervisor);
             logPublisher.publish("System initialized with supervisor");
         } catch (Exception e) {
@@ -60,22 +58,16 @@ public class SupervisionController {
      * Create a new supervisor actor.
      */
     @PostMapping("/supervisors")
-    public ResponseEntity<Map<String, Object>> createSupervisor(
-            @RequestBody Map<String, String> request) {
+    public ResponseEntity<Map<String, Object>> createSupervisor(@RequestBody Map<String, String> request) {
         String supervisorId = request.get("supervisorId");
 
         if (supervisorId == null || supervisorId.isEmpty()) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("success", false, "message", "supervisorId is required"));
+            return ResponseEntity.badRequest().body(Map.of("success", false, "message", "supervisorId is required"));
         }
 
         if (supervisors.containsKey(supervisorId)) {
             return ResponseEntity.badRequest()
-                    .body(Map.of(
-                                    "success",
-                                    false,
-                                    "message",
-                                    "Supervisor already exists: " + supervisorId));
+                    .body(Map.of("success", false, "message", "Supervisor already exists: " + supervisorId));
         }
 
         try {
@@ -89,13 +81,7 @@ public class SupervisionController {
             supervisors.put(supervisorId, supervisor);
 
             return ResponseEntity.ok(
-                    toMap(
-                            "success",
-                            true,
-                            "supervisorId",
-                            supervisorId,
-                            "message",
-                            "Supervisor created successfully"));
+                    toMap("success", true, "supervisorId", supervisorId, "message", "Supervisor created successfully"));
         } catch (Exception e) {
             return ResponseEntity.internalServerError()
                     .body(Map.of("success", false, "message", "Failed to create supervisor: " + e.getMessage()));
@@ -108,8 +94,7 @@ public class SupervisionController {
     @SuppressWarnings({"rawtypes", "unchecked"})
     @PostMapping("/actors/{parentId}/children")
     public CompletableFuture<ResponseEntity<Map<String, Object>>> createChild(
-            @PathVariable String parentId,
-            @RequestBody Map<String, String> request) {
+            @PathVariable String parentId, @RequestBody Map<String, String> request) {
         String childId = request.get("childId");
         String strategy = request.getOrDefault("strategy", "restart");
         String parentType = request.get("parentType"); // "supervisor" or "worker"
@@ -117,8 +102,7 @@ public class SupervisionController {
 
         if (childId == null) {
             return CompletableFuture.completedFuture(
-                    ResponseEntity.badRequest()
-                            .body(Map.of("success", false, "message", "childId is required")));
+                    ResponseEntity.badRequest().body(Map.of("success", false, "message", "childId is required")));
         }
 
         // Check if parent is the root supervisor
@@ -126,83 +110,61 @@ public class SupervisionController {
             SpringActorRef<HierarchicalActor.Command> supervisor = supervisors.get(parentId);
             if (supervisor == null) {
                 return CompletableFuture.completedFuture(
-                        ResponseEntity.badRequest()
-                                .body(Map.of("success", false, "message", "Supervisor not found")));
+                        ResponseEntity.badRequest().body(Map.of("success", false, "message", "Supervisor not found")));
             }
 
             return supervisor
-                    .ask(
-                            (org.apache.pekko.actor.typed.ActorRef<ActorHierarchy.SpawnResult> replyTo) ->
-                                    new HierarchicalActor.SpawnChild(childId, strategy, replyTo))
+                    .ask((org.apache.pekko.actor.typed.ActorRef<ActorHierarchy.SpawnResult> replyTo) ->
+                            new HierarchicalActor.SpawnChild(childId, strategy, replyTo))
                     .toCompletableFuture()
-                    .thenApply(
-                            resultObj -> {
-                                ActorHierarchy.SpawnResult result = (ActorHierarchy.SpawnResult) resultObj;
-                                if (result.success) {
-                                    return ResponseEntity.ok(
-                                            toMap(
-                                                    "success",
-                                                    true,
-                                                    "childId",
-                                                    childId,
-                                                    "strategy",
-                                                    strategy,
-                                                    "message",
-                                                    result.message));
-                                } else {
-                                    return ResponseEntity.badRequest()
-                                            .body(toMap("success", false, "message", result.message));
-                                }
-                            })
-                    .exceptionally(
-                            ex ->
-                                    ResponseEntity.internalServerError()
-                                            .body(
-                                                    Map.of(
-                                                            "success",
-                                                            false,
-                                                            "message",
-                                                            "Failed to create child: " + ex.getMessage())));
+                    .thenApply(resultObj -> {
+                        ActorHierarchy.SpawnResult result = (ActorHierarchy.SpawnResult) resultObj;
+                        if (result.success) {
+                            return ResponseEntity.ok(toMap(
+                                    "success",
+                                    true,
+                                    "childId",
+                                    childId,
+                                    "strategy",
+                                    strategy,
+                                    "message",
+                                    result.message));
+                        } else {
+                            return ResponseEntity.badRequest().body(toMap("success", false, "message", result.message));
+                        }
+                    })
+                    .exceptionally(ex -> ResponseEntity.internalServerError()
+                            .body(Map.of("success", false, "message", "Failed to create child: " + ex.getMessage())));
         } else {
             // Parent is a worker - route through root supervisor
             SpringActorRef<HierarchicalActor.Command> rootSupervisor = supervisors.get("supervisor");
             if (rootSupervisor == null) {
-                return CompletableFuture.completedFuture(
-                        ResponseEntity.badRequest()
-                                .body(Map.of("success", false, "message", "Root supervisor not found")));
+                return CompletableFuture.completedFuture(ResponseEntity.badRequest()
+                        .body(Map.of("success", false, "message", "Root supervisor not found")));
             }
 
             return rootSupervisor
                     .ask((org.apache.pekko.actor.typed.ActorRef<ActorHierarchy.SpawnResult> replyTo) ->
                             new HierarchicalActor.RouteSpawnChild(parentId, childId, strategy, replyTo))
                     .toCompletableFuture()
-                    .thenApply(
-                            resultObj -> {
-                                ActorHierarchy.SpawnResult result = (ActorHierarchy.SpawnResult) resultObj;
-                                if (result.success) {
-                                    return ResponseEntity.ok(
-                                            toMap(
-                                                    "success",
-                                                    true,
-                                                    "childId",
-                                                    childId,
-                                                    "strategy",
-                                                    strategy,
-                                                    "message",
-                                                    result.message));
-                                } else {
-                                    return ResponseEntity.badRequest()
-                                            .body(toMap("success", false, "message", result.message));
-                                }
-                            })
-                    .exceptionally(ex ->
-                            ResponseEntity.internalServerError()
-                                    .body(
-                                            Map.of(
-                                                    "success",
-                                                    false,
-                                                    "message",
-                                                    "Failed to create child: " + ex.getMessage())));
+                    .thenApply(resultObj -> {
+                        ActorHierarchy.SpawnResult result = (ActorHierarchy.SpawnResult) resultObj;
+                        if (result.success) {
+                            return ResponseEntity.ok(toMap(
+                                    "success",
+                                    true,
+                                    "childId",
+                                    childId,
+                                    "strategy",
+                                    strategy,
+                                    "message",
+                                    result.message));
+                        } else {
+                            return ResponseEntity.badRequest().body(toMap("success", false, "message", result.message));
+                        }
+                    })
+                    .exceptionally(ex -> ResponseEntity.internalServerError()
+                            .body(Map.of("success", false, "message", "Failed to create child: " + ex.getMessage())));
         }
     }
 
@@ -219,50 +181,37 @@ public class SupervisionController {
 
         if (workerId == null) {
             return CompletableFuture.completedFuture(
-                    ResponseEntity.badRequest()
-                            .body(Map.of("success", false, "message", "workerId is required")));
+                    ResponseEntity.badRequest().body(Map.of("success", false, "message", "workerId is required")));
         }
 
         SpringActorRef<HierarchicalActor.Command> supervisor = supervisors.get(supervisorId);
         if (supervisor == null) {
             return CompletableFuture.completedFuture(
-                    ResponseEntity.badRequest()
-                            .body(Map.of("success", false, "message", "Supervisor not found")));
+                    ResponseEntity.badRequest().body(Map.of("success", false, "message", "Supervisor not found")));
         }
 
         return supervisor
-                .ask(
-                        (org.apache.pekko.actor.typed.ActorRef<ActorHierarchy.SpawnResult> replyTo) ->
-                                new HierarchicalActor.SpawnChild(workerId, strategy, replyTo))
+                .ask((org.apache.pekko.actor.typed.ActorRef<ActorHierarchy.SpawnResult> replyTo) ->
+                        new HierarchicalActor.SpawnChild(workerId, strategy, replyTo))
                 .toCompletableFuture()
-                .thenApply(
-                        resultObj -> {
-                            ActorHierarchy.SpawnResult result = (ActorHierarchy.SpawnResult) resultObj;
-                            if (result.success) {
-                                return ResponseEntity.ok(
-                                        toMap(
-                                                "success",
-                                                true,
-                                                "workerId",
-                                                workerId,
-                                                "strategy",
-                                                strategy,
-                                                "message",
-                                                result.message));
-                            } else {
-                                return ResponseEntity.badRequest()
-                                        .body(toMap("success", false, "message", result.message));
-                            }
-                        })
-                .exceptionally(
-                        ex ->
-                                ResponseEntity.internalServerError()
-                                        .body(
-                                                Map.of(
-                                                        "success",
-                                                        false,
-                                                        "message",
-                                                        "Failed to create worker: " + ex.getMessage())));
+                .thenApply(resultObj -> {
+                    ActorHierarchy.SpawnResult result = (ActorHierarchy.SpawnResult) resultObj;
+                    if (result.success) {
+                        return ResponseEntity.ok(toMap(
+                                "success",
+                                true,
+                                "workerId",
+                                workerId,
+                                "strategy",
+                                strategy,
+                                "message",
+                                result.message));
+                    } else {
+                        return ResponseEntity.badRequest().body(toMap("success", false, "message", result.message));
+                    }
+                })
+                .exceptionally(ex -> ResponseEntity.internalServerError()
+                        .body(Map.of("success", false, "message", "Failed to create worker: " + ex.getMessage())));
     }
 
     /**
@@ -278,38 +227,27 @@ public class SupervisionController {
         SpringActorRef<HierarchicalActor.Command> supervisor = supervisors.get(supervisorId);
         if (supervisor == null) {
             return CompletableFuture.completedFuture(
-                    ResponseEntity.badRequest()
-                            .body(Map.of("success", false, "message", "Supervisor not found")));
+                    ResponseEntity.badRequest().body(Map.of("success", false, "message", "Supervisor not found")));
         }
 
         return supervisor
-                .ask(
-                        (org.apache.pekko.actor.typed.ActorRef<HierarchicalActor.WorkResult> replyTo) ->
-                                new HierarchicalActor.RouteToChild(workerId, taskName, replyTo))
+                .ask((org.apache.pekko.actor.typed.ActorRef<HierarchicalActor.WorkResult> replyTo) ->
+                        new HierarchicalActor.RouteToChild(workerId, taskName, replyTo))
                 .toCompletableFuture()
-                .thenApply(
-                        resultObj -> {
-                            HierarchicalActor.WorkResult result = (HierarchicalActor.WorkResult) resultObj;
-                            return ResponseEntity.ok(
-                                    toMap(
-                                            "success",
-                                            true,
-                                            "workerId",
-                                            result.workerId,
-                                            "taskName",
-                                            result.taskName,
-                                            "tasksCompleted",
-                                            result.tasksCompleted));
-                        })
-                .exceptionally(
-                        ex ->
-                                ResponseEntity.internalServerError()
-                                        .body(
-                                                Map.of(
-                                                        "success",
-                                                        false,
-                                                        "message",
-                                                        "Failed to send work: " + ex.getMessage())));
+                .thenApply(resultObj -> {
+                    HierarchicalActor.WorkResult result = (HierarchicalActor.WorkResult) resultObj;
+                    return ResponseEntity.ok(toMap(
+                            "success",
+                            true,
+                            "workerId",
+                            result.workerId,
+                            "taskName",
+                            result.taskName,
+                            "tasksCompleted",
+                            result.tasksCompleted));
+                })
+                .exceptionally(ex -> ResponseEntity.internalServerError()
+                        .body(Map.of("success", false, "message", "Failed to send work: " + ex.getMessage())));
     }
 
     /**
@@ -324,34 +262,16 @@ public class SupervisionController {
         SpringActorRef<HierarchicalActor.Command> supervisor = supervisors.get(supervisorId);
         if (supervisor == null) {
             return CompletableFuture.completedFuture(
-                    ResponseEntity.badRequest()
-                            .body(Map.of("success", false, "message", "Supervisor not found")));
+                    ResponseEntity.badRequest().body(Map.of("success", false, "message", "Supervisor not found")));
         }
 
         return supervisor
-                .ask(
-                        (org.apache.pekko.actor.typed.ActorRef<String> replyTo) ->
-                                new HierarchicalActor.TriggerChildFailure(workerId, replyTo))
+                .ask((org.apache.pekko.actor.typed.ActorRef<String> replyTo) ->
+                        new HierarchicalActor.TriggerChildFailure(workerId, replyTo))
                 .toCompletableFuture()
-                .thenApply(
-                        result ->
-                                ResponseEntity.ok(
-                                        toMap(
-                                                "success",
-                                                true,
-                                                "workerId",
-                                                workerId,
-                                                "message",
-                                                result)))
-                .exceptionally(
-                        ex ->
-                                ResponseEntity.internalServerError()
-                                        .body(
-                                                Map.of(
-                                                        "success",
-                                                        false,
-                                                        "message",
-                                                        "Failed to trigger failure: " + ex.getMessage())));
+                .thenApply(result -> ResponseEntity.ok(toMap("success", true, "workerId", workerId, "message", result)))
+                .exceptionally(ex -> ResponseEntity.internalServerError()
+                        .body(Map.of("success", false, "message", "Failed to trigger failure: " + ex.getMessage())));
     }
 
     /**
@@ -365,52 +285,31 @@ public class SupervisionController {
         SpringActorRef<HierarchicalActor.Command> supervisor = supervisors.get(supervisorId);
         if (supervisor == null) {
             return CompletableFuture.completedFuture(
-                    ResponseEntity.badRequest()
-                            .body(Map.of("success", false, "message", "Supervisor not found")));
+                    ResponseEntity.badRequest().body(Map.of("success", false, "message", "Supervisor not found")));
         }
 
         return supervisor
-                .ask(
-                        (org.apache.pekko.actor.typed.ActorRef<String> replyTo) ->
-                                new HierarchicalActor.StopChild(workerId, replyTo))
+                .ask((org.apache.pekko.actor.typed.ActorRef<String> replyTo) ->
+                        new HierarchicalActor.StopChild(workerId, replyTo))
                 .toCompletableFuture()
-                .thenApply(
-                        result ->
-                                ResponseEntity.ok(
-                                        toMap(
-                                                "success",
-                                                true,
-                                                "workerId",
-                                                workerId,
-                                                "message",
-                                                result)))
-                .exceptionally(
-                        ex ->
-                                ResponseEntity.internalServerError()
-                                        .body(
-                                                Map.of(
-                                                        "success",
-                                                        false,
-                                                        "message",
-                                                        "Failed to stop worker: " + ex.getMessage())));
+                .thenApply(result -> ResponseEntity.ok(toMap("success", true, "workerId", workerId, "message", result)))
+                .exceptionally(ex -> ResponseEntity.internalServerError()
+                        .body(Map.of("success", false, "message", "Failed to stop worker: " + ex.getMessage())));
     }
 
     /**
      * Delete a supervisor (and all its workers).
      */
     @DeleteMapping("/supervisors/{supervisorId}")
-    public ResponseEntity<Map<String, Object>> deleteSupervisor(
-            @PathVariable String supervisorId) {
+    public ResponseEntity<Map<String, Object>> deleteSupervisor(@PathVariable String supervisorId) {
         SpringActorRef<HierarchicalActor.Command> supervisor = supervisors.remove(supervisorId);
 
         if (supervisor == null) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("success", false, "message", "Supervisor not found"));
+            return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Supervisor not found"));
         }
 
         supervisor.stop();
-        return ResponseEntity.ok(
-                toMap("success", true, "supervisorId", supervisorId, "message", "Supervisor stopped"));
+        return ResponseEntity.ok(toMap("success", true, "supervisorId", supervisorId, "message", "Supervisor stopped"));
     }
 
     /**
@@ -420,43 +319,33 @@ public class SupervisionController {
     @GetMapping("/hierarchy")
     public CompletableFuture<ResponseEntity<Map<String, Object>>> getHierarchy() {
         if (supervisors.isEmpty()) {
-            return CompletableFuture.completedFuture(
-                    ResponseEntity.ok(toMap("root", null)));
+            return CompletableFuture.completedFuture(ResponseEntity.ok(toMap("root", null)));
         }
 
         // Get the root supervisor
         SpringActorRef<HierarchicalActor.Command> supervisor = supervisors.get("supervisor");
         if (supervisor == null) {
-            return CompletableFuture.completedFuture(
-                    ResponseEntity.ok(toMap("root", null)));
+            return CompletableFuture.completedFuture(ResponseEntity.ok(toMap("root", null)));
         }
 
         return supervisor
-                .ask(
-                        (org.apache.pekko.actor.typed.ActorRef<ActorHierarchy.ActorNode> replyTo) ->
-                                new HierarchicalActor.GetHierarchy(replyTo))
+                .ask((org.apache.pekko.actor.typed.ActorRef<ActorHierarchy.ActorNode> replyTo) ->
+                        new HierarchicalActor.GetHierarchy(replyTo))
                 .toCompletableFuture()
-                .thenApply(
-                        nodeObj -> {
-                            ActorHierarchy.ActorNode node = (ActorHierarchy.ActorNode) nodeObj;
-                            return ResponseEntity.ok(toMap("root", convertNodeToMap(node)));
-                        })
-                .exceptionally(
-                        ex ->
-                                ResponseEntity.internalServerError()
-                                        .body(
-                                                Map.of(
-                                                        "error",
-                                                        "Failed to get hierarchy: " + ex.getMessage())));
+                .thenApply(nodeObj -> {
+                    ActorHierarchy.ActorNode node = (ActorHierarchy.ActorNode) nodeObj;
+                    return ResponseEntity.ok(toMap("root", convertNodeToMap(node)));
+                })
+                .exceptionally(ex -> ResponseEntity.internalServerError()
+                        .body(Map.of("error", "Failed to get hierarchy: " + ex.getMessage())));
     }
 
     /**
      * Recursively convert ActorNode to Map for JSON serialization.
      */
     private Map<String, Object> convertNodeToMap(ActorHierarchy.ActorNode node) {
-        List<Map<String, Object>> childrenMaps = node.children.stream()
-                .map(this::convertNodeToMap)
-                .collect(Collectors.toList());
+        List<Map<String, Object>> childrenMaps =
+                node.children.stream().map(this::convertNodeToMap).collect(Collectors.toList());
 
         return toMap(
                 "actorId", node.actorId,
@@ -464,8 +353,7 @@ public class SupervisionController {
                 "strategy", node.strategy,
                 "path", node.path,
                 "failureCount", node.failureCount,
-                "children", childrenMaps
-        );
+                "children", childrenMaps);
     }
 
     /**

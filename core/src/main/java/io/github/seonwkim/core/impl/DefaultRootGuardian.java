@@ -66,7 +66,8 @@ public class DefaultRootGuardian implements RootGuardian {
     public Behavior<RootGuardian.Command> handleSpawnActor(SpawnActor msg) {
         String key = buildActorKey(msg.actorClass, msg.actorContext);
 
-        Behavior<?> behavior = registry.createBehavior(msg.actorClass, msg.actorContext).asBehavior();
+        Behavior<?> behavior =
+                registry.createBehavior(msg.actorClass, msg.actorContext).asBehavior();
 
         if (msg.supervisorStrategy != null) {
             behavior = Behaviors.supervise(behavior).onFailure(msg.supervisorStrategy);

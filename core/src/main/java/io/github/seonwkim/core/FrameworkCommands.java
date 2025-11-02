@@ -4,13 +4,22 @@ import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.SupervisorStrategy;
 
 /**
- * Framework-provided commands that actors can use when their command interface
- * extends {@link FrameworkCommand}.
+ * Framework-provided commands that actors can use when framework command handling
+ * is enabled via {@link SpringActorBehavior.Builder#withFrameworkCommands()}.
  *
  * <p>These commands are automatically handled by {@link SpringActorBehavior} when
  * framework command handling is enabled via the builder.
  *
- * @see FrameworkCommand
+ * <p><b>No marker interface required:</b> Simply enable framework commands in the builder:
+ * <pre>
+ * {@code
+ * SpringActorBehavior.builder(actorContext)
+ *     .withFrameworkCommands()  // Enables framework command handling
+ *     .setup(ctx -> ...)
+ *     .build();
+ * }
+ * </pre>
+ *
  * @see SpringActorBehavior
  */
 public final class FrameworkCommands {
@@ -28,41 +37,53 @@ public final class FrameworkCommands {
      * <p>Example usage:
      * <pre>
      * {@code
-     * // From parent actor
-     * parentRef.tell(new FrameworkCommands.SpawnChild<>(
+     * // Create child context
+     * SpringActorContext childContext = new SpringActorContext() {
+     *     @Override
+     *     public String actorId() {
+     *         return "child-1";
+     *     }
+     * };
+     *
+     * // From parent actor (using tell)
+     * getContext().getSelf().tell(new FrameworkCommands.SpawnChild<>(
      *     ChildActor.class,
-     *     "child-1",
+     *     childContext,
      *     SupervisorStrategy.restart(),
      *     replyTo
      * ));
      *
      * // Or using ask pattern
-     * CompletionStage<SpawnChildResponse> response = parentRef.ask(
-     *     replyTo -> new FrameworkCommands.SpawnChild<>(
-     *         ChildActor.class,
-     *         "child-1",
-     *         SupervisorStrategy.restart(),
-     *         replyTo
-     *     )
-     * );
+     * CompletionStage<SpawnChildResponse<ChildCommand>> response =
+     *     AskPattern.ask(
+     *         getContext().getSelf(),
+     *         replyTo -> new FrameworkCommands.SpawnChild<>(
+     *             ChildActor.class,
+     *             childContext,
+     *             SupervisorStrategy.restart(),
+     *             replyTo
+     *         ),
+     *         Duration.ofSeconds(3),
+     *         getContext().getSystem().scheduler()
+     *     );
      * }
      * </pre>
      *
      * @param <C> The command type of the child actor to spawn
      */
-    public static final class SpawnChild<C> implements FrameworkCommand {
-        public final Class<? extends SpringActorWithContext<?, C, ?>> actorClass;
-        public final String childId;
+    public static final class SpawnChild<C> {
+        public final Class<? extends SpringActorWithContext<C, ?>> actorClass;
+        public final SpringActorContext childContext;
         public final SupervisorStrategy strategy;
         public final ActorRef<SpawnChildResponse<C>> replyTo;
 
         public SpawnChild(
-                Class<? extends SpringActorWithContext<?, C, ?>> actorClass,
-                String childId,
+                Class<? extends SpringActorWithContext<C, ?>> actorClass,
+                SpringActorContext childContext,
                 SupervisorStrategy strategy,
                 ActorRef<SpawnChildResponse<C>> replyTo) {
             this.actorClass = actorClass;
-            this.childId = childId;
+            this.childContext = childContext;
             this.strategy = strategy;
             this.replyTo = replyTo;
         }

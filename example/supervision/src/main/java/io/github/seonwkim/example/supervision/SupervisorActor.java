@@ -23,13 +23,13 @@ public class SupervisorActor
     @Override
     public Behavior<HierarchicalActor.Command> create(SpringActorContext actorContext) {
         return Behaviors.setup(ctx -> {
-            HierarchicalActorBehavior<HierarchicalActor.Command> behavior =
-                    new HierarchicalActorBehavior<>(ctx, actorContext, logPublisher, false, "Supervisor", WorkerActor.class);
+            HierarchicalActorBehavior<HierarchicalActor.Command> behavior = new HierarchicalActorBehavior<>(
+                    ctx, actorContext, logPublisher, false, "Supervisor", WorkerActor.class);
 
             String actorId = actorContext.actorId();
             ctx.getLog().info("Supervisor {} started", actorId);
-            logPublisher.publish(
-                    String.format("[%s] Supervisor started (path: %s)", actorId, ctx.getSelf().path()));
+            logPublisher.publish(String.format(
+                    "[%s] Supervisor started (path: %s)", actorId, ctx.getSelf().path()));
 
             return Behaviors.receive(HierarchicalActor.Command.class)
                     .onMessage(HierarchicalActor.SpawnChild.class, behavior::onSpawnChild)

@@ -13,7 +13,7 @@ import org.apache.pekko.actor.typed.SupervisorStrategy;
  * @param <A> The type of the actor
  * @param <C> The type of commands that the actor can handle
  */
-public class SpringActorSpawnBuilder<A extends SpringActorWithContext<A, C, ?>, C> {
+public class SpringActorSpawnBuilder<A extends SpringActorWithContext<C, ?>, C> {
     private final SpringActorSystem actorSystem;
     private final Class<A> actorClass;
     private String actorId;
@@ -152,7 +152,8 @@ public class SpringActorSpawnBuilder<A extends SpringActorWithContext<A, C, ?>, 
             actorContext = new DefaultSpringActorContext(actorId);
         }
 
-        return actorSystem.spawn(actorClass, actorContext, mailboxSelector, isClusterSingleton, supervisorStrategy, timeout);
+        return actorSystem.spawn(
+                actorClass, actorContext, mailboxSelector, isClusterSingleton, supervisorStrategy, timeout);
     }
 
     /**
