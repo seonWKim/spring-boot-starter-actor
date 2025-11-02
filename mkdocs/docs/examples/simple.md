@@ -120,7 +120,7 @@ public class HelloService {
                 .actor(HelloActor.class)
                 .withId("default")
                 .withTimeout(Duration.ofSeconds(3))
-                .startAndWait();
+                .spawnAndWait();
     }
 
     public Mono<String> hello() {

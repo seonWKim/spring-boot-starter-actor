@@ -244,7 +244,7 @@ CompletionStage<SpringActorRef<Command>> actor = actorSystem
         } else {
             return actorSystem.actor(MyActor.class)
                 .withId("actor-1")
-                .start();
+                .spawn();
         }
     });
 

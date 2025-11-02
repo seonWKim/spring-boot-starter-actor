@@ -102,7 +102,7 @@ public class HelloService {
                 .actor(HelloActor.class)
                 .withId("default")
                 .withTimeout(Duration.ofSeconds(3))
-                .startAndWait();
+                .spawnAndWait();
     }
 
     // Service methods...
@@ -124,7 +124,7 @@ public class HelloService {
                 .actor(HelloActor.class)
                 .withId("default")
                 .withTimeout("3s")  // Can use string format
-                .start();
+                .spawn();
     }
 
     public Mono<String> hello() {
@@ -151,7 +151,7 @@ SpringActorRef<HelloActor.Command> actor = springActorSystem
         .withMailbox("bounded")  // or "unbounded", "default"
         .asClusterSingleton()     // For cluster singleton actors
         .withContext(customContext)  // Custom actor context
-        .start();
+        .spawn();
 ```
 
 ## Sending Messages to Actors
@@ -246,7 +246,7 @@ actorSystem.exists(MyActor.class, "my-actor-1")
         } else {
             return actorSystem.actor(MyActor.class)
                 .withId("my-actor-1")
-                .start();
+                .spawn();
         }
     });
 ```

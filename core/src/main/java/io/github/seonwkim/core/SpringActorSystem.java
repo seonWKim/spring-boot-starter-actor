@@ -161,7 +161,7 @@ public class SpringActorSystem implements DisposableBean {
      *     .actor(HelloActor.class)
      *     .withId("myActor")
      *     .withTimeout(Duration.ofSeconds(5))
-     *     .start();
+     *     .spawn();
      * </pre>
      *
      * @param actorClass The class of the actor

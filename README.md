@@ -151,7 +151,7 @@ public class GreeterService {
     public CompletionStage<String> greet(String name) {
         return actorSystem.actor(GreeterActor.class)
             .withId("greeter")
-            .start()
+            .spawn()
             .thenCompose(actor -> actor
                 .askBuilder(replyTo -> new GreeterActor.Greet(name, replyTo))
                 .withTimeout(Duration.ofSeconds(5))
@@ -170,7 +170,7 @@ CompletionStage<SpringActorRef<Command>> actorRef = actorSystem
     .actor(MyActor.class)
     .withId("my-actor-1")
     .withTimeout(Duration.ofSeconds(5))  // Optional: custom timeout
-    .start();
+    .spawn();
 ```
 
 **Get Reference to Existing Actor:**
@@ -426,7 +426,7 @@ public class MyService {
         return actorSystem.actor(WorkerActor.class)
             .withId("worker-1")
             .withSupervisonStrategy(SupervisorStrategy.restart().withLimit(3, Duration.ofMinutes(1)))
-            .start();
+            .spawn();
     }
 }
 ```
