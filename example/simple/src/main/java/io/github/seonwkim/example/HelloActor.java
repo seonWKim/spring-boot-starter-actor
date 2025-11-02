@@ -1,6 +1,7 @@
 package io.github.seonwkim.example;
 
 import io.github.seonwkim.core.SpringActor;
+import io.github.seonwkim.core.SpringActorBehavior;
 import io.github.seonwkim.core.SpringActorContext;
 import java.time.Duration;
 import org.apache.pekko.actor.typed.ActorRef;
@@ -17,7 +18,7 @@ import org.springframework.stereotype.Component;
  * greeting message that includes its actor ID.
  */
 @Component
-public class HelloActor implements SpringActor<HelloActor, HelloActor.Command> {
+public class HelloActor implements SpringActor<HelloActor.Command> {
 
     /** Base interface for all commands that can be sent to the hello actor. */
     public interface Command {}
@@ -47,8 +48,11 @@ public class HelloActor implements SpringActor<HelloActor, HelloActor.Command> {
      * @return The behavior for the actor
      */
     @Override
-    public Behavior<Command> create(SpringActorContext actorContext) {
-        return Behaviors.setup(ctx -> new HelloActorBehavior(ctx, actorContext).create());
+    public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
+        return SpringActorBehavior.wrap(Behaviors.setup(ctx -> {
+            HelloActorBehavior behaviorHandler = new HelloActorBehavior(ctx, actorContext);
+            return behaviorHandler.create();
+        }));
     }
 
     /**

@@ -19,7 +19,7 @@ import org.springframework.test.context.TestPropertySource;
 class SpringActorSystemTest {
 
     @Component
-    static class TestHelloActor implements SpringActor<TestHelloActor, TestHelloActor.Command> {
+    static class TestHelloActor implements SpringActor<TestHelloActor.Command> {
 
         public interface Command {}
 
@@ -32,20 +32,19 @@ class SpringActorSystemTest {
         }
 
         @Override
-        public Behavior<Command> create(SpringActorContext id) {
-            return Behaviors.setup(ctx -> Behaviors.receive(Command.class)
-                    .onMessage(SayHello.class, msg -> {
+        public SpringActorBehavior<Command> create(SpringActorContext id) {
+            return SpringActorBehavior.builder(Command.class, id)
+                    .onMessage(SayHello.class, (ctx, msg) -> {
                         msg.replyTo.tell("hello world!!");
                         return Behaviors.same();
                     })
-                    .build());
+                    .build();
         }
     }
 
     @Component
     static class CustomActorContextActor
-            implements SpringActorWithContext<
-                    CustomActorContextActor, CustomActorContextActor.Command, CustomActorContext> {
+            implements SpringActorWithContext<CustomActorContextActor.Command, CustomActorContext> {
 
         public interface Command {}
 
@@ -58,13 +57,13 @@ class SpringActorSystemTest {
         }
 
         @Override
-        public Behavior<Command> create(CustomActorContext context) {
-            return Behaviors.setup(ctx -> Behaviors.receive(Command.class)
-                    .onMessage(SayHello.class, msg -> {
+        public SpringActorBehavior<Command> create(CustomActorContext context) {
+            return SpringActorBehavior.builder(Command.class, context)
+                    .onMessage(SayHello.class, (ctx, msg) -> {
                         msg.replyTo.tell(context.actorId());
                         return Behaviors.same();
                     })
-                    .build());
+                    .build();
         }
     }
 

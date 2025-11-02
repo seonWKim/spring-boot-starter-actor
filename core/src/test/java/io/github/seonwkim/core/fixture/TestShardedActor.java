@@ -6,9 +6,10 @@ import io.github.seonwkim.core.serialization.JsonSerializable;
 import io.github.seonwkim.core.shard.DefaultShardingMessageExtractor;
 import io.github.seonwkim.core.shard.ShardEnvelope;
 import io.github.seonwkim.core.shard.ShardedActor;
+import io.github.seonwkim.core.shard.ShardedActorBehavior;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.pekko.actor.typed.ActorRef;
-import org.apache.pekko.actor.typed.Behavior;
+import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.apache.pekko.cluster.sharding.typed.ShardingMessageExtractor;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityContext;
@@ -56,22 +57,31 @@ public class TestShardedActor implements ShardedActor<TestShardedActor.Command> 
     }
 
     @Override
-    public Behavior<Command> create(EntityContext<Command> ctx) {
-        return Behaviors.setup(context -> {
-            AtomicInteger counter = new AtomicInteger();
-            return Behaviors.receive(Command.class)
-                    .onMessage(Ping.class, msg -> {
-                        counter.incrementAndGet();
-                        String entityId = ctx.getEntityId();
-                        context.getLog().info("entityId: " + entityId + " received message: " + msg.message);
-                        return Behaviors.same();
-                    })
-                    .onMessage(GetState.class, cmd -> {
-                        cmd.replyTo.tell(new State(counter.get()));
-                        return Behaviors.same();
-                    })
-                    .build();
-        });
+    public ShardedActorBehavior<Command> create(EntityContext<Command> ctx) {
+        return ShardedActorBehavior.builder(Command.class, ctx)
+                .onCreate(context -> new ActorState(context, ctx.getEntityId()))
+                .onMessage(Ping.class, (state, msg) -> {
+                    state.counter.incrementAndGet();
+                    state.context.getLog().info("entityId: " + state.entityId + " received message: " + msg.message);
+                    return Behaviors.same();
+                })
+                .onMessage(GetState.class, (state, cmd) -> {
+                    cmd.replyTo.tell(new State(state.counter.get()));
+                    return Behaviors.same();
+                })
+                .build();
+    }
+
+    private static class ActorState {
+        private final ActorContext<Command> context;
+        private final String entityId;
+        private final AtomicInteger counter;
+
+        ActorState(org.apache.pekko.actor.typed.javadsl.ActorContext<Command> context, String entityId) {
+            this.context = context;
+            this.entityId = entityId;
+            this.counter = new AtomicInteger();
+        }
     }
 
     @Override

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.github.seonwkim.core.serialization.JsonSerializable;
 import io.github.seonwkim.core.shard.ShardedActor;
+import io.github.seonwkim.core.shard.ShardedActorBehavior;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.pekko.actor.typed.ActorRef;
@@ -66,11 +67,10 @@ public class ChatRoomActor implements ShardedActor<ChatRoomActor.Command> {
     }
 
     @Override
-    public Behavior<Command> create(EntityContext<Command> ctx) {
-        return Behaviors.setup(context -> {
-            final String roomId = ctx.getEntityId();
-            return chatRoom(roomId, new HashMap<>());
-        });
+    public ShardedActorBehavior<Command> create(EntityContext<Command> ctx) {
+        final String roomId = ctx.getEntityId();
+        Behavior<Command> behavior = chatRoom(roomId, new HashMap<>());
+        return ShardedActorBehavior.wrap(behavior);
     }
 
     /**

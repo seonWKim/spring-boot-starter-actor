@@ -4,8 +4,8 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.github.seonwkim.core.serialization.JsonSerializable;
 import io.github.seonwkim.core.shard.ShardedActor;
+import io.github.seonwkim.core.shard.ShardedActorBehavior;
 import org.apache.pekko.actor.typed.ActorRef;
-import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityContext;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
@@ -47,24 +47,27 @@ public class HelloActor implements ShardedActor<HelloActor.Command> {
      * @return The behavior for the actor
      */
     @Override
-    public Behavior<Command> create(EntityContext<Command> ctx) {
-        return Behaviors.setup(context -> Behaviors.receive(Command.class)
-                .onMessage(SayHello.class, msg -> {
-                    // Get information about the current node and entity
-                    final String nodeAddress = context.getSystem().address().toString();
-                    final String entityId = ctx.getEntityId();
+    public ShardedActorBehavior<Command> create(EntityContext<Command> ctx) {
+        return ShardedActorBehavior.wrap(Behaviors.setup(context -> {
+            String entityId = ctx.getEntityId();
 
-                    // Create a response message with node and entity information
-                    final String message = "Received from entity [" + entityId + "] on node [" + nodeAddress + "]";
+            return Behaviors.receive(Command.class)
+                    .onMessage(SayHello.class, msg -> {
+                        // Get information about the current node and entity
+                        final String nodeAddress = context.getSystem().address().toString();
 
-                    // Send the response back to the caller
-                    msg.replyTo.tell(message);
+                        // Create a response message with node and entity information
+                        final String message = "Received from entity [" + entityId + "] on node [" + nodeAddress + "]";
 
-                    // Log the message for debugging
-                    context.getLog().info(message);
+                        // Send the response back to the caller
+                        msg.replyTo.tell(message);
 
-                    return Behaviors.same();
-                })
-                .build());
+                        // Log the message for debugging
+                        context.getLog().info(message);
+
+                        return Behaviors.same();
+                    })
+                    .build();
+        }));
     }
 }

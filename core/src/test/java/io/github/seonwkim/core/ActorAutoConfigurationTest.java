@@ -40,17 +40,17 @@ public class ActorAutoConfigurationTest {
     }
 
     @Component
-    static class TestHelloActor implements SpringActor<TestHelloActor, TestHelloActor.Command> {
+    static class TestHelloActor implements SpringActor<TestHelloActor.Command> {
 
         public interface Command {}
 
         public static class SayHello implements TestHelloActor.Command {}
 
         @Override
-        public Behavior<TestHelloActor.Command> create(SpringActorContext id) {
-            return Behaviors.setup(ctx -> Behaviors.receive(TestHelloActor.Command.class)
-                    .onMessage(TestHelloActor.SayHello.class, msg -> Behaviors.same())
-                    .build());
+        public SpringActorBehavior<TestHelloActor.Command> create(SpringActorContext id) {
+            return SpringActorBehavior.builder(TestHelloActor.Command.class, id)
+                    .onMessage(TestHelloActor.SayHello.class, (ctx, msg) -> Behaviors.same())
+                    .build();
         }
     }
 
@@ -65,7 +65,7 @@ public class ActorAutoConfigurationTest {
             ActorTypeRegistry registry = context.getBean(ActorTypeRegistry.class);
 
             // Should be able to create the behavior by command class
-            Behavior<TestHelloActor.Command> behavior =
+            SpringActorBehavior<TestHelloActor.Command> behavior =
                     registry.createTypedBehavior(TestHelloActor.class, new DefaultSpringActorContext("test-id"));
 
             assertNotNull(behavior, "Behavior for TestHelloActor should be registered and non-null");

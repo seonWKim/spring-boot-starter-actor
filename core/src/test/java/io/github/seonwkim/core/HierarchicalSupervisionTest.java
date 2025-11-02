@@ -51,8 +51,7 @@ class HierarchicalSupervisionTest {
      * This actor can process tasks and fail on command.
      */
     @Component
-    static class ChildWorkerActor
-            implements SpringActorWithContext<ChildWorkerActor, ChildWorkerActor.Command, SpringActorContext> {
+    static class ChildWorkerActor implements SpringActorWithContext<ChildWorkerActor.Command, SpringActorContext> {
 
         private final TaskLogger taskLogger;
 
@@ -89,8 +88,8 @@ class HierarchicalSupervisionTest {
         }
 
         @Override
-        public Behavior<Command> create(SpringActorContext actorContext) {
-            return Behaviors.setup(ctx -> new ChildWorkerBehavior(ctx, actorContext, taskLogger).create());
+        public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
+            return SpringActorBehavior.wrap(Behaviors.setup(ctx -> new ChildWorkerBehavior(ctx, actorContext, taskLogger).create()));
         }
 
         private static class ChildWorkerBehavior {
@@ -168,8 +167,7 @@ class HierarchicalSupervisionTest {
      */
     @Component
     static class ParentSupervisorActor
-            implements SpringActorWithContext<
-                    ParentSupervisorActor, ParentSupervisorActor.Command, SpringActorContext> {
+            implements SpringActorWithContext<ParentSupervisorActor.Command, SpringActorContext> {
 
         public interface Command {}
 
@@ -193,8 +191,8 @@ class HierarchicalSupervisionTest {
         }
 
         @Override
-        public Behavior<Command> create(SpringActorContext actorContext) {
-            return Behaviors.setup(ctx -> new ParentSupervisorBehavior(ctx, actorContext).create());
+        public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
+            return SpringActorBehavior.wrap(Behaviors.setup(ctx -> new ParentSupervisorBehavior(ctx, actorContext).create()));
         }
 
         private static class ParentSupervisorBehavior {
@@ -238,8 +236,10 @@ class HierarchicalSupervisionTest {
                         strategy = SupervisorStrategy.restart();
                     }
 
+                    // TODO: spawnChild API not yet implemented
                     // API EXPERIENCE: Using actorContext.spawnChild() is clean and intuitive
-                    child = actorContext.spawnChild(ctx, ChildWorkerActor.class, msg.workerId, strategy);
+                    // child = actorContext.spawnChild(ctx, ChildWorkerActor.class, msg.workerId, strategy);
+                    throw new UnsupportedOperationException("spawnChild API not yet implemented");
                 } else {
                     ctx.getLog().info("Reusing existing worker {}", msg.workerId);
                 }

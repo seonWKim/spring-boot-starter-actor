@@ -2,6 +2,7 @@ package io.github.seonwkim.example;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.github.seonwkim.core.SpringActorBehavior;
 import io.github.seonwkim.core.SpringActorContext;
 import io.github.seonwkim.core.SpringActorSystem;
 import io.github.seonwkim.core.SpringActorWithContext;
@@ -14,7 +15,7 @@ import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 
 @Component
-public class UserActor implements SpringActorWithContext<UserActor, UserActor.Command, UserActor.UserActorContext> {
+public class UserActor implements SpringActorWithContext<UserActor.Command, UserActor.UserActorContext> {
 
     public interface Command extends JsonSerializable {}
 
@@ -119,10 +120,18 @@ public class UserActor implements SpringActorWithContext<UserActor, UserActor.Co
     }
 
     @Override
-    public Behavior<Command> create(UserActorContext actorContext) {
-        return Behaviors.setup(context -> new UserActorBehavior(
-                        context, actorContext.actorSystem, actorContext.userId, actorContext.messageSink)
-                .create());
+    public SpringActorBehavior<Command> create(UserActorContext actorContext) {
+        return SpringActorBehavior.builder(Command.class, actorContext)
+                .onCreate(ctx -> new UserActorBehavior(
+                        ctx, actorContext.actorSystem, actorContext.userId, actorContext.messageSink))
+                .onMessage(Connect.class, UserActorBehavior::onConnect)
+                .onMessage(JoinRoom.class, UserActorBehavior::onJoinRoom)
+                .onMessage(LeaveRoom.class, UserActorBehavior::onLeaveRoom)
+                .onMessage(SendMessage.class, UserActorBehavior::onSendMessage)
+                .onMessage(JoinRoomEvent.class, UserActorBehavior::onJoinRoomEvent)
+                .onMessage(LeaveRoomEvent.class, UserActorBehavior::onLeaveRoomEvent)
+                .onMessage(SendMessageEvent.class, UserActorBehavior::onSendMessageEvent)
+                .build();
     }
 
     public static class UserActorBehavior {
@@ -143,18 +152,6 @@ public class UserActor implements SpringActorWithContext<UserActor, UserActor.Co
             this.actorSystem = actorSystem;
             this.userId = userId;
             this.messageSink = messageSink;
-        }
-
-        public Behavior<UserActor.Command> create() {
-            return Behaviors.receive(Command.class)
-                    .onMessage(Connect.class, this::onConnect)
-                    .onMessage(JoinRoom.class, this::onJoinRoom)
-                    .onMessage(LeaveRoom.class, this::onLeaveRoom)
-                    .onMessage(SendMessage.class, this::onSendMessage)
-                    .onMessage(JoinRoomEvent.class, this::onJoinRoomEvent)
-                    .onMessage(LeaveRoomEvent.class, this::onLeaveRoomEvent)
-                    .onMessage(SendMessageEvent.class, this::onSendMessageEvent)
-                    .build();
         }
 
         private Behavior<Command> onConnect(Connect connect) {
