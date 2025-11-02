@@ -53,7 +53,7 @@ public class ChatWebSocketHandler implements WebSocketHandler {
         return Mono.fromCompletionStage(actorSystem
                         .actor(UserActor.class)
                         .withContext(userActorContext)
-                        .start())
+                        .spawn())
                 .flatMap(userActor -> {
                     // Actor is now ready - store it and send connect message
                     userActors.put(userId, userActor);

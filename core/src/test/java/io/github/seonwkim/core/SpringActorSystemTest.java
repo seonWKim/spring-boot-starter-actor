@@ -132,7 +132,7 @@ class SpringActorSystemTest {
 
             final String actorId = "test-actor";
             final SpringActorRef<TestHelloActor.Command> actorRef =
-                    actorSystem.actor(TestHelloActor.class).withId(actorId).startAndWait();
+                    actorSystem.actor(TestHelloActor.class).withId(actorId).spawnAndWait();
 
             assertThat(actorRef).isNotNull();
 
@@ -158,7 +158,7 @@ class SpringActorSystemTest {
             final SpringActorRef<CustomActorContextActor.Command> actorRef = actorSystem
                     .actor(CustomActorContextActor.class)
                     .withContext(actorContext)
-                    .startAndWait();
+                    .spawnAndWait();
             assertThat(actorRef).isNotNull();
             assertEquals(
                     actorRef.askBuilder(CustomActorContextActor.SayHello::new)
@@ -196,7 +196,7 @@ class SpringActorSystemTest {
                     .isFalse();
 
             // Spawn the actor
-            actorSystem.actor(TestHelloActor.class).withId(actorId).startAndWait();
+            actorSystem.actor(TestHelloActor.class).withId(actorId).spawnAndWait();
 
             // Verify actor exists after spawning
             assertThat(actorSystem
@@ -227,7 +227,7 @@ class SpringActorSystemTest {
 
             // Spawn the actor
             SpringActorRef<TestHelloActor.Command> spawnedRef =
-                    actorSystem.actor(TestHelloActor.class).withId(actorId).startAndWait();
+                    actorSystem.actor(TestHelloActor.class).withId(actorId).spawnAndWait();
             assertThat(spawnedRef).isNotNull();
 
             // Get the actor using get()
@@ -256,7 +256,7 @@ class SpringActorSystemTest {
 
             // Spawn the actor
             SpringActorRef<TestHelloActor.Command> actorRef =
-                    actorSystem.actor(TestHelloActor.class).withId(actorId).startAndWait();
+                    actorSystem.actor(TestHelloActor.class).withId(actorId).spawnAndWait();
 
             // Verify actor exists
             assertThat(actorSystem
@@ -284,8 +284,8 @@ class SpringActorSystemTest {
             SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
 
             // Spawn multiple actors with different IDs
-            actorSystem.actor(TestHelloActor.class).withId("actor-1").startAndWait();
-            actorSystem.actor(TestHelloActor.class).withId("actor-2").startAndWait();
+            actorSystem.actor(TestHelloActor.class).withId("actor-1").spawnAndWait();
+            actorSystem.actor(TestHelloActor.class).withId("actor-2").spawnAndWait();
 
             // Verify each exists independently
             assertThat(actorSystem
@@ -330,7 +330,7 @@ class SpringActorSystemTest {
             final SpringActorRef<SimpleActorWithoutOnCreate.Command> actorRef = actorSystem
                     .actor(SimpleActorWithoutOnCreate.class)
                     .withId(actorId)
-                    .startAndWait();
+                    .spawnAndWait();
 
             assertThat(actorRef).isNotNull();
 

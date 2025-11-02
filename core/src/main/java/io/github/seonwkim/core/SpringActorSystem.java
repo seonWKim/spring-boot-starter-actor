@@ -289,7 +289,7 @@ public class SpringActorSystem implements DisposableBean {
             if (exists) {
                 return get(actorClass, actorId, timeout);
             } else {
-                return actor(actorClass).withId(actorId).withTimeout(timeout).start();
+                return actor(actorClass).withId(actorId).withTimeout(timeout).spawn();
             }
         });
     }

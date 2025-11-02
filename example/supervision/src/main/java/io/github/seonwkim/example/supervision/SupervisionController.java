@@ -37,7 +37,7 @@ public class SupervisionController {
                     .actor(SupervisorActor.class)
                     .withId("supervisor")
                     .withTimeout(Duration.ofSeconds(5))
-                    .startAndWait();
+                    .spawnAndWait();
             supervisors.put("supervisor", supervisor);
             logPublisher.publish("System initialized with supervisor");
         } catch (Exception e) {
@@ -76,7 +76,7 @@ public class SupervisionController {
                             .actor(SupervisorActor.class)
                             .withId(supervisorId)
                             .withTimeout(Duration.ofSeconds(5))
-                            .startAndWait();
+                            .spawnAndWait();
 
             supervisors.put(supervisorId, supervisor);
 

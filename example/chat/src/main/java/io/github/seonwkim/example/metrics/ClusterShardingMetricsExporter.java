@@ -28,7 +28,7 @@ public class ClusterShardingMetricsExporter {
         this.metricsActors = springActorSystem
                 .actor(ClusterShardingMetricsActor.class)
                 .withContext(new ClusterShardingMetricsExporterContext("exporter", meterRegistry))
-                .startAndWait();
+                .spawnAndWait();
     }
 
     @PostConstruct

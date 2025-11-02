@@ -309,7 +309,7 @@ class HierarchicalSupervisionTest {
             SpringActorRef<ParentSupervisorActor.Command> supervisor = actorSystem
                     .actor(ParentSupervisorActor.class)
                     .withId("supervisor-exists-test")
-                    .startAndWait();
+                    .spawnAndWait();
 
             // When: Checking if a child exists that was never spawned
             Boolean exists = supervisor
@@ -329,7 +329,7 @@ class HierarchicalSupervisionTest {
             SpringActorRef<ParentSupervisorActor.Command> supervisor = actorSystem
                     .actor(ParentSupervisorActor.class)
                     .withId("supervisor-get-test")
-                    .startAndWait();
+                    .spawnAndWait();
 
             // When: Getting a child that doesn't exist
             SpringActorRef<ChildWorkerActor.Command> childRef = supervisor
@@ -348,7 +348,7 @@ class HierarchicalSupervisionTest {
             SpringActorRef<ParentSupervisorActor.Command> supervisor = actorSystem
                     .actor(ParentSupervisorActor.class)
                     .withId("supervisor-spawn-test")
-                    .startAndWait();
+                    .spawnAndWait();
 
             // When: Spawning a child directly using the API
             SpringActorRef<ChildWorkerActor.Command> childRef = supervisor
@@ -400,7 +400,7 @@ class HierarchicalSupervisionTest {
             SpringActorRef<ParentSupervisorActor.Command> supervisor = actorSystem
                     .actor(ParentSupervisorActor.class)
                     .withId("supervisor-1")
-                    .startAndWait();
+                    .spawnAndWait();
 
             // And: Delegate work to a child (spawns on-demand with Spring DI) using fluent ask builder
             Object result = supervisor
@@ -436,7 +436,7 @@ class HierarchicalSupervisionTest {
             SpringActorRef<ParentSupervisorActor.Command> supervisor = actorSystem
                     .actor(ParentSupervisorActor.class)
                     .withId("supervisor-2")
-                    .startAndWait();
+                    .spawnAndWait();
 
             // And: Delegate work to multiple children (spawns on-demand) using fluent ask builder
             Object resultA = supervisor
@@ -487,7 +487,7 @@ class HierarchicalSupervisionTest {
             SpringActorRef<ParentSupervisorActor.Command> supervisor = actorSystem
                     .actor(ParentSupervisorActor.class)
                     .withId("supervisor-restart")
-                    .startAndWait();
+                    .spawnAndWait();
 
             // When: Child processes a task successfully (spawns on first use)
             Object taskResult1 = supervisor
@@ -542,7 +542,7 @@ class HierarchicalSupervisionTest {
             SpringActorRef<ParentSupervisorActor.Command> supervisor = actorSystem
                     .actor(ParentSupervisorActor.class)
                     .withId("supervisor-state-reset")
-                    .startAndWait();
+                    .spawnAndWait();
 
             // When: Child processes multiple tasks (spawns on first use)
             supervisor
@@ -614,7 +614,7 @@ class HierarchicalSupervisionTest {
             SpringActorRef<ParentSupervisorActor.Command> supervisor = actorSystem
                     .actor(ParentSupervisorActor.class)
                     .withId("supervisor-stop")
-                    .startAndWait();
+                    .spawnAndWait();
 
             // When: Child processes a task successfully (spawns on first use)
             Object taskResult = supervisor
@@ -684,7 +684,7 @@ class HierarchicalSupervisionTest {
                     .actor(ChildWorkerActor.class)
                     .withId("top-level-restart-worker")
                     .withSupervisorStrategy(SupervisorStrategy.restart())
-                    .startAndWait();
+                    .spawnAndWait();
 
             // When: Actor processes a task successfully
             String taskResult = (String) worker.askBuilder(replyTo -> new ChildWorkerActor.DoTask(
@@ -726,7 +726,7 @@ class HierarchicalSupervisionTest {
                     .actor(ChildWorkerActor.class)
                     .withId("top-level-state-worker")
                     .withSupervisorStrategy(SupervisorStrategy.restart())
-                    .startAndWait();
+                    .spawnAndWait();
 
             // When: Actor processes multiple tasks
             worker.askBuilder(replyTo -> new ChildWorkerActor.DoTask("task1", (ActorRef<String>) (ActorRef<?>) replyTo))
@@ -778,7 +778,7 @@ class HierarchicalSupervisionTest {
                     .actor(ChildWorkerActor.class)
                     .withId("top-level-limited-worker")
                     .withSupervisorStrategy(SupervisorStrategy.restart().withLimit(2, Duration.ofSeconds(10)))
-                    .startAndWait();
+                    .spawnAndWait();
 
             // When: Actor fails once (first restart)
             worker.askBuilder(replyTo -> new ChildWorkerActor.Fail((ActorRef<String>) (ActorRef<?>) replyTo))
@@ -840,7 +840,7 @@ class HierarchicalSupervisionTest {
                     .actor(ChildWorkerActor.class)
                     .withId("top-level-stop-worker")
                     .withSupervisorStrategy(SupervisorStrategy.stop())
-                    .startAndWait();
+                    .spawnAndWait();
 
             // When: Actor processes a task successfully
             String taskResult = (String) worker.askBuilder(replyTo ->
@@ -877,7 +877,7 @@ class HierarchicalSupervisionTest {
                     .actor(ChildWorkerActor.class)
                     .withId("top-level-resume-worker")
                     .withSupervisorStrategy(SupervisorStrategy.resume())
-                    .startAndWait();
+                    .spawnAndWait();
 
             // When: Actor processes tasks before failure
             worker.askBuilder(replyTo -> new ChildWorkerActor.DoTask("task1", (ActorRef<String>) (ActorRef<?>) replyTo))
@@ -946,7 +946,7 @@ class HierarchicalSupervisionTest {
                     .actor(ChildWorkerActor.class)
                     .withId("top-level-no-supervision-worker")
                     // No withSupervisorStrategy() call - defaults to null
-                    .startAndWait();
+                    .spawnAndWait();
 
             // When: Actor processes a task successfully
             String taskResult = (String) worker.askBuilder(replyTo -> new ChildWorkerActor.DoTask(

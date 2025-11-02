@@ -144,7 +144,7 @@ public class SpringActorSpawnBuilder<A extends SpringActorWithContext<C, ?>, C> 
      * @return A CompletionStage that will be completed with a reference to the spawned actor
      * @throws IllegalStateException If neither actorId nor actorContext is set
      */
-    public CompletionStage<SpringActorRef<C>> start() {
+    public CompletionStage<SpringActorRef<C>> spawn() {
         if (actorContext == null) {
             if (actorId == null) {
                 throw new IllegalStateException("Either actorId or actorContext must be set");
@@ -163,7 +163,7 @@ public class SpringActorSpawnBuilder<A extends SpringActorWithContext<C, ?>, C> 
      * @return A reference to the spawned actor
      * @throws IllegalStateException If neither actorId nor actorContext is set
      */
-    public SpringActorRef<C> startAndWait() {
-        return start().toCompletableFuture().join();
+    public SpringActorRef<C> spawnAndWait() {
+        return spawn().toCompletableFuture().join();
     }
 }
