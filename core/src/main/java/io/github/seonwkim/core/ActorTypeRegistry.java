@@ -73,30 +73,6 @@ public class ActorTypeRegistry {
             throw new IllegalArgumentException("No factory registered for class: " + actorClass.getName());
         }
 
-        // Inject registry if the context doesn't have one
-        SpringActorContext contextWithRegistry =
-                actorContext.registry() == null ? wrapContextWithRegistry(actorContext) : actorContext;
-
-        return factory.apply(contextWithRegistry);
-    }
-
-    /**
-     * Wraps a context to inject this registry, enabling hierarchical supervision.
-     *
-     * @param originalContext The original context
-     * @return A wrapped context with this registry injected
-     */
-    private SpringActorContext wrapContextWithRegistry(SpringActorContext originalContext) {
-        return new SpringActorContext() {
-            @Override
-            public String actorId() {
-                return originalContext.actorId();
-            }
-
-            @Override
-            public ActorTypeRegistry registry() {
-                return ActorTypeRegistry.this;
-            }
-        };
+        return factory.apply(actorContext);
     }
 }

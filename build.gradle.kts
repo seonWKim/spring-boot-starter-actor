@@ -145,8 +145,7 @@ subprojects {
             "-XX:MaxGCPauseMillis=100"
         )
 
-        // Fail fast on first test failure to catch issues early
-        failFast = true
+        failFast = false
 
         testLogging {
             // set options for log level LIFECYCLE
