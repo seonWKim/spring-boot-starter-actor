@@ -1,6 +1,5 @@
 package io.github.seonwkim.core.shard;
 
-import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.cluster.sharding.typed.ShardingMessageExtractor;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityContext;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
@@ -14,7 +13,28 @@ import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
  * uses {@link DefaultShardingMessageExtractor} with 100 shards, which is suitable for most use
  * cases. Override this method if you need a different number of shards or custom routing logic.
  *
+ * <p>Example usage:
+ * <pre>
+ * &#64;Component
+ * public class MyShardedActor implements ShardedActor&lt;Command&gt; {
+ *     &#64;Override
+ *     public EntityTypeKey&lt;Command&gt; typeKey() {
+ *         return EntityTypeKey.create(Command.class, "MyActor");
+ *     }
+ *
+ *     &#64;Override
+ *     public ShardedActorBehavior&lt;Command&gt; create(EntityContext&lt;Command&gt; ctx) {
+ *         return ShardedActorBehavior.builder(ctx)
+ *             .setup(entityCtx -&gt; ShardedActorBehavior.receive(Command.class)
+ *                 .onMessage(MyCommand.class, this::handleCommand)
+ *                 .build())
+ *             .build();
+ *     }
+ * }
+ * </pre>
+ *
  * @param <T> The type of messages that the actor can handle
+ * @see ShardedActorBehavior
  */
 public interface ShardedActor<T> {
     /**
@@ -30,9 +50,9 @@ public interface ShardedActor<T> {
      * instance of the actor is created.
      *
      * @param ctx The entity context for the actor
-     * @return A behavior for the actor
+     * @return A ShardedActorBehavior for the actor
      */
-    Behavior<T> create(EntityContext<T> ctx);
+    ShardedActorBehavior<T> create(EntityContext<T> ctx);
 
     /**
      * Returns a message extractor for this actor type. The message extractor is used to extract

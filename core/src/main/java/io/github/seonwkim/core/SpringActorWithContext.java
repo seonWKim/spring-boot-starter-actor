@@ -1,7 +1,5 @@
 package io.github.seonwkim.core;
 
-import org.apache.pekko.actor.typed.Behavior;
-
 /**
  * Interface for Spring-managed actors that require custom context types. Classes implementing this
  * interface will be automatically registered with the actor system.
@@ -15,9 +13,14 @@ import org.apache.pekko.actor.typed.Behavior;
  * &#64;Component
  * public class UserActor implements SpringActorWithContext&lt;UserActor, Command, UserActorContext&gt; {
  *     &#64;Override
- *     public Behavior&lt;Command&gt; create(UserActorContext context) {
+ *     public SpringActorBehavior&lt;Command&gt; create(UserActorContext context) {
  *         // Type-safe access to custom context - no casting needed!
- *         return Behaviors.setup(ctx -&gt; ...);
+ *         return SpringActorBehavior.builder(context)
+ *             .withFrameworkCommands()  // Optional: enable framework commands
+ *             .setup(ctx -&gt; SpringActorBehavior.receive(Command.class)
+ *                 .onMessage(MyCommand.class, this::handleCommand)
+ *                 .build())
+ *             .build();
  *     }
  *
  *     public static class UserActorContext implements SpringActorContext {
@@ -31,6 +34,7 @@ import org.apache.pekko.actor.typed.Behavior;
  * @param <C> The command type that this actor handles
  * @param <CTX> The context type that this actor requires (must extend SpringActorContext)
  * @see SpringActor
+ * @see SpringActorBehavior
  */
 public interface SpringActorWithContext<
         A extends SpringActorWithContext<A, C, CTX>, C, CTX extends SpringActorContext> {
@@ -39,7 +43,7 @@ public interface SpringActorWithContext<
      * is created.
      *
      * @param actorContext The context of the actor (type-safe, no casting needed)
-     * @return A behavior for the actor
+     * @return A SpringActorBehavior for the actor
      */
-    Behavior<C> create(CTX actorContext);
+    SpringActorBehavior<C> create(CTX actorContext);
 }
