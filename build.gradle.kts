@@ -127,3 +127,21 @@ tasks.register("runTest") {
     dependsOn(runCoreBoot3Test)
     dependsOn(runMetricsTest)
 }
+
+tasks.test {
+    useJUnitPlatform()
+
+    // Parallel test execution (use all available processors)
+    maxParallelForks = Runtime.getRuntime().availableProcessors()
+
+    minHeapSize = "512m"
+    maxHeapSize = "2048m"
+
+    jvmArgs = listOf(
+        "-XX:+UseG1GC",
+        "-XX:MaxGCPauseMillis=100"
+    )
+
+    // Fail fast on first test failure to catch issues early
+    failFast = true
+}
