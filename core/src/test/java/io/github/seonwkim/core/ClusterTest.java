@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.seonwkim.core.behavior.ClusterEventBehavior.ClusterDomainWrappedEvent;
+import io.github.seonwkim.core.fixture.SimpleShardedActorWithoutOnCreate;
 import io.github.seonwkim.core.fixture.TestShardedActor;
 import io.github.seonwkim.core.fixture.TestShardedActor.GetState;
 import java.time.Duration;
@@ -42,6 +43,11 @@ public class ClusterTest {
         @Bean
         public TestShardedActor testShardedActor() {
             return new TestShardedActor();
+        }
+
+        @Bean
+        public SimpleShardedActorWithoutOnCreate simpleShardedActorWithoutOnCreate() {
+            return new SimpleShardedActorWithoutOnCreate();
         }
     }
 
@@ -208,6 +214,35 @@ public class ClusterTest {
                         .toCompletableFuture()
                         .get()
                         .getMessageCount());
+    }
+
+    @Test
+    void shardedActorWithoutOnCreateWorks() throws Exception {
+        SpringActorSystem system1 = context1.getBean(SpringActorSystem.class);
+        waitUntilClusterInitialized();
+
+        final String entityId = "test-entity";
+        SpringShardedActorRef<SimpleShardedActorWithoutOnCreate.Command> actor = system1.sharded(
+                        SimpleShardedActorWithoutOnCreate.class)
+                .withId(entityId)
+                .get();
+
+        // Test Echo message
+        String echoResponse =
+                (String) actor.askBuilder(replyTo -> new SimpleShardedActorWithoutOnCreate.Echo("hello", replyTo))
+                        .withTimeout(Duration.ofSeconds(3))
+                        .execute()
+                        .toCompletableFuture()
+                        .get();
+        assertEquals("Echo from entity [" + entityId + "]: hello", echoResponse);
+
+        // Test GetEntityId message
+        String entityIdResponse = (String) actor.askBuilder(SimpleShardedActorWithoutOnCreate.GetEntityId::new)
+                .withTimeout(Duration.ofSeconds(3))
+                .execute()
+                .toCompletableFuture()
+                .get();
+        assertEquals(entityId, entityIdResponse);
     }
 
     private void waitUntilClusterInitialized() {

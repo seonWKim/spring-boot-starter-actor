@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.seonwkim.core.SpringActorSystemTest.TestHelloActor.SayHello;
+
+import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
@@ -61,6 +63,40 @@ class SpringActorSystemTest {
             return SpringActorBehavior.builder(Command.class, context)
                     .onMessage(SayHello.class, (ctx, msg) -> {
                         msg.replyTo.tell(context.actorId());
+                        return Behaviors.same();
+                    })
+                    .build();
+        }
+    }
+
+    /**
+     * Test actor that demonstrates building an actor WITHOUT using onCreate().
+     * This uses the default state type (ActorContext) and handles messages directly.
+     */
+    @Component
+    static class SimpleActorWithoutOnCreate implements SpringActor<SimpleActorWithoutOnCreate.Command> {
+
+        public interface Command {}
+
+        public static class Increment implements Command {
+            private final ActorRef<Integer> replyTo;
+
+            public Increment(ActorRef<Integer> replyTo) {
+                this.replyTo = replyTo;
+            }
+        }
+
+        @Override
+        public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
+            // Using a simple closure to maintain state without onCreate
+            final int[] counter = {0};
+
+            return SpringActorBehavior.builder(Command.class, actorContext)
+                    // No onCreate() - message handlers work directly with ActorContext
+                    .onMessage(Increment.class, (ctx, msg) -> {
+                        counter[0]++;
+                        ctx.getLog().info("Counter for {} incremented to {}", actorContext.actorId(), counter[0]);
+                        msg.replyTo.tell(counter[0]);
                         return Behaviors.same();
                     })
                     .build();
@@ -284,6 +320,41 @@ class SpringActorSystemTest {
                             .toCompletableFuture()
                             .get(5, TimeUnit.SECONDS))
                     .isNull();
+        }
+
+        @Test
+        void actorWithoutOnCreateWorks(ApplicationContext context) throws Exception {
+            SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
+
+            final String actorId = "counter-actor";
+            final SpringActorRef<SimpleActorWithoutOnCreate.Command> actorRef = actorSystem
+                    .actor(SimpleActorWithoutOnCreate.class)
+                    .withId(actorId)
+                    .startAndWait();
+
+            assertThat(actorRef).isNotNull();
+
+            // Send increment messages and verify counter increases
+            Integer count1 = actorRef.askBuilder(SimpleActorWithoutOnCreate.Increment::new)
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
+                    .toCompletableFuture()
+                    .get();
+            assertEquals(1, count1);
+
+            Integer count2 = actorRef.askBuilder(SimpleActorWithoutOnCreate.Increment::new)
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
+                    .toCompletableFuture()
+                    .get();
+            assertEquals(2, count2);
+
+            Integer count3 = actorRef.askBuilder(SimpleActorWithoutOnCreate.Increment::new)
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
+                    .toCompletableFuture()
+                    .get();
+            assertEquals(3, count3);
         }
     }
 }
