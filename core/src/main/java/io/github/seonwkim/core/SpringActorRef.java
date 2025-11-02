@@ -142,6 +142,37 @@ public class SpringActorRef<T> {
     }
 
     /**
+     * Creates a fluent builder for spawning a child actor with a consistent API.
+     *
+     * <p>This is the recommended way to spawn child actors as it provides a fluent,
+     * discoverable API consistent with parent actor spawning.
+     *
+     * <p>Example usage:
+     * <pre>
+     * {@code
+     * SpringActorRef<ChildCommand> child = parentRef
+     *     .child(ChildActor.class)
+     *     .withId("child-1")
+     *     .withSupervisionStrategy(SupervisorStrategy.restart())
+     *     .withTimeout(Duration.ofSeconds(5))
+     *     .spawn()
+     *     .toCompletableFuture()
+     *     .get();
+     * }
+     * </pre>
+     *
+     * <p><b>Important:</b> The parent actor must have framework commands enabled via
+     * {@link SpringActorBehavior.Builder#withFrameworkCommands()} for child spawning to work.
+     *
+     * @param childActorClass The child actor class (must be a Spring component)
+     * @param <CC> The command type of the child actor
+     * @return A fluent builder for configuring and spawning the child actor
+     */
+    public <CC> SpringChildActorBuilder<T, CC> child(Class<? extends SpringActorWithContext<CC, ?>> childActorClass) {
+        return new SpringChildActorBuilder<>(actorRef, scheduler, childActorClass, defaultTimeout);
+    }
+
+    /**
      * Spawns a child actor under this actor's supervision with Spring DI support.
      *
      * <p>This method sends a {@link FrameworkCommands.SpawnChild} command to this actor, which must
