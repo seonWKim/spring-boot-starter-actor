@@ -3,6 +3,7 @@ package io.github.seonwkim.core;
 import io.github.seonwkim.core.RootGuardian.Spawned;
 import io.github.seonwkim.core.behavior.ClusterEventBehavior;
 import io.github.seonwkim.core.impl.DefaultRootGuardian;
+import io.github.seonwkim.core.impl.DefaultSpringActorContext;
 import io.github.seonwkim.core.shard.ShardedActor;
 import io.github.seonwkim.core.shard.ShardedActorRegistry;
 import java.time.Duration;
@@ -198,7 +199,7 @@ public class SpringActorSystem implements DisposableBean {
      */
     public <A extends SpringActorWithContext<C, ?>, C> CompletionStage<Boolean> exists(
             Class<A> actorClass, String actorId, Duration timeout) {
-        SpringActorContext actorContext = () -> actorId;
+        SpringActorContext actorContext = new DefaultSpringActorContext(actorId);
 
         return AskPattern.ask(
                         actorSystem,
@@ -236,7 +237,7 @@ public class SpringActorSystem implements DisposableBean {
      */
     public <A extends SpringActorWithContext<C, ?>, C> CompletionStage<SpringActorRef<C>> get(
             Class<A> actorClass, String actorId, Duration timeout) {
-        SpringActorContext actorContext = () -> actorId;
+        SpringActorContext actorContext = new DefaultSpringActorContext(actorId);
 
         return AskPattern.ask(
                         actorSystem,

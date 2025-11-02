@@ -90,17 +90,9 @@ public class UserActor implements SpringActorWithContext<UserActor.Command, User
             this.userId = userId;
             this.message = message;
         }
-
-        public String getUserId() {
-            return userId;
-        }
-
-        public String getMessage() {
-            return message;
-        }
     }
 
-    public static class UserActorContext implements SpringActorContext {
+    public static class UserActorContext extends SpringActorContext {
         private final SpringActorSystem actorSystem;
         private final reactor.core.publisher.Sinks.Many<String> messageSink;
 

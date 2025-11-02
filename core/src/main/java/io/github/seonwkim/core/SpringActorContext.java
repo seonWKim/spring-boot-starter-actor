@@ -1,5 +1,7 @@
 package io.github.seonwkim.core;
 
+import org.springframework.lang.Nullable;
+
 /**
  * Represents the context for an actor in the Spring Actor system.
  *
@@ -21,7 +23,9 @@ package io.github.seonwkim.core;
  * @see FrameworkCommands.SpawnChild
  * @see FrameworkCommand
  */
-public interface SpringActorContext {
+public abstract class SpringActorContext {
+
+    @Nullable private ActorTypeRegistry registry;
 
     /**
      * Returns the unique identifier for this actor.
@@ -31,22 +35,13 @@ public interface SpringActorContext {
      *
      * @return the unique actor identifier
      */
-    String actorId();
+    public abstract String actorId();
 
-    /**
-     * Returns the actor type registry for creating Spring-managed child actors.
-     *
-     * <p>This registry is automatically injected by the framework when actors are created.
-     * Default implementations return null. The framework ensures a non-null registry is available
-     * when actors are spawned through SpringActorSystem.
-     *
-     * <p><b>Internal use only:</b> This method is used internally by the framework to enable
-     * {@link FrameworkCommands.SpawnChild} functionality. Application code should not need to
-     * access the registry directly.
-     *
-     * @return the actor type registry, or null if not yet injected
-     */
-    default ActorTypeRegistry registry() {
-        return null;
+    public ActorTypeRegistry registry() {
+        return registry;
+    }
+
+    public void setRegistry(ActorTypeRegistry registry) {
+        this.registry = registry;
     }
 }

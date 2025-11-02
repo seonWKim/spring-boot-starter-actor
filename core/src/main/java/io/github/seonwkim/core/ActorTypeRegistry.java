@@ -73,6 +73,10 @@ public class ActorTypeRegistry {
             throw new IllegalArgumentException("No factory registered for class: " + actorClass.getName());
         }
 
+        if (actorContext.registry() == null) {
+            actorContext.setRegistry(this);
+        }
+
         return factory.apply(actorContext);
     }
 }

@@ -18,7 +18,7 @@ public class ClusterShardingMetricsActor
         implements SpringActorWithContext<
                 CurrentShardRegionState, ClusterShardingMetricsActor.ClusterShardingMetricsExporterContext> {
 
-    public static class ClusterShardingMetricsExporterContext implements SpringActorContext {
+    public static class ClusterShardingMetricsExporterContext extends SpringActorContext {
 
         private final String actorId;
         private final MeterRegistry meterRegistry;
