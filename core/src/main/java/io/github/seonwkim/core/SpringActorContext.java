@@ -50,41 +50,6 @@ public interface SpringActorContext {
     }
 
     /**
-     * Spawns a Spring-managed child actor with default supervision strategy.
-     *
-     * <p>This is a convenience method that calls {@link #spawnChild(ActorContext, Class, String, SupervisorStrategy)}
-     * with a default restart supervision strategy.
-     *
-     * <p>Example usage:
-     * <pre>
-     * {@code
-     * @Override
-     * public Behavior<Command> create(SpringActorContext actorContext) {
-     *     return Behaviors.setup(ctx -> {
-     *         ActorRef<ChildActor.Command> child = actorContext.spawnChild(
-     *             ctx,
-     *             ChildActor.class,
-     *             "child-1"
-     *         );
-     *         return parentBehavior(child);
-     *     });
-     * }
-     * }
-     * </pre>
-     *
-     * @param pekkoContext the Pekko actor context (from Behaviors.setup)
-     * @param actorClass   the class of the child actor to spawn (must be a Spring bean)
-     * @param childId      the unique identifier for the child actor
-     * @param <A>          the type of the actor being spawned
-     * @param <C>          the type of commands the actor handles
-     * @return an ActorRef to the spawned child actor
-     */
-    default <A extends SpringActorWithContext<A, C, ?>, C> ActorRef<C> spawnChild(
-            ActorContext<?> pekkoContext, Class<A> actorClass, String childId) {
-        return spawnChild(pekkoContext, actorClass, childId, SupervisorStrategy.restart());
-    }
-
-    /**
      * Spawns a Spring-managed child actor with a custom supervision strategy.
      *
      * <p>This method creates a child actor with full Spring dependency injection support.
