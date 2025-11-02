@@ -666,7 +666,7 @@ class HierarchicalSupervisionTest {
     /**
      * Tests for top-level actor supervision strategies.
      * These tests verify that actors spawned directly from SpringActorSystem
-     * can be supervised using the withSupervisorStrategy() API.
+     * can be supervised using the withSupervisonStrategy() API.
      */
     @Nested
     @SpringBootTest(classes = TestApp.class)
@@ -682,7 +682,7 @@ class HierarchicalSupervisionTest {
             SpringActorRef<ChildWorkerActor.Command> worker = actorSystem
                     .actor(ChildWorkerActor.class)
                     .withId("top-level-restart-worker")
-                    .withSupervisorStrategy(SupervisorStrategy.restart())
+                    .withSupervisonStrategy(SupervisorStrategy.restart())
                     .spawnAndWait();
 
             // When: Actor processes a task successfully
@@ -724,7 +724,7 @@ class HierarchicalSupervisionTest {
             SpringActorRef<ChildWorkerActor.Command> worker = actorSystem
                     .actor(ChildWorkerActor.class)
                     .withId("top-level-state-worker")
-                    .withSupervisorStrategy(SupervisorStrategy.restart())
+                    .withSupervisonStrategy(SupervisorStrategy.restart())
                     .spawnAndWait();
 
             // When: Actor processes multiple tasks
@@ -776,7 +776,7 @@ class HierarchicalSupervisionTest {
             SpringActorRef<ChildWorkerActor.Command> worker = actorSystem
                     .actor(ChildWorkerActor.class)
                     .withId("top-level-limited-worker")
-                    .withSupervisorStrategy(SupervisorStrategy.restart().withLimit(2, Duration.ofSeconds(10)))
+                    .withSupervisonStrategy(SupervisorStrategy.restart().withLimit(2, Duration.ofSeconds(10)))
                     .spawnAndWait();
 
             // When: Actor fails once (first restart)
@@ -838,7 +838,7 @@ class HierarchicalSupervisionTest {
             SpringActorRef<ChildWorkerActor.Command> worker = actorSystem
                     .actor(ChildWorkerActor.class)
                     .withId("top-level-stop-worker")
-                    .withSupervisorStrategy(SupervisorStrategy.stop())
+                    .withSupervisonStrategy(SupervisorStrategy.stop())
                     .spawnAndWait();
 
             // When: Actor processes a task successfully
@@ -875,7 +875,7 @@ class HierarchicalSupervisionTest {
             SpringActorRef<ChildWorkerActor.Command> worker = actorSystem
                     .actor(ChildWorkerActor.class)
                     .withId("top-level-resume-worker")
-                    .withSupervisorStrategy(SupervisorStrategy.resume())
+                    .withSupervisonStrategy(SupervisorStrategy.resume())
                     .spawnAndWait();
 
             // When: Actor processes tasks before failure
@@ -944,7 +944,7 @@ class HierarchicalSupervisionTest {
             SpringActorRef<ChildWorkerActor.Command> worker = actorSystem
                     .actor(ChildWorkerActor.class)
                     .withId("top-level-no-supervision-worker")
-                    // No withSupervisorStrategy() call - defaults to null
+                    // No withSupervisonStrategy() call - defaults to null
                     .spawnAndWait();
 
             // When: Actor processes a task successfully

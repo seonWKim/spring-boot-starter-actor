@@ -425,7 +425,7 @@ public class MyService {
         // Spawn actor with restart strategy
         return actorSystem.actor(WorkerActor.class)
             .withId("worker-1")
-            .withSupervisorStrategy(SupervisorStrategy.restart().withLimit(3, Duration.ofMinutes(1)))
+            .withSupervisonStrategy(SupervisorStrategy.restart().withLimit(3, Duration.ofMinutes(1)))
             .start();
     }
 }

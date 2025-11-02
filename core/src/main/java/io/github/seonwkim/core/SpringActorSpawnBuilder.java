@@ -133,7 +133,7 @@ public class SpringActorSpawnBuilder<A extends SpringActorWithContext<C, ?>, C> 
      * @param supervisorStrategy The supervisor strategy (e.g., SupervisorStrategy.restart())
      * @return This builder
      */
-    public SpringActorSpawnBuilder<A, C> withSupervisorStrategy(SupervisorStrategy supervisorStrategy) {
+    public SpringActorSpawnBuilder<A, C> withSupervisonStrategy(SupervisorStrategy supervisorStrategy) {
         this.supervisorStrategy = supervisorStrategy;
         return this;
     }
