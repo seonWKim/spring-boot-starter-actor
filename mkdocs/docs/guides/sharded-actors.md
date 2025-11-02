@@ -62,9 +62,11 @@ import io.github.seonwkim.core.serialization.JsonSerializable;
 import io.github.seonwkim.core.shard.DefaultShardingMessageExtractor;
 import io.github.seonwkim.core.shard.ShardEnvelope;
 import io.github.seonwkim.core.shard.ShardedActor;
+import io.github.seonwkim.core.shard.ShardedActorBehavior;
 
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
+import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.apache.pekko.cluster.sharding.typed.ShardingMessageExtractor;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityContext;
@@ -100,32 +102,48 @@ public class HelloActor implements ShardedActor<HelloActor.Command> {
     }
 
     @Override
-    public Behavior<Command> create(EntityContext<Command> ctx) {
-        return Behaviors.setup(
-                context ->
-                        Behaviors.receive(Command.class)
-                                 .onMessage(
-                                         SayHello.class,
-                                         msg -> {
-                                             // Get information about the current node and entity
-                                             final String nodeAddress =
-                                                     context.getSystem().address().toString();
-                                             final String entityId = ctx.getEntityId();
+    public ShardedActorBehavior<Command> create(EntityContext<Command> ctx) {
+        final String entityId = ctx.getEntityId();
 
-                                             // Create a response message with node and entity information
-                                             final String message =
-                                                     "Received from entity [" + entityId + "] on node ["
-                                                     + nodeAddress + "]";
+        return ShardedActorBehavior.builder(Command.class, ctx)
+                .onCreate(actorCtx -> new HelloActorBehavior(actorCtx, entityId))
+                .onMessage(SayHello.class, HelloActorBehavior::onSayHello)
+                .build();
+    }
 
-                                             // Send the response back to the caller
-                                             msg.replyTo.tell(message);
+    /**
+     * Behavior handler for hello actor. Holds the entity ID and handles messages.
+     */
+    private static class HelloActorBehavior {
+        private final ActorContext<Command> ctx;
+        private final String entityId;
 
-                                             // Log the message for debugging
-                                             context.getLog().info(message);
+        HelloActorBehavior(ActorContext<Command> ctx, String entityId) {
+            this.ctx = ctx;
+            this.entityId = entityId;
+        }
 
-                                             return Behaviors.same();
-                                         })
-                                 .build());
+        /**
+         * Handles SayHello commands by responding with node and entity information.
+         *
+         * @param msg The SayHello message
+         * @return The next behavior (same in this case)
+         */
+        private Behavior<Command> onSayHello(SayHello msg) {
+            // Get information about the current node and entity
+            final String nodeAddress = ctx.getSystem().address().toString();
+
+            // Create a response message with node and entity information
+            final String message = "Received from entity [" + entityId + "] on node [" + nodeAddress + "]";
+
+            // Send the response back to the caller
+            msg.replyTo.tell(message);
+
+            // Log the message for debugging
+            ctx.getLog().info(message);
+
+            return Behaviors.same();
+        }
     }
 
     @Override
@@ -137,13 +155,14 @@ public class HelloActor implements ShardedActor<HelloActor.Command> {
 
 Key differences from a regular actor:
 
-1. Implement `ShardedActor<T>` instead of `SpringActor`
-2. Commands must implement `JsonSerializable`(or `CborSerializable`) for serialization across the network
+1. Implement `ShardedActor<T>` instead of `SpringActor<T>`
+2. Commands must implement `JsonSerializable` (or `CborSerializable`) for serialization across the network
 3. Define an `EntityTypeKey` for the actor type
 4. Override `typeKey()` to return the EntityTypeKey
-5. Override `create(EntityContext<T>)` instead of `create(String)`
-6. Override `extractor()` to provide a sharding message extractor
-7. Use Jackson annotations (`@JsonCreator`, `@JsonProperty`) for message serialization
+5. Override `create(EntityContext<T>)` to return `ShardedActorBehavior<T>` instead of `SpringActorBehavior<T>`
+6. Use `ShardedActorBehavior.builder()` instead of `SpringActorBehavior.builder()`
+7. Override `extractor()` to provide a sharding message extractor
+8. Use Jackson annotations (`@JsonCreator`, `@JsonProperty`) for message serialization
 
 ## Interacting with Sharded Actors
 

@@ -57,27 +57,42 @@ public class HelloActor implements ShardedActor<HelloActor.Command> {
     }
 
     @Override
-    public Behavior<Command> create(EntityContext<Command> ctx) {
-        return Behaviors.setup(
-                context ->
-                        Behaviors.receive(Command.class)
-                                .onMessage(
-                                        SayHello.class,
-                                        msg -> {
-                                            // Get information about the current node and entity
-                                            final String nodeAddress = context.getSystem().address().toString();
-                                            final String entityId = ctx.getEntityId();
+    public ShardedActorBehavior<Command> create(EntityContext<Command> ctx) {
+        final String entityId = ctx.getEntityId();
 
-                                            // Create a response message with node and entity information
-                                            final String message =
-                                                    "Received from entity [" + entityId + "] on node [" + nodeAddress + "]";
+        return ShardedActorBehavior.builder(Command.class, ctx)
+                .onCreate(actorCtx -> new HelloActorBehavior(actorCtx, entityId))
+                .onMessage(SayHello.class, HelloActorBehavior::onSayHello)
+                .build();
+    }
 
-                                            // Send the response back to the caller
-                                            msg.replyTo.tell(message);
+    /**
+     * Behavior handler for hello actor. Holds the entity ID and handles messages.
+     */
+    private static class HelloActorBehavior {
+        private final ActorContext<Command> ctx;
+        private final String entityId;
 
-                                            return Behaviors.same();
-                                        })
-                                .build());
+        HelloActorBehavior(ActorContext<Command> ctx, String entityId) {
+            this.ctx = ctx;
+            this.entityId = entityId;
+        }
+
+        /**
+         * Handles SayHello commands by responding with node and entity information.
+         */
+        private Behavior<Command> onSayHello(SayHello msg) {
+            // Get information about the current node and entity
+            final String nodeAddress = ctx.getSystem().address().toString();
+
+            // Create a response message with node and entity information
+            final String message = "Received from entity [" + entityId + "] on node [" + nodeAddress + "]";
+
+            // Send the response back to the caller
+            msg.replyTo.tell(message);
+
+            return Behaviors.same();
+        }
     }
 
     @Override
