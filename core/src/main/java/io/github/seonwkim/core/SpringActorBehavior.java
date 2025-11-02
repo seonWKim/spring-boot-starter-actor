@@ -195,22 +195,24 @@ public final class SpringActorBehavior<C> {
 
                 BehaviorBuilder<C> builder = Behaviors.receive(commandClass);
 
-                // Add all message handlers
+                // Add all message handlers - capture the returned builder each time
                 for (MessageHandler<C, S, ?> handler : messageHandlers) {
-                    handler.addTo(builder, state);
+                    builder = handler.addTo(builder, state);
                 }
 
-                // Add all signal handlers
+                // Add all signal handlers - capture the returned builder each time
                 for (SignalHandler<C, S, ?> handler : signalHandlers) {
-                    handler.addTo(builder, state);
+                    builder = handler.addTo(builder, state);
                 }
 
                 return builder.build();
             });
 
             if (enableFrameworkCommands) {
-                // TODO: Implement framework command handling
                 // Wrap userBehavior to intercept FrameworkCommand messages
+                Behavior<C> wrappedBehavior = Behaviors.setup(ctx -> Behaviors.intercept(
+                                () -> new FrameworkCommandInterceptor<>(ctx, actorContext), userBehavior));
+                return new SpringActorBehavior<>(wrappedBehavior);
             }
 
             return new SpringActorBehavior<>(userBehavior);
@@ -228,8 +230,8 @@ public final class SpringActorBehavior<C> {
                 this.handler = handler;
             }
 
-            void addTo(BehaviorBuilder<C> builder, S state) {
-                builder.onMessage(type, msg -> handler.apply(state, msg));
+            BehaviorBuilder<C> addTo(BehaviorBuilder<C> builder, S state) {
+                return builder.onMessage(type, msg -> handler.apply(state, msg));
             }
         }
 
@@ -245,8 +247,8 @@ public final class SpringActorBehavior<C> {
                 this.handler = handler;
             }
 
-            void addTo(BehaviorBuilder<C> builder, S state) {
-                builder.onSignal(type, sig -> handler.apply(state, sig));
+            BehaviorBuilder<C> addTo(BehaviorBuilder<C> builder, S state) {
+                return builder.onSignal(type, sig -> handler.apply(state, sig));
             }
         }
     }

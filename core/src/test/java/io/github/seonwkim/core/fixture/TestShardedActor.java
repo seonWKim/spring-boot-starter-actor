@@ -62,7 +62,7 @@ public class TestShardedActor implements ShardedActor<TestShardedActor.Command> 
                 .onCreate(context -> new ActorState(context, ctx.getEntityId()))
                 .onMessage(Ping.class, (state, msg) -> {
                     state.counter.incrementAndGet();
-                    state.context.getLog().info("entityId: " + state.entityId + " received message: " + msg.message);
+                    state.context.getLog().info("entityId: {} received message: {}", state.entityId, msg.message);
                     return Behaviors.same();
                 })
                 .onMessage(GetState.class, (state, cmd) -> {
@@ -77,7 +77,7 @@ public class TestShardedActor implements ShardedActor<TestShardedActor.Command> 
         private final String entityId;
         private final AtomicInteger counter;
 
-        ActorState(org.apache.pekko.actor.typed.javadsl.ActorContext<Command> context, String entityId) {
+        ActorState(ActorContext<Command> context, String entityId) {
             this.context = context;
             this.entityId = entityId;
             this.counter = new AtomicInteger();
