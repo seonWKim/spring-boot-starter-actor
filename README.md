@@ -433,7 +433,7 @@ public class MyService {
 
 #### Spawning Child Actors with Supervision
 
-Within an actor, spawn supervised child actors:
+Within an actor, use the fluent builder API to spawn supervised child actors:
 
 ```java
 @Component
@@ -446,18 +446,56 @@ public class SupervisorActor implements SpringActor<SupervisorActor.Command> {
         return SpringActorBehavior.builder(Command.class, actorContext)
             .withFrameworkCommands() // Enable framework command handling for child management
             .onMessage(DelegateWork.class, (ctx, msg) -> {
-                // Use SpringActorRef to spawn/manage children
+                // Use SpringActorRef to spawn/manage children with fluent API
                 SpringActorRef<Command> self = new SpringActorRef<>(ctx.getSystem().scheduler(), ctx.getSelf());
 
-                // Spawn child with restart strategy
-                SupervisorStrategy strategy = SupervisorStrategy.restart();
-                self.spawnChild(WorkerActor.class, "worker-1", strategy);
+                // Fluent API for spawning children
+                self.child(WorkerActor.class)
+                    .withId("worker-1")
+                    .withSupervisionStrategy(SupervisorStrategy.restart())
+                    .withTimeout(Duration.ofSeconds(5))
+                    .spawn();  // Returns CompletionStage<SpringActorRef>
+
+                // Or use spawnAndWait() for synchronous spawning
+                SpringActorRef<WorkerActor.Command> worker = self.child(WorkerActor.class)
+                    .withId("worker-2")
+                    .withSupervisionStrategy(SupervisorStrategy.restart().withLimit(3, Duration.ofMinutes(1)))
+                    .spawnAndWait();
 
                 return Behaviors.same();
             })
             .build();
     }
 }
+```
+
+**Child Actor Builder Operations:**
+
+```java
+// Spawn a new child
+CompletionStage<SpringActorRef<Command>> child = parentRef
+    .child(ChildActor.class)
+    .withId("child-1")
+    .withSupervisionStrategy(SupervisorStrategy.restart())
+    .spawn();
+
+// Get existing child (returns null if not found)
+CompletionStage<SpringActorRef<Command>> existing = parentRef
+    .child(ChildActor.class)
+    .withId("child-1")
+    .get();
+
+// Check if child exists
+CompletionStage<Boolean> exists = parentRef
+    .child(ChildActor.class)
+    .withId("child-1")
+    .exists();
+
+// Get existing or spawn new (recommended)
+CompletionStage<SpringActorRef<Command>> childRef = parentRef
+    .child(ChildActor.class)
+    .withId("child-1")
+    .getOrSpawn();
 ```
 
 #### Interactive Demo
