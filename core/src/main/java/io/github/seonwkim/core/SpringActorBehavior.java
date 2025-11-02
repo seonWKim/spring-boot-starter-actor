@@ -24,7 +24,6 @@ import org.apache.pekko.actor.typed.javadsl.Behaviors;
  * @Override
  * public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
  *     return SpringActorBehavior.builder(Command.class, actorContext)
- *         .withFrameworkCommands()  // Opt-in to framework command handling
  *         .onMessage(DoWork.class, (ctx, msg) -> {
  *             ctx.getLog().info("Processing work");
  *             return Behaviors.same();
@@ -33,14 +32,16 @@ import org.apache.pekko.actor.typed.javadsl.Behaviors;
  * }
  * </pre>
  *
- * <p><b>Framework Commands:</b> When framework commands are enabled via
- * {@link Builder#withFrameworkCommands()}, the behavior will automatically handle:
+ * <p><b>Framework Commands:</b> Framework command handling is automatically enabled when your
+ * Command interface extends {@link FrameworkCommand}. When enabled, the behavior will automatically handle:
  * <ul>
  *   <li>{@link FrameworkCommands.SpawnChild} - Spawn child actors with Spring DI</li>
+ *   <li>{@link FrameworkCommands.GetChild} - Get reference to existing child actors</li>
+ *   <li>{@link FrameworkCommands.ExistsChild} - Check if child actor exists</li>
  * </ul>
  *
- * <p><b>Zero Overhead:</b> If framework commands are not enabled, there is no performance
- * overhead - the user's behavior is used directly without any wrapping.
+ * <p><b>Zero Overhead:</b> If your Command interface does not extend {@link FrameworkCommand},
+ * there is no performance overhead - the user's behavior is used directly without any wrapping.
  *
  * @param <C> The command type this behavior handles
  * @see FrameworkCommand
@@ -101,16 +102,26 @@ public final class SpringActorBehavior<C> {
             this.commandClass = commandClass;
             this.actorContext = actorContext;
             this.onCreateCallback = onCreateCallback;
+
+            // Auto-detect: if Command extends FrameworkCommand, automatically enable framework commands
+            this.enableFrameworkCommands = FrameworkCommand.class.isAssignableFrom(commandClass);
         }
 
         /**
          * Enables framework command handling.
          *
-         * <p>When enabled, the behavior will automatically handle framework commands such as
+         * <p><b>Note:</b> Framework commands are now automatically enabled when your Command interface
+         * extends {@link FrameworkCommand}. This method is kept for backward compatibility but is
+         * no longer required.
+         *
+         * <p>Framework commands allow automatic handling of commands such as
          * {@link FrameworkCommands.SpawnChild} without requiring explicit message handlers.
          *
          * @return this builder for chaining
+         * @deprecated Framework commands are automatically enabled when Command extends {@link FrameworkCommand}.
+         *             This method is no longer needed and will be removed in a future version.
          */
+        @Deprecated
         public Builder<C, S> withFrameworkCommands() {
             this.enableFrameworkCommands = true;
             return this;

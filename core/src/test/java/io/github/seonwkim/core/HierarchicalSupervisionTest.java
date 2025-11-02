@@ -165,7 +165,7 @@ class HierarchicalSupervisionTest {
      *   <li>Using {@link SpringActorRef#getChild(Class, String)} to check for existing children</li>
      *   <li>Using {@link SpringActorRef#spawnChild(Class, String, SupervisorStrategy)} for on-demand spawning</li>
      *   <li>Async message handling with {@code ctx.pipeToSelf()}</li>
-     *   <li>Framework command handling with {@code .withFrameworkCommands()}</li>
+     *   <li>Automatic framework command handling when Command extends {@link FrameworkCommand}</li>
      * </ul>
      */
     @Component
@@ -195,7 +195,6 @@ class HierarchicalSupervisionTest {
         @Override
         public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
             return SpringActorBehavior.builder(Command.class, actorContext)
-                    .withFrameworkCommands() // Enable framework command handling
                     .onCreate(ctx -> new ParentSupervisorBehavior(ctx, actorContext))
                     .onMessage(DelegateWork.class, ParentSupervisorBehavior::onDelegateWork)
                     .onMessage(ChildReady.class, ParentSupervisorBehavior::onChildReady)

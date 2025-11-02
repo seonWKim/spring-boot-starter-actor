@@ -333,7 +333,6 @@ public class ParentActor implements SpringActor<ParentActor.Command> {
     @Override
     public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
         return SpringActorBehavior.builder(Command.class, actorContext)
-            .withFrameworkCommands()  // Enable framework command handling
             .onCreate(ctx -> {
                 // Get reference to self
                 SpringActorRef<Command> self = new SpringActorRef<>(
@@ -455,7 +454,7 @@ self.child(LoggerActor.class)
 2. **Lazy Initialization**: Use lazy initialization to avoid blocking application startup. For simple cases, use `getOrSpawn` directly; for high-frequency access, add caching with `AtomicReference`.
 3. **Actor Hierarchy**: Organize actors in a hierarchy to manage their lifecycle and supervision.
 4. **Choose Appropriate Supervision**: Select supervision strategies based on the child actor's role and failure characteristics.
-5. **Use Framework Commands**: Always include `.withFrameworkCommands()` when building parent actors that need to spawn children.
+5. **Use Framework Commands**: Make your Command interface extend `FrameworkCommand` when building parent actors that need to spawn children. Framework command handling is automatically enabled.
 6. **Message Immutability**: Ensure that messages sent to actors are immutable to prevent concurrency issues.
 7. **Timeout Handling**: Always specify reasonable timeouts for ask operations and handle timeout exceptions using `askBuilder().onTimeout()`.
 8. **Non-Blocking Operations**: Avoid blocking operations inside actors, as they can lead to thread starvation.

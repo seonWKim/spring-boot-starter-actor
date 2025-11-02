@@ -444,7 +444,6 @@ public class SupervisorActor implements SpringActor<SupervisorActor.Command> {
     @Override
     public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
         return SpringActorBehavior.builder(Command.class, actorContext)
-            .withFrameworkCommands() // Enable framework command handling for child management
             .onMessage(DelegateWork.class, (ctx, msg) -> {
                 // Use SpringActorRef to spawn/manage children with fluent API
                 SpringActorRef<Command> self = new SpringActorRef<>(ctx.getSystem().scheduler(), ctx.getSelf());

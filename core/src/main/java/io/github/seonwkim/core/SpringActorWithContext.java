@@ -12,20 +12,31 @@ package io.github.seonwkim.core;
  * <pre>
  * &#64;Component
  * public class UserActor implements SpringActorWithContext&lt;Command, UserActorContext&gt; {
+ *
+ *     // Framework commands are automatically enabled when Command extends FrameworkCommand
+ *     public interface Command extends FrameworkCommand {}
+ *
+ *     public static class MyCommand implements Command {}
+ *
  *     &#64;Override
  *     public SpringActorBehavior&lt;Command&gt; create(UserActorContext context) {
  *         // Type-safe access to custom context - no casting needed!
- *         return SpringActorBehavior.builder(context)
- *             .withFrameworkCommands()  // Optional: enable framework commands
- *             .setup(ctx -&gt; SpringActorBehavior.receive(Command.class)
- *                 .onMessage(MyCommand.class, this::handleCommand)
- *                 .build())
+ *         return SpringActorBehavior.builder(Command.class, context)
+ *             .onMessage(MyCommand.class, (ctx, msg) -&gt; {
+ *                 ctx.getLog().info("Handling command");
+ *                 return Behaviors.same();
+ *             })
  *             .build();
  *     }
  *
  *     public static class UserActorContext implements SpringActorContext {
- *         private final WebSocketSession session;
+ *         private final String userId;
  *         // ... custom fields and methods
+ *
+ *         &#64;Override
+ *         public String actorId() {
+ *             return userId;
+ *         }
  *     }
  * }
  * </pre>

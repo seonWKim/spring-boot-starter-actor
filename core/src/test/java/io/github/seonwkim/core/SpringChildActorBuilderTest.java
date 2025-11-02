@@ -90,7 +90,6 @@ class SpringChildActorBuilderTest {
         @Override
         public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
             return SpringActorBehavior.builder(Command.class, actorContext)
-                    .withFrameworkCommands() // Enable framework command handling
                     .onCreate(ctx -> new ParentBehavior(ctx, actorContext))
                     .onMessage(DoNothing.class, ParentBehavior::onDoNothing)
                     .build();

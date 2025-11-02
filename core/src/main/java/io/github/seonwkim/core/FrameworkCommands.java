@@ -4,19 +4,21 @@ import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.SupervisorStrategy;
 
 /**
- * Framework-provided commands that actors can use when framework command handling
- * is enabled via {@link SpringActorBehavior.Builder#withFrameworkCommands()}.
+ * Framework-provided commands that actors can use when their Command interface
+ * extends {@link FrameworkCommand}.
  *
  * <p>These commands are automatically handled by {@link SpringActorBehavior} when
- * framework command handling is enabled via the builder.
+ * the actor's Command interface extends {@link FrameworkCommand}. No explicit
+ * configuration is required.
  *
- * <p><b>No marker interface required:</b> Simply enable framework commands in the builder:
+ * <p><b>Automatic enablement:</b> Simply extend FrameworkCommand in your Command interface:
  * <pre>
  * {@code
- * SpringActorBehavior.builder(actorContext)
- *     .withFrameworkCommands()  // Enables framework command handling
- *     .setup(ctx -> ...)
- *     .build();
+ * public interface Command extends FrameworkCommand {}
+ *
+ * SpringActorBehavior.builder(Command.class, actorContext)
+ *     .onMessage(MyMessage.class, this::handleMessage)
+ *     .build();  // Framework commands are automatically enabled
  * }
  * </pre>
  *

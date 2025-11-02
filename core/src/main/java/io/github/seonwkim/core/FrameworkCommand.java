@@ -17,6 +17,7 @@ package io.github.seonwkim.core;
  * public class ParentActor implements SpringActor<ParentActor, ParentActor.Command> {
  *
  *     // Opt-in to framework commands by extending FrameworkCommand
+ *     // Framework command handling is automatically enabled when Command extends FrameworkCommand
  *     public interface Command extends FrameworkCommand {}
  *
  *     public static class DoWork implements Command {
@@ -25,8 +26,7 @@ package io.github.seonwkim.core;
  *
  *     @Override
  *     public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
- *         return SpringActorBehavior.builder(actorContext)
- *             .withFrameworkCommands()  // Enable framework command handling
+ *         return SpringActorBehavior.builder(Command.class, actorContext)
  *             .onMessage(DoWork.class, this::handleDoWork)
  *             .build();
  *     }
