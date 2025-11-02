@@ -242,7 +242,7 @@ For distributed systems, use sharded actors. Entities are automatically created 
 **Define a Sharded Actor:**
 ```java
 @Component
-public class UserSessionActor implements ShardedActor<UserSessionActor.Command> {
+public class UserSessionActor implements SpringShardedActor<UserSessionActor.Command> {
 
     public static final EntityTypeKey<Command> TYPE_KEY =
         EntityTypeKey.create(Command.class, "UserSession");
@@ -258,8 +258,8 @@ public class UserSessionActor implements ShardedActor<UserSessionActor.Command> 
     }
 
     @Override
-    public ShardedActorBehavior<Command> create(EntityContext<Command> ctx) {
-        return ShardedActorBehavior.builder(Command.class, ctx)
+    public SpringShardedActorBehavior<Command> create(EntityContext<Command> ctx) {
+        return SpringShardedActorBehavior.builder(Command.class, ctx)
             .onCreate(entityCtx -> new UserSessionBehavior(ctx.getEntityId()))
             .onMessage(UpdateActivity.class, UserSessionBehavior::onUpdateActivity)
             .onMessage(GetActivity.class, UserSessionBehavior::onGetActivity)

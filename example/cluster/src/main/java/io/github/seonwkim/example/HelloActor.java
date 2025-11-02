@@ -3,8 +3,8 @@ package io.github.seonwkim.example;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.github.seonwkim.core.serialization.JsonSerializable;
-import io.github.seonwkim.core.shard.ShardedActor;
-import io.github.seonwkim.core.shard.ShardedActorBehavior;
+import io.github.seonwkim.core.shard.SpringShardedActor;
+import io.github.seonwkim.core.shard.SpringShardedActorBehavior;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
@@ -18,7 +18,7 @@ import org.springframework.stereotype.Component;
  * identified by an entity ID. The actor responds with information about the node it's running on.
  */
 @Component
-public class HelloActor implements ShardedActor<HelloActor.Command> {
+public class HelloActor implements SpringShardedActor<HelloActor.Command> {
 
     public static final EntityTypeKey<Command> TYPE_KEY = EntityTypeKey.create(Command.class, "HelloActor");
 
@@ -49,10 +49,10 @@ public class HelloActor implements ShardedActor<HelloActor.Command> {
      * @return The behavior for the actor
      */
     @Override
-    public ShardedActorBehavior<Command> create(EntityContext<Command> ctx) {
+    public SpringShardedActorBehavior<Command> create(EntityContext<Command> ctx) {
         final String entityId = ctx.getEntityId();
 
-        return ShardedActorBehavior.builder(Command.class, ctx)
+        return SpringShardedActorBehavior.builder(Command.class, ctx)
                 .onCreate(actorCtx -> new HelloActorBehavior(actorCtx, entityId))
                 .onMessage(SayHello.class, HelloActorBehavior::onSayHello)
                 .build();

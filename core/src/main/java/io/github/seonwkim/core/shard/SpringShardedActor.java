@@ -16,16 +16,16 @@ import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
  * <p>Example usage:
  * <pre>
  * &#64;Component
- * public class MyShardedActor implements ShardedActor&lt;Command&gt; {
+ * public class MyShardedActor implements SpringShardedActor&lt;Command&gt; {
  *     &#64;Override
  *     public EntityTypeKey&lt;Command&gt; typeKey() {
  *         return EntityTypeKey.create(Command.class, "MyActor");
  *     }
  *
  *     &#64;Override
- *     public ShardedActorBehavior&lt;Command&gt; create(EntityContext&lt;Command&gt; ctx) {
- *         return ShardedActorBehavior.builder(ctx)
- *             .setup(entityCtx -&gt; ShardedActorBehavior.receive(Command.class)
+ *     public SpringShardedActorBehavior&lt;Command&gt; create(EntityContext&lt;Command&gt; ctx) {
+ *         return SpringShardedActorBehavior.builder(ctx)
+ *             .setup(entityCtx -&gt; SpringShardedActorBehavior.receive(Command.class)
  *                 .onMessage(MyCommand.class, this::handleCommand)
  *                 .build())
  *             .build();
@@ -34,9 +34,9 @@ import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
  * </pre>
  *
  * @param <T> The type of messages that the actor can handle
- * @see ShardedActorBehavior
+ * @see SpringShardedActorBehavior
  */
-public interface ShardedActor<T> {
+public interface SpringShardedActor<T> {
     /**
      * Returns the entity type key for this actor type. The entity type key is used to identify the
      * actor type in the cluster.
@@ -50,9 +50,9 @@ public interface ShardedActor<T> {
      * instance of the actor is created.
      *
      * @param ctx The entity context for the actor
-     * @return A ShardedActorBehavior for the actor
+     * @return A SpringShardedActorBehavior for the actor
      */
-    ShardedActorBehavior<T> create(EntityContext<T> ctx);
+    SpringShardedActorBehavior<T> create(EntityContext<T> ctx);
 
     /**
      * Returns a message extractor for this actor type. The message extractor is used to extract

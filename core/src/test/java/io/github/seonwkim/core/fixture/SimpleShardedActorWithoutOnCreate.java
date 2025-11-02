@@ -5,8 +5,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.github.seonwkim.core.serialization.JsonSerializable;
 import io.github.seonwkim.core.shard.DefaultShardingMessageExtractor;
 import io.github.seonwkim.core.shard.ShardEnvelope;
-import io.github.seonwkim.core.shard.ShardedActor;
-import io.github.seonwkim.core.shard.ShardedActorBehavior;
+import io.github.seonwkim.core.shard.SpringShardedActor;
+import io.github.seonwkim.core.shard.SpringShardedActorBehavior;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.apache.pekko.cluster.sharding.typed.ShardingMessageExtractor;
@@ -17,7 +17,7 @@ import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
  * Test sharded actor that demonstrates building a sharded actor WITHOUT using onCreate().
  * This uses the default state type (ActorContext) and handles messages directly with closures.
  */
-public class SimpleShardedActorWithoutOnCreate implements ShardedActor<SimpleShardedActorWithoutOnCreate.Command> {
+public class SimpleShardedActorWithoutOnCreate implements SpringShardedActor<SimpleShardedActorWithoutOnCreate.Command> {
 
     public static final EntityTypeKey<Command> TYPE_KEY =
             EntityTypeKey.create(Command.class, "SimpleShardedActorWithoutOnCreate");
@@ -50,10 +50,10 @@ public class SimpleShardedActorWithoutOnCreate implements ShardedActor<SimpleSha
     }
 
     @Override
-    public ShardedActorBehavior<Command> create(EntityContext<Command> ctx) {
+    public SpringShardedActorBehavior<Command> create(EntityContext<Command> ctx) {
         final String entityId = ctx.getEntityId();
 
-        return ShardedActorBehavior.builder(Command.class, ctx)
+        return SpringShardedActorBehavior.builder(Command.class, ctx)
                 // No onCreate() - message handlers work directly with ActorContext
                 .onMessage(Echo.class, (actorCtx, msg) -> {
                     actorCtx.getLog().info("Entity {} received echo: {}", entityId, msg.message);

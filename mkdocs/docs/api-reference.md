@@ -22,12 +22,12 @@ public interface SpringActor<C> {
 }
 ```
 
-### ShardedActor
+### SpringShardedActor
 
-The `ShardedActor` interface provides support for sharding actors across a cluster.
+The `SpringShardedActor` interface provides support for sharding actors across a cluster.
 
 ```java
-public interface ShardedActor<T> {
+public interface SpringShardedActor<T> {
     /**
      * Returns the entity type key for this actor type. The entity type key is used to identify the
      * actor type in the cluster.
@@ -86,7 +86,7 @@ public class SpringActorSystem {
      * @param actorClass The class of the sharded actor
      * @return A builder for configuring and getting the sharded actor reference
      */
-    public <T> SpringShardedActorBuilder<T> sharded(Class<? extends ShardedActor<T>> actorClass);
+    public <T> SpringShardedActorBuilder<T> sharded(Class<? extends SpringShardedActor<T>> actorClass);
 }
 ```
 

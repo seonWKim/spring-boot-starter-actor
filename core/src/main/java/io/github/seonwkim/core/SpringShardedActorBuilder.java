@@ -1,6 +1,6 @@
 package io.github.seonwkim.core;
 
-import io.github.seonwkim.core.shard.ShardedActor;
+import io.github.seonwkim.core.shard.SpringShardedActor;
 import io.github.seonwkim.core.shard.ShardedActorRegistry;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityRef;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
@@ -31,7 +31,7 @@ public class SpringShardedActorBuilder<T> {
      * @param actorSystem The Spring actor system
      * @param actorClass The class of the sharded actor
      */
-    public SpringShardedActorBuilder(SpringActorSystem actorSystem, Class<? extends ShardedActor<T>> actorClass) {
+    public SpringShardedActorBuilder(SpringActorSystem actorSystem, Class<? extends SpringShardedActor<T>> actorClass) {
         this.actorSystem = actorSystem;
         this.typeKey = resolveTypeKey(actorClass);
     }
@@ -86,7 +86,7 @@ public class SpringShardedActorBuilder<T> {
      * @return The resolved EntityTypeKey
      * @throws IllegalStateException If the registry is not available or the actor is not registered
      */
-    private EntityTypeKey<T> resolveTypeKey(Class<? extends ShardedActor<T>> actorClass) {
+    private EntityTypeKey<T> resolveTypeKey(Class<? extends SpringShardedActor<T>> actorClass) {
         ShardedActorRegistry registry = actorSystem.getShardedActorRegistry();
 
         if (registry == null) {
@@ -95,10 +95,10 @@ public class SpringShardedActorBuilder<T> {
                             + "Ensure you're using SpringActorSystemBuilder or Spring Boot auto-configuration with @EnableActorSupport.");
         }
 
-        ShardedActor<T> actor = registry.getByClass(actorClass);
+        SpringShardedActor<T> actor = registry.getByClass(actorClass);
         if (actor == null) {
-            throw new IllegalStateException("ShardedActor " + actorClass.getName() + " not found in registry. "
-                    + "Ensure the actor is annotated with @Component and implements ShardedActor.");
+            throw new IllegalStateException("SpringShardedActor " + actorClass.getName() + " not found in registry. "
+                    + "Ensure the actor is annotated with @Component and implements SpringShardedActor.");
         }
 
         return actor.typeKey();

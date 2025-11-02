@@ -3,8 +3,8 @@ package io.github.seonwkim.example;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.github.seonwkim.core.serialization.JsonSerializable;
-import io.github.seonwkim.core.shard.ShardedActor;
-import io.github.seonwkim.core.shard.ShardedActorBehavior;
+import io.github.seonwkim.core.shard.SpringShardedActor;
+import io.github.seonwkim.core.shard.SpringShardedActorBehavior;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.pekko.actor.typed.ActorRef;
@@ -20,7 +20,7 @@ import org.springframework.stereotype.Component;
  * actor maintains a list of connected users and broadcasts messages to all users in the room.
  */
 @Component
-public class ChatRoomActor implements ShardedActor<ChatRoomActor.Command> {
+public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> {
 
     public static final EntityTypeKey<Command> TYPE_KEY = EntityTypeKey.create(Command.class, "ChatRoomActor");
 
@@ -68,10 +68,10 @@ public class ChatRoomActor implements ShardedActor<ChatRoomActor.Command> {
     }
 
     @Override
-    public ShardedActorBehavior<Command> create(EntityContext<Command> ctx) {
+    public SpringShardedActorBehavior<Command> create(EntityContext<Command> ctx) {
         final String roomId = ctx.getEntityId();
 
-        return ShardedActorBehavior.builder(Command.class, ctx)
+        return SpringShardedActorBehavior.builder(Command.class, ctx)
                 .onCreate(actorCtx -> new ChatRoomBehavior(actorCtx, roomId))
                 .onMessage(JoinRoom.class, ChatRoomBehavior::onJoinRoom)
                 .onMessage(LeaveRoom.class, ChatRoomBehavior::onLeaveRoom)

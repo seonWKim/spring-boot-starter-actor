@@ -52,7 +52,7 @@ Make sure to adjust the hostname, port, and seed-nodes according to your environ
 
 ## Creating a Sharded Actor
 
-To create a sharded actor, implement the `ShardedActor` interface and annotate the class with `@Component`:
+To create a sharded actor, implement the `SpringShardedActor` interface and annotate the class with `@Component`:
 
 ```java
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -61,8 +61,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.github.seonwkim.core.serialization.JsonSerializable;
 import io.github.seonwkim.core.shard.DefaultShardingMessageExtractor;
 import io.github.seonwkim.core.shard.ShardEnvelope;
-import io.github.seonwkim.core.shard.ShardedActor;
-import io.github.seonwkim.core.shard.ShardedActorBehavior;
+import io.github.seonwkim.core.shard.SpringShardedActor;
+import io.github.seonwkim.core.shard.SpringShardedActorBehavior;
 
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
@@ -74,7 +74,7 @@ import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
 import org.springframework.stereotype.Component;
 
 @Component
-public class HelloActor implements ShardedActor<HelloActor.Command> {
+public class HelloActor implements SpringShardedActor<HelloActor.Command> {
 
     public static final EntityTypeKey<Command> TYPE_KEY =
             EntityTypeKey.create(Command.class, "HelloActor");
@@ -102,10 +102,10 @@ public class HelloActor implements ShardedActor<HelloActor.Command> {
     }
 
     @Override
-    public ShardedActorBehavior<Command> create(EntityContext<Command> ctx) {
+    public SpringShardedActorBehavior<Command> create(EntityContext<Command> ctx) {
         final String entityId = ctx.getEntityId();
 
-        return ShardedActorBehavior.builder(Command.class, ctx)
+        return SpringShardedActorBehavior.builder(Command.class, ctx)
                 .onCreate(actorCtx -> new HelloActorBehavior(actorCtx, entityId))
                 .onMessage(SayHello.class, HelloActorBehavior::onSayHello)
                 .build();
@@ -155,12 +155,12 @@ public class HelloActor implements ShardedActor<HelloActor.Command> {
 
 Key differences from a regular actor:
 
-1. Implement `ShardedActor<T>` instead of `SpringActor<T>`
+1. Implement `SpringShardedActor<T>` instead of `SpringActor<T>`
 2. Commands must implement `JsonSerializable` (or `CborSerializable`) for serialization across the network
 3. Define an `EntityTypeKey` for the actor type
 4. Override `typeKey()` to return the EntityTypeKey
-5. Override `create(EntityContext<T>)` to return `ShardedActorBehavior<T>` instead of `SpringActorBehavior<T>`
-6. Use `ShardedActorBehavior.builder()` instead of `SpringActorBehavior.builder()`
+5. Override `create(EntityContext<T>)` to return `SpringShardedActorBehavior<T>` instead of `SpringActorBehavior<T>`
+6. Use `SpringShardedActorBehavior.builder()` instead of `SpringActorBehavior.builder()`
 7. Override `extractor()` to provide a sharding message extractor
 8. Use Jackson annotations (`@JsonCreator`, `@JsonProperty`) for message serialization
 

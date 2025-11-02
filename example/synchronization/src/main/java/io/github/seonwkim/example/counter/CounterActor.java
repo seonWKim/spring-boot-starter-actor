@@ -3,8 +3,8 @@ package io.github.seonwkim.example.counter;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.github.seonwkim.core.serialization.JsonSerializable;
-import io.github.seonwkim.core.shard.ShardedActor;
-import io.github.seonwkim.core.shard.ShardedActorBehavior;
+import io.github.seonwkim.core.shard.SpringShardedActor;
+import io.github.seonwkim.core.shard.SpringShardedActorBehavior;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
@@ -20,7 +20,7 @@ import org.springframework.stereotype.Component;
  * separate actor instance, identified by its counterId.
  */
 @Component
-public class CounterActor implements ShardedActor<CounterActor.Command> {
+public class CounterActor implements SpringShardedActor<CounterActor.Command> {
 
     private static final Logger logger = LoggerFactory.getLogger(CounterActor.class);
 
@@ -53,8 +53,8 @@ public class CounterActor implements ShardedActor<CounterActor.Command> {
     }
 
     @Override
-    public ShardedActorBehavior<Command> create(EntityContext<Command> ctx) {
-        return ShardedActorBehavior.builder(Command.class, ctx)
+    public SpringShardedActorBehavior<Command> create(EntityContext<Command> ctx) {
+        return SpringShardedActorBehavior.builder(Command.class, ctx)
                 .onCreate(context -> new CounterActorBehavior(context, ctx.getEntityId()))
                 .onMessage(Increment.class, (behaviorHandler, msg) -> behaviorHandler.onIncrement(msg))
                 .onMessage(GetValue.class, (behaviorHandler, msg) -> behaviorHandler.onGetValue(msg))

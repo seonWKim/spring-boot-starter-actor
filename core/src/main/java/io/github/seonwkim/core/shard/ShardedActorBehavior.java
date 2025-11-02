@@ -22,8 +22,8 @@ import org.apache.pekko.cluster.sharding.typed.javadsl.EntityContext;
  * <pre>
  * {@code
  * @Override
- * public ShardedActorBehavior<Command> create(EntityContext<Command> entityContext) {
- *     return ShardedActorBehavior.builder(Command.class, entityContext)
+ * public SpringShardedActorBehavior<Command> create(EntityContext<Command> entityContext) {
+ *     return SpringShardedActorBehavior.builder(Command.class, entityContext)
  *         .onMessage(DoWork.class, (ctx, msg) -> {
  *             ctx.getLog().info("Processing work for entity {}", entityContext.getEntityId());
  *             return Behaviors.same();
@@ -35,16 +35,16 @@ import org.apache.pekko.cluster.sharding.typed.javadsl.EntityContext;
  *
  * @param <T> The message type this behavior handles
  */
-public final class ShardedActorBehavior<T> {
+public final class SpringShardedActorBehavior<T> {
 
     private final Behavior<T> behavior;
 
-    private ShardedActorBehavior(Behavior<T> behavior) {
+    private SpringShardedActorBehavior(Behavior<T> behavior) {
         this.behavior = behavior;
     }
 
     /**
-     * Unwraps this ShardedActorBehavior to get the underlying Pekko Behavior.
+     * Unwraps this SpringShardedActorBehavior to get the underlying Pekko Behavior.
      *
      * @return the underlying Pekko behavior
      */
@@ -53,7 +53,7 @@ public final class ShardedActorBehavior<T> {
     }
 
     /**
-     * Creates a new builder for constructing a ShardedActorBehavior.
+     * Creates a new builder for constructing a SpringShardedActorBehavior.
      *
      * <p>The builder starts with ActorContext as the default state type. Use {@link Builder#onCreate(Function)}
      * to evolve the builder to use a custom state type that will be passed to message handlers.
@@ -68,7 +68,7 @@ public final class ShardedActorBehavior<T> {
     }
 
     /**
-     * Builder for creating ShardedActorBehavior instances with a fluent API.
+     * Builder for creating SpringShardedActorBehavior instances with a fluent API.
      *
      * <p>This builder supports type-safe state evolution through the {@link #onCreate(Function)} method.
      * The state type parameter {@code S} represents the type of object passed to message handlers.
@@ -99,7 +99,7 @@ public final class ShardedActorBehavior<T> {
          * <p>Example usage:
          * <pre>
          * {@code
-         * return ShardedActorBehavior.builder(Command.class, entityContext)
+         * return SpringShardedActorBehavior.builder(Command.class, entityContext)
          *     .onCreate(ctx -> new MyBehaviorHandler(ctx, entityContext))
          *     .onMessage(DoWork.class, (handler, msg) -> handler.handleWork(msg))
          *     .build();
@@ -131,11 +131,11 @@ public final class ShardedActorBehavior<T> {
         }
 
         /**
-         * Builds the final ShardedActorBehavior.
+         * Builds the final SpringShardedActorBehavior.
          *
          * @return the constructed behavior
          */
-        public ShardedActorBehavior<T> build() {
+        public SpringShardedActorBehavior<T> build() {
             Behavior<T> userBehavior = Behaviors.setup(ctx -> {
                 // Create the state object
                 S state = onCreateCallback.apply(ctx);
@@ -155,7 +155,7 @@ public final class ShardedActorBehavior<T> {
                 return builder.build();
             });
 
-            return new ShardedActorBehavior<>(userBehavior);
+            return new SpringShardedActorBehavior<>(userBehavior);
         }
 
         /**

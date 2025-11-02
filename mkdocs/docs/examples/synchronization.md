@@ -165,7 +165,7 @@ public class RedisCounterService implements CounterService {
 
 ```java
 @Component
-public class CounterActor implements ShardedActor<CounterActor.Command> {
+public class CounterActor implements SpringShardedActor<CounterActor.Command> {
     public static final EntityTypeKey<Command> TYPE_KEY =
             EntityTypeKey.create(Command.class, "CounterActor");
 
@@ -187,7 +187,7 @@ public class CounterActor implements ShardedActor<CounterActor.Command> {
         }
     }
 
-    // Implementation of ShardedActor methods...
+    // Implementation of SpringShardedActor methods...
 
     private static class CounterActorBehavior {
         private final ActorContext<Command> ctx;

@@ -4,7 +4,7 @@ import io.github.seonwkim.core.RootGuardian.Spawned;
 import io.github.seonwkim.core.behavior.ClusterEventBehavior;
 import io.github.seonwkim.core.impl.DefaultRootGuardian;
 import io.github.seonwkim.core.impl.DefaultSpringActorContext;
-import io.github.seonwkim.core.shard.ShardedActor;
+import io.github.seonwkim.core.shard.SpringShardedActor;
 import io.github.seonwkim.core.shard.ShardedActorRegistry;
 import java.time.Duration;
 import java.util.concurrent.CompletionStage;
@@ -337,7 +337,7 @@ public class SpringActorSystem implements DisposableBean {
      * @return A builder for configuring and getting the sharded actor reference
      * @throws IllegalStateException If this SpringActorSystem is not in cluster mode
      */
-    public <T> SpringShardedActorBuilder<T> sharded(Class<? extends ShardedActor<T>> actorClass) {
+    public <T> SpringShardedActorBuilder<T> sharded(Class<? extends SpringShardedActor<T>> actorClass) {
         if (clusterSharding == null) {
             throw new IllegalStateException("Cluster sharding not configured. Sharded actors require cluster mode.");
         }

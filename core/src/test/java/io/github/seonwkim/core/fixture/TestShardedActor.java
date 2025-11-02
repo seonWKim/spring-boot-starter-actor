@@ -5,8 +5,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.github.seonwkim.core.serialization.JsonSerializable;
 import io.github.seonwkim.core.shard.DefaultShardingMessageExtractor;
 import io.github.seonwkim.core.shard.ShardEnvelope;
-import io.github.seonwkim.core.shard.ShardedActor;
-import io.github.seonwkim.core.shard.ShardedActorBehavior;
+import io.github.seonwkim.core.shard.SpringShardedActor;
+import io.github.seonwkim.core.shard.SpringShardedActorBehavior;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
@@ -15,7 +15,7 @@ import org.apache.pekko.cluster.sharding.typed.ShardingMessageExtractor;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityContext;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
 
-public class TestShardedActor implements ShardedActor<TestShardedActor.Command> {
+public class TestShardedActor implements SpringShardedActor<TestShardedActor.Command> {
     public static final EntityTypeKey<Command> TYPE_KEY = EntityTypeKey.create(Command.class, "TestShardedActor");
 
     public interface Command extends JsonSerializable {}
@@ -57,8 +57,8 @@ public class TestShardedActor implements ShardedActor<TestShardedActor.Command> 
     }
 
     @Override
-    public ShardedActorBehavior<Command> create(EntityContext<Command> ctx) {
-        return ShardedActorBehavior.builder(Command.class, ctx)
+    public SpringShardedActorBehavior<Command> create(EntityContext<Command> ctx) {
+        return SpringShardedActorBehavior.builder(Command.class, ctx)
                 .onCreate(context -> new ActorState(context, ctx.getEntityId()))
                 .onMessage(Ping.class, (state, msg) -> {
                     state.counter.incrementAndGet();

@@ -8,7 +8,7 @@ import io.github.seonwkim.core.RootGuardianSupplierWrapper;
 import io.github.seonwkim.core.SpringActorSystem;
 import io.github.seonwkim.core.SpringActorSystemBuilder;
 import io.github.seonwkim.core.shard.ShardEnvelope;
-import io.github.seonwkim.core.shard.ShardedActor;
+import io.github.seonwkim.core.shard.SpringShardedActor;
 import io.github.seonwkim.core.shard.ShardedActorRegistry;
 import java.util.Collections;
 import java.util.HashMap;
@@ -117,7 +117,7 @@ public class DefaultSpringActorSystemBuilder implements SpringActorSystemBuilder
 
         final Cluster cluster = Cluster.get(actorSystem);
         final ClusterSharding clusterSharding = ClusterSharding.get(actorSystem);
-        for (ShardedActor actor : shardedActorRegistry.getAll()) {
+        for (SpringShardedActor actor : shardedActorRegistry.getAll()) {
             initShardedActor(clusterSharding, actor);
         }
 
@@ -175,7 +175,7 @@ public class DefaultSpringActorSystemBuilder implements SpringActorSystemBuilder
      * @param actor The sharded actor to initialize
      * @param <T> The type of messages that the actor can handle
      */
-    private <T> void initShardedActor(ClusterSharding sharding, ShardedActor<T> actor) {
+    private <T> void initShardedActor(ClusterSharding sharding, SpringShardedActor<T> actor) {
         Entity<T, ShardEnvelope<T>> entity = Entity.of(
                         actor.typeKey(), ctx -> actor.create(ctx).asBehavior())
                 .withMessageExtractor(actor.extractor());

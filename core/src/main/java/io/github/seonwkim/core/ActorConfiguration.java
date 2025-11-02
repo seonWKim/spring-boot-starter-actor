@@ -1,7 +1,7 @@
 package io.github.seonwkim.core;
 
 import io.github.seonwkim.core.impl.DefaultSpringActorSystemBuilder;
-import io.github.seonwkim.core.shard.ShardedActor;
+import io.github.seonwkim.core.shard.SpringShardedActor;
 import io.github.seonwkim.core.shard.ShardedActorRegistry;
 import java.util.Map;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -93,17 +93,17 @@ public class ActorConfiguration {
     }
 
     /**
-     * Creates a ShardedActorRegistry bean and registers all ShardedActor beans in the application
+     * Creates a ShardedActorRegistry bean and registers all SpringShardedActor beans in the application
      * context.
      *
      * @param ctx The Spring application context
-     * @return A ShardedActorRegistry with all ShardedActor beans registered
+     * @return A ShardedActorRegistry with all SpringShardedActor beans registered
      */
     @Bean
     @ConditionalOnMissingBean(ShardedActorRegistry.class)
     public ShardedActorRegistry shardedActorRegistry(ApplicationContext ctx) {
         ShardedActorRegistry registry = new ShardedActorRegistry();
-        Map<String, ShardedActor> beans = ctx.getBeansOfType(ShardedActor.class);
+        Map<String, SpringShardedActor> beans = ctx.getBeansOfType(SpringShardedActor.class);
         beans.values().forEach(registry::register);
         return registry;
     }

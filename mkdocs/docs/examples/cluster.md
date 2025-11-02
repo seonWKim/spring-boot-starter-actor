@@ -24,14 +24,14 @@ You can find the complete source code for this example on GitHub:
 
 `HelloActor` is a sharded actor that responds to messages in a clustered environment. Each entity is a separate instance identified by an entity ID. The actor demonstrates:
 
-- How to implement the `ShardedActor` interface
+- How to implement the `SpringShardedActor` interface
 - How to define serializable message types for cluster communication
 - How to create entity behaviors
 - How to handle messages in a clustered environment
 
 ```java
 @Component
-public class HelloActor implements ShardedActor<HelloActor.Command> {
+public class HelloActor implements SpringShardedActor<HelloActor.Command> {
     public static final EntityTypeKey<Command> TYPE_KEY =
             EntityTypeKey.create(Command.class, "HelloActor");
 
@@ -57,10 +57,10 @@ public class HelloActor implements ShardedActor<HelloActor.Command> {
     }
 
     @Override
-    public ShardedActorBehavior<Command> create(EntityContext<Command> ctx) {
+    public SpringShardedActorBehavior<Command> create(EntityContext<Command> ctx) {
         final String entityId = ctx.getEntityId();
 
-        return ShardedActorBehavior.builder(Command.class, ctx)
+        return SpringShardedActorBehavior.builder(Command.class, ctx)
                 .onCreate(actorCtx -> new HelloActorBehavior(actorCtx, entityId))
                 .onMessage(SayHello.class, HelloActorBehavior::onSayHello)
                 .build();
