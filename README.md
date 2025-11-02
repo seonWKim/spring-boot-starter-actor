@@ -117,16 +117,16 @@ Create an actor by implementing `SpringActor`:
 
 ```java
 @Component
-public class GreeterActor implements SpringActor<GreeterActor, GreeterActor.Command> {
+public class GreeterActor implements SpringActor<GreeterActor.Command> {
 
     public interface Command {}
 
     public record Greet(String name, ActorRef<String> replyTo) implements Command {}
 
     @Override
-    public Behavior<Command> create(SpringActorContext actorContext) {
-        return Behaviors.receive(Command.class)
-            .onMessage(Greet.class, msg -> {
+    public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
+        return SpringActorBehavior.builder(Command.class, actorContext)
+            .onMessage(Greet.class, (ctx, msg) -> {
                 msg.replyTo.tell("Hello, " + msg.name + "!");
                 return Behaviors.same();
             })
@@ -152,9 +152,11 @@ public class GreeterService {
         return actorSystem.actor(GreeterActor.class)
             .withId("greeter")
             .start()
-            .thenCompose(actor -> actor.ask(
-                replyTo -> new GreeterActor.Greet(name, replyTo)
-            ));
+            .thenCompose(actor -> actor
+                .askBuilder(replyTo -> new GreeterActor.Greet(name, replyTo))
+                .withTimeout(Duration.ofSeconds(5))
+                .execute()
+            );
     }
 }
 ```
@@ -218,13 +220,16 @@ actor.tell(new ProcessOrder("order-123"));
 
 **Request-response (ask):**
 ```java
-CompletionStage<String> response = actor.ask(GetValue::new);
-CompletionStage<String> response = actor.ask(GetValue::new, Duration.ofSeconds(10));
+CompletionStage<String> response = actor
+    .askBuilder(GetValue::new)
+    .withTimeout(Duration.ofSeconds(5))
+    .execute();
 ```
 
 **With error handling:**
 ```java
-CompletionStage<String> response = actor.askBuilder(GetValue::new)
+CompletionStage<String> response = actor
+    .askBuilder(GetValue::new)
     .withTimeout(Duration.ofSeconds(5))
     .onTimeout(() -> "default-value")
     .execute();
@@ -253,8 +258,12 @@ public class UserSessionActor implements ShardedActor<UserSessionActor.Command> 
     }
 
     @Override
-    public Behavior<Command> create(EntityContext<Command> ctx) {
-        return Behaviors.setup(context -> new UserSessionBehavior(ctx.getEntityId()).create());
+    public ShardedActorBehavior<Command> create(EntityContext<Command> ctx) {
+        return ShardedActorBehavior.builder(Command.class, ctx)
+            .onCreate(entityCtx -> new UserSessionBehavior(ctx.getEntityId()))
+            .onMessage(UpdateActivity.class, UserSessionBehavior::onUpdateActivity)
+            .onMessage(GetActivity.class, UserSessionBehavior::onGetActivity)
+            .build();
     }
 
     private static class UserSessionBehavior {
@@ -265,17 +274,14 @@ public class UserSessionActor implements ShardedActor<UserSessionActor.Command> 
             this.userId = userId;
         }
 
-        Behavior<Command> create() {
-            return Behaviors.receive(Command.class)
-                .onMessage(UpdateActivity.class, msg -> {
-                    this.activity = msg.activity;
-                    return Behaviors.same();
-                })
-                .onMessage(GetActivity.class, msg -> {
-                    msg.replyTo.tell(activity);
-                    return Behaviors.same();
-                })
-                .build();
+        Behavior<Command> onUpdateActivity(UpdateActivity msg) {
+            this.activity = msg.activity;
+            return Behaviors.same();
+        }
+
+        Behavior<Command> onGetActivity(GetActivity msg) {
+            msg.replyTo.tell(activity);
+            return Behaviors.same();
         }
     }
 }
@@ -292,9 +298,12 @@ SpringShardedActorRef<Command> actor = actorSystem
 actor.tell(new UpdateActivity("logged-in"));
 
 // Request-response messaging
-CompletionStage<String> activity = actor.ask(GetActivity::new);
+CompletionStage<String> activity = actor
+    .askBuilder(GetActivity::new)
+    .withTimeout(Duration.ofSeconds(5))
+    .execute();
 
-// With timeout and error handling
+// With error handling
 CompletionStage<String> activityWithFallback = actor
     .askBuilder(GetActivity::new)
     .withTimeout(Duration.ofSeconds(5))
@@ -315,7 +324,7 @@ Actors are Spring components, so constructor injection works:
 
 ```java
 @Component
-public class OrderActor implements SpringActor<OrderActor, OrderActor.Command> {
+public class OrderActor implements SpringActor<OrderActor.Command> {
 
     private final OrderRepository orderRepository;
 
@@ -323,10 +332,13 @@ public class OrderActor implements SpringActor<OrderActor, OrderActor.Command> {
         this.orderRepository = orderRepository;
     }
 
+    public interface Command {}
+    public record ProcessOrder(String orderId) implements Command {}
+
     @Override
-    public Behavior<Command> create(SpringActorContext actorContext) {
-        return Behaviors.receive(Command.class)
-            .onMessage(ProcessOrder.class, msg -> {
+    public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
+        return SpringActorBehavior.builder(Command.class, actorContext)
+            .onMessage(ProcessOrder.class, (ctx, msg) -> {
                 Order order = orderRepository.findById(msg.orderId);
                 return Behaviors.same();
             })
@@ -425,19 +437,25 @@ Within an actor, spawn supervised child actors:
 
 ```java
 @Component
-public class SupervisorActor implements SpringActorWithContext<SupervisorActor, Command, SpringActorContext> {
+public class SupervisorActor implements SpringActor<SupervisorActor.Command> {
+
+    public interface Command extends FrameworkCommand {}
 
     @Override
-    public Behavior<Command> create(SpringActorContext actorContext) {
-        return Behaviors.setup(ctx -> {
-            // Spawn child with restart strategy
-            SupervisorStrategy strategy = SupervisorStrategy.restart();
-            actorContext.spawnChild(ctx, WorkerActor.class, "worker-1", strategy);
+    public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
+        return SpringActorBehavior.builder(Command.class, actorContext)
+            .withFrameworkCommands() // Enable framework command handling for child management
+            .onMessage(DelegateWork.class, (ctx, msg) -> {
+                // Use SpringActorRef to spawn/manage children
+                SpringActorRef<Command> self = new SpringActorRef<>(ctx.getSystem().scheduler(), ctx.getSelf());
 
-            return Behaviors.receive(Command.class)
-                .onMessage(Command.class, this::handleMessage)
-                .build();
-        });
+                // Spawn child with restart strategy
+                SupervisorStrategy strategy = SupervisorStrategy.restart();
+                self.spawnChild(WorkerActor.class, "worker-1", strategy);
+
+                return Behaviors.same();
+            })
+            .build();
     }
 }
 ```

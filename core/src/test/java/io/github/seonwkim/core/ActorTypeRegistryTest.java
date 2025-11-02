@@ -5,9 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.github.seonwkim.core.ActorTypeRegistryTest.DummyActor.Command;
 import io.github.seonwkim.core.impl.DefaultSpringActorContext;
-
 import java.util.UUID;
-
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,8 +14,7 @@ public class ActorTypeRegistryTest {
 
     public static class DummyActor implements SpringActor<Command> {
 
-        public interface Command {
-        }
+        public interface Command {}
 
         @Override
         public SpringActorBehavior<Command> create(SpringActorContext actorContext) {

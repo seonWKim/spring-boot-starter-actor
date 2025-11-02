@@ -21,9 +21,11 @@ public class HelloService {
      * It automatically handles the exists -> get -> spawn logic in a single call.
      */
     public Mono<String> hello() {
-        return Mono.fromCompletionStage(actorSystem
-                .getOrSpawn(HelloActor.class, "hello-actor")
-                .thenCompose(actor -> actor.ask(HelloActor.SayHello::new)));
+        return Mono.fromCompletionStage(
+                actorSystem.getOrSpawn(HelloActor.class, "hello-actor").thenCompose(actor -> actor.askBuilder(
+                                HelloActor.SayHello::new)
+                        .withTimeout(java.time.Duration.ofSeconds(3))
+                        .execute()));
     }
 
     /**
@@ -31,9 +33,11 @@ public class HelloService {
      * This demonstrates the PreRestart signal handler.
      */
     public Mono<String> triggerRestart() {
-        return Mono.fromCompletionStage(actorSystem
-                .getOrSpawn(HelloActor.class, "hello-actor")
-                .thenCompose(actor -> actor.ask(HelloActor.TriggerFailure::new)));
+        return Mono.fromCompletionStage(
+                actorSystem.getOrSpawn(HelloActor.class, "hello-actor").thenCompose(actor -> actor.askBuilder(
+                                HelloActor.TriggerFailure::new)
+                        .withTimeout(java.time.Duration.ofSeconds(3))
+                        .execute()));
     }
 
     /**

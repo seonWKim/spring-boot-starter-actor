@@ -10,7 +10,7 @@ The `SpringActor` interface is the base interface for all actors in Spring Boot 
 contract for creating actors that can be managed by Spring.
 
 ```java
-public interface SpringActor<A extends SpringActor<A, C>, C> {
+public interface SpringActor<C> {
     /**
      * Creates a behavior for this actor. This method is called by the actor system when a new actor
      * is created.
@@ -18,7 +18,7 @@ public interface SpringActor<A extends SpringActor<A, C>, C> {
      * @param actorContext The context of the actor
      * @return A behavior for the actor
      */
-    Behavior<C> create(SpringActorContext actorContext);
+    SpringActorBehavior<C> create(SpringActorContext actorContext);
 }
 ```
 
@@ -98,14 +98,12 @@ actor.
 ```java
 public class SpringActorRef<T> {
     /**
-     * Sends a message to the actor and expects a response.
+     * Creates a fluent builder for sending a message to the actor and expecting a response.
      *
      * @param messageFactory A function that creates the message, given a reply-to actor reference
-     * @param timeout The timeout for the ask operation
-     * @return A CompletionStage that resolves to the response from the actor
+     * @return An AskBuilder for configuring the ask operation
      */
-    public <R> CompletionStage<R> ask(
-            Function<ActorRef<R>, T> messageFactory, Duration timeout);
+    public <R> AskBuilder<R> askBuilder(Function<ActorRef<R>, T> messageFactory);
 
     /**
      * Sends a message to the actor without expecting a response.
@@ -124,14 +122,12 @@ sending messages to the entity.
 ```java
 public class SpringShardedActorRef<T> {
     /**
-     * Sends a message to the entity and expects a response.
+     * Creates a fluent builder for sending a message to the entity and expecting a response.
      *
      * @param messageFactory A function that creates the message, given a reply-to actor reference
-     * @param timeout The timeout for the ask operation
-     * @return A CompletionStage that resolves to the response from the entity
+     * @return An AskBuilder for configuring the ask operation
      */
-    public <R> CompletionStage<R> ask(
-            Function<ActorRef<R>, T> messageFactory, Duration timeout);
+    public <R> AskBuilder<R> askBuilder(Function<ActorRef<R>, T> messageFactory);
 
     /**
      * Sends a message to the entity without expecting a response.

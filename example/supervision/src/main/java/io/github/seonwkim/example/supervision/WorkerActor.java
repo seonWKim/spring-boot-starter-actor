@@ -25,11 +25,14 @@ public class WorkerActor implements SpringActorWithContext<HierarchicalActor.Com
         // Use array holder to capture behaviorHandler from onCreate callback
         return SpringActorBehavior.builder(HierarchicalActor.Command.class, actorContext)
                 .onCreate(ctx -> {
-                    HierarchicalActorBehavior<HierarchicalActor.Command> behavior = new HierarchicalActorBehavior<>(ctx, actorContext, logPublisher, true, "Worker", WorkerActor.class);
+                    HierarchicalActorBehavior<HierarchicalActor.Command> behavior = new HierarchicalActorBehavior<>(
+                            ctx, actorContext, logPublisher, true, "Worker", WorkerActor.class);
 
                     String actorId = actorContext.actorId();
                     ctx.getLog().info("Worker {} started", actorId);
-                    logPublisher.publish(String.format("[%s] Worker started (path: %s)", actorId, ctx.getSelf().path()));
+                    logPublisher.publish(String.format(
+                            "[%s] Worker started (path: %s)",
+                            actorId, ctx.getSelf().path()));
 
                     return behavior;
                 })

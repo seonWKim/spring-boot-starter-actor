@@ -169,7 +169,7 @@ public class ChatRoomActor implements ShardedActor<ChatRoomActor.Command> {
 
 ```java
 @Component
-public class UserActor implements SpringActor<UserActor, UserActor.Command> {
+public class UserActor implements SpringActor<UserActor.Command> {
 
     public interface Command extends JsonSerializable {}
 
@@ -214,7 +214,7 @@ public class UserActor implements SpringActor<UserActor, UserActor.Command> {
         }
     }
 
-    public static class UserActorContext implements SpringActorContext {
+    public static class UserActorContext extends SpringActorContext {
         private final SpringActorSystem actorSystem;
         private final ObjectMapper objectMapper;
         private final WebSocketSession session;
@@ -236,20 +236,27 @@ public class UserActor implements SpringActor<UserActor, UserActor.Command> {
     }
 
     @Override
-    public Behavior<Command> create(SpringActorContext actorContext) {
+    public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
         if (!(actorContext instanceof UserActorContext userActorContext)) {
             throw new IllegalStateException("Must be UserActorContext");
         }
 
-        return Behaviors.setup(
-                context -> new UserActorBehavior(
+        return SpringActorBehavior.builder(Command.class, actorContext)
+                .onCreate(context -> new UserActorBehavior(
                         context,
                         userActorContext.actorSystem,
                         userActorContext.objectMapper,
                         userActorContext.userId,
                         userActorContext.session
-                ).create()
-        );
+                ))
+                .onMessage(Connect.class, UserActorBehavior::onConnect)
+                .onMessage(JoinRoom.class, UserActorBehavior::onJoinRoom)
+                .onMessage(LeaveRoom.class, UserActorBehavior::onLeaveRoom)
+                .onMessage(SendMessage.class, UserActorBehavior::onSendMessage)
+                .onMessage(JoinRoomEvent.class, UserActorBehavior::onJoinRoomEvent)
+                .onMessage(LeaveRoomEvent.class, UserActorBehavior::onLeaveRoomEvent)
+                .onMessage(SendMessageEvent.class, UserActorBehavior::onSendMessageEvent)
+                .build();
     }
 
     public static class UserActorBehavior {

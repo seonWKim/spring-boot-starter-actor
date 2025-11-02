@@ -110,8 +110,10 @@ public class HelloService {
                 springActorSystem.sharded(HelloActor.class).withId(entityId).get();
 
         // Send the message to the actor and get the response
-        CompletionStage<String> response =
-                actorRef.ask(replyTo -> new HelloActor.SayHello(replyTo, message), Duration.ofSeconds(3));
+        CompletionStage<String> response = actorRef
+                .askBuilder(replyTo -> new HelloActor.SayHello(replyTo, message))
+                .withTimeout(Duration.ofSeconds(3))
+                .execute();
 
         // Convert the CompletionStage to a Mono for reactive programming
         return Mono.fromCompletionStage(response);

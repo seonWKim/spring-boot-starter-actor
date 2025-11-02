@@ -31,7 +31,7 @@ You can find the complete source code for this example on GitHub:
 
 ```java
 @Component
-public class HelloActor implements SpringActor<HelloActor, HelloActor.Command> {
+public class HelloActor implements SpringActor<HelloActor.Command> {
     // Command interface and message types
     public interface Command {}
 
@@ -44,32 +44,25 @@ public class HelloActor implements SpringActor<HelloActor, HelloActor.Command> {
     }
 
     @Override
-    public Behavior<Command> create(SpringActorContext actorContext) {
-        return Behaviors.setup(ctx -> new HelloActorBehavior(ctx, actorContext).create());
+    public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
+        return SpringActorBehavior.builder(Command.class, actorContext)
+                .onCreate(ctx -> new HelloActorBehavior(ctx, actorContext))
+                .onMessage(SayHello.class, HelloActorBehavior::onSayHello)
+                .onMessage(TriggerFailure.class, HelloActorBehavior::onTriggerFailure)
+                .onSignal(PreRestart.class, HelloActorBehavior::onPreRestart)
+                .onSignal(PostStop.class, HelloActorBehavior::onPostStop)
+                .withSupervisionStrategy(SupervisorStrategy.restart()
+                        .withLimit(10, Duration.ofMinutes(1)))
+                .build();
     }
 
     // Actor behavior implementation
     private static class HelloActorBehavior {
         // Implementation details...
 
-        public Behavior<Command> create() {
+        public HelloActorBehavior(ActorContext<Command> ctx, SpringActorContext actorContext) {
             // Call prestart hook for initialization logic
             onPrestart();
-
-            // Create the base behavior
-            Behavior<Command> behavior = Behaviors.receive(Command.class)
-                    .onMessage(SayHello.class, this::onSayHello)
-                    .onMessage(TriggerFailure.class, this::onTriggerFailure)
-                    // Signal handlers for lifecycle events
-                    .onSignal(PreRestart.class, this::onPreRestart)
-                    .onSignal(PostStop.class, this::onPostStop)
-                    .build();
-
-            // Wrap with supervision strategy to restart on failure
-            return Behaviors.supervise(behavior)
-                    .onFailure(SupervisorStrategy.restart()
-                            .withLimit(10, Duration.ofMinutes(1)));
-        }
 
         private Behavior<Command> onSayHello(SayHello msg) {
             // Send response
@@ -129,7 +122,9 @@ public class HelloService {
     public Mono<String> hello() {
         // Send a SayHello message to the actor and convert the response to a Mono
         return Mono.fromCompletionStage(
-                helloActor.ask(HelloActor.SayHello::new, Duration.ofSeconds(3)));
+                helloActor.askBuilder(HelloActor.SayHello::new)
+                        .withTimeout(Duration.ofSeconds(3))
+                        .execute());
     }
 }
 ```

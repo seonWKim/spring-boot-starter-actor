@@ -22,12 +22,12 @@ import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.springframework.stereotype.Component;
 
 @Component
-public class HelloActor implements SpringActor<HelloActor, HelloActor.Command> {
+public class HelloActor implements SpringActor<HelloActor.Command> {
 
     // Define the command interface for messages this actor can handle
     public interface Command {}
 
-    // Define a message type 
+    // Define a message type
     public static class SayHi implements Command {}
 
     // Define a message type
@@ -41,8 +41,12 @@ public class HelloActor implements SpringActor<HelloActor, HelloActor.Command> {
 
     // Create the behavior for this actor
     @Override
-    public Behavior<Command> create(SpringActorContext actorContext) {
-        return Behaviors.setup(ctx -> new HelloActorBehavior(ctx, actorContext).create());
+    public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
+        return SpringActorBehavior.builder(Command.class, actorContext)
+            .onCreate(ctx -> new HelloActorBehavior(ctx, actorContext))
+            .onMessage(SayHi.class, HelloActorBehavior::onSayHi)
+            .onMessage(SayHello.class, HelloActorBehavior::onSayHello)
+            .build();
     }
 
     // Inner class to handle the actor's behavior
@@ -55,21 +59,14 @@ public class HelloActor implements SpringActor<HelloActor, HelloActor.Command> {
             this.actorContext = actorContext;
         }
 
-        public Behavior<Command> create() {
-            return Behaviors.receive(Command.class)
-                            .onMessage(SayHi.class, this::onSayHi)
-                            .onMessage(SayHello.class, this::onSayHello)
-                            .build();
-        }
-
         private Behavior<Command> onSayHi(SayHi msg) {
-            ctx.getLog().info("Received SayHi for id={}", actorId);
-            return Behaviors.same(); 
+            ctx.getLog().info("Received SayHi for id={}", actorContext.actorId());
+            return Behaviors.same();
         }
 
         private Behavior<Command> onSayHello(SayHello msg) {
-            ctx.getLog().info("Received SayHello for id={}", actorContext.getId());
-            msg.replyTo.tell("Hello from actor " + actorId);
+            ctx.getLog().info("Received SayHello for id={}", actorContext.actorId());
+            msg.replyTo.tell("Hello from actor " + actorContext.actorId());
             return Behaviors.same();
         }
     }
@@ -133,7 +130,9 @@ public class HelloService {
     public Mono<String> hello() {
         return Mono.fromCompletionStage(
             helloActor.thenCompose(actor ->
-                actor.ask(HelloActor.SayHello::new, Duration.ofSeconds(3))
+                actor.askBuilder(HelloActor.SayHello::new)
+                    .withTimeout(Duration.ofSeconds(3))
+                    .execute()
             )
         );
     }
@@ -176,7 +175,9 @@ The ask pattern is used when you expect a response from the actor:
 ```java
 public Mono<String> hello() {
     return Mono.fromCompletionStage(
-            helloActor.ask(HelloActor.SayHello::new, Duration.ofSeconds(3)));
+            helloActor.askBuilder(HelloActor.SayHello::new)
+                .withTimeout(Duration.ofSeconds(3))
+                .execute());
 }
 ```
 
@@ -272,7 +273,10 @@ public class HelloService {
     public Mono<String> hello() {
         return Mono.fromCompletionStage(
                 actorSystem.getOrSpawn(HelloActor.class, "hello-actor")
-                        .thenCompose(actor -> actor.ask(HelloActor.SayHello::new)));
+                        .thenCompose(actor ->
+                            actor.askBuilder(HelloActor.SayHello::new)
+                                .withTimeout(Duration.ofSeconds(3))
+                                .execute()));
     }
 }
 ```
@@ -304,7 +308,10 @@ public class HelloService {
 
     public Mono<String> hello() {
         return Mono.fromCompletionStage(
-                getActor().thenCompose(actor -> actor.ask(HelloActor.SayHello::new)));
+                getActor().thenCompose(actor ->
+                    actor.askBuilder(HelloActor.SayHello::new)
+                        .withTimeout(Duration.ofSeconds(3))
+                        .execute()));
     }
 }
 ```

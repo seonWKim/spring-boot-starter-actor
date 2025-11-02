@@ -100,7 +100,13 @@ class SpringActorSystemTest {
 
             assertThat(actorRef).isNotNull();
 
-            assertEquals(actorRef.ask(SayHello::new).toCompletableFuture().get(5, TimeUnit.SECONDS), "hello world!!");
+            assertEquals(
+                    "hello world!!",
+                    actorRef.askBuilder(SayHello::new)
+                            .withTimeout(java.time.Duration.ofSeconds(5))
+                            .execute()
+                            .toCompletableFuture()
+                            .get());
 
             // Stop the actor using the simplified API (fire-and-forget)
             actorRef.stop();
@@ -119,9 +125,11 @@ class SpringActorSystemTest {
                     .startAndWait();
             assertThat(actorRef).isNotNull();
             assertEquals(
-                    actorRef.ask(CustomActorContextActor.SayHello::new)
+                    actorRef.askBuilder(CustomActorContextActor.SayHello::new)
+                            .withTimeout(java.time.Duration.ofSeconds(5))
+                            .execute()
                             .toCompletableFuture()
-                            .get(5, TimeUnit.SECONDS),
+                            .get(),
                     actorContext.actorId());
         }
 
@@ -195,8 +203,12 @@ class SpringActorSystemTest {
             assertThat(retrievedRef).isNotNull();
 
             // Verify we can use the retrieved ref to send messages
-            Object response =
-                    retrievedRef.ask(SayHello::new).toCompletableFuture().get(5, TimeUnit.SECONDS);
+            Object response = retrievedRef
+                    .askBuilder(SayHello::new)
+                    .withTimeout(java.time.Duration.ofSeconds(5))
+                    .execute()
+                    .toCompletableFuture()
+                    .get();
             assertEquals("hello world!!", response);
         }
 

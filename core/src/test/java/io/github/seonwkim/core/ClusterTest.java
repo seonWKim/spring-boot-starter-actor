@@ -153,7 +153,9 @@ public class ClusterTest {
 
         Thread.sleep(2000); // wait for messages to be processed (increased for cluster message propagation)
         TestShardedActor.State state = sharedActor1
-                .ask(GetState::new, Duration.ofSeconds(10)) // takes long on the CI/CD
+                .askBuilder(GetState::new)
+                .withTimeout(Duration.ofSeconds(10)) // takes long on the CI/CD
+                .execute()
                 .toCompletableFuture()
                 .get();
         assertEquals(3, state.getMessageCount());
@@ -184,19 +186,25 @@ public class ClusterTest {
         Thread.sleep(500); // wait for messages to be processed
         assertEquals(
                 1,
-                actor1.ask(GetState::new, Duration.ofSeconds(3))
+                actor1.askBuilder(GetState::new)
+                        .withTimeout(Duration.ofSeconds(3))
+                        .execute()
                         .toCompletableFuture()
                         .get()
                         .getMessageCount());
         assertEquals(
                 1,
-                actor2.ask(GetState::new, Duration.ofSeconds(3))
+                actor2.askBuilder(GetState::new)
+                        .withTimeout(Duration.ofSeconds(3))
+                        .execute()
                         .toCompletableFuture()
                         .get()
                         .getMessageCount());
         assertEquals(
                 1,
-                actor3.ask(GetState::new, Duration.ofSeconds(3))
+                actor3.askBuilder(GetState::new)
+                        .withTimeout(Duration.ofSeconds(3))
+                        .execute()
                         .toCompletableFuture()
                         .get()
                         .getMessageCount());

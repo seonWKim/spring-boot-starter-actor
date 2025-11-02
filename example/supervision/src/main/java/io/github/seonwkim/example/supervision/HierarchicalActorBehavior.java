@@ -118,7 +118,28 @@ public class HierarchicalActorBehavior<C> {
         logPublisher.publish(String.format(
                 "[%s] 🚀 Spawning child '%s' with strategy: %s", actorId, msg.childId, strategyDescription));
 
-        actorContext.spawnChild(ctx, (Class) childActorClass, msg.childId, strategy);
+        // Get the registry and create the child behavior
+        io.github.seonwkim.core.ActorTypeRegistry registry = actorContext.registry();
+        if (registry == null) {
+            msg.replyTo.tell(new ActorHierarchy.SpawnResult(msg.childId, false, "Registry not available"));
+            return Behaviors.same();
+        }
+
+        // Create child context
+        io.github.seonwkim.core.SpringActorContext childContext = new io.github.seonwkim.core.SpringActorContext() {
+            @Override
+            public String actorId() {
+                return msg.childId;
+            }
+        };
+
+        // Create behavior and apply supervision
+        Behavior<C> childBehavior = (Behavior<C>)
+                registry.createBehavior(childActorClass, childContext).asBehavior();
+        Behavior<C> supervisedBehavior = Behaviors.supervise(childBehavior).onFailure(strategy);
+
+        // Spawn the child
+        ctx.spawn(supervisedBehavior, msg.childId);
 
         // Track the child strategy
         childStrategies.put(msg.childId, strategyDescription);

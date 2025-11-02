@@ -22,17 +22,21 @@ public class SupervisorActor implements SpringActorWithContext<HierarchicalActor
     public SpringActorBehavior<HierarchicalActor.Command> create(SpringActorContext actorContext) {
         return SpringActorBehavior.builder(HierarchicalActor.Command.class, actorContext)
                 .onCreate(ctx -> {
-                    HierarchicalActorBehavior<HierarchicalActor.Command> behavior = new HierarchicalActorBehavior<>(ctx, actorContext, logPublisher, false, "Supervisor", WorkerActor.class);
+                    HierarchicalActorBehavior<HierarchicalActor.Command> behavior = new HierarchicalActorBehavior<>(
+                            ctx, actorContext, logPublisher, false, "Supervisor", WorkerActor.class);
 
                     String actorId = actorContext.actorId();
                     ctx.getLog().info("Supervisor {} started", actorId);
-                    logPublisher.publish(String.format("[%s] Supervisor started (path: %s)", actorId, ctx.getSelf().path()));
+                    logPublisher.publish(String.format(
+                            "[%s] Supervisor started (path: %s)",
+                            actorId, ctx.getSelf().path()));
 
                     return behavior;
                 })
                 .onMessage(HierarchicalActor.SpawnChild.class, HierarchicalActorBehavior::onSpawnChild)
                 .onMessage(HierarchicalActor.RouteToChild.class, HierarchicalActorBehavior::onRouteToChild)
-                .onMessage(HierarchicalActor.TriggerChildFailure.class, HierarchicalActorBehavior::onTriggerChildFailure)
+                .onMessage(
+                        HierarchicalActor.TriggerChildFailure.class, HierarchicalActorBehavior::onTriggerChildFailure)
                 .onMessage(HierarchicalActor.StopChild.class, HierarchicalActorBehavior::onStopChild)
                 .onMessage(HierarchicalActor.RouteSpawnChild.class, HierarchicalActorBehavior::onRouteSpawnChild)
                 .onMessage(HierarchicalActor.GetHierarchy.class, HierarchicalActorBehavior::onGetHierarchy)

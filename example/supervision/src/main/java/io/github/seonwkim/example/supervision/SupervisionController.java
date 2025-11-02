@@ -114,12 +114,13 @@ public class SupervisionController {
             }
 
             return supervisor
-                    .ask((org.apache.pekko.actor.typed.ActorRef<ActorHierarchy.SpawnResult> replyTo) ->
+                    .askBuilder((org.apache.pekko.actor.typed.ActorRef<ActorHierarchy.SpawnResult> replyTo) ->
                             new HierarchicalActor.SpawnChild(childId, strategy, replyTo))
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
                     .toCompletableFuture()
                     .thenApply(resultObj -> {
-                        ActorHierarchy.SpawnResult result = (ActorHierarchy.SpawnResult) resultObj;
-                        if (result.success) {
+                        if (resultObj.success) {
                             return ResponseEntity.ok(toMap(
                                     "success",
                                     true,
@@ -128,9 +129,9 @@ public class SupervisionController {
                                     "strategy",
                                     strategy,
                                     "message",
-                                    result.message));
+                                    resultObj.message));
                         } else {
-                            return ResponseEntity.badRequest().body(toMap("success", false, "message", result.message));
+                            return ResponseEntity.badRequest().body(toMap("success", false, "message", resultObj.message));
                         }
                     })
                     .exceptionally(ex -> ResponseEntity.internalServerError()
@@ -144,12 +145,13 @@ public class SupervisionController {
             }
 
             return rootSupervisor
-                    .ask((org.apache.pekko.actor.typed.ActorRef<ActorHierarchy.SpawnResult> replyTo) ->
+                    .askBuilder((org.apache.pekko.actor.typed.ActorRef<ActorHierarchy.SpawnResult> replyTo) ->
                             new HierarchicalActor.RouteSpawnChild(parentId, childId, strategy, replyTo))
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
                     .toCompletableFuture()
                     .thenApply(resultObj -> {
-                        ActorHierarchy.SpawnResult result = (ActorHierarchy.SpawnResult) resultObj;
-                        if (result.success) {
+                        if (resultObj.success) {
                             return ResponseEntity.ok(toMap(
                                     "success",
                                     true,
@@ -158,9 +160,9 @@ public class SupervisionController {
                                     "strategy",
                                     strategy,
                                     "message",
-                                    result.message));
+                                    resultObj.message));
                         } else {
-                            return ResponseEntity.badRequest().body(toMap("success", false, "message", result.message));
+                            return ResponseEntity.badRequest().body(toMap("success", false, "message", resultObj.message));
                         }
                     })
                     .exceptionally(ex -> ResponseEntity.internalServerError()
@@ -191,12 +193,13 @@ public class SupervisionController {
         }
 
         return supervisor
-                .ask((org.apache.pekko.actor.typed.ActorRef<ActorHierarchy.SpawnResult> replyTo) ->
+                .askBuilder((org.apache.pekko.actor.typed.ActorRef<ActorHierarchy.SpawnResult> replyTo) ->
                         new HierarchicalActor.SpawnChild(workerId, strategy, replyTo))
+                .withTimeout(Duration.ofSeconds(5))
+                .execute()
                 .toCompletableFuture()
                 .thenApply(resultObj -> {
-                    ActorHierarchy.SpawnResult result = (ActorHierarchy.SpawnResult) resultObj;
-                    if (result.success) {
+                    if (resultObj.success) {
                         return ResponseEntity.ok(toMap(
                                 "success",
                                 true,
@@ -205,9 +208,9 @@ public class SupervisionController {
                                 "strategy",
                                 strategy,
                                 "message",
-                                result.message));
+                                resultObj.message));
                     } else {
-                        return ResponseEntity.badRequest().body(toMap("success", false, "message", result.message));
+                        return ResponseEntity.badRequest().body(toMap("success", false, "message", resultObj.message));
                     }
                 })
                 .exceptionally(ex -> ResponseEntity.internalServerError()
@@ -231,20 +234,21 @@ public class SupervisionController {
         }
 
         return supervisor
-                .ask((org.apache.pekko.actor.typed.ActorRef<HierarchicalActor.WorkResult> replyTo) ->
+                .askBuilder((org.apache.pekko.actor.typed.ActorRef<HierarchicalActor.WorkResult> replyTo) ->
                         new HierarchicalActor.RouteToChild(workerId, taskName, replyTo))
+                .withTimeout(Duration.ofSeconds(5))
+                .execute()
                 .toCompletableFuture()
                 .thenApply(resultObj -> {
-                    HierarchicalActor.WorkResult result = (HierarchicalActor.WorkResult) resultObj;
                     return ResponseEntity.ok(toMap(
                             "success",
                             true,
                             "workerId",
-                            result.workerId,
+                            resultObj.workerId,
                             "taskName",
-                            result.taskName,
+                            resultObj.taskName,
                             "tasksCompleted",
-                            result.tasksCompleted));
+                            resultObj.tasksCompleted));
                 })
                 .exceptionally(ex -> ResponseEntity.internalServerError()
                         .body(Map.of("success", false, "message", "Failed to send work: " + ex.getMessage())));
@@ -266,8 +270,10 @@ public class SupervisionController {
         }
 
         return supervisor
-                .ask((org.apache.pekko.actor.typed.ActorRef<String> replyTo) ->
+                .askBuilder((org.apache.pekko.actor.typed.ActorRef<String> replyTo) ->
                         new HierarchicalActor.TriggerChildFailure(workerId, replyTo))
+                .withTimeout(Duration.ofSeconds(5))
+                .execute()
                 .toCompletableFuture()
                 .thenApply(result -> ResponseEntity.ok(toMap("success", true, "workerId", workerId, "message", result)))
                 .exceptionally(ex -> ResponseEntity.internalServerError()
@@ -289,8 +295,10 @@ public class SupervisionController {
         }
 
         return supervisor
-                .ask((org.apache.pekko.actor.typed.ActorRef<String> replyTo) ->
+                .askBuilder((org.apache.pekko.actor.typed.ActorRef<String> replyTo) ->
                         new HierarchicalActor.StopChild(workerId, replyTo))
+                .withTimeout(Duration.ofSeconds(5))
+                .execute()
                 .toCompletableFuture()
                 .thenApply(result -> ResponseEntity.ok(toMap("success", true, "workerId", workerId, "message", result)))
                 .exceptionally(ex -> ResponseEntity.internalServerError()
@@ -329,12 +337,12 @@ public class SupervisionController {
         }
 
         return supervisor
-                .ask((org.apache.pekko.actor.typed.ActorRef<ActorHierarchy.ActorNode> replyTo) ->
-                        new HierarchicalActor.GetHierarchy(replyTo))
+                .askBuilder(HierarchicalActor.GetHierarchy::new)
+                .withTimeout(Duration.ofSeconds(5))
+                .execute()
                 .toCompletableFuture()
                 .thenApply(nodeObj -> {
-                    ActorHierarchy.ActorNode node = (ActorHierarchy.ActorNode) nodeObj;
-                    return ResponseEntity.ok(toMap("root", convertNodeToMap(node)));
+                    return ResponseEntity.ok(toMap("root", convertNodeToMap(nodeObj)));
                 })
                 .exceptionally(ex -> ResponseEntity.internalServerError()
                         .body(Map.of("error", "Failed to get hierarchy: " + ex.getMessage())));

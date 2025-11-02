@@ -283,8 +283,9 @@ public final class SpringActorBehavior<C> {
             try {
                 ActorTypeRegistry registry = actorContext.registry();
                 if (registry == null) {
-                    msg.replyTo.tell(FrameworkCommands.SpawnChildResponse.failure(
-                            "ActorTypeRegistry is null. Ensure SpringActorContext.registry() returns a non-null registry."));
+                    msg.replyTo.tell(
+                            FrameworkCommands.SpawnChildResponse.failure(
+                                    "ActorTypeRegistry is null. Ensure SpringActorContext.registry() returns a non-null registry."));
                     return;
                 }
 
@@ -294,13 +295,15 @@ public final class SpringActorBehavior<C> {
 
                 // Check if child already exists
                 if (ctx.getChild(childName).isPresent()) {
-                    ActorRef<CC> existingChild = (ActorRef<CC>) ctx.getChild(childName).get();
+                    ActorRef<CC> existingChild =
+                            (ActorRef<CC>) ctx.getChild(childName).get();
                     msg.replyTo.tell(FrameworkCommands.SpawnChildResponse.alreadyExists(existingChild));
                     return;
                 }
 
                 // Create behavior using Spring DI
-                Behavior<CC> behavior = (Behavior<CC>) registry.createBehavior(msg.actorClass, childContext).asBehavior();
+                Behavior<CC> behavior = (Behavior<CC>)
+                        registry.createBehavior(msg.actorClass, childContext).asBehavior();
 
                 // Apply supervision if provided
                 if (msg.strategy != null) {
@@ -313,8 +316,8 @@ public final class SpringActorBehavior<C> {
 
             } catch (Exception e) {
                 ctx.getLog().error("Failed to spawn child actor", e);
-                msg.replyTo.tell(FrameworkCommands.SpawnChildResponse.failure(
-                        "Failed to spawn child: " + e.getMessage()));
+                msg.replyTo.tell(
+                        FrameworkCommands.SpawnChildResponse.failure("Failed to spawn child: " + e.getMessage()));
             }
         }
 
