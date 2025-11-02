@@ -5,8 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.seonwkim.core.SpringActorSystemTest.TestHelloActor.SayHello;
+import java.util.concurrent.TimeUnit;
 import org.apache.pekko.actor.typed.ActorRef;
-import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -91,7 +91,7 @@ class SpringActorSystemTest {
     class SimpleTest {
 
         @Test
-        void spawnAndStopActors(ApplicationContext context) {
+        void spawnAndStopActors(ApplicationContext context) throws Exception {
             assertTrue(context.containsBean("actorSystem"), "ActorSystem bean should exist");
             SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
 
@@ -101,14 +101,14 @@ class SpringActorSystemTest {
 
             assertThat(actorRef).isNotNull();
 
-            assertEquals(actorRef.ask(SayHello::new).toCompletableFuture().join(), "hello world!!");
+            assertEquals(actorRef.ask(SayHello::new).toCompletableFuture().get(5, TimeUnit.SECONDS), "hello world!!");
 
             // Stop the actor using the simplified API (fire-and-forget)
             actorRef.stop();
         }
 
         @Test
-        void customActorContext(ApplicationContext context) {
+        void customActorContext(ApplicationContext context) throws Exception {
             assertTrue(context.containsBean("actorSystem"), "ActorSystem bean should exist");
             SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
 
@@ -122,25 +122,25 @@ class SpringActorSystemTest {
             assertEquals(
                     actorRef.ask(CustomActorContextActor.SayHello::new)
                             .toCompletableFuture()
-                            .join(),
+                            .get(5, TimeUnit.SECONDS),
                     actorContext.actorId());
         }
 
         @Test
-        void existsReturnsFalseForNonExistentActor(ApplicationContext context) {
+        void existsReturnsFalseForNonExistentActor(ApplicationContext context) throws Exception {
             SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
 
             // Check that an actor that was never spawned doesn't exist
             boolean exists = actorSystem
                     .exists(TestHelloActor.class, "non-existent-actor")
                     .toCompletableFuture()
-                    .join();
+                    .get(5, TimeUnit.SECONDS);
 
             assertThat(exists).isFalse();
         }
 
         @Test
-        void existsReturnsTrueForSpawnedActor(ApplicationContext context) {
+        void existsReturnsTrueForSpawnedActor(ApplicationContext context) throws Exception {
             SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
 
             final String actorId = "exists-test-actor";
@@ -149,7 +149,7 @@ class SpringActorSystemTest {
             assertThat(actorSystem
                             .exists(TestHelloActor.class, actorId)
                             .toCompletableFuture()
-                            .join())
+                            .get(5, TimeUnit.SECONDS))
                     .isFalse();
 
             // Spawn the actor
@@ -159,25 +159,25 @@ class SpringActorSystemTest {
             assertThat(actorSystem
                             .exists(TestHelloActor.class, actorId)
                             .toCompletableFuture()
-                            .join())
+                            .get(5, TimeUnit.SECONDS))
                     .isTrue();
         }
 
         @Test
-        void getReturnsNullForNonExistentActor(ApplicationContext context) {
+        void getReturnsNullForNonExistentActor(ApplicationContext context) throws Exception {
             SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
 
             // Get an actor that was never spawned
             SpringActorRef<TestHelloActor.Command> actorRef = actorSystem
                     .get(TestHelloActor.class, "non-existent-actor")
                     .toCompletableFuture()
-                    .join();
+                    .get(5, TimeUnit.SECONDS);
 
             assertThat(actorRef).isNull();
         }
 
         @Test
-        void getReturnsValidRefForSpawnedActor(ApplicationContext context) {
+        void getReturnsValidRefForSpawnedActor(ApplicationContext context) throws Exception {
             SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
 
             final String actorId = "get-test-actor";
@@ -191,18 +191,18 @@ class SpringActorSystemTest {
             SpringActorRef<TestHelloActor.Command> retrievedRef = actorSystem
                     .get(TestHelloActor.class, actorId)
                     .toCompletableFuture()
-                    .join();
+                    .get(5, TimeUnit.SECONDS);
 
             assertThat(retrievedRef).isNotNull();
 
             // Verify we can use the retrieved ref to send messages
             Object response =
-                    retrievedRef.ask(SayHello::new).toCompletableFuture().join();
+                    retrievedRef.ask(SayHello::new).toCompletableFuture().get(5, TimeUnit.SECONDS);
             assertEquals("hello world!!", response);
         }
 
         @Test
-        void existsReturnsFalseAfterActorStopped(ApplicationContext context) throws InterruptedException {
+        void existsReturnsFalseAfterActorStopped(ApplicationContext context) throws Exception {
             SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
 
             final String actorId = "stop-test-actor";
@@ -215,7 +215,7 @@ class SpringActorSystemTest {
             assertThat(actorSystem
                             .exists(TestHelloActor.class, actorId)
                             .toCompletableFuture()
-                            .join())
+                            .get(5, TimeUnit.SECONDS))
                     .isTrue();
 
             // Stop the actor
@@ -228,12 +228,12 @@ class SpringActorSystemTest {
             assertThat(actorSystem
                             .exists(TestHelloActor.class, actorId)
                             .toCompletableFuture()
-                            .join())
+                            .get(5, TimeUnit.SECONDS))
                     .isFalse();
         }
 
         @Test
-        void getAndExistsWorkWithDifferentActorIds(ApplicationContext context) {
+        void getAndExistsWorkWithDifferentActorIds(ApplicationContext context) throws Exception {
             SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
 
             // Spawn multiple actors with different IDs
@@ -244,34 +244,34 @@ class SpringActorSystemTest {
             assertThat(actorSystem
                             .exists(TestHelloActor.class, "actor-1")
                             .toCompletableFuture()
-                            .join())
+                            .get(5, TimeUnit.SECONDS))
                     .isTrue();
             assertThat(actorSystem
                             .exists(TestHelloActor.class, "actor-2")
                             .toCompletableFuture()
-                            .join())
+                            .get(5, TimeUnit.SECONDS))
                     .isTrue();
             assertThat(actorSystem
                             .exists(TestHelloActor.class, "actor-3")
                             .toCompletableFuture()
-                            .join())
+                            .get(5, TimeUnit.SECONDS))
                     .isFalse();
 
             // Verify get works for each
             assertThat(actorSystem
                             .get(TestHelloActor.class, "actor-1")
                             .toCompletableFuture()
-                            .join())
+                            .get(5, TimeUnit.SECONDS))
                     .isNotNull();
             assertThat(actorSystem
                             .get(TestHelloActor.class, "actor-2")
                             .toCompletableFuture()
-                            .join())
+                            .get(5, TimeUnit.SECONDS))
                     .isNotNull();
             assertThat(actorSystem
                             .get(TestHelloActor.class, "actor-3")
                             .toCompletableFuture()
-                            .join())
+                            .get(5, TimeUnit.SECONDS))
                     .isNull();
         }
     }
