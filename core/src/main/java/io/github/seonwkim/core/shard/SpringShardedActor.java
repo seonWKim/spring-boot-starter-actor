@@ -1,6 +1,5 @@
 package io.github.seonwkim.core.shard;
 
-import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.cluster.sharding.typed.ShardingMessageExtractor;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityContext;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
@@ -14,9 +13,30 @@ import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
  * uses {@link DefaultShardingMessageExtractor} with 100 shards, which is suitable for most use
  * cases. Override this method if you need a different number of shards or custom routing logic.
  *
+ * <p>Example usage:
+ * <pre>
+ * &#64;Component
+ * public class MyShardedActor implements SpringShardedActor&lt;Command&gt; {
+ *     &#64;Override
+ *     public EntityTypeKey&lt;Command&gt; typeKey() {
+ *         return EntityTypeKey.create(Command.class, "MyActor");
+ *     }
+ *
+ *     &#64;Override
+ *     public SpringShardedActorBehavior&lt;Command&gt; create(EntityContext&lt;Command&gt; ctx) {
+ *         return SpringShardedActorBehavior.builder(ctx)
+ *             .setup(entityCtx -&gt; SpringShardedActorBehavior.receive(Command.class)
+ *                 .onMessage(MyCommand.class, this::handleCommand)
+ *                 .build())
+ *             .build();
+ *     }
+ * }
+ * </pre>
+ *
  * @param <T> The type of messages that the actor can handle
+ * @see SpringShardedActorBehavior
  */
-public interface ShardedActor<T> {
+public interface SpringShardedActor<T> {
     /**
      * Returns the entity type key for this actor type. The entity type key is used to identify the
      * actor type in the cluster.
@@ -30,9 +50,9 @@ public interface ShardedActor<T> {
      * instance of the actor is created.
      *
      * @param ctx The entity context for the actor
-     * @return A behavior for the actor
+     * @return A SpringShardedActorBehavior for the actor
      */
-    Behavior<T> create(EntityContext<T> ctx);
+    SpringShardedActorBehavior<T> create(EntityContext<T> ctx);
 
     /**
      * Returns a message extractor for this actor type. The message extractor is used to extract

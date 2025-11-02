@@ -3,7 +3,6 @@ package io.github.seonwkim.core;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
-import org.apache.pekko.actor.typed.Behavior;
 
 /**
  * Registry for actor types that allows registering actor factories and creating actor behaviors.
@@ -12,7 +11,7 @@ import org.apache.pekko.actor.typed.Behavior;
  */
 public class ActorTypeRegistry {
 
-    private final Map<Class<?>, Function<SpringActorContext, Behavior<?>>> classToFactory = new HashMap<>();
+    private final Map<Class<?>, Function<SpringActorContext, SpringActorBehavior<?>>> classToFactory = new HashMap<>();
 
     /**
      * Registers a factory for creating actor behaviors for the given actor class. The factory
@@ -20,17 +19,29 @@ public class ActorTypeRegistry {
      *
      * @param actorClass The actor class to register
      * @param factory The factory for creating actor behaviors
-     * @param <A> The type of the actor (must extend SpringActorWithContext)
      * @param <C> The type of commands the actor handles
      * @param <CTX> The type of context the actor requires
      */
-    public <A extends SpringActorWithContext<A, C, CTX>, C, CTX extends SpringActorContext> void register(
-            Class<A> actorClass, Function<SpringActorContext, Behavior<C>> factory) {
+    public <C, CTX extends SpringActorContext> void register(
+            Class<? extends SpringActorWithContext<C, CTX>> actorClass,
+            Function<SpringActorContext, SpringActorBehavior<C>> factory) {
         // Safe cast due to type erasure - the generic types ensure compile-time safety
         @SuppressWarnings("unchecked")
-        Function<SpringActorContext, Behavior<?>> erasedFactory =
-                (Function<SpringActorContext, Behavior<?>>) (Function<?, ?>) factory;
-        classToFactory.put(actorClass, erasedFactory);
+        Function<SpringActorContext, SpringActorBehavior<?>> erasedFactory =
+                (Function<SpringActorContext, SpringActorBehavior<?>>) (Function<?, ?>) factory;
+        registerInternal(actorClass, erasedFactory);
+    }
+
+    /**
+     * Internal method for registering actors with raw types. Used by the framework when
+     * dealing with Spring beans where exact types are unknown at compile time.
+     *
+     * @param actorClass The actor class to register
+     * @param factory The factory for creating actor behaviors
+     */
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    void registerInternal(Class<?> actorClass, Function<SpringActorContext, SpringActorBehavior<?>> factory) {
+        classToFactory.put(actorClass, factory);
     }
 
     /**
@@ -38,10 +49,10 @@ public class ActorTypeRegistry {
      * compile-time type checking for registered actors.
      */
     @SuppressWarnings("unchecked")
-    public <A extends SpringActorWithContext<A, C, CTX>, C, CTX extends SpringActorContext>
-            Behavior<C> createTypedBehavior(Class<A> actorClass, SpringActorContext actorContext) {
+    public <C, CTX extends SpringActorContext> SpringActorBehavior<C> createTypedBehavior(
+            Class<? extends SpringActorWithContext<C, CTX>> actorClass, SpringActorContext actorContext) {
         // Safe cast: register method ensures type consistency
-        return (Behavior<C>) createBehavior(actorClass, actorContext);
+        return (SpringActorBehavior<C>) createBehavior(actorClass, actorContext);
     }
 
     /**
@@ -53,39 +64,19 @@ public class ActorTypeRegistry {
      *
      * @param actorClass The actor class to create a behavior for
      * @param actorContext The context to use for creating the behavior
-     * @return A behavior for the given actor class and context
+     * @return A SpringActorBehavior for the given actor class and context
      * @throws IllegalArgumentException If no factory is registered for the given actor class
      */
-    public Behavior<?> createBehavior(Class<?> actorClass, SpringActorContext actorContext) {
-        final Function<SpringActorContext, Behavior<?>> factory = classToFactory.get(actorClass);
+    public SpringActorBehavior<?> createBehavior(Class<?> actorClass, SpringActorContext actorContext) {
+        final Function<SpringActorContext, SpringActorBehavior<?>> factory = classToFactory.get(actorClass);
         if (factory == null) {
             throw new IllegalArgumentException("No factory registered for class: " + actorClass.getName());
         }
 
-        // Inject registry if the context doesn't have one
-        SpringActorContext contextWithRegistry =
-                actorContext.registry() == null ? wrapContextWithRegistry(actorContext) : actorContext;
+        if (actorContext.registry() == null) {
+            actorContext.setRegistry(this);
+        }
 
-        return factory.apply(contextWithRegistry);
-    }
-
-    /**
-     * Wraps a context to inject this registry, enabling hierarchical supervision.
-     *
-     * @param originalContext The original context
-     * @return A wrapped context with this registry injected
-     */
-    private SpringActorContext wrapContextWithRegistry(SpringActorContext originalContext) {
-        return new SpringActorContext() {
-            @Override
-            public String actorId() {
-                return originalContext.actorId();
-            }
-
-            @Override
-            public ActorTypeRegistry registry() {
-                return ActorTypeRegistry.this;
-            }
-        };
+        return factory.apply(actorContext);
     }
 }

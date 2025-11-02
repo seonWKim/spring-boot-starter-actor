@@ -35,6 +35,7 @@ out/
 
 ### VS Code ###
 .vscode/
+TODO.md
 
 ### logs
 log_*.txt

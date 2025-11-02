@@ -50,7 +50,7 @@ Key components:
 The Actor locking implementation uses the actor model through spring-boot-starter-actor to handle counter operations. Each counter is represented by a separate actor instance, and all operations on a counter are processed sequentially by its actor, eliminating the need for explicit locks.
 
 Key components:
-- `CounterActor` implementing `ShardedActor`
+- `CounterActor` implementing `SpringShardedActor`
 - Entity-per-ID pattern with sharded actors
 - Message-based communication for increment and get operations
 

@@ -94,7 +94,9 @@ public class SpringActorRefTest {
                 new SpringActorRef<>(testKit.system().scheduler(), actorRef);
 
         String result = springRef
-                .ask(Ping::new, Duration.ofSeconds(3))
+                .askBuilder(Ping::new)
+                .withTimeout(Duration.ofSeconds(3))
+                .execute()
                 .toCompletableFuture()
                 .get();
 

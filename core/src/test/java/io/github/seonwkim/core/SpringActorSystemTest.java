@@ -5,8 +5,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.seonwkim.core.SpringActorSystemTest.TestHelloActor.SayHello;
+
+import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 import org.apache.pekko.actor.typed.ActorRef;
-import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -19,7 +21,7 @@ import org.springframework.test.context.TestPropertySource;
 class SpringActorSystemTest {
 
     @Component
-    static class TestHelloActor implements SpringActor<TestHelloActor, TestHelloActor.Command> {
+    static class TestHelloActor implements SpringActor<TestHelloActor.Command> {
 
         public interface Command {}
 
@@ -32,20 +34,19 @@ class SpringActorSystemTest {
         }
 
         @Override
-        public Behavior<Command> create(SpringActorContext id) {
-            return Behaviors.setup(ctx -> Behaviors.receive(Command.class)
-                    .onMessage(SayHello.class, msg -> {
+        public SpringActorBehavior<Command> create(SpringActorContext id) {
+            return SpringActorBehavior.builder(Command.class, id)
+                    .onMessage(SayHello.class, (ctx, msg) -> {
                         msg.replyTo.tell("hello world!!");
                         return Behaviors.same();
                     })
-                    .build());
+                    .build();
         }
     }
 
     @Component
     static class CustomActorContextActor
-            implements SpringActorWithContext<
-                    CustomActorContextActor, CustomActorContextActor.Command, CustomActorContext> {
+            implements SpringActorWithContext<CustomActorContextActor.Command, CustomActorContext> {
 
         public interface Command {}
 
@@ -58,17 +59,51 @@ class SpringActorSystemTest {
         }
 
         @Override
-        public Behavior<Command> create(CustomActorContext context) {
-            return Behaviors.setup(ctx -> Behaviors.receive(Command.class)
-                    .onMessage(SayHello.class, msg -> {
+        public SpringActorBehavior<Command> create(CustomActorContext context) {
+            return SpringActorBehavior.builder(Command.class, context)
+                    .onMessage(SayHello.class, (ctx, msg) -> {
                         msg.replyTo.tell(context.actorId());
                         return Behaviors.same();
                     })
-                    .build());
+                    .build();
         }
     }
 
-    static class CustomActorContext implements SpringActorContext {
+    /**
+     * Test actor that demonstrates building an actor WITHOUT using onCreate().
+     * This uses the default state type (ActorContext) and handles messages directly.
+     */
+    @Component
+    static class SimpleActorWithoutOnCreate implements SpringActor<SimpleActorWithoutOnCreate.Command> {
+
+        public interface Command {}
+
+        public static class Increment implements Command {
+            private final ActorRef<Integer> replyTo;
+
+            public Increment(ActorRef<Integer> replyTo) {
+                this.replyTo = replyTo;
+            }
+        }
+
+        @Override
+        public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
+            // Using a simple closure to maintain state without onCreate
+            final int[] counter = {0};
+
+            return SpringActorBehavior.builder(Command.class, actorContext)
+                    // No onCreate() - message handlers work directly with ActorContext
+                    .onMessage(Increment.class, (ctx, msg) -> {
+                        counter[0]++;
+                        ctx.getLog().info("Counter for {} incremented to {}", actorContext.actorId(), counter[0]);
+                        msg.replyTo.tell(counter[0]);
+                        return Behaviors.same();
+                    })
+                    .build();
+        }
+    }
+
+    static class CustomActorContext extends SpringActorContext {
 
         private final String actorId;
 
@@ -91,24 +126,30 @@ class SpringActorSystemTest {
     class SimpleTest {
 
         @Test
-        void spawnAndStopActors(ApplicationContext context) {
+        void spawnAndStopActors(ApplicationContext context) throws Exception {
             assertTrue(context.containsBean("actorSystem"), "ActorSystem bean should exist");
             SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
 
             final String actorId = "test-actor";
             final SpringActorRef<TestHelloActor.Command> actorRef =
-                    actorSystem.actor(TestHelloActor.class).withId(actorId).startAndWait();
+                    actorSystem.actor(TestHelloActor.class).withId(actorId).spawnAndWait();
 
             assertThat(actorRef).isNotNull();
 
-            assertEquals(actorRef.ask(SayHello::new).toCompletableFuture().join(), "hello world!!");
+            assertEquals(
+                    "hello world!!",
+                    actorRef.askBuilder(SayHello::new)
+                            .withTimeout(java.time.Duration.ofSeconds(5))
+                            .execute()
+                            .toCompletableFuture()
+                            .get());
 
             // Stop the actor using the simplified API (fire-and-forget)
             actorRef.stop();
         }
 
         @Test
-        void customActorContext(ApplicationContext context) {
+        void customActorContext(ApplicationContext context) throws Exception {
             assertTrue(context.containsBean("actorSystem"), "ActorSystem bean should exist");
             SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
 
@@ -117,30 +158,32 @@ class SpringActorSystemTest {
             final SpringActorRef<CustomActorContextActor.Command> actorRef = actorSystem
                     .actor(CustomActorContextActor.class)
                     .withContext(actorContext)
-                    .startAndWait();
+                    .spawnAndWait();
             assertThat(actorRef).isNotNull();
             assertEquals(
-                    actorRef.ask(CustomActorContextActor.SayHello::new)
+                    actorRef.askBuilder(CustomActorContextActor.SayHello::new)
+                            .withTimeout(java.time.Duration.ofSeconds(5))
+                            .execute()
                             .toCompletableFuture()
-                            .join(),
+                            .get(),
                     actorContext.actorId());
         }
 
         @Test
-        void existsReturnsFalseForNonExistentActor(ApplicationContext context) {
+        void existsReturnsFalseForNonExistentActor(ApplicationContext context) throws Exception {
             SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
 
             // Check that an actor that was never spawned doesn't exist
             boolean exists = actorSystem
                     .exists(TestHelloActor.class, "non-existent-actor")
                     .toCompletableFuture()
-                    .join();
+                    .get(5, TimeUnit.SECONDS);
 
             assertThat(exists).isFalse();
         }
 
         @Test
-        void existsReturnsTrueForSpawnedActor(ApplicationContext context) {
+        void existsReturnsTrueForSpawnedActor(ApplicationContext context) throws Exception {
             SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
 
             final String actorId = "exists-test-actor";
@@ -149,73 +192,77 @@ class SpringActorSystemTest {
             assertThat(actorSystem
                             .exists(TestHelloActor.class, actorId)
                             .toCompletableFuture()
-                            .join())
+                            .get(5, TimeUnit.SECONDS))
                     .isFalse();
 
             // Spawn the actor
-            actorSystem.actor(TestHelloActor.class).withId(actorId).startAndWait();
+            actorSystem.actor(TestHelloActor.class).withId(actorId).spawnAndWait();
 
             // Verify actor exists after spawning
             assertThat(actorSystem
                             .exists(TestHelloActor.class, actorId)
                             .toCompletableFuture()
-                            .join())
+                            .get(5, TimeUnit.SECONDS))
                     .isTrue();
         }
 
         @Test
-        void getReturnsNullForNonExistentActor(ApplicationContext context) {
+        void getReturnsNullForNonExistentActor(ApplicationContext context) throws Exception {
             SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
 
             // Get an actor that was never spawned
             SpringActorRef<TestHelloActor.Command> actorRef = actorSystem
                     .get(TestHelloActor.class, "non-existent-actor")
                     .toCompletableFuture()
-                    .join();
+                    .get(5, TimeUnit.SECONDS);
 
             assertThat(actorRef).isNull();
         }
 
         @Test
-        void getReturnsValidRefForSpawnedActor(ApplicationContext context) {
+        void getReturnsValidRefForSpawnedActor(ApplicationContext context) throws Exception {
             SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
 
             final String actorId = "get-test-actor";
 
             // Spawn the actor
             SpringActorRef<TestHelloActor.Command> spawnedRef =
-                    actorSystem.actor(TestHelloActor.class).withId(actorId).startAndWait();
+                    actorSystem.actor(TestHelloActor.class).withId(actorId).spawnAndWait();
             assertThat(spawnedRef).isNotNull();
 
             // Get the actor using get()
             SpringActorRef<TestHelloActor.Command> retrievedRef = actorSystem
                     .get(TestHelloActor.class, actorId)
                     .toCompletableFuture()
-                    .join();
+                    .get(5, TimeUnit.SECONDS);
 
             assertThat(retrievedRef).isNotNull();
 
             // Verify we can use the retrieved ref to send messages
-            Object response =
-                    retrievedRef.ask(SayHello::new).toCompletableFuture().join();
+            Object response = retrievedRef
+                    .askBuilder(SayHello::new)
+                    .withTimeout(java.time.Duration.ofSeconds(5))
+                    .execute()
+                    .toCompletableFuture()
+                    .get();
             assertEquals("hello world!!", response);
         }
 
         @Test
-        void existsReturnsFalseAfterActorStopped(ApplicationContext context) throws InterruptedException {
+        void existsReturnsFalseAfterActorStopped(ApplicationContext context) throws Exception {
             SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
 
             final String actorId = "stop-test-actor";
 
             // Spawn the actor
             SpringActorRef<TestHelloActor.Command> actorRef =
-                    actorSystem.actor(TestHelloActor.class).withId(actorId).startAndWait();
+                    actorSystem.actor(TestHelloActor.class).withId(actorId).spawnAndWait();
 
             // Verify actor exists
             assertThat(actorSystem
                             .exists(TestHelloActor.class, actorId)
                             .toCompletableFuture()
-                            .join())
+                            .get(5, TimeUnit.SECONDS))
                     .isTrue();
 
             // Stop the actor
@@ -228,51 +275,86 @@ class SpringActorSystemTest {
             assertThat(actorSystem
                             .exists(TestHelloActor.class, actorId)
                             .toCompletableFuture()
-                            .join())
+                            .get(5, TimeUnit.SECONDS))
                     .isFalse();
         }
 
         @Test
-        void getAndExistsWorkWithDifferentActorIds(ApplicationContext context) {
+        void getAndExistsWorkWithDifferentActorIds(ApplicationContext context) throws Exception {
             SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
 
             // Spawn multiple actors with different IDs
-            actorSystem.actor(TestHelloActor.class).withId("actor-1").startAndWait();
-            actorSystem.actor(TestHelloActor.class).withId("actor-2").startAndWait();
+            actorSystem.actor(TestHelloActor.class).withId("actor-1").spawnAndWait();
+            actorSystem.actor(TestHelloActor.class).withId("actor-2").spawnAndWait();
 
             // Verify each exists independently
             assertThat(actorSystem
                             .exists(TestHelloActor.class, "actor-1")
                             .toCompletableFuture()
-                            .join())
+                            .get(5, TimeUnit.SECONDS))
                     .isTrue();
             assertThat(actorSystem
                             .exists(TestHelloActor.class, "actor-2")
                             .toCompletableFuture()
-                            .join())
+                            .get(5, TimeUnit.SECONDS))
                     .isTrue();
             assertThat(actorSystem
                             .exists(TestHelloActor.class, "actor-3")
                             .toCompletableFuture()
-                            .join())
+                            .get(5, TimeUnit.SECONDS))
                     .isFalse();
 
             // Verify get works for each
             assertThat(actorSystem
                             .get(TestHelloActor.class, "actor-1")
                             .toCompletableFuture()
-                            .join())
+                            .get(5, TimeUnit.SECONDS))
                     .isNotNull();
             assertThat(actorSystem
                             .get(TestHelloActor.class, "actor-2")
                             .toCompletableFuture()
-                            .join())
+                            .get(5, TimeUnit.SECONDS))
                     .isNotNull();
             assertThat(actorSystem
                             .get(TestHelloActor.class, "actor-3")
                             .toCompletableFuture()
-                            .join())
+                            .get(5, TimeUnit.SECONDS))
                     .isNull();
+        }
+
+        @Test
+        void actorWithoutOnCreateWorks(ApplicationContext context) throws Exception {
+            SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
+
+            final String actorId = "counter-actor";
+            final SpringActorRef<SimpleActorWithoutOnCreate.Command> actorRef = actorSystem
+                    .actor(SimpleActorWithoutOnCreate.class)
+                    .withId(actorId)
+                    .spawnAndWait();
+
+            assertThat(actorRef).isNotNull();
+
+            // Send increment messages and verify counter increases
+            Integer count1 = actorRef.askBuilder(SimpleActorWithoutOnCreate.Increment::new)
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
+                    .toCompletableFuture()
+                    .get();
+            assertEquals(1, count1);
+
+            Integer count2 = actorRef.askBuilder(SimpleActorWithoutOnCreate.Increment::new)
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
+                    .toCompletableFuture()
+                    .get();
+            assertEquals(2, count2);
+
+            Integer count3 = actorRef.askBuilder(SimpleActorWithoutOnCreate.Increment::new)
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
+                    .toCompletableFuture()
+                    .get();
+            assertEquals(3, count3);
         }
     }
 }

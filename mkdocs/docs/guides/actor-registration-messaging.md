@@ -22,12 +22,12 @@ import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.springframework.stereotype.Component;
 
 @Component
-public class HelloActor implements SpringActor<HelloActor, HelloActor.Command> {
+public class HelloActor implements SpringActor<HelloActor.Command> {
 
     // Define the command interface for messages this actor can handle
     public interface Command {}
 
-    // Define a message type 
+    // Define a message type
     public static class SayHi implements Command {}
 
     // Define a message type
@@ -41,8 +41,12 @@ public class HelloActor implements SpringActor<HelloActor, HelloActor.Command> {
 
     // Create the behavior for this actor
     @Override
-    public Behavior<Command> create(SpringActorContext actorContext) {
-        return Behaviors.setup(ctx -> new HelloActorBehavior(ctx, actorContext).create());
+    public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
+        return SpringActorBehavior.builder(Command.class, actorContext)
+            .onCreate(ctx -> new HelloActorBehavior(ctx, actorContext))
+            .onMessage(SayHi.class, HelloActorBehavior::onSayHi)
+            .onMessage(SayHello.class, HelloActorBehavior::onSayHello)
+            .build();
     }
 
     // Inner class to handle the actor's behavior
@@ -55,21 +59,14 @@ public class HelloActor implements SpringActor<HelloActor, HelloActor.Command> {
             this.actorContext = actorContext;
         }
 
-        public Behavior<Command> create() {
-            return Behaviors.receive(Command.class)
-                            .onMessage(SayHi.class, this::onSayHi)
-                            .onMessage(SayHello.class, this::onSayHello)
-                            .build();
-        }
-
         private Behavior<Command> onSayHi(SayHi msg) {
-            ctx.getLog().info("Received SayHi for id={}", actorId);
-            return Behaviors.same(); 
+            ctx.getLog().info("Received SayHi for id={}", actorContext.actorId());
+            return Behaviors.same();
         }
 
         private Behavior<Command> onSayHello(SayHello msg) {
-            ctx.getLog().info("Received SayHello for id={}", actorContext.getId());
-            msg.replyTo.tell("Hello from actor " + actorId);
+            ctx.getLog().info("Received SayHello for id={}", actorContext.actorId());
+            msg.replyTo.tell("Hello from actor " + actorContext.actorId());
             return Behaviors.same();
         }
     }
@@ -133,7 +130,9 @@ public class HelloService {
     public Mono<String> hello() {
         return Mono.fromCompletionStage(
             helloActor.thenCompose(actor ->
-                actor.ask(HelloActor.SayHello::new, Duration.ofSeconds(3))
+                actor.askBuilder(HelloActor.SayHello::new)
+                    .withTimeout(Duration.ofSeconds(3))
+                    .execute()
             )
         );
     }
@@ -176,7 +175,9 @@ The ask pattern is used when you expect a response from the actor:
 ```java
 public Mono<String> hello() {
     return Mono.fromCompletionStage(
-            helloActor.ask(HelloActor.SayHello::new, Duration.ofSeconds(3)));
+            helloActor.askBuilder(HelloActor.SayHello::new)
+                .withTimeout(Duration.ofSeconds(3))
+                .execute());
 }
 ```
 
@@ -272,7 +273,10 @@ public class HelloService {
     public Mono<String> hello() {
         return Mono.fromCompletionStage(
                 actorSystem.getOrSpawn(HelloActor.class, "hello-actor")
-                        .thenCompose(actor -> actor.ask(HelloActor.SayHello::new)));
+                        .thenCompose(actor ->
+                            actor.askBuilder(HelloActor.SayHello::new)
+                                .withTimeout(Duration.ofSeconds(3))
+                                .execute()));
     }
 }
 ```
@@ -304,9 +308,144 @@ public class HelloService {
 
     public Mono<String> hello() {
         return Mono.fromCompletionStage(
-                getActor().thenCompose(actor -> actor.ask(HelloActor.SayHello::new)));
+                getActor().thenCompose(actor ->
+                    actor.askBuilder(HelloActor.SayHello::new)
+                        .withTimeout(Duration.ofSeconds(3))
+                        .execute()));
     }
 }
+```
+
+## Spawning Child Actors
+
+Child actors can be spawned from within parent actors using the fluent child builder API. This provides a consistent and type-safe way to manage actor hierarchies.
+
+### Basic Child Spawning
+
+Use the `child()` method on `SpringActorRef` to spawn child actors:
+
+```java
+@Component
+public class ParentActor implements SpringActor<ParentActor.Command> {
+
+    public interface Command extends FrameworkCommand {}
+
+    @Override
+    public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
+        return SpringActorBehavior.builder(Command.class, actorContext)
+            .onCreate(ctx -> {
+                // Get reference to self
+                SpringActorRef<Command> self = new SpringActorRef<>(
+                    ctx.getSystem().scheduler(), ctx.getSelf());
+
+                // Spawn a child actor using fluent API
+                self.child(ChildActor.class)
+                    .withId("worker-1")
+                    .withSupervisionStrategy(SupervisorStrategy.restart())
+                    .withTimeout(Duration.ofSeconds(5))
+                    .spawn();  // Returns CompletionStage<SpringActorRef>
+
+                return new ParentBehavior(ctx, actorContext);
+            })
+            .build();
+    }
+}
+```
+
+### Child Actor Operations
+
+The child builder API supports several operations:
+
+**Spawn a new child:**
+```java
+CompletionStage<SpringActorRef<Command>> child = parentRef
+    .child(ChildActor.class)
+    .withId("child-1")
+    .withSupervisionStrategy(SupervisorStrategy.restart())
+    .spawn();  // Async
+
+// Or synchronous spawning
+SpringActorRef<Command> child = parentRef
+    .child(ChildActor.class)
+    .withId("child-2")
+    .withSupervisionStrategy(SupervisorStrategy.restart())
+    .spawnAndWait();  // Blocks until spawned
+```
+
+**Get existing child reference:**
+```java
+CompletionStage<SpringActorRef<Command>> existing = parentRef
+    .child(ChildActor.class)
+    .withId("child-1")
+    .get();  // Returns null if not found
+```
+
+**Check if child exists:**
+```java
+CompletionStage<Boolean> exists = parentRef
+    .child(ChildActor.class)
+    .withId("child-1")
+    .exists();
+```
+
+**Get existing or spawn new (recommended):**
+```java
+CompletionStage<SpringActorRef<Command>> childRef = parentRef
+    .child(ChildActor.class)
+    .withId("child-1")
+    .getOrSpawn();  // Gets existing or creates new
+```
+
+### Child Actor with Custom Context
+
+You can provide custom context for child actors:
+
+```java
+SpringActorContext customContext = new SpringActorContext() {
+    @Override
+    public String actorId() {
+        return "custom-child-id";
+    }
+};
+
+SpringActorRef<Command> child = parentRef
+    .child(ChildActor.class)
+    .withContext(customContext)
+    .withSupervisionStrategy(SupervisorStrategy.restart())
+    .spawnAndWait();
+```
+
+### Supervision Strategies for Children
+
+Apply different supervision strategies based on the child's role:
+
+```java
+// Restart strategy for stateless workers
+self.child(WorkerActor.class)
+    .withId("worker")
+    .withSupervisionStrategy(SupervisorStrategy.restart())
+    .spawn();
+
+// Limited restart for production systems
+self.child(WorkerActor.class)
+    .withId("critical-worker")
+    .withSupervisionStrategy(
+        SupervisorStrategy.restart()
+            .withLimit(3, Duration.ofMinutes(1))
+    )
+    .spawn();
+
+// Stop strategy for actors that should fail fast
+self.child(ValidatorActor.class)
+    .withId("validator")
+    .withSupervisionStrategy(SupervisorStrategy.stop())
+    .spawn();
+
+// Resume strategy for non-critical failures
+self.child(LoggerActor.class)
+    .withId("logger")
+    .withSupervisionStrategy(SupervisorStrategy.resume())
+    .spawn();
 ```
 
 ## Best Practices
@@ -314,11 +453,13 @@ public class HelloService {
 1. **Use getOrSpawn**: For most cases, use `getOrSpawn()` instead of manually checking exists/get/spawn - it's simpler and reduces boilerplate.
 2. **Lazy Initialization**: Use lazy initialization to avoid blocking application startup. For simple cases, use `getOrSpawn` directly; for high-frequency access, add caching with `AtomicReference`.
 3. **Actor Hierarchy**: Organize actors in a hierarchy to manage their lifecycle and supervision.
-4. **Message Immutability**: Ensure that messages sent to actors are immutable to prevent concurrency issues.
-5. **Timeout Handling**: Always specify reasonable timeouts for ask operations and handle timeout exceptions using `askBuilder().onTimeout()`.
-6. **Non-Blocking Operations**: Avoid blocking operations inside actors, as they can lead to thread starvation.
-7. **Actor Naming**: Use meaningful and unique names for actors to make debugging easier.
-8. **Prefer Fluent API**: Use the fluent builder API for spawning actors as it provides better readability and type safety.
+4. **Choose Appropriate Supervision**: Select supervision strategies based on the child actor's role and failure characteristics.
+5. **Use Framework Commands**: Make your Command interface extend `FrameworkCommand` when building parent actors that need to spawn children. Framework command handling is automatically enabled.
+6. **Message Immutability**: Ensure that messages sent to actors are immutable to prevent concurrency issues.
+7. **Timeout Handling**: Always specify reasonable timeouts for ask operations and handle timeout exceptions using `askBuilder().onTimeout()`.
+8. **Non-Blocking Operations**: Avoid blocking operations inside actors, as they can lead to thread starvation.
+9. **Actor Naming**: Use meaningful and unique names for actors to make debugging easier.
+10. **Prefer Fluent API**: Use the fluent builder API for spawning actors as it provides better readability and type safety.
 
 ## Next Steps
 

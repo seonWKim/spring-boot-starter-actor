@@ -11,8 +11,8 @@ import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
  * sharded actors.
  */
 public class ShardedActorRegistry {
-    private final Map<EntityTypeKey<?>, ShardedActor<?>> registry = new HashMap<>();
-    private final Map<Class<?>, ShardedActor<?>> classIndex = new HashMap<>();
+    private final Map<EntityTypeKey<?>, SpringShardedActor<?>> registry = new HashMap<>();
+    private final Map<Class<?>, SpringShardedActor<?>> classIndex = new HashMap<>();
 
     /**
      * Singleton instance of the registry. This instance can be used when a shared registry is needed.
@@ -26,7 +26,7 @@ public class ShardedActorRegistry {
      * @param actor The sharded actor to register
      * @param <T> The type of messages that the actor can handle
      */
-    public <T> void register(ShardedActor<T> actor) {
+    public <T> void register(SpringShardedActor<T> actor) {
         registry.put(actor.typeKey(), actor);
         classIndex.put(actor.getClass(), actor);
     }
@@ -38,10 +38,10 @@ public class ShardedActorRegistry {
      * @param <T> The type of messages that the actor can handle
      * @return The sharded actor with the given entity type key, or null if not found
      */
-    public <T> ShardedActor<T> get(EntityTypeKey<T> typeKey) {
+    public <T> SpringShardedActor<T> get(EntityTypeKey<T> typeKey) {
         // Safe cast: registry maintains T type consistency between key and value
         @SuppressWarnings("unchecked")
-        ShardedActor<T> actor = (ShardedActor<T>) registry.get(typeKey);
+        SpringShardedActor<T> actor = (SpringShardedActor<T>) registry.get(typeKey);
         return actor;
     }
 
@@ -53,8 +53,8 @@ public class ShardedActorRegistry {
      * @return The sharded actor with the given class, or null if not found
      */
     @SuppressWarnings("unchecked")
-    public <T> ShardedActor<T> getByClass(Class<? extends ShardedActor<T>> actorClass) {
-        return (ShardedActor<T>) classIndex.get(actorClass);
+    public <T> SpringShardedActor<T> getByClass(Class<? extends SpringShardedActor<T>> actorClass) {
+        return (SpringShardedActor<T>) classIndex.get(actorClass);
     }
 
     /**
@@ -62,7 +62,7 @@ public class ShardedActorRegistry {
      *
      * @return A collection of all registered sharded actors
      */
-    public Collection<ShardedActor<?>> getAll() {
+    public Collection<SpringShardedActor<?>> getAll() {
         return registry.values();
     }
 }

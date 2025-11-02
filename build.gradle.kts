@@ -1,4 +1,6 @@
 import com.vanniktech.maven.publish.SonatypeHost
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat
+import org.gradle.api.tasks.testing.logging.TestLogEvent
 
 plugins {
     java
@@ -126,4 +128,60 @@ tasks.register("runTest") {
     dependsOn(syncBoot3Sources)
     dependsOn(runCoreBoot3Test)
     dependsOn(runMetricsTest)
+}
+
+subprojects {
+    tasks.test {
+        useJUnitPlatform()
+
+        // Parallel test execution (use all available processors)
+        maxParallelForks = Runtime.getRuntime().availableProcessors()
+
+        minHeapSize = "512m"
+        maxHeapSize = "2048m"
+
+        jvmArgs = listOf(
+            "-XX:+UseG1GC",
+            "-XX:MaxGCPauseMillis=100"
+        )
+
+        failFast = false
+
+        testLogging {
+            // set options for log level LIFECYCLE
+            events(
+                TestLogEvent.FAILED,
+                TestLogEvent.PASSED,
+                TestLogEvent.SKIPPED,
+            )
+
+            // set options for log level DEBUG and INFO
+            debug {
+                events(
+                    TestLogEvent.STARTED,
+                    TestLogEvent.FAILED,
+                    TestLogEvent.PASSED,
+                    TestLogEvent.SKIPPED,
+                    TestLogEvent.STANDARD_ERROR,
+                    TestLogEvent.STANDARD_OUT
+                )
+                exceptionFormat = TestExceptionFormat.FULL
+            }
+
+            afterSuite(KotlinClosure2<TestDescriptor, TestResult, Unit>({ desc, result ->
+                if (desc.parent == null) { // will match the outermost suite
+                    val output =
+                        "Results: ${result.resultType} (${result.testCount} tests, ${result.successfulTestCount} passed, ${result.failedTestCount} failed, ${result.skippedTestCount} skipped)"
+                    val startItem = "|  "
+                    val endItem = "  |"
+                    val repeatLength = startItem.length + output.length + endItem.length
+                    println(
+                        "\n" + "-".repeat(repeatLength) + "\n" + startItem + output + endItem + "\n" + "-".repeat(
+                            repeatLength
+                        )
+                    )
+                }
+            }))
+        }
+    }
 }

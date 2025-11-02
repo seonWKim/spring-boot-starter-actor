@@ -4,8 +4,8 @@ package io.github.seonwkim.core;
  * Interface for Spring-managed actors using the default {@link SpringActorContext}. Classes
  * implementing this interface will be automatically registered with the actor system.
  *
- * <p>This is the preferred interface for most actors. It provides a clean API with only 2 generic
- * parameters. For actors requiring custom context types, use {@link SpringActorWithContext} instead.
+ * <p>This is the preferred interface for most actors. It provides a clean API with only 1 generic
+ * parameter. For actors requiring custom context types, use {@link SpringActorWithContext} instead.
  *
  * <p>The SpringActor interface is part of the actor system architecture:
  *
@@ -22,16 +22,17 @@ package io.github.seonwkim.core;
  * <p>Example usage:
  * <pre>
  * &#64;Component
- * public class HelloActor implements SpringActor&lt;HelloActor, HelloActor.Command&gt; {
+ * public class HelloActor implements SpringActor&lt;HelloActor.Command&gt; {
  *     &#64;Override
- *     public Behavior&lt;Command&gt; create(SpringActorContext actorContext) {
- *         return Behaviors.setup(ctx -&gt; ...);
+ *     public SpringActorBehavior&lt;Command&gt; create(SpringActorContext actorContext) {
+ *         return SpringActorBehavior.builder(actorContext)
+ *             .setup(ctx -&gt; ...)
+ *             .build();
  *     }
  * }
  * </pre>
  *
- * @param <A> The actor implementation type (self-reference)
  * @param <C> The command type that this actor handles
  * @see SpringActorWithContext
  */
-public interface SpringActor<A extends SpringActor<A, C>, C> extends SpringActorWithContext<A, C, SpringActorContext> {}
+public interface SpringActor<C> extends SpringActorWithContext<C, SpringActorContext> {}

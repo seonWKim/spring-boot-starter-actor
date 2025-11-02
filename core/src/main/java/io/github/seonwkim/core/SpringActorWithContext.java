@@ -1,7 +1,5 @@
 package io.github.seonwkim.core;
 
-import org.apache.pekko.actor.typed.Behavior;
-
 /**
  * Interface for Spring-managed actors that require custom context types. Classes implementing this
  * interface will be automatically registered with the actor system.
@@ -13,33 +11,48 @@ import org.apache.pekko.actor.typed.Behavior;
  * <p>Example usage with custom context:
  * <pre>
  * &#64;Component
- * public class UserActor implements SpringActorWithContext&lt;UserActor, Command, UserActorContext&gt; {
+ * public class UserActor implements SpringActorWithContext&lt;Command, UserActorContext&gt; {
+ *
+ *     // Framework commands are automatically enabled when Command extends FrameworkCommand
+ *     public interface Command extends FrameworkCommand {}
+ *
+ *     public static class MyCommand implements Command {}
+ *
  *     &#64;Override
- *     public Behavior&lt;Command&gt; create(UserActorContext context) {
+ *     public SpringActorBehavior&lt;Command&gt; create(UserActorContext context) {
  *         // Type-safe access to custom context - no casting needed!
- *         return Behaviors.setup(ctx -&gt; ...);
+ *         return SpringActorBehavior.builder(Command.class, context)
+ *             .onMessage(MyCommand.class, (ctx, msg) -&gt; {
+ *                 ctx.getLog().info("Handling command");
+ *                 return Behaviors.same();
+ *             })
+ *             .build();
  *     }
  *
  *     public static class UserActorContext implements SpringActorContext {
- *         private final WebSocketSession session;
+ *         private final String userId;
  *         // ... custom fields and methods
+ *
+ *         &#64;Override
+ *         public String actorId() {
+ *             return userId;
+ *         }
  *     }
  * }
  * </pre>
  *
- * @param <A> The actor implementation type (self-reference)
  * @param <C> The command type that this actor handles
  * @param <CTX> The context type that this actor requires (must extend SpringActorContext)
  * @see SpringActor
+ * @see SpringActorBehavior
  */
-public interface SpringActorWithContext<
-        A extends SpringActorWithContext<A, C, CTX>, C, CTX extends SpringActorContext> {
+public interface SpringActorWithContext<C, CTX extends SpringActorContext> {
     /**
      * Creates a behavior for this actor. This method is called by the actor system when a new actor
      * is created.
      *
      * @param actorContext The context of the actor (type-safe, no casting needed)
-     * @return A behavior for the actor
+     * @return A SpringActorBehavior for the actor
      */
-    Behavior<C> create(CTX actorContext);
+    SpringActorBehavior<C> create(CTX actorContext);
 }

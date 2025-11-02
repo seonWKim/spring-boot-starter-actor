@@ -4,6 +4,8 @@ import io.github.seonwkim.core.impl.DefaultRootGuardian;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.MailboxSelector;
+import org.apache.pekko.actor.typed.SupervisorStrategy;
+import org.springframework.lang.Nullable;
 
 /**
  * Root guardian interface for the actor system. The root guardian is the top-level actor that
@@ -32,6 +34,8 @@ public interface RootGuardian {
         // TOOD: support for cluster singleton actor creation
         /** Whether the ActorRef should be cluster singleton * */
         public final Boolean isClusterSingleton;
+        /** The supervisor strategy to use for this actor */
+        @Nullable public final SupervisorStrategy supervisorStrategy;
 
         /**
          * Creates a new SpawnActor command.
@@ -40,18 +44,21 @@ public interface RootGuardian {
          * @param replyTo The actor reference to reply to with the spawned actor reference
          * @param mailboxSelector The mailboxSelector
          * @param isClusterSingleton Whether the actor should be cluster singleton
+         * @param supervisorStrategy The supervisor strategy (null for no supervision)
          */
         public SpawnActor(
                 Class<?> actorClass,
                 SpringActorContext actorContext,
                 ActorRef<Spawned<?>> replyTo,
                 MailboxSelector mailboxSelector,
-                Boolean isClusterSingleton) {
+                Boolean isClusterSingleton,
+                SupervisorStrategy supervisorStrategy) {
             this.actorClass = actorClass;
             this.actorContext = actorContext;
             this.replyTo = replyTo;
             this.mailboxSelector = mailboxSelector;
             this.isClusterSingleton = isClusterSingleton;
+            this.supervisorStrategy = supervisorStrategy;
         }
     }
 

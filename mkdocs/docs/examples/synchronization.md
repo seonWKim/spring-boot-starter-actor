@@ -165,7 +165,7 @@ public class RedisCounterService implements CounterService {
 
 ```java
 @Component
-public class CounterActor implements ShardedActor<CounterActor.Command> {
+public class CounterActor implements SpringShardedActor<CounterActor.Command> {
     public static final EntityTypeKey<Command> TYPE_KEY =
             EntityTypeKey.create(Command.class, "CounterActor");
 
@@ -187,7 +187,7 @@ public class CounterActor implements ShardedActor<CounterActor.Command> {
         }
     }
 
-    // Implementation of ShardedActor methods...
+    // Implementation of SpringShardedActor methods...
 
     private static class CounterActorBehavior {
         private final ActorContext<Command> ctx;
@@ -239,8 +239,10 @@ public class ActorCounterService implements CounterService {
                 springActorSystem.sharded(CounterActor.class).withId(counterId).get();
 
         // Send a get value message to the actor and get the response
-        CompletionStage<Long> response =
-                actorRef.ask(replyTo -> new CounterActor.GetValue(replyTo), TIMEOUT);
+        CompletionStage<Long> response = actorRef
+                .askBuilder(CounterActor.GetValue::new)
+                .withTimeout(Duration.ofSeconds(3))
+                .execute();
 
         return Mono.fromCompletionStage(response);
     }

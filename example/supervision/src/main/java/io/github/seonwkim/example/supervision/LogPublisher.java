@@ -12,8 +12,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 @Service
 public class LogPublisher {
 
-    private static final DateTimeFormatter TIME_FORMATTER =
-            DateTimeFormatter.ofPattern("HH:mm:ss.SSS");
+    private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss.SSS");
 
     private final CopyOnWriteArrayList<SseEmitter> emitters = new CopyOnWriteArrayList<>();
 
@@ -38,13 +37,12 @@ public class LogPublisher {
         String timestamp = LocalDateTime.now().format(TIME_FORMATTER);
         String logEntry = String.format("[%s] %s", timestamp, message);
 
-        emitters.forEach(
-                emitter -> {
-                    try {
-                        emitter.send(SseEmitter.event().name("log").data(logEntry));
-                    } catch (Exception e) {
-                        emitters.remove(emitter);
-                    }
-                });
+        emitters.forEach(emitter -> {
+            try {
+                emitter.send(SseEmitter.event().name("log").data(logEntry));
+            } catch (Exception e) {
+                emitters.remove(emitter);
+            }
+        });
     }
 }

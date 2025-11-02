@@ -3,14 +3,12 @@ package io.github.seonwkim.core;
 import io.github.seonwkim.core.RootGuardian.Spawned;
 import io.github.seonwkim.core.behavior.ClusterEventBehavior;
 import io.github.seonwkim.core.impl.DefaultRootGuardian;
-import io.github.seonwkim.core.shard.ShardedActor;
+import io.github.seonwkim.core.impl.DefaultSpringActorContext;
+import io.github.seonwkim.core.shard.SpringShardedActor;
 import io.github.seonwkim.core.shard.ShardedActorRegistry;
 import java.time.Duration;
 import java.util.concurrent.CompletionStage;
-import org.apache.pekko.actor.typed.ActorRef;
-import org.apache.pekko.actor.typed.ActorSystem;
-import org.apache.pekko.actor.typed.MailboxSelector;
-import org.apache.pekko.actor.typed.Props;
+import org.apache.pekko.actor.typed.*;
 import org.apache.pekko.actor.typed.javadsl.AskPattern;
 import org.apache.pekko.cluster.ClusterEvent;
 import org.apache.pekko.cluster.sharding.typed.javadsl.ClusterSharding;
@@ -171,7 +169,7 @@ public class SpringActorSystem implements DisposableBean {
      * @param <C> The type of commands that the actor can handle
      * @return A builder for configuring and spawning the actor
      */
-    public <A extends SpringActorWithContext<A, C, ?>, C> SpringActorSpawnBuilder<A, C> actor(Class<A> actorClass) {
+    public <A extends SpringActorWithContext<C, ?>, C> SpringActorSpawnBuilder<A, C> actor(Class<A> actorClass) {
         return new SpringActorSpawnBuilder<>(this, actorClass);
     }
 
@@ -184,7 +182,7 @@ public class SpringActorSystem implements DisposableBean {
      * @param <C> The type of commands that the actor can handle
      * @return A CompletionStage that completes with true if the actor exists, false otherwise
      */
-    public <A extends SpringActorWithContext<A, C, ?>, C> CompletionStage<Boolean> exists(
+    public <A extends SpringActorWithContext<C, ?>, C> CompletionStage<Boolean> exists(
             Class<A> actorClass, String actorId) {
         return exists(actorClass, actorId, defaultQueryTimeout);
     }
@@ -199,9 +197,9 @@ public class SpringActorSystem implements DisposableBean {
      * @param <C> The type of commands that the actor can handle
      * @return A CompletionStage that completes with true if the actor exists, false otherwise
      */
-    public <A extends SpringActorWithContext<A, C, ?>, C> CompletionStage<Boolean> exists(
+    public <A extends SpringActorWithContext<C, ?>, C> CompletionStage<Boolean> exists(
             Class<A> actorClass, String actorId, Duration timeout) {
-        SpringActorContext actorContext = () -> actorId;
+        SpringActorContext actorContext = new DefaultSpringActorContext(actorId);
 
         return AskPattern.ask(
                         actorSystem,
@@ -222,7 +220,7 @@ public class SpringActorSystem implements DisposableBean {
      * @param <C> The type of commands that the actor can handle
      * @return A CompletionStage that completes with a SpringActorRef if found, or null if not found
      */
-    public <A extends SpringActorWithContext<A, C, ?>, C> CompletionStage<SpringActorRef<C>> get(
+    public <A extends SpringActorWithContext<C, ?>, C> CompletionStage<SpringActorRef<C>> get(
             Class<A> actorClass, String actorId) {
         return get(actorClass, actorId, defaultQueryTimeout);
     }
@@ -237,9 +235,9 @@ public class SpringActorSystem implements DisposableBean {
      * @param <C> The type of commands that the actor can handle
      * @return A CompletionStage that completes with a SpringActorRef if found, or null if not found
      */
-    public <A extends SpringActorWithContext<A, C, ?>, C> CompletionStage<SpringActorRef<C>> get(
+    public <A extends SpringActorWithContext<C, ?>, C> CompletionStage<SpringActorRef<C>> get(
             Class<A> actorClass, String actorId, Duration timeout) {
-        SpringActorContext actorContext = () -> actorId;
+        SpringActorContext actorContext = new DefaultSpringActorContext(actorId);
 
         return AskPattern.ask(
                         actorSystem,
@@ -269,7 +267,7 @@ public class SpringActorSystem implements DisposableBean {
      * @param <C> The type of commands that the actor can handle
      * @return A CompletionStage that completes with a SpringActorRef (either existing or newly created)
      */
-    public <A extends SpringActorWithContext<A, C, ?>, C> CompletionStage<SpringActorRef<C>> getOrSpawn(
+    public <A extends SpringActorWithContext<C, ?>, C> CompletionStage<SpringActorRef<C>> getOrSpawn(
             Class<A> actorClass, String actorId) {
         return getOrSpawn(actorClass, actorId, defaultActorRefTimeout);
     }
@@ -285,27 +283,33 @@ public class SpringActorSystem implements DisposableBean {
      * @param <C> The type of commands that the actor can handle
      * @return A CompletionStage that completes with a SpringActorRef (either existing or newly created)
      */
-    public <A extends SpringActorWithContext<A, C, ?>, C> CompletionStage<SpringActorRef<C>> getOrSpawn(
+    public <A extends SpringActorWithContext<C, ?>, C> CompletionStage<SpringActorRef<C>> getOrSpawn(
             Class<A> actorClass, String actorId, Duration timeout) {
         return exists(actorClass, actorId, timeout).thenCompose(exists -> {
             if (exists) {
                 return get(actorClass, actorId, timeout);
             } else {
-                return actor(actorClass).withId(actorId).withTimeout(timeout).start();
+                return actor(actorClass).withId(actorId).withTimeout(timeout).spawn();
             }
         });
     }
 
-    protected <A extends SpringActorWithContext<A, C, ?>, C> CompletionStage<SpringActorRef<C>> spawn(
+    protected <A extends SpringActorWithContext<C, ?>, C> CompletionStage<SpringActorRef<C>> spawn(
             Class<A> actorClass,
             SpringActorContext actorContext,
             MailboxSelector mailboxSelector,
             boolean isClusterSingleton,
+            SupervisorStrategy supervisorStrategy,
             Duration timeout) {
         return AskPattern.ask(
                         actorSystem,
                         (ActorRef<Spawned<?>> replyTo) -> new DefaultRootGuardian.SpawnActor(
-                                actorClass, actorContext, replyTo, mailboxSelector, isClusterSingleton),
+                                actorClass,
+                                actorContext,
+                                replyTo,
+                                mailboxSelector,
+                                isClusterSingleton,
+                                supervisorStrategy),
                         timeout,
                         actorSystem.scheduler())
                 .thenApply(spawned -> {
@@ -333,7 +337,7 @@ public class SpringActorSystem implements DisposableBean {
      * @return A builder for configuring and getting the sharded actor reference
      * @throws IllegalStateException If this SpringActorSystem is not in cluster mode
      */
-    public <T> SpringShardedActorBuilder<T> sharded(Class<? extends ShardedActor<T>> actorClass) {
+    public <T> SpringShardedActorBuilder<T> sharded(Class<? extends SpringShardedActor<T>> actorClass) {
         if (clusterSharding == null) {
             throw new IllegalStateException("Cluster sharding not configured. Sharded actors require cluster mode.");
         }

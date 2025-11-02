@@ -27,7 +27,7 @@ You can find the complete source code for this example on GitHub:
 
 ```java
 @Component
-public class ChatRoomActor implements ShardedActor<ChatRoomActor.Command> {
+public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> {
 
     public static final EntityTypeKey<Command> TYPE_KEY =
             EntityTypeKey.create(Command.class, "ChatRoomActor");
@@ -78,82 +78,77 @@ public class ChatRoomActor implements ShardedActor<ChatRoomActor.Command> {
     }
 
     @Override
-    public Behavior<Command> create(EntityContext<Command> ctx) {
-        return Behaviors.setup(
-                context -> {
-                    final String roomId = ctx.getEntityId();
-                    return chatRoom(roomId, new HashMap<>());
-                });
+    public SpringShardedActorBehavior<Command> create(EntityContext<Command> ctx) {
+        final String roomId = ctx.getEntityId();
+
+        return SpringShardedActorBehavior.builder(Command.class, ctx)
+                .onCreate(actorCtx -> new ChatRoomBehavior(actorCtx, roomId))
+                .onMessage(JoinRoom.class, ChatRoomBehavior::onJoinRoom)
+                .onMessage(LeaveRoom.class, ChatRoomBehavior::onLeaveRoom)
+                .onMessage(SendMessage.class, ChatRoomBehavior::onSendMessage)
+                .build();
     }
 
     /**
-     * Creates the behavior for a chat room with the given room ID and connected users.
-     *
-     * @param roomId The ID of the chat room
-     * @param connectedUsers Map of user IDs to their actor references
-     *
-     * @return The behavior for the chat room
+     * Behavior handler for chat room actor. Maintains the state of connected users
+     * and handles room operations.
      */
-    private Behavior<Command> chatRoom(
-            String roomId,
-            Map<String, ActorRef<UserActor.Command>> connectedUsers
-    ) {
-        return Behaviors.receive(Command.class)
-                        .onMessage(
-                                JoinRoom.class,
-                                msg -> {
-                                    // Add the user to the connected users
-                                    connectedUsers.put(msg.userId, msg.userRef);
+    private static class ChatRoomBehavior {
+        private final ActorContext<Command> ctx;
+        private final String roomId;
+        private final Map<String, ActorRef<UserActor.Command>> connectedUsers = new HashMap<>();
 
-                                    // Notify all users that a new user has joined
-                                    UserActor.JoinRoomEvent joinRoomEvent = new UserActor.JoinRoomEvent(
-                                            msg.userId);
-                                    broadcastCommand(connectedUsers, joinRoomEvent);
+        ChatRoomBehavior(ActorContext<Command> ctx, String roomId) {
+            this.ctx = ctx;
+            this.roomId = roomId;
+        }
 
-                                    return chatRoom(roomId, connectedUsers);
-                                })
-                        .onMessage(
-                                LeaveRoom.class,
-                                msg -> {
-                                    // Remove the user from connected users
-                                    ActorRef<UserActor.Command> userRef = connectedUsers.remove(msg.userId);
+        private Behavior<Command> onJoinRoom(JoinRoom msg) {
+            // Add the user to the connected users
+            connectedUsers.put(msg.userId, msg.userRef);
 
-                                    if (userRef != null) {
-                                        // Notify the user that they left the room
-                                        UserActor.LeaveRoomEvent leaveRoomEvent = new UserActor.LeaveRoomEvent(
-                                                msg.userId);
-                                        userRef.tell(leaveRoomEvent);
+            // Notify all users that a new user has joined
+            UserActor.JoinRoomEvent joinRoomEvent = new UserActor.JoinRoomEvent(msg.userId);
+            broadcastCommand(joinRoomEvent);
 
-                                        // Notify all remaining users that a user has left
-                                        broadcastCommand(connectedUsers, leaveRoomEvent);
-                                    }
+            return Behaviors.same();
+        }
 
-                                    return chatRoom(roomId, connectedUsers);
-                                })
-                        .onMessage(
-                                SendMessage.class,
-                                msg -> {
-                                    // Create a message received command
-                                    UserActor.SendMessageEvent receiveMessageCmd =
-                                            new UserActor.SendMessageEvent(msg.userId, msg.message);
+        private Behavior<Command> onLeaveRoom(LeaveRoom msg) {
+            // Remove the user from connected users
+            ActorRef<UserActor.Command> userRef = connectedUsers.remove(msg.userId);
 
-                                    // Broadcast the message to all connected users
-                                    broadcastCommand(connectedUsers, receiveMessageCmd);
+            if (userRef != null) {
+                // Notify the user that they left the room
+                UserActor.LeaveRoomEvent leaveRoomEvent = new UserActor.LeaveRoomEvent(msg.userId);
+                userRef.tell(leaveRoomEvent);
 
-                                    return Behaviors.same();
-                                })
-                        .build();
-    }
+                // Notify all remaining users that a user has left
+                broadcastCommand(leaveRoomEvent);
+            }
 
-    /**
-     * Broadcasts a command to all connected users.
-     *
-     * @param connectedUsers Map of user IDs to their actor references
-     * @param command The command to broadcast
-     */
-    private void broadcastCommand(Map<String, ActorRef<UserActor.Command>> connectedUsers,
-                                  UserActor.Command command) {
-        connectedUsers.values().forEach(userRef -> userRef.tell(command));
+            return Behaviors.same();
+        }
+
+        private Behavior<Command> onSendMessage(SendMessage msg) {
+            // Create a message received command
+            UserActor.SendMessageEvent receiveMessageCmd =
+                    new UserActor.SendMessageEvent(msg.userId, msg.message);
+
+            // Broadcast the message to all connected users
+            broadcastCommand(receiveMessageCmd);
+
+            return Behaviors.same();
+        }
+
+        /**
+         * Broadcasts a command to all connected users.
+         *
+         * @param command The command to broadcast
+         */
+        private void broadcastCommand(UserActor.Command command) {
+            connectedUsers.values().forEach(userRef -> userRef.tell(command));
+        }
     }
 
     @Override
@@ -169,7 +164,7 @@ public class ChatRoomActor implements ShardedActor<ChatRoomActor.Command> {
 
 ```java
 @Component
-public class UserActor implements SpringActor<UserActor, UserActor.Command> {
+public class UserActor implements SpringActor<UserActor.Command> {
 
     public interface Command extends JsonSerializable {}
 
@@ -214,7 +209,7 @@ public class UserActor implements SpringActor<UserActor, UserActor.Command> {
         }
     }
 
-    public static class UserActorContext implements SpringActorContext {
+    public static class UserActorContext extends SpringActorContext {
         private final SpringActorSystem actorSystem;
         private final ObjectMapper objectMapper;
         private final WebSocketSession session;
@@ -236,20 +231,27 @@ public class UserActor implements SpringActor<UserActor, UserActor.Command> {
     }
 
     @Override
-    public Behavior<Command> create(SpringActorContext actorContext) {
+    public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
         if (!(actorContext instanceof UserActorContext userActorContext)) {
             throw new IllegalStateException("Must be UserActorContext");
         }
 
-        return Behaviors.setup(
-                context -> new UserActorBehavior(
+        return SpringActorBehavior.builder(Command.class, actorContext)
+                .onCreate(context -> new UserActorBehavior(
                         context,
                         userActorContext.actorSystem,
                         userActorContext.objectMapper,
                         userActorContext.userId,
                         userActorContext.session
-                ).create()
-        );
+                ))
+                .onMessage(Connect.class, UserActorBehavior::onConnect)
+                .onMessage(JoinRoom.class, UserActorBehavior::onJoinRoom)
+                .onMessage(LeaveRoom.class, UserActorBehavior::onLeaveRoom)
+                .onMessage(SendMessage.class, UserActorBehavior::onSendMessage)
+                .onMessage(JoinRoomEvent.class, UserActorBehavior::onJoinRoomEvent)
+                .onMessage(LeaveRoomEvent.class, UserActorBehavior::onLeaveRoomEvent)
+                .onMessage(SendMessageEvent.class, UserActorBehavior::onSendMessageEvent)
+                .build();
     }
 
     public static class UserActorBehavior {
@@ -270,18 +272,6 @@ public class UserActor implements SpringActor<UserActor, UserActor.Command> {
             this.objectMapper = objectMapper;
             this.userId = userId;
             this.session = session;
-        }
-
-        public Behavior<UserActor.Command> create() {
-            return Behaviors.receive(Command.class)
-                            .onMessage(Connect.class, this::onConnect)
-                            .onMessage(JoinRoom.class, this::onJoinRoom)
-                            .onMessage(LeaveRoom.class, this::onLeaveRoom)
-                            .onMessage(SendMessage.class, this::onSendMessage)
-                            .onMessage(JoinRoomEvent.class, this::onJoinRoomEvent)
-                            .onMessage(LeaveRoomEvent.class, this::onLeaveRoomEvent)
-                            .onMessage(SendMessageEvent.class, this::onSendMessageEvent)
-                            .build();
         }
 
         private Behavior<Command> onConnect(Connect connect) {

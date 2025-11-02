@@ -3,7 +3,8 @@ package io.github.seonwkim.example.counter;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.github.seonwkim.core.serialization.JsonSerializable;
-import io.github.seonwkim.core.shard.ShardedActor;
+import io.github.seonwkim.core.shard.SpringShardedActor;
+import io.github.seonwkim.core.shard.SpringShardedActorBehavior;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
@@ -19,7 +20,7 @@ import org.springframework.stereotype.Component;
  * separate actor instance, identified by its counterId.
  */
 @Component
-public class CounterActor implements ShardedActor<CounterActor.Command> {
+public class CounterActor implements SpringShardedActor<CounterActor.Command> {
 
     private static final Logger logger = LoggerFactory.getLogger(CounterActor.class);
 
@@ -52,8 +53,12 @@ public class CounterActor implements ShardedActor<CounterActor.Command> {
     }
 
     @Override
-    public Behavior<Command> create(EntityContext<Command> ctx) {
-        return Behaviors.setup(context -> new CounterActorBehavior(context, ctx.getEntityId()).create());
+    public SpringShardedActorBehavior<Command> create(EntityContext<Command> ctx) {
+        return SpringShardedActorBehavior.builder(Command.class, ctx)
+                .onCreate(context -> new CounterActorBehavior(context, ctx.getEntityId()))
+                .onMessage(Increment.class, (behaviorHandler, msg) -> behaviorHandler.onIncrement(msg))
+                .onMessage(GetValue.class, (behaviorHandler, msg) -> behaviorHandler.onGetValue(msg))
+                .build();
     }
 
     /**
@@ -75,18 +80,6 @@ public class CounterActor implements ShardedActor<CounterActor.Command> {
             this.ctx = ctx;
             this.counterId = counterId;
             logger.debug("Created counter actor for ID: {}", counterId);
-        }
-
-        /**
-         * Creates the initial behavior for the actor.
-         *
-         * @return The behavior for handling messages
-         */
-        public Behavior<Command> create() {
-            return Behaviors.receive(Command.class)
-                    .onMessage(Increment.class, this::onIncrement)
-                    .onMessage(GetValue.class, this::onGetValue)
-                    .build();
         }
 
         /**

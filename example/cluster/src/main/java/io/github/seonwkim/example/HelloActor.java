@@ -3,9 +3,11 @@ package io.github.seonwkim.example;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.github.seonwkim.core.serialization.JsonSerializable;
-import io.github.seonwkim.core.shard.ShardedActor;
+import io.github.seonwkim.core.shard.SpringShardedActor;
+import io.github.seonwkim.core.shard.SpringShardedActorBehavior;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
+import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityContext;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
@@ -16,7 +18,7 @@ import org.springframework.stereotype.Component;
  * identified by an entity ID. The actor responds with information about the node it's running on.
  */
 @Component
-public class HelloActor implements ShardedActor<HelloActor.Command> {
+public class HelloActor implements SpringShardedActor<HelloActor.Command> {
 
     public static final EntityTypeKey<Command> TYPE_KEY = EntityTypeKey.create(Command.class, "HelloActor");
 
@@ -47,24 +49,47 @@ public class HelloActor implements ShardedActor<HelloActor.Command> {
      * @return The behavior for the actor
      */
     @Override
-    public Behavior<Command> create(EntityContext<Command> ctx) {
-        return Behaviors.setup(context -> Behaviors.receive(Command.class)
-                .onMessage(SayHello.class, msg -> {
-                    // Get information about the current node and entity
-                    final String nodeAddress = context.getSystem().address().toString();
-                    final String entityId = ctx.getEntityId();
+    public SpringShardedActorBehavior<Command> create(EntityContext<Command> ctx) {
+        final String entityId = ctx.getEntityId();
 
-                    // Create a response message with node and entity information
-                    final String message = "Received from entity [" + entityId + "] on node [" + nodeAddress + "]";
+        return SpringShardedActorBehavior.builder(Command.class, ctx)
+                .onCreate(actorCtx -> new HelloActorBehavior(actorCtx, entityId))
+                .onMessage(SayHello.class, HelloActorBehavior::onSayHello)
+                .build();
+    }
 
-                    // Send the response back to the caller
-                    msg.replyTo.tell(message);
+    /**
+     * Behavior handler for hello actor. Holds the entity ID and handles messages.
+     */
+    private static class HelloActorBehavior {
+        private final ActorContext<Command> ctx;
+        private final String entityId;
 
-                    // Log the message for debugging
-                    context.getLog().info(message);
+        HelloActorBehavior(ActorContext<Command> ctx, String entityId) {
+            this.ctx = ctx;
+            this.entityId = entityId;
+        }
 
-                    return Behaviors.same();
-                })
-                .build());
+        /**
+         * Handles SayHello commands by responding with node and entity information.
+         *
+         * @param msg The SayHello message
+         * @return The next behavior (same in this case)
+         */
+        private Behavior<Command> onSayHello(SayHello msg) {
+            // Get information about the current node and entity
+            final String nodeAddress = ctx.getSystem().address().toString();
+
+            // Create a response message with node and entity information
+            final String message = "Received from entity [" + entityId + "] on node [" + nodeAddress + "]";
+
+            // Send the response back to the caller
+            msg.replyTo.tell(message);
+
+            // Log the message for debugging
+            ctx.getLog().info(message);
+
+            return Behaviors.same();
+        }
     }
 }

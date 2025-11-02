@@ -80,7 +80,8 @@ public class HierarchicalActor {
         public final String strategy;
         public final ActorRef<ActorHierarchy.SpawnResult> replyTo;
 
-        public RouteSpawnChild(String parentId, String childId, String strategy, ActorRef<ActorHierarchy.SpawnResult> replyTo) {
+        public RouteSpawnChild(
+                String parentId, String childId, String strategy, ActorRef<ActorHierarchy.SpawnResult> replyTo) {
             this.parentId = parentId;
             this.childId = childId;
             this.strategy = strategy;

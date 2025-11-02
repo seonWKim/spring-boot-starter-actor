@@ -2,7 +2,7 @@ package io.github.seonwkim.core.impl;
 
 import io.github.seonwkim.core.SpringActorContext;
 
-public class DefaultSpringActorContext implements SpringActorContext {
+public class DefaultSpringActorContext extends SpringActorContext {
 
     private final String id;
 

@@ -1,6 +1,7 @@
 package io.github.seonwkim.example.counter;
 
 import io.github.seonwkim.core.SpringActorSystem;
+import java.time.Duration;
 import java.util.concurrent.CompletionStage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,8 +60,10 @@ public class ActorCounterService implements CounterService {
         var actorRef =
                 springActorSystem.sharded(CounterActor.class).withId(counterId).get();
 
-        // Send a get value message to the actor using the query() method
-        CompletionStage<Long> response = actorRef.ask(CounterActor.GetValue::new);
+        // Send a get value message to the actor using the askBuilder() method
+        CompletionStage<Long> response = actorRef.askBuilder(CounterActor.GetValue::new)
+                .withTimeout(Duration.ofSeconds(3))
+                .execute();
 
         return Mono.fromCompletionStage(response);
     }

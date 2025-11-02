@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.seonwkim.core.behavior.ClusterEventBehavior.ClusterDomainWrappedEvent;
+import io.github.seonwkim.core.fixture.SimpleShardedActorWithoutOnCreate;
 import io.github.seonwkim.core.fixture.TestShardedActor;
 import io.github.seonwkim.core.fixture.TestShardedActor.GetState;
 import java.time.Duration;
@@ -42,6 +43,11 @@ public class ClusterTest {
         @Bean
         public TestShardedActor testShardedActor() {
             return new TestShardedActor();
+        }
+
+        @Bean
+        public SimpleShardedActorWithoutOnCreate simpleShardedActorWithoutOnCreate() {
+            return new SimpleShardedActorWithoutOnCreate();
         }
     }
 
@@ -153,7 +159,9 @@ public class ClusterTest {
 
         Thread.sleep(2000); // wait for messages to be processed (increased for cluster message propagation)
         TestShardedActor.State state = sharedActor1
-                .ask(GetState::new, Duration.ofSeconds(10)) // takes long on the CI/CD
+                .askBuilder(GetState::new)
+                .withTimeout(Duration.ofSeconds(10)) // takes long on the CI/CD
+                .execute()
                 .toCompletableFuture()
                 .get();
         assertEquals(3, state.getMessageCount());
@@ -184,22 +192,57 @@ public class ClusterTest {
         Thread.sleep(500); // wait for messages to be processed
         assertEquals(
                 1,
-                actor1.ask(GetState::new, Duration.ofSeconds(3))
+                actor1.askBuilder(GetState::new)
+                        .withTimeout(Duration.ofSeconds(3))
+                        .execute()
                         .toCompletableFuture()
                         .get()
                         .getMessageCount());
         assertEquals(
                 1,
-                actor2.ask(GetState::new, Duration.ofSeconds(3))
+                actor2.askBuilder(GetState::new)
+                        .withTimeout(Duration.ofSeconds(3))
+                        .execute()
                         .toCompletableFuture()
                         .get()
                         .getMessageCount());
         assertEquals(
                 1,
-                actor3.ask(GetState::new, Duration.ofSeconds(3))
+                actor3.askBuilder(GetState::new)
+                        .withTimeout(Duration.ofSeconds(3))
+                        .execute()
                         .toCompletableFuture()
                         .get()
                         .getMessageCount());
+    }
+
+    @Test
+    void shardedActorWithoutOnCreateWorks() throws Exception {
+        SpringActorSystem system1 = context1.getBean(SpringActorSystem.class);
+        waitUntilClusterInitialized();
+
+        final String entityId = "test-entity";
+        SpringShardedActorRef<SimpleShardedActorWithoutOnCreate.Command> actor = system1.sharded(
+                        SimpleShardedActorWithoutOnCreate.class)
+                .withId(entityId)
+                .get();
+
+        // Test Echo message
+        String echoResponse =
+                (String) actor.askBuilder(replyTo -> new SimpleShardedActorWithoutOnCreate.Echo("hello", replyTo))
+                        .withTimeout(Duration.ofSeconds(3))
+                        .execute()
+                        .toCompletableFuture()
+                        .get();
+        assertEquals("Echo from entity [" + entityId + "]: hello", echoResponse);
+
+        // Test GetEntityId message
+        String entityIdResponse = (String) actor.askBuilder(SimpleShardedActorWithoutOnCreate.GetEntityId::new)
+                .withTimeout(Duration.ofSeconds(3))
+                .execute()
+                .toCompletableFuture()
+                .get();
+        assertEquals(entityId, entityIdResponse);
     }
 
     private void waitUntilClusterInitialized() {

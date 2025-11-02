@@ -117,16 +117,16 @@ Create an actor by implementing `SpringActor`:
 
 ```java
 @Component
-public class GreeterActor implements SpringActor<GreeterActor, GreeterActor.Command> {
+public class GreeterActor implements SpringActor<GreeterActor.Command> {
 
     public interface Command {}
 
     public record Greet(String name, ActorRef<String> replyTo) implements Command {}
 
     @Override
-    public Behavior<Command> create(SpringActorContext actorContext) {
-        return Behaviors.receive(Command.class)
-            .onMessage(Greet.class, msg -> {
+    public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
+        return SpringActorBehavior.builder(Command.class, actorContext)
+            .onMessage(Greet.class, (ctx, msg) -> {
                 msg.replyTo.tell("Hello, " + msg.name + "!");
                 return Behaviors.same();
             })
@@ -152,9 +152,11 @@ public class GreeterService {
         return actorSystem.actor(GreeterActor.class)
             .withId("greeter")
             .start()
-            .thenCompose(actor -> actor.ask(
-                replyTo -> new GreeterActor.Greet(name, replyTo)
-            ));
+            .thenCompose(actor -> actor
+                .askBuilder(replyTo -> new GreeterActor.Greet(name, replyTo))
+                .withTimeout(Duration.ofSeconds(5))
+                .execute()
+            );
     }
 }
 ```
@@ -209,30 +211,6 @@ actorRef.thenAccept(actor -> actor.stop());
 
 ## Core Concepts
 
-### Actor Lifecycle: Lazy Initialization
-
-Use lazy initialization to avoid blocking application startup:
-
-**Simple Approach (Recommended for most cases):**
-```java
-// Use getOrSpawn directly - simple and efficient
-public CompletionStage<String> processMessage(String msg) {
-    return actorSystem.getOrSpawn(MyActor.class, "my-actor")
-        .thenCompose(actor -> actor.ask(replyTo -> new ProcessMessage(msg, replyTo)));
-}
-```
-
-**With Caching (For high-frequency access):**
-```java
-private final AtomicReference<CompletionStage<SpringActorRef<Command>>> actorRef = new AtomicReference<>();
-
-private CompletionStage<SpringActorRef<Command>> getActor() {
-    return actorRef.updateAndGet(existing ->
-        existing != null ? existing : actorSystem.getOrSpawn(MyActor.class, "my-actor")
-    );
-}
-```
-
 ### Communication Patterns
 
 **Fire-and-forget (tell):**
@@ -242,13 +220,16 @@ actor.tell(new ProcessOrder("order-123"));
 
 **Request-response (ask):**
 ```java
-CompletionStage<String> response = actor.ask(GetValue::new);
-CompletionStage<String> response = actor.ask(GetValue::new, Duration.ofSeconds(10));
+CompletionStage<String> response = actor
+    .askBuilder(GetValue::new)
+    .withTimeout(Duration.ofSeconds(5))
+    .execute();
 ```
 
 **With error handling:**
 ```java
-CompletionStage<String> response = actor.askBuilder(GetValue::new)
+CompletionStage<String> response = actor
+    .askBuilder(GetValue::new)
     .withTimeout(Duration.ofSeconds(5))
     .onTimeout(() -> "default-value")
     .execute();
@@ -261,7 +242,7 @@ For distributed systems, use sharded actors. Entities are automatically created 
 **Define a Sharded Actor:**
 ```java
 @Component
-public class UserSessionActor implements ShardedActor<UserSessionActor.Command> {
+public class UserSessionActor implements SpringShardedActor<UserSessionActor.Command> {
 
     public static final EntityTypeKey<Command> TYPE_KEY =
         EntityTypeKey.create(Command.class, "UserSession");
@@ -277,8 +258,12 @@ public class UserSessionActor implements ShardedActor<UserSessionActor.Command> 
     }
 
     @Override
-    public Behavior<Command> create(EntityContext<Command> ctx) {
-        return Behaviors.setup(context -> new UserSessionBehavior(ctx.getEntityId()).create());
+    public SpringShardedActorBehavior<Command> create(EntityContext<Command> ctx) {
+        return SpringShardedActorBehavior.builder(Command.class, ctx)
+            .onCreate(entityCtx -> new UserSessionBehavior(ctx.getEntityId()))
+            .onMessage(UpdateActivity.class, UserSessionBehavior::onUpdateActivity)
+            .onMessage(GetActivity.class, UserSessionBehavior::onGetActivity)
+            .build();
     }
 
     private static class UserSessionBehavior {
@@ -289,17 +274,14 @@ public class UserSessionActor implements ShardedActor<UserSessionActor.Command> 
             this.userId = userId;
         }
 
-        Behavior<Command> create() {
-            return Behaviors.receive(Command.class)
-                .onMessage(UpdateActivity.class, msg -> {
-                    this.activity = msg.activity;
-                    return Behaviors.same();
-                })
-                .onMessage(GetActivity.class, msg -> {
-                    msg.replyTo.tell(activity);
-                    return Behaviors.same();
-                })
-                .build();
+        Behavior<Command> onUpdateActivity(UpdateActivity msg) {
+            this.activity = msg.activity;
+            return Behaviors.same();
+        }
+
+        Behavior<Command> onGetActivity(GetActivity msg) {
+            msg.replyTo.tell(activity);
+            return Behaviors.same();
         }
     }
 }
@@ -316,9 +298,12 @@ SpringShardedActorRef<Command> actor = actorSystem
 actor.tell(new UpdateActivity("logged-in"));
 
 // Request-response messaging
-CompletionStage<String> activity = actor.ask(GetActivity::new);
+CompletionStage<String> activity = actor
+    .askBuilder(GetActivity::new)
+    .withTimeout(Duration.ofSeconds(5))
+    .execute();
 
-// With timeout and error handling
+// With error handling
 CompletionStage<String> activityWithFallback = actor
     .askBuilder(GetActivity::new)
     .withTimeout(Duration.ofSeconds(5))
@@ -339,7 +324,7 @@ Actors are Spring components, so constructor injection works:
 
 ```java
 @Component
-public class OrderActor implements SpringActor<OrderActor, OrderActor.Command> {
+public class OrderActor implements SpringActor<OrderActor.Command> {
 
     private final OrderRepository orderRepository;
 
@@ -347,10 +332,13 @@ public class OrderActor implements SpringActor<OrderActor, OrderActor.Command> {
         this.orderRepository = orderRepository;
     }
 
+    public interface Command {}
+    public record ProcessOrder(String orderId) implements Command {}
+
     @Override
-    public Behavior<Command> create(SpringActorContext actorContext) {
-        return Behaviors.receive(Command.class)
-            .onMessage(ProcessOrder.class, msg -> {
+    public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
+        return SpringActorBehavior.builder(Command.class, actorContext)
+            .onMessage(ProcessOrder.class, (ctx, msg) -> {
                 Order order = orderRepository.findById(msg.orderId);
                 return Behaviors.same();
             })
@@ -391,7 +379,127 @@ spring:
 
 ### Supervision and Fault Tolerance
 
-Spring Boot Starter Actor provides robust supervision strategies for building self-healing, fault-tolerant systems. The interactive supervision example demonstrates real-time failure handling with visual actor hierarchies:
+Spring Boot Starter Actor provides robust supervision strategies for building self-healing, fault-tolerant systems. When a child actor fails, its parent supervisor can decide how to handle the failure using different strategies.
+
+#### Available Supervision Strategies
+
+**1. Restart Strategy (Default)**
+```java
+// Restart the actor on failure (default behavior)
+SupervisorStrategy strategy = SupervisorStrategy.restart();
+```
+
+**2. Restart with Limit**
+```java
+// Restart up to 3 times within 1 minute, then stop
+SupervisorStrategy strategy = SupervisorStrategy.restart()
+    .withLimit(3, Duration.ofMinutes(1));
+```
+
+**3. Stop Strategy**
+```java
+// Stop the actor on failure
+SupervisorStrategy strategy = SupervisorStrategy.stop();
+```
+
+**4. Resume Strategy**
+```java
+// Ignore the failure and resume processing
+SupervisorStrategy strategy = SupervisorStrategy.resume();
+```
+
+#### Spawning Top-Level Actors with Supervision
+
+You can apply supervision strategies when spawning actors from `SpringActorSystem`:
+
+```java
+@Service
+public class MyService {
+    private final SpringActorSystem actorSystem;
+
+    public MyService(SpringActorSystem actorSystem) {
+        this.actorSystem = actorSystem;
+    }
+
+    public CompletionStage<SpringActorRef<Command>> createSupervisedActor() {
+        // Spawn actor with restart strategy
+        return actorSystem.actor(WorkerActor.class)
+            .withId("worker-1")
+            .withSupervisonStrategy(SupervisorStrategy.restart().withLimit(3, Duration.ofMinutes(1)))
+            .start();
+    }
+}
+```
+
+#### Spawning Child Actors with Supervision
+
+Within an actor, use the fluent builder API to spawn supervised child actors:
+
+```java
+@Component
+public class SupervisorActor implements SpringActor<SupervisorActor.Command> {
+
+    public interface Command extends FrameworkCommand {}
+
+    @Override
+    public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
+        return SpringActorBehavior.builder(Command.class, actorContext)
+            .onMessage(DelegateWork.class, (ctx, msg) -> {
+                // Use SpringActorRef to spawn/manage children with fluent API
+                SpringActorRef<Command> self = new SpringActorRef<>(ctx.getSystem().scheduler(), ctx.getSelf());
+
+                // Fluent API for spawning children
+                self.child(WorkerActor.class)
+                    .withId("worker-1")
+                    .withSupervisionStrategy(SupervisorStrategy.restart())
+                    .withTimeout(Duration.ofSeconds(5))
+                    .spawn();  // Returns CompletionStage<SpringActorRef>
+
+                // Or use spawnAndWait() for synchronous spawning
+                SpringActorRef<WorkerActor.Command> worker = self.child(WorkerActor.class)
+                    .withId("worker-2")
+                    .withSupervisionStrategy(SupervisorStrategy.restart().withLimit(3, Duration.ofMinutes(1)))
+                    .spawnAndWait();
+
+                return Behaviors.same();
+            })
+            .build();
+    }
+}
+```
+
+**Child Actor Builder Operations:**
+
+```java
+// Spawn a new child
+CompletionStage<SpringActorRef<Command>> child = parentRef
+    .child(ChildActor.class)
+    .withId("child-1")
+    .withSupervisionStrategy(SupervisorStrategy.restart())
+    .spawn();
+
+// Get existing child (returns null if not found)
+CompletionStage<SpringActorRef<Command>> existing = parentRef
+    .child(ChildActor.class)
+    .withId("child-1")
+    .get();
+
+// Check if child exists
+CompletionStage<Boolean> exists = parentRef
+    .child(ChildActor.class)
+    .withId("child-1")
+    .exists();
+
+// Get existing or spawn new (recommended)
+CompletionStage<SpringActorRef<Command>> childRef = parentRef
+    .child(ChildActor.class)
+    .withId("child-1")
+    .getOrSpawn();
+```
+
+#### Interactive Demo
+
+The supervision example includes an interactive demo that visualizes actor hierarchies and demonstrates real-time failure handling:
 
 <div style="border: 2px solid #ccc; display: inline-block; border-radius: 8px; overflow: hidden; margin: 20px 0;">
   <img src="mkdocs/docs/supervision.png" alt="Supervision Interactive Demo - Actor Hierarchy Visualization"/>

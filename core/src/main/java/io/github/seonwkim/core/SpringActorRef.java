@@ -142,6 +142,144 @@ public class SpringActorRef<T> {
     }
 
     /**
+     * Creates a fluent builder for spawning a child actor with a consistent API.
+     *
+     * <p>This is the recommended way to spawn child actors as it provides a fluent,
+     * discoverable API consistent with parent actor spawning.
+     *
+     * <p>Example usage:
+     * <pre>
+     * {@code
+     * SpringActorRef<ChildCommand> child = parentRef
+     *     .child(ChildActor.class)
+     *     .withId("child-1")
+     *     .withSupervisionStrategy(SupervisorStrategy.restart())
+     *     .withTimeout(Duration.ofSeconds(5))
+     *     .spawn()
+     *     .toCompletableFuture()
+     *     .get();
+     * }
+     * </pre>
+     *
+     * <p><b>Important:</b> The parent actor must have framework commands enabled via
+     * {@link SpringActorBehavior.Builder#withFrameworkCommands()} for child spawning to work.
+     *
+     * @param childActorClass The child actor class (must be a Spring component)
+     * @param <CC> The command type of the child actor
+     * @return A fluent builder for configuring and spawning the child actor
+     */
+    public <CC> SpringChildActorBuilder<T, CC> child(Class<? extends SpringActorWithContext<CC, ?>> childActorClass) {
+        return new SpringChildActorBuilder<>(actorRef, scheduler, childActorClass, defaultTimeout);
+    }
+
+    /**
+     * Spawns a child actor under this actor's supervision with Spring DI support.
+     *
+     * <p>This method sends a {@link FrameworkCommands.SpawnChild} command to this actor, which must
+     * have framework commands enabled via {@link SpringActorBehavior.Builder#withFrameworkCommands()}.
+     *
+     * <p>Example usage:
+     * <pre>
+     * {@code
+     * CompletionStage<SpringActorRef<ChildCommand>> childRef = parentRef.spawnChild(
+     *     ChildActor.class,
+     *     "child-1",
+     *     SupervisorStrategy.restart()
+     * );
+     * }
+     * </pre>
+     *
+     * @param childActorClass The child actor class (must be a Spring component)
+     * @param childId The unique ID for the child actor
+     * @param strategy The supervision strategy for the child
+     * @param <CC> The command type of the child actor
+     * @return A CompletionStage that completes with a SpringActorRef to the child, or fails if spawning failed
+     */
+    @SuppressWarnings("unchecked")
+    public <CC> CompletionStage<SpringActorRef<CC>> spawnChild(
+            Class<? extends SpringActorWithContext<CC, ?>> childActorClass,
+            String childId,
+            org.apache.pekko.actor.typed.SupervisorStrategy strategy) {
+        io.github.seonwkim.core.impl.DefaultSpringActorContext childContext =
+                new io.github.seonwkim.core.impl.DefaultSpringActorContext(childId);
+
+        // Cast to Object actor ref to send framework command
+        ActorRef<Object> actorRefAsObject = (ActorRef<Object>) (ActorRef<?>) actorRef;
+
+        return AskPattern.ask(
+                        actorRefAsObject,
+                        (ActorRef<FrameworkCommands.SpawnChildResponse<CC>> replyTo) ->
+                                new FrameworkCommands.SpawnChild<>(childActorClass, childContext, strategy, replyTo),
+                        defaultTimeout,
+                        scheduler)
+                .thenApply(response -> {
+                    if (response.success || "Child already exists".equals(response.message)) {
+                        return new SpringActorRef<>(scheduler, response.childRef, defaultTimeout);
+                    } else {
+                        throw new RuntimeException("Failed to spawn child: " + response.message);
+                    }
+                });
+    }
+
+    /**
+     * Gets a reference to an existing child actor.
+     *
+     * <p>This method sends a {@link FrameworkCommands.GetChild} command to this actor, which must
+     * have framework commands enabled via {@link SpringActorBehavior.Builder#withFrameworkCommands()}.
+     *
+     * @param childActorClass The child actor class
+     * @param childId The unique ID of the child actor
+     * @param <CC> The command type of the child actor
+     * @return A CompletionStage that completes with a SpringActorRef to the child, or null if not found
+     */
+    @SuppressWarnings("unchecked")
+    public <CC> CompletionStage<SpringActorRef<CC>> getChild(
+            Class<? extends SpringActorWithContext<CC, ?>> childActorClass, String childId) {
+        // Cast to Object actor ref to send framework command
+        ActorRef<Object> actorRefAsObject = (ActorRef<Object>) (ActorRef<?>) actorRef;
+
+        return AskPattern.ask(
+                        actorRefAsObject,
+                        (ActorRef<FrameworkCommands.GetChildResponse<CC>> replyTo) ->
+                                new FrameworkCommands.GetChild<>(childActorClass, childId, replyTo),
+                        defaultTimeout,
+                        scheduler)
+                .thenApply(response -> {
+                    if (response.found) {
+                        return new SpringActorRef<>(scheduler, response.childRef, defaultTimeout);
+                    } else {
+                        return null;
+                    }
+                });
+    }
+
+    /**
+     * Checks if a child actor exists.
+     *
+     * <p>This method sends an {@link FrameworkCommands.ExistsChild} command to this actor, which must
+     * have framework commands enabled via {@link SpringActorBehavior.Builder#withFrameworkCommands()}.
+     *
+     * @param childActorClass The child actor class
+     * @param childId The unique ID of the child actor
+     * @param <CC> The command type of the child actor
+     * @return A CompletionStage that completes with true if the child exists, false otherwise
+     */
+    @SuppressWarnings("unchecked")
+    public <CC> CompletionStage<Boolean> existsChild(
+            Class<? extends SpringActorWithContext<CC, ?>> childActorClass, String childId) {
+        // Cast to Object actor ref to send framework command
+        ActorRef<Object> actorRefAsObject = (ActorRef<Object>) (ActorRef<?>) actorRef;
+
+        return AskPattern.ask(
+                        actorRefAsObject,
+                        (ActorRef<FrameworkCommands.ExistsChildResponse> replyTo) ->
+                                new FrameworkCommands.ExistsChild<>(childActorClass, childId, replyTo),
+                        defaultTimeout,
+                        scheduler)
+                .thenApply(response -> response.exists);
+    }
+
+    /**
      * Fluent builder for asking the actor a question with advanced configuration options.
      * This builder provides a more flexible API compared to the simple ask() methods,
      * allowing configuration of timeouts and error handling.

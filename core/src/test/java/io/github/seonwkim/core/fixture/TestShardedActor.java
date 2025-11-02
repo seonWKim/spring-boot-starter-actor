@@ -5,16 +5,17 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.github.seonwkim.core.serialization.JsonSerializable;
 import io.github.seonwkim.core.shard.DefaultShardingMessageExtractor;
 import io.github.seonwkim.core.shard.ShardEnvelope;
-import io.github.seonwkim.core.shard.ShardedActor;
+import io.github.seonwkim.core.shard.SpringShardedActor;
+import io.github.seonwkim.core.shard.SpringShardedActorBehavior;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.pekko.actor.typed.ActorRef;
-import org.apache.pekko.actor.typed.Behavior;
+import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.apache.pekko.cluster.sharding.typed.ShardingMessageExtractor;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityContext;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
 
-public class TestShardedActor implements ShardedActor<TestShardedActor.Command> {
+public class TestShardedActor implements SpringShardedActor<TestShardedActor.Command> {
     public static final EntityTypeKey<Command> TYPE_KEY = EntityTypeKey.create(Command.class, "TestShardedActor");
 
     public interface Command extends JsonSerializable {}
@@ -56,22 +57,31 @@ public class TestShardedActor implements ShardedActor<TestShardedActor.Command> 
     }
 
     @Override
-    public Behavior<Command> create(EntityContext<Command> ctx) {
-        return Behaviors.setup(context -> {
-            AtomicInteger counter = new AtomicInteger();
-            return Behaviors.receive(Command.class)
-                    .onMessage(Ping.class, msg -> {
-                        counter.incrementAndGet();
-                        String entityId = ctx.getEntityId();
-                        context.getLog().info("entityId: " + entityId + " received message: " + msg.message);
-                        return Behaviors.same();
-                    })
-                    .onMessage(GetState.class, cmd -> {
-                        cmd.replyTo.tell(new State(counter.get()));
-                        return Behaviors.same();
-                    })
-                    .build();
-        });
+    public SpringShardedActorBehavior<Command> create(EntityContext<Command> ctx) {
+        return SpringShardedActorBehavior.builder(Command.class, ctx)
+                .onCreate(context -> new ActorState(context, ctx.getEntityId()))
+                .onMessage(Ping.class, (state, msg) -> {
+                    state.counter.incrementAndGet();
+                    state.context.getLog().info("entityId: {} received message: {}", state.entityId, msg.message);
+                    return Behaviors.same();
+                })
+                .onMessage(GetState.class, (state, cmd) -> {
+                    cmd.replyTo.tell(new State(state.counter.get()));
+                    return Behaviors.same();
+                })
+                .build();
+    }
+
+    private static class ActorState {
+        private final ActorContext<Command> context;
+        private final String entityId;
+        private final AtomicInteger counter;
+
+        ActorState(ActorContext<Command> context, String entityId) {
+            this.context = context;
+            this.entityId = entityId;
+            this.counter = new AtomicInteger();
+        }
     }
 
     @Override

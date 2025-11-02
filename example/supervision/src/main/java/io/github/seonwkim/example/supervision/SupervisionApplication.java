@@ -21,12 +21,11 @@ public class SupervisionApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(SupervisionApplication.class, args);
-        System.out.println("\n" +
-                "========================================\n" +
-                "  Actor Supervision Visualizer Started\n" +
-                "========================================\n" +
-                "  Web UI: http://localhost:8080\n" +
-                "  API:    http://localhost:8080/api\n" +
-                "========================================\n");
+        System.out.println("\n" + "========================================\n"
+                + "  Actor Supervision Visualizer Started\n"
+                + "========================================\n"
+                + "  Web UI: http://localhost:8080\n"
+                + "  API:    http://localhost:8080/api\n"
+                + "========================================\n");
     }
 }
