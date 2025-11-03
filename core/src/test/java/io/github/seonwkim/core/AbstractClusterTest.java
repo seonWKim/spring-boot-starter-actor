@@ -153,7 +153,7 @@ public abstract class AbstractClusterTest {
             "spring.actor.pekko.actor.warn-about-java-serializer-usage=on"
         };
 
-        // Merge base properties with additional properties from subclass
+        // Merge with additional properties from subclass
         String[] additionalProps = getAdditionalProperties();
         String[] allProperties = new String[baseProperties.length + additionalProps.length];
         System.arraycopy(baseProperties, 0, allProperties, 0, baseProperties.length);

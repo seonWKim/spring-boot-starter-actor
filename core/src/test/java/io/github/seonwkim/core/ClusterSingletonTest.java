@@ -64,7 +64,6 @@ public class ClusterSingletonTest {
         }
 
         public static class Increment implements Command {}
-
         public static class CountResponse implements JsonSerializable {
             public final int count;
 
@@ -112,24 +111,6 @@ public class ClusterSingletonTest {
                     .actor(SingletonTestActor.class)
                     .withId("singleton-test")
                     .asClusterSingleton()
-                    .spawn();
-
-            // Then: Should fail with IllegalStateException
-            assertThatThrownBy(() -> result.toCompletableFuture().join())
-                    .hasCauseInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("Cluster singleton requested but cluster mode is not enabled");
-        }
-
-        /**
-         * Tests that the cluster singleton API with role also fails in local mode.
-         */
-        @Test
-        public void testClusterSingletonWithRoleInLocalModeFails() {
-            // When: Attempting to spawn a cluster singleton with role in local mode
-            CompletionStage<SpringActorRef<SingletonTestActor.Command>> result = actorSystem
-                    .actor(SingletonTestActor.class)
-                    .withId("singleton-test-role")
-                    .asClusterSingleton("worker")
                     .spawn();
 
             // Then: Should fail with IllegalStateException

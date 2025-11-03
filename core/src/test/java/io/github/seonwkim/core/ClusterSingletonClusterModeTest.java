@@ -52,9 +52,27 @@ public class ClusterSingletonClusterModeTest extends AbstractClusterTest {
     public void testAllNodesShareSameSingletonInstance() throws Exception {
         waitUntilClusterInitialized();
         SpringActorSystem system1 = context1.getBean(SpringActorSystem.class);
+        SpringActorSystem system2 = context2.getBean(SpringActorSystem.class);
+        SpringActorSystem system3 = context3.getBean(SpringActorSystem.class);
 
-        // Given: A cluster singleton spawned from node 1
+        // Given: Get singleton proxy from each node
         SpringActorRef<ClusterSingletonTest.SingletonTestActor.Command> singleton1 = system1
+                .actor(ClusterSingletonTest.SingletonTestActor.class)
+                .withId("shared-singleton")
+                .asClusterSingleton()
+                .spawn()
+                .toCompletableFuture()
+                .get();
+
+        SpringActorRef<ClusterSingletonTest.SingletonTestActor.Command> singleton2 = system2
+                .actor(ClusterSingletonTest.SingletonTestActor.class)
+                .withId("shared-singleton")
+                .asClusterSingleton()
+                .spawn()
+                .toCompletableFuture()
+                .get();
+
+        SpringActorRef<ClusterSingletonTest.SingletonTestActor.Command> singleton3 = system3
                 .actor(ClusterSingletonTest.SingletonTestActor.class)
                 .withId("shared-singleton")
                 .asClusterSingleton()
@@ -65,15 +83,16 @@ public class ClusterSingletonClusterModeTest extends AbstractClusterTest {
         // Wait a bit for singleton to initialize
         Thread.sleep(2000);
 
-        // When: Sending increment messages from all three nodes
+        // When: Sending increment messages from all three nodes using their respective proxies
         singleton1.tell(new ClusterSingletonTest.SingletonTestActor.Increment());
-        singleton1.tell(new ClusterSingletonTest.SingletonTestActor.Increment());
-        singleton1.tell(new ClusterSingletonTest.SingletonTestActor.Increment());
+        singleton2.tell(new ClusterSingletonTest.SingletonTestActor.Increment());
+        singleton3.tell(new ClusterSingletonTest.SingletonTestActor.Increment());
 
         // Wait for messages to be processed
         Thread.sleep(1000);
 
         // Then: All messages should be handled by the same instance
+        // Query from any node should return the same count
         ClusterSingletonTest.SingletonTestActor.CountResponse response = singleton1
                 .ask(
                         ClusterSingletonTest.SingletonTestActor.GetCount::new,
