@@ -21,6 +21,7 @@ public class SpringActorSpawnBuilder<A extends SpringActorWithContext<C, ?>, C> 
     private Duration timeout = Duration.ofSeconds(3);
     private MailboxSelector mailboxSelector = MailboxSelector.defaultMailbox();
     private boolean isClusterSingleton = false;
+    private String singletonRole = null;
     private SupervisorStrategy supervisorStrategy = null;
 
     /**
@@ -127,6 +128,27 @@ public class SpringActorSpawnBuilder<A extends SpringActorWithContext<C, ?>, C> 
     }
 
     /**
+     * Marks the actor as a cluster singleton and specifies the role.
+     * The singleton will only run on nodes with the specified role.
+     *
+     * <p>Example usage:
+     * <pre>
+     * actorSystem.actor(MySingletonActor.class)
+     *     .withId("my-singleton")
+     *     .asClusterSingleton("worker")
+     *     .spawn();
+     * </pre>
+     *
+     * @param role The required role for nodes that can host the singleton
+     * @return This builder
+     */
+    public SpringActorSpawnBuilder<A, C> asClusterSingleton(String role) {
+        this.isClusterSingleton = true;
+        this.singletonRole = role;
+        return this;
+    }
+
+    /**
      * Sets the supervisor strategy for this actor. The supervisor strategy determines how the
      * actor will be supervised by its parent (the root guardian).
      *
@@ -153,7 +175,7 @@ public class SpringActorSpawnBuilder<A extends SpringActorWithContext<C, ?>, C> 
         }
 
         return actorSystem.spawn(
-                actorClass, actorContext, mailboxSelector, isClusterSingleton, supervisorStrategy, timeout);
+                actorClass, actorContext, mailboxSelector, isClusterSingleton, singletonRole, supervisorStrategy, timeout);
     }
 
     /**

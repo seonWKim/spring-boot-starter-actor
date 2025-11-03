@@ -2,17 +2,18 @@ package io.github.seonwkim.core;
 
 import io.github.seonwkim.core.RootGuardian.Spawned;
 import io.github.seonwkim.core.behavior.ClusterEventBehavior;
-import io.github.seonwkim.core.impl.DefaultRootGuardian;
 import io.github.seonwkim.core.impl.DefaultSpringActorContext;
 import io.github.seonwkim.core.shard.SpringShardedActor;
 import io.github.seonwkim.core.shard.ShardedActorRegistry;
 import java.time.Duration;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import org.apache.pekko.actor.typed.*;
 import org.apache.pekko.actor.typed.javadsl.AskPattern;
 import org.apache.pekko.cluster.ClusterEvent;
 import org.apache.pekko.cluster.sharding.typed.javadsl.ClusterSharding;
 import org.apache.pekko.cluster.typed.Cluster;
+import org.apache.pekko.cluster.typed.ClusterSingleton;
 import org.apache.pekko.cluster.typed.Subscribe;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.context.ApplicationEventPublisher;
@@ -44,6 +45,8 @@ public class SpringActorSystem implements DisposableBean {
 
     @Nullable private final ClusterSharding clusterSharding;
 
+    @Nullable private final ClusterSingleton clusterSingleton;
+
     @Nullable private final ShardedActorRegistry shardedActorRegistry;
 
     private final Duration defaultQueryTimeout = Duration.ofMillis(100);
@@ -59,6 +62,7 @@ public class SpringActorSystem implements DisposableBean {
         this.actorSystem = actorSystem;
         this.cluster = null;
         this.clusterSharding = null;
+        this.clusterSingleton = null;
         this.shardedActorRegistry = null;
     }
 
@@ -74,6 +78,7 @@ public class SpringActorSystem implements DisposableBean {
         this.actorSystem = actorSystem;
         this.cluster = null;
         this.clusterSharding = null;
+        this.clusterSingleton = null;
         this.shardedActorRegistry = shardedActorRegistry;
     }
 
@@ -91,7 +96,7 @@ public class SpringActorSystem implements DisposableBean {
             Cluster cluster,
             ClusterSharding clusterSharding,
             ApplicationEventPublisher publisher) {
-        this(actorSystem, cluster, clusterSharding, publisher, null);
+        this(actorSystem, cluster, clusterSharding, ClusterSingleton.get(actorSystem), publisher, null);
     }
 
     /**
@@ -101,6 +106,7 @@ public class SpringActorSystem implements DisposableBean {
      * @param actorSystem The underlying Pekko ActorSystem
      * @param cluster The Pekko Cluster
      * @param clusterSharding The Pekko ClusterSharding
+     * @param clusterSingleton The Pekko ClusterSingleton
      * @param publisher The Spring ApplicationEventPublisher for publishing cluster events
      * @param shardedActorRegistry The sharded actor registry (for type resolution)
      */
@@ -108,11 +114,13 @@ public class SpringActorSystem implements DisposableBean {
             ActorSystem<RootGuardian.Command> actorSystem,
             Cluster cluster,
             ClusterSharding clusterSharding,
+            ClusterSingleton clusterSingleton,
             ApplicationEventPublisher publisher,
             io.github.seonwkim.core.shard.ShardedActorRegistry shardedActorRegistry) {
         this.actorSystem = actorSystem;
         this.cluster = cluster;
         this.clusterSharding = clusterSharding;
+        this.clusterSingleton = clusterSingleton;
         this.shardedActorRegistry = shardedActorRegistry;
 
         ActorRef<ClusterEvent.ClusterDomainEvent> listener = actorSystem.systemActorOf(
@@ -140,6 +148,15 @@ public class SpringActorSystem implements DisposableBean {
 
     @Nullable public ClusterSharding getClusterSharding() {
         return clusterSharding;
+    }
+
+    /**
+     * Returns the Pekko ClusterSingleton if this SpringActorSystem is in cluster mode.
+     *
+     * @return The Pekko ClusterSingleton, or null if this SpringActorSystem is in local mode
+     */
+    @Nullable public ClusterSingleton getClusterSingleton() {
+        return clusterSingleton;
     }
 
     /**
@@ -299,25 +316,55 @@ public class SpringActorSystem implements DisposableBean {
             SpringActorContext actorContext,
             MailboxSelector mailboxSelector,
             boolean isClusterSingleton,
+            @Nullable String singletonRole,
             SupervisorStrategy supervisorStrategy,
             Duration timeout) {
-        return AskPattern.ask(
-                        actorSystem,
-                        (ActorRef<Spawned<?>> replyTo) -> new DefaultRootGuardian.SpawnActor(
-                                actorClass,
-                                actorContext,
-                                replyTo,
-                                mailboxSelector,
-                                isClusterSingleton,
-                                supervisorStrategy),
-                        timeout,
-                        actorSystem.scheduler())
-                .thenApply(spawned -> {
-                    // Safe cast: spawn context ensures actor class matches command type C
-                    @SuppressWarnings("unchecked")
-                    ActorRef<C> typedRef = (ActorRef<C>) spawned.ref;
-                    return new SpringActorRef<>(actorSystem.scheduler(), typedRef, defaultActorRefTimeout);
-                });
+
+        // If cluster singleton is requested, validate cluster mode and use ClusterSingleton API
+        if (isClusterSingleton) {
+            if (clusterSingleton == null) {
+                return CompletableFuture.failedFuture(
+                    new IllegalStateException("Cluster singleton requested but cluster mode is not enabled. " +
+                        "Ensure your application is running in cluster mode.")
+                );
+            }
+
+            // Spawn using ClusterSingleton - delegate to RootGuardian for singleton creation
+            return AskPattern.ask(
+                            actorSystem,
+                            (ActorRef<Spawned<?>> replyTo) -> new RootGuardian.SpawnActor(
+                                    actorClass,
+                                    actorContext,
+                                    replyTo,
+                                    mailboxSelector,
+                                    true,  // isClusterSingleton
+                                    supervisorStrategy),
+                            timeout,
+                            actorSystem.scheduler())
+                    .thenApply(spawned -> {
+                        @SuppressWarnings("unchecked")
+                        ActorRef<C> typedRef = (ActorRef<C>) spawned.ref;
+                        return new SpringActorRef<>(actorSystem.scheduler(), typedRef, defaultActorRefTimeout);
+                    });
+        } else {
+            // Regular actor spawn
+            return AskPattern.ask(
+                            actorSystem,
+                            (ActorRef<Spawned<?>> replyTo) -> new RootGuardian.SpawnActor(
+                                    actorClass,
+                                    actorContext,
+                                    replyTo,
+                                    mailboxSelector,
+                                    false,
+                                    supervisorStrategy),
+                            timeout,
+                            actorSystem.scheduler())
+                    .thenApply(spawned -> {
+                        @SuppressWarnings("unchecked")
+                        ActorRef<C> typedRef = (ActorRef<C>) spawned.ref;
+                        return new SpringActorRef<>(actorSystem.scheduler(), typedRef, defaultActorRefTimeout);
+                    });
+        }
     }
 
     /**
