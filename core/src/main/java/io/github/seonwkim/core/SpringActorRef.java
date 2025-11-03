@@ -142,10 +142,62 @@ public class SpringActorRef<T> {
     }
 
     /**
-     * Creates a fluent builder for spawning a child actor with a consistent API.
+     * Creates a unified reference to a specific child actor for performing operations.
+     * This is the recommended way to interact with child actors as it provides a concise,
+     * single-entry-point API for all child operations.
      *
-     * <p>This is the recommended way to spawn child actors as it provides a fluent,
-     * discoverable API consistent with parent actor spawning.
+     * <p>Example usage:
+     * <pre>
+     * {@code
+     * // Get existing child
+     * Optional<SpringActorRef<ChildCommand>> child = parentRef
+     *     .child(ChildActor.class, "child-1")
+     *     .get()
+     *     .toCompletableFuture()
+     *     .get();
+     *
+     * // Check existence
+     * boolean exists = parentRef
+     *     .child(ChildActor.class, "child-1")
+     *     .exists()
+     *     .toCompletableFuture()
+     *     .get();
+     *
+     * // Spawn new child
+     * SpringActorRef<ChildCommand> child = parentRef
+     *     .child(ChildActor.class, "child-1")
+     *     .spawn(SupervisorStrategy.restart())
+     *     .toCompletableFuture()
+     *     .get();
+     *
+     * // Get or spawn (convenience)
+     * SpringActorRef<ChildCommand> child = parentRef
+     *     .child(ChildActor.class, "child-1")
+     *     .getOrSpawn(SupervisorStrategy.restart())
+     *     .toCompletableFuture()
+     *     .get();
+     * }
+     * </pre>
+     *
+     * <p><b>Important:</b> The parent actor must have framework commands enabled
+     * (automatically enabled if Command extends FrameworkCommand) for child operations to work.
+     *
+     * @param childActorClass The child actor class (must be a Spring component)
+     * @param childId The unique ID for the child actor
+     * @param <CC> The command type of the child actor
+     * @return A unified reference for performing operations on the child actor
+     */
+    public <CC> SpringChildActorReference<T, CC> child(
+            Class<? extends SpringActorWithContext<CC, ?>> childActorClass, String childId) {
+        return new SpringChildActorReference<>(actorRef, scheduler, childActorClass, childId, defaultTimeout);
+    }
+
+    /**
+     * Creates a fluent builder for spawning a child actor with advanced configuration options.
+     *
+     * <p>This method is useful when you need to configure the child actor with custom context
+     * or other advanced options before spawning. For simple use cases, prefer
+     * {@link #child(Class, String)} which provides a more concise API.
      *
      * <p>Example usage:
      * <pre>
