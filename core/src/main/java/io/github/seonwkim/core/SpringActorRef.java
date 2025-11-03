@@ -161,8 +161,8 @@ public class SpringActorRef<T> {
      * }
      * </pre>
      *
-     * <p><b>Important:</b> The parent actor must have framework commands enabled via
-     * {@link SpringActorBehavior.Builder#withFrameworkCommands()} for child spawning to work.
+     * <p><b>Important:</b> The parent actor must have framework commands enabled
+     * (automatically enabled if Command extends FrameworkCommand) for child spawning to work.
      *
      * @param childActorClass The child actor class (must be a Spring component)
      * @param <CC> The command type of the child actor
@@ -174,9 +174,6 @@ public class SpringActorRef<T> {
 
     /**
      * Spawns a child actor under this actor's supervision with Spring DI support.
-     *
-     * <p>This method sends a {@link FrameworkCommands.SpawnChild} command to this actor, which must
-     * have framework commands enabled via {@link SpringActorBehavior.Builder#withFrameworkCommands()}.
      *
      * <p>Example usage:
      * <pre>
@@ -224,9 +221,6 @@ public class SpringActorRef<T> {
     /**
      * Gets a reference to an existing child actor.
      *
-     * <p>This method sends a {@link FrameworkCommands.GetChild} command to this actor, which must
-     * have framework commands enabled via {@link SpringActorBehavior.Builder#withFrameworkCommands()}.
-     *
      * @param childActorClass The child actor class
      * @param childId The unique ID of the child actor
      * @param <CC> The command type of the child actor
@@ -236,7 +230,7 @@ public class SpringActorRef<T> {
     public <CC> CompletionStage<SpringActorRef<CC>> getChild(
             Class<? extends SpringActorWithContext<CC, ?>> childActorClass, String childId) {
         // Cast to Object actor ref to send framework command
-        ActorRef<Object> actorRefAsObject = (ActorRef<Object>) (ActorRef<?>) actorRef;
+        ActorRef<Object> actorRefAsObject = (ActorRef<Object>) actorRef;
 
         return AskPattern.ask(
                         actorRefAsObject,
@@ -255,9 +249,6 @@ public class SpringActorRef<T> {
 
     /**
      * Checks if a child actor exists.
-     *
-     * <p>This method sends an {@link FrameworkCommands.ExistsChild} command to this actor, which must
-     * have framework commands enabled via {@link SpringActorBehavior.Builder#withFrameworkCommands()}.
      *
      * @param childActorClass The child actor class
      * @param childId The unique ID of the child actor
