@@ -26,10 +26,15 @@ public class HelloService {
     }
 
     /**
-     * Sends a hello message to a sharded actor entity. Best practice for sharded actors: - Get
-     * reference on each request (references are lightweight) - No need to cache (entities are
-     * managed by cluster sharding) - No need to check existence (entities are created on-demand) -
-     * Use askBuilder for timeout and error handling
+     * Sends a hello message to a sharded actor entity.
+     *
+     * <p>Best practices for sharded actors:
+     * <ul>
+     *   <li>Get reference on each request (references are lightweight)
+     *   <li>No need to cache (entities are managed by cluster sharding)
+     *   <li>No need to check existence (entities are created on-demand)
+     *   <li>Use askBuilder() for timeout and error handling
+     * </ul>
      *
      * @param message The message to send
      * @param entityId The ID of the entity to send the message to

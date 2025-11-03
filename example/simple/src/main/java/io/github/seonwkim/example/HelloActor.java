@@ -14,8 +14,19 @@ import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.springframework.stereotype.Component;
 
 /**
- * Actor that handles hello messages in a simple (non-clustered) environment. It responds with a
- * greeting message that includes its actor ID.
+ * Simple actor that demonstrates basic actor concepts.
+ *
+ * <p>This actor shows:
+ * <ul>
+ *   <li>Message handling with type-safe commands
+ *   <li>Request-response pattern using ActorRef
+ *   <li>Lifecycle management (PreRestart, PostStop signals)
+ *   <li>State isolation - each actor instance has its own state
+ *   <li>Integration with Spring dependency injection
+ * </ul>
+ *
+ * <p>This is a non-sharded actor suitable for local actors or singleton actors.
+ * For distributed applications, see the chat or cluster examples using sharded actors.
  */
 @Component
 public class HelloActor implements SpringActor<HelloActor.Command> {

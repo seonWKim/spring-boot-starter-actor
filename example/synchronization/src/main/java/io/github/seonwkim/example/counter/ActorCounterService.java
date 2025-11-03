@@ -9,8 +9,18 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
 /**
- * Implementation of CounterService that uses actor-based locking for synchronization. Uses sharded
- * actors to ensure that only one thread can increment a counter at a time.
+ * Implementation of CounterService that uses actor-based synchronization.
+ *
+ * <p>This service demonstrates how sharded actors provide natural synchronization:
+ * - Each counter is a separate actor instance (identified by counterId)
+ * - Actor message processing is single-threaded by design
+ * - No explicit locks needed - the actor model handles it
+ * - Actors are automatically distributed across cluster nodes
+ *
+ * <p>Best practices demonstrated:
+ * - Use sharded actors for distributed state management
+ * - Use tell() for fire-and-forget operations (increment)
+ * - Use askBuilder() with timeout handling for request-response (getValue)
  */
 @Service
 public class ActorCounterService implements CounterService {
@@ -60,9 +70,13 @@ public class ActorCounterService implements CounterService {
         var actorRef =
                 springActorSystem.sharded(CounterActor.class).withId(counterId).get();
 
-        // Send a get value message to the actor using the askBuilder() method
+        // Send a get value message to the actor using the askBuilder() method with error handling
         CompletionStage<Long> response = actorRef.askBuilder(CounterActor.GetValue::new)
                 .withTimeout(Duration.ofSeconds(3))
+                .onTimeout(() -> {
+                    logger.warn("Timeout getting value for counter: {}", counterId);
+                    return 0L; // Return default value on timeout
+                })
                 .execute();
 
         return Mono.fromCompletionStage(response);

@@ -16,8 +16,19 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
- * Actor that handles counter operations in a sharded environment. Each counter is represented by a
- * separate actor instance, identified by its counterId.
+ * Sharded actor that handles counter operations.
+ *
+ * <p>Each counter is represented by a separate actor instance, identified by its counterId.
+ * The actor model provides natural synchronization:
+ * <ul>
+ *   <li>Single-threaded message processing per actor instance
+ *   <li>No race conditions - messages are processed sequentially
+ *   <li>Automatic distribution across cluster nodes
+ *   <li>On-demand entity creation and passivation
+ * </ul>
+ *
+ * <p>This demonstrates a key advantage of the actor model: you get thread-safety
+ * without explicit locks, mutexes, or synchronized blocks.
  */
 @Component
 public class CounterActor implements SpringShardedActor<CounterActor.Command> {
