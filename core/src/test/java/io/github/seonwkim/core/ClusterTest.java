@@ -1,7 +1,5 @@
 package io.github.seonwkim.core;
 
-import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -12,28 +10,18 @@ import io.github.seonwkim.core.fixture.TestShardedActor.GetState;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.cluster.ClusterEvent.MemberLeft;
 import org.apache.pekko.cluster.ClusterEvent.MemberUp;
-import org.apache.pekko.cluster.MemberStatus;
-import org.apache.pekko.cluster.typed.Cluster;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.builder.SpringApplicationBuilder;
-import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 
-public class ClusterTest {
-
-    private static ConfigurableApplicationContext context1;
-    private static ConfigurableApplicationContext context2;
-    private static ConfigurableApplicationContext context3;
+/**
+ * Tests for cluster functionality using the shared AbstractClusterTest base class.
+ */
+public class ClusterTest extends AbstractClusterTest {
 
     @SpringBootApplication(scanBasePackages = "io.github.seonwkim.core")
     public static class ClusterTestApp {
@@ -68,77 +56,22 @@ public class ClusterTest {
         }
     }
 
-    private static final int BASE_HTTP_PORT = 30000;
-    private static final int BASE_ARTERY_PORT = 40000;
-    private static int portOffset = 0;
-
-    @BeforeEach
-    void setUp() {
-        final int[] httpPorts = {
-            BASE_HTTP_PORT + portOffset, BASE_HTTP_PORT + portOffset + 1, BASE_HTTP_PORT + portOffset + 2
-        };
-
-        final int[] arteryPorts = {
-            BASE_ARTERY_PORT + portOffset, BASE_ARTERY_PORT + portOffset + 1, BASE_ARTERY_PORT + portOffset + 2
-        };
-
-        portOffset += 3; // Increment offset so next test uses fresh ports
-
-        String seedNodes = String.format(
-                "pekko://spring-pekko-example@127.0.0.1:%d,pekko://spring-pekko-example@127.0.0.1:%d,pekko://spring-pekko-example@127.0.0.1:%d",
-                arteryPorts[0], arteryPorts[1], arteryPorts[2]);
-
-        context1 = startContext(httpPorts[0], arteryPorts[0], seedNodes);
-        context2 = startContext(httpPorts[1], arteryPorts[1], seedNodes);
-        context3 = startContext(httpPorts[2], arteryPorts[2], seedNodes);
-    }
-
-    @AfterEach
-    void tearDown() {
-        System.out.println("Cluster shutting down 🚀");
-        if (context1.isActive()) {
-            context1.close();
-        }
-        if (context2.isActive()) {
-            context2.close();
-        }
-        if (context3.isActive()) {
-            context3.close();
-        }
-    }
-
-    private static ConfigurableApplicationContext startContext(int httpPort, int arteryPort, String seedNodes) {
-        return new SpringApplicationBuilder(ClusterTestApp.class)
-                .web(WebApplicationType.NONE)
-                .properties(
-                        "server.port=" + httpPort,
-                        "spring.actor.pekko.name=spring-pekko-example",
-                        "spring.actor.pekko.actor.provider=cluster",
-                        "spring.actor.pekko.remote.artery.canonical.hostname=127.0.0.1",
-                        "spring.actor.pekko.remote.artery.canonical.port=" + arteryPort,
-                        "spring.actor.pekko.cluster.name=cluster",
-                        "spring.actor.pekko.cluster.seed-nodes=" + seedNodes,
-                        "spring.actor.pekko.cluster.downing-provider-class=org.apache.pekko.cluster.sbr.SplitBrainResolverProvider",
-                        "spring.actor.pekko.actor.allow-java-serialization=off",
-                        "spring.actor.pekko.actor.warn-about-java-serializer-usage=on")
-                .run();
+    @Override
+    protected Class<?> getApplicationClass() {
+        return ClusterTestApp.class;
     }
 
     @Test
     void clusterEventsShouldBePublished() {
+        waitUntilClusterInitialized();
         ClusterEventCollector collector = context1.getBean(ClusterEventCollector.class);
 
-        await().atMost(10, SECONDS)
-                .pollInterval(200, TimeUnit.MILLISECONDS)
-                .until(() -> collector.eventCount(MemberUp.class) >= 3);
         assertTrue(collector.eventCount(MemberUp.class) >= 3, "Expected at least 3 MemberUp events");
 
         context2.close();
         context3.close();
-        await().atMost(10, SECONDS)
-                .pollInterval(200, TimeUnit.MILLISECONDS)
-                .until(() -> collector.eventCount(MemberLeft.class) >= 2);
-        assertTrue(collector.eventCount(MemberLeft.class) >= 2, "Expected at least 3 MemberLeft events");
+        waitUntilClusterHasMembers(1);
+        assertTrue(collector.eventCount(MemberLeft.class) >= 2, "Expected at least 2 MemberLeft events");
     }
 
     @Test
@@ -247,16 +180,4 @@ public class ClusterTest {
         assertEquals(entityId, entityIdResponse);
     }
 
-    private void waitUntilClusterInitialized() {
-        Cluster cluster = context1.getBean(SpringActorSystem.class).getCluster();
-        // Wait until all 3 cluster nodes are UP
-        await().atMost(10, SECONDS).pollInterval(200, TimeUnit.MILLISECONDS).until(() -> {
-            Assertions.assertNotNull(cluster);
-            return cluster.state()
-                            .members()
-                            .filter(it -> it.status() == MemberStatus.up())
-                            .size()
-                    == 3;
-        });
-    }
 }
