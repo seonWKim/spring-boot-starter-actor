@@ -18,6 +18,7 @@ import org.apache.pekko.actor.typed.ActorSystem;
 import org.apache.pekko.cluster.sharding.typed.javadsl.ClusterSharding;
 import org.apache.pekko.cluster.sharding.typed.javadsl.Entity;
 import org.apache.pekko.cluster.typed.Cluster;
+import org.apache.pekko.cluster.typed.ClusterSingleton;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.lang.Nullable;
 
@@ -117,12 +118,13 @@ public class DefaultSpringActorSystemBuilder implements SpringActorSystemBuilder
 
         final Cluster cluster = Cluster.get(actorSystem);
         final ClusterSharding clusterSharding = ClusterSharding.get(actorSystem);
+        final ClusterSingleton clusterSingleton = ClusterSingleton.get(actorSystem);
         for (SpringShardedActor actor : shardedActorRegistry.getAll()) {
             initShardedActor(clusterSharding, actor);
         }
 
         return new SpringActorSystem(
-                actorSystem, cluster, clusterSharding, applicationEventPublisher, shardedActorRegistry);
+                actorSystem, cluster, clusterSharding, clusterSingleton, applicationEventPublisher, shardedActorRegistry);
     }
 
     /**

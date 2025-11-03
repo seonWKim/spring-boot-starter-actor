@@ -7,6 +7,9 @@ import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
+import org.apache.pekko.cluster.typed.ClusterSingleton;
+import org.apache.pekko.cluster.typed.SingletonActor;
+import org.springframework.lang.Nullable;
 
 /**
  * Default implementation of the {@code RootGuardian} interface. This class manages the lifecycle of
@@ -21,23 +24,37 @@ public class DefaultRootGuardian implements RootGuardian {
      * @return A behavior for the DefaultRootGuardian
      */
     public static Behavior<Command> create(ActorTypeRegistry registry) {
-        return Behaviors.setup(ctx -> new DefaultRootGuardian(ctx, registry).behavior());
+        return Behaviors.setup(ctx -> {
+            // Try to get ClusterSingleton if available (cluster mode)
+            ClusterSingleton clusterSingleton = null;
+            try {
+                clusterSingleton = ClusterSingleton.get(ctx.getSystem());
+            } catch (Exception e) {
+                // Not in cluster mode, clusterSingleton will be null
+            }
+            return new DefaultRootGuardian(ctx, registry, clusterSingleton).behavior();
+        });
     }
 
     /** The actor context */
     private final ActorContext<Command> ctx;
     /** The actor type registry */
     private final ActorTypeRegistry registry;
+    /** The cluster singleton (null in local mode) */
+    @Nullable
+    private final ClusterSingleton clusterSingleton;
 
     /**
      * Creates a new DefaultRootGuardian with the given actor context and actor type registry.
      *
      * @param ctx The actor context
      * @param registry The actor type registry
+     * @param clusterSingleton The cluster singleton (null in local mode)
      */
-    public DefaultRootGuardian(ActorContext<Command> ctx, ActorTypeRegistry registry) {
+    public DefaultRootGuardian(ActorContext<Command> ctx, ActorTypeRegistry registry, @Nullable ClusterSingleton clusterSingleton) {
         this.ctx = ctx;
         this.registry = registry;
+        this.clusterSingleton = clusterSingleton;
     }
 
     /**
@@ -60,6 +77,10 @@ public class DefaultRootGuardian implements RootGuardian {
      * <p>If an actor with the same name already exists, Pekko will throw an InvalidActorNameException.
      * Users should either use unique IDs or implement caching to reuse actor references.
      *
+     * <p>If isClusterSingleton is true, spawns the actor as a cluster singleton using Pekko's
+     * ClusterSingleton API. The returned reference is a proxy that routes messages to whichever
+     * node currently hosts the singleton.
+     *
      * @param msg The SpawnActor command
      * @return The same behavior, as this handler doesn't change the behavior
      */
@@ -73,7 +94,28 @@ public class DefaultRootGuardian implements RootGuardian {
             behavior = Behaviors.supervise(behavior).onFailure(msg.supervisorStrategy);
         }
 
-        ActorRef<?> ref = ctx.spawn(behavior, key, msg.mailboxSelector);
+        ActorRef<?> ref;
+
+        if (msg.isClusterSingleton) {
+            // Spawn as cluster singleton using Pekko's ClusterSingleton API
+            if (clusterSingleton == null) {
+                throw new IllegalStateException(
+                    "Cluster singleton requested but cluster mode is not enabled. " +
+                    "Ensure your application is running in cluster mode."
+                );
+            }
+
+            // Create SingletonActor with the behavior
+            // The singleton name should be unique across the cluster
+            SingletonActor<?> singletonActor = SingletonActor.of(behavior, key);
+
+            // Initialize the singleton and get the proxy reference
+            // The proxy transparently routes messages to whichever node hosts the singleton
+            ref = clusterSingleton.init(singletonActor);
+        } else {
+            // Regular actor spawn
+            ref = ctx.spawn(behavior, key, msg.mailboxSelector);
+        }
 
         msg.replyTo.tell(new Spawned<>(ref));
         return Behaviors.same();

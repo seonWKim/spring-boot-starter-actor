@@ -26,9 +26,6 @@ import org.apache.pekko.actor.typed.javadsl.AskPattern;
  *     .get();
  * </pre>
  *
- * <p><b>Important:</b> The parent actor must have framework commands enabled via
- * {@link SpringActorBehavior.Builder#withFrameworkCommands()} for child spawning to work.
- *
  * @param <P> The parent actor's command type
  * @param <C> The child actor's command type
  */

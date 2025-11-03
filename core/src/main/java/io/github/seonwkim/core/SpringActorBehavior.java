@@ -108,26 +108,6 @@ public final class SpringActorBehavior<C> {
         }
 
         /**
-         * Enables framework command handling.
-         *
-         * <p><b>Note:</b> Framework commands are now automatically enabled when your Command interface
-         * extends {@link FrameworkCommand}. This method is kept for backward compatibility but is
-         * no longer required.
-         *
-         * <p>Framework commands allow automatic handling of commands such as
-         * {@link FrameworkCommands.SpawnChild} without requiring explicit message handlers.
-         *
-         * @return this builder for chaining
-         * @deprecated Framework commands are automatically enabled when Command extends {@link FrameworkCommand}.
-         *             This method is no longer needed and will be removed in a future version.
-         */
-        @Deprecated
-        public Builder<C, S> withFrameworkCommands() {
-            this.enableFrameworkCommands = true;
-            return this;
-        }
-
-        /**
          * Sets the supervision strategy for this actor.
          *
          * <p>The supervision strategy determines how the actor should be supervised by its parent
