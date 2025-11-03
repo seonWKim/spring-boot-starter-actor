@@ -12,7 +12,7 @@
 
 ## Why spring-boot-starter-actor?
 
-This library brings Pekko actors to Spring Boot. Build scalable, concurrent systems—real-time chat, IoT platforms, event processing—using familiar Spring patterns.
+Build scalable, concurrent systems—real-time chat, IoT platforms, event processing—using the actor model with familiar Spring patterns.
 
 **Key Features:**
 - Auto-configuration with Spring Boot
@@ -24,13 +24,13 @@ This library brings Pekko actors to Spring Boot. Build scalable, concurrent syst
   <img src="mkdocs/docs/chat.gif" alt="Live Demo - Distributed Chat Application"/>
 </div>
 
-## Installation
+## Quick Start
 
 ### Prerequisites
 - Java 11 or higher
 - Spring Boot 2.x or 3.x
 
-### Dependency Setup
+### Installation
 
 Add the dependency to your project:
 
@@ -44,10 +44,10 @@ dependencyManagement {
 }
 
 // Spring Boot 2.7.x
-implementation 'io.github.seonwkim:spring-boot-starter-actor:0.1.0'
+implementation 'io.github.seonwkim:spring-boot-starter-actor:0.3.0'
 
 // Spring Boot 3.2.x
-implementation 'io.github.seonwkim:spring-boot-starter-actor_3:0.1.0'
+implementation 'io.github.seonwkim:spring-boot-starter-actor_3:0.3.0'
 ```
 
 **Maven:**
@@ -68,14 +68,14 @@ implementation 'io.github.seonwkim:spring-boot-starter-actor_3:0.1.0'
 <dependency>
   <groupId>io.github.seonwkim</groupId>
   <artifactId>spring-boot-starter-actor</artifactId>
-  <version>0.1.0</version>
+  <version>0.3.0</version>
 </dependency>
 
 <!-- Spring Boot 3.2.x -->
 <dependency>
   <groupId>io.github.seonwkim</groupId>
   <artifactId>spring-boot-starter-actor_3</artifactId>
-  <version>0.1.0</version>
+  <version>0.3.0</version>
 </dependency>
 ```
 
@@ -95,23 +95,7 @@ public class MyApplication {
 }
 ```
 
-## Quick Start
-
-### Basic Setup
-
-Add `@EnableActorSupport` and start creating actors:
-
-```java
-@SpringBootApplication
-@EnableActorSupport
-public class Application {
-    public static void main(String[] args) {
-        SpringApplication.run(Application.class, args);
-    }
-}
-```
-
-### Simple Actor Example
+### Create Your First Actor
 
 Create an actor by implementing `SpringActor`:
 
@@ -135,9 +119,9 @@ public class GreeterActor implements SpringActor<GreeterActor.Command> {
 }
 ```
 
-### Using Actors in Services
+### Use Actors in Your Services
 
-Inject `SpringActorSystem` and use it to interact with actors:
+Inject `SpringActorSystem` and interact with actors:
 
 ```java
 @Service
@@ -149,9 +133,7 @@ public class GreeterService {
     }
 
     public CompletionStage<String> greet(String name) {
-        return actorSystem.actor(GreeterActor.class)
-            .withId("greeter")
-            .spawn()
+        return actorSystem.getOrSpawn(GreeterActor.class, "greeter")
             .thenCompose(actor -> actor
                 .askBuilder(replyTo -> new GreeterActor.Greet(name, replyTo))
                 .withTimeout(Duration.ofSeconds(5))
@@ -161,55 +143,44 @@ public class GreeterService {
 }
 ```
 
-### Actor Lifecycle Operations
+## Core Concepts
 
-**Create and Start an Actor:**
+### Actor Lifecycle Management
+
+**Spawn a New Actor:**
 ```java
-// Start a new actor instance
+// Create and start a new actor
 CompletionStage<SpringActorRef<Command>> actorRef = actorSystem
     .actor(MyActor.class)
     .withId("my-actor-1")
-    .withTimeout(Duration.ofSeconds(5))  // Optional: custom timeout
+    .withTimeout(Duration.ofSeconds(5))  // Optional
     .spawn();
 ```
 
-**Get Reference to Existing Actor:**
+**Get Existing Actor:**
 ```java
-// Get an existing actor (returns null if not found)
+// Get reference to existing actor (returns null if not found)
 CompletionStage<SpringActorRef<Command>> actorRef = actorSystem
     .get(MyActor.class, "my-actor-1");
-
-// With custom timeout
-actorRef = actorSystem.get(MyActor.class, "my-actor-1", Duration.ofMillis(500));
 ```
 
-**Get or Create Actor (Recommended):**
+**Get or Spawn (Recommended):**
 ```java
-// Simplified approach - automatically gets existing or spawns new actor
+// Automatically gets existing or spawns new actor
 CompletionStage<SpringActorRef<Command>> actorRef = actorSystem
     .getOrSpawn(MyActor.class, "my-actor-1");
-
-// With custom timeout
-actorRef = actorSystem.getOrSpawn(MyActor.class, "my-actor-1", Duration.ofSeconds(5));
 ```
 
 **Check if Actor Exists:**
 ```java
-// Check if actor is running
 CompletionStage<Boolean> exists = actorSystem
     .exists(MyActor.class, "my-actor-1");
-
-// With custom timeout
-exists = actorSystem.exists(MyActor.class, "my-actor-1", Duration.ofMillis(500));
 ```
 
 **Stop an Actor:**
 ```java
-// Stop a running actor
 actorRef.thenAccept(actor -> actor.stop());
 ```
-
-## Core Concepts
 
 ### Communication Patterns
 
@@ -235,9 +206,69 @@ CompletionStage<String> response = actor
     .execute();
 ```
 
+### Spring Dependency Injection
+
+Actors are Spring components with full DI support:
+
+```java
+@Component
+public class OrderActor implements SpringActor<OrderActor.Command> {
+
+    private final OrderRepository orderRepository;
+
+    public OrderActor(OrderRepository orderRepository) {
+        this.orderRepository = orderRepository;
+    }
+
+    public interface Command {}
+    public record ProcessOrder(String orderId) implements Command {}
+
+    @Override
+    public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
+        return SpringActorBehavior.builder(Command.class, actorContext)
+            .onMessage(ProcessOrder.class, (ctx, msg) -> {
+                Order order = orderRepository.findById(msg.orderId);
+                // Process order...
+                return Behaviors.same();
+            })
+            .build();
+    }
+}
+```
+
+## Configuration
+
+### Local Mode (Default)
+```yaml
+spring:
+  actor:
+    pekko:
+      actor:
+        provider: local
+```
+
+### Cluster Mode
+```yaml
+spring:
+  actor:
+    pekko:
+      actor:
+        provider: cluster
+      remote:
+        artery:
+          canonical:
+            hostname: "127.0.0.1"
+            port: 2551
+      cluster:
+        seed-nodes:
+          - "pekko://MyActorSystem@127.0.0.1:2551"
+```
+
+## Advanced Features
+
 ### Sharded Actors (Cluster Mode)
 
-For distributed systems, use sharded actors. Entities are automatically created on-demand and distributed across cluster nodes:
+For distributed systems, use sharded actors that are automatically distributed across cluster nodes:
 
 **Define a Sharded Actor:**
 ```java
@@ -289,177 +320,75 @@ public class UserSessionActor implements SpringShardedActor<UserSessionActor.Com
 
 **Using Sharded Actors:**
 ```java
-// Fire-and-forget messaging
+// Get reference (entity created on-demand)
 SpringShardedActorRef<Command> actor = actorSystem
     .sharded(UserSessionActor.class)
     .withId("user-123")
     .get();
 
+// Fire-and-forget
 actor.tell(new UpdateActivity("logged-in"));
 
-// Request-response messaging
+// Request-response
 CompletionStage<String> activity = actor
     .askBuilder(GetActivity::new)
     .withTimeout(Duration.ofSeconds(5))
     .execute();
-
-// With error handling
-CompletionStage<String> activityWithFallback = actor
-    .askBuilder(GetActivity::new)
-    .withTimeout(Duration.ofSeconds(5))
-    .onTimeout(() -> "unknown")
-    .execute();
 ```
 
 **Key Differences from Regular Actors:**
-- Sharded actors are created **automatically** when first message arrives (no `start()` needed)
-- Entity references are always valid, even if the entity isn't currently running
-- Entities are automatically distributed across cluster nodes
-- Entities are passivated after idle timeout (configurable)
-- Use `get()` to obtain a reference (not `start()`)
-
-### Spring Dependency Injection
-
-Actors are Spring components, so constructor injection works:
-
-```java
-@Component
-public class OrderActor implements SpringActor<OrderActor.Command> {
-
-    private final OrderRepository orderRepository;
-
-    public OrderActor(OrderRepository orderRepository) {
-        this.orderRepository = orderRepository;
-    }
-
-    public interface Command {}
-    public record ProcessOrder(String orderId) implements Command {}
-
-    @Override
-    public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
-        return SpringActorBehavior.builder(Command.class, actorContext)
-            .onMessage(ProcessOrder.class, (ctx, msg) -> {
-                Order order = orderRepository.findById(msg.orderId);
-                return Behaviors.same();
-            })
-            .build();
-    }
-}
-```
-
-### Configuration
-
-**Local mode** (default):
-```yaml
-spring:
-  actor:
-    pekko:
-      actor:
-        provider: local
-```
-
-**Cluster mode:**
-```yaml
-spring:
-  actor:
-    pekko:
-      actor:
-        provider: cluster
-      remote:
-        artery:
-          canonical:
-            hostname: "127.0.0.1"
-            port: 2551
-      cluster:
-        seed-nodes:
-          - "pekko://MyActorSystem@127.0.0.1:2551"
-```
-
-## Advanced Features
+- Created automatically when first message arrives (no `spawn()` needed)
+- Always available, even if not currently running
+- Automatically distributed across cluster nodes
+- Passivated after idle timeout (configurable)
+- Use `get()` to obtain reference (not `spawn()`)
 
 ### Supervision and Fault Tolerance
 
-Spring Boot Starter Actor provides robust supervision strategies for building self-healing, fault-tolerant systems. When a child actor fails, its parent supervisor can decide how to handle the failure using different strategies.
+Build self-healing systems with supervision strategies:
 
-#### Available Supervision Strategies
-
-**1. Restart Strategy (Default)**
+**Available Strategies:**
 ```java
-// Restart the actor on failure (default behavior)
-SupervisorStrategy strategy = SupervisorStrategy.restart();
+// Restart on failure (default)
+SupervisorStrategy.restart()
+
+// Restart with limit (e.g., 3 times within 1 minute)
+SupervisorStrategy.restart().withLimit(3, Duration.ofMinutes(1))
+
+// Stop on failure
+SupervisorStrategy.stop()
+
+// Resume and ignore failure
+SupervisorStrategy.resume()
 ```
 
-**2. Restart with Limit**
+**Spawn Actors with Supervision:**
 ```java
-// Restart up to 3 times within 1 minute, then stop
-SupervisorStrategy strategy = SupervisorStrategy.restart()
-    .withLimit(3, Duration.ofMinutes(1));
+// Top-level actor
+actorSystem.actor(WorkerActor.class)
+    .withId("worker-1")
+    .withSupervisionStrategy(SupervisorStrategy.restart().withLimit(3, Duration.ofMinutes(1)))
+    .spawn();
 ```
 
-**3. Stop Strategy**
-```java
-// Stop the actor on failure
-SupervisorStrategy strategy = SupervisorStrategy.stop();
-```
-
-**4. Resume Strategy**
-```java
-// Ignore the failure and resume processing
-SupervisorStrategy strategy = SupervisorStrategy.resume();
-```
-
-#### Spawning Top-Level Actors with Supervision
-
-You can apply supervision strategies when spawning actors from `SpringActorSystem`:
-
-```java
-@Service
-public class MyService {
-    private final SpringActorSystem actorSystem;
-
-    public MyService(SpringActorSystem actorSystem) {
-        this.actorSystem = actorSystem;
-    }
-
-    public CompletionStage<SpringActorRef<Command>> createSupervisedActor() {
-        // Spawn actor with restart strategy
-        return actorSystem.actor(WorkerActor.class)
-            .withId("worker-1")
-            .withSupervisonStrategy(SupervisorStrategy.restart().withLimit(3, Duration.ofMinutes(1)))
-            .spawn();
-    }
-}
-```
-
-#### Spawning Child Actors with Supervision
-
-Within an actor, use the fluent builder API to spawn supervised child actors:
-
+**Spawn Child Actors with Supervision:**
 ```java
 @Component
 public class SupervisorActor implements SpringActor<SupervisorActor.Command> {
 
-    public interface Command extends FrameworkCommand {}
+    public interface Command {}
 
     @Override
     public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
         return SpringActorBehavior.builder(Command.class, actorContext)
             .onMessage(DelegateWork.class, (ctx, msg) -> {
-                // Use SpringActorRef to spawn/manage children with fluent API
                 SpringActorRef<Command> self = new SpringActorRef<>(ctx.getSystem().scheduler(), ctx.getSelf());
 
-                // Fluent API for spawning children
+                // Spawn supervised child
                 self.child(WorkerActor.class)
                     .withId("worker-1")
                     .withSupervisionStrategy(SupervisorStrategy.restart())
-                    .withTimeout(Duration.ofSeconds(5))
-                    .spawn();  // Returns CompletionStage<SpringActorRef>
-
-                // Or use spawnAndWait() for synchronous spawning
-                SpringActorRef<WorkerActor.Command> worker = self.child(WorkerActor.class)
-                    .withId("worker-2")
-                    .withSupervisionStrategy(SupervisorStrategy.restart().withLimit(3, Duration.ofMinutes(1)))
-                    .spawnAndWait();
+                    .spawn();
 
                 return Behaviors.same();
             })
@@ -468,38 +397,28 @@ public class SupervisorActor implements SpringActor<SupervisorActor.Command> {
 }
 ```
 
-**Child Actor Builder Operations:**
-
+**Child Actor Operations:**
 ```java
-// Spawn a new child
+// Spawn new child
 CompletionStage<SpringActorRef<Command>> child = parentRef
     .child(ChildActor.class)
     .withId("child-1")
-    .withSupervisionStrategy(SupervisorStrategy.restart())
     .spawn();
 
-// Get existing child (returns null if not found)
+// Get existing child
 CompletionStage<SpringActorRef<Command>> existing = parentRef
     .child(ChildActor.class)
     .withId("child-1")
     .get();
 
-// Check if child exists
-CompletionStage<Boolean> exists = parentRef
-    .child(ChildActor.class)
-    .withId("child-1")
-    .exists();
-
-// Get existing or spawn new (recommended)
+// Get or spawn (recommended)
 CompletionStage<SpringActorRef<Command>> childRef = parentRef
     .child(ChildActor.class)
     .withId("child-1")
     .getOrSpawn();
 ```
 
-#### Interactive Demo
-
-The supervision example includes an interactive demo that visualizes actor hierarchies and demonstrates real-time failure handling:
+**Interactive Demo:**
 
 <div style="border: 2px solid #ccc; display: inline-block; border-radius: 8px; overflow: hidden; margin: 20px 0;">
   <img src="mkdocs/docs/supervision.png" alt="Supervision Interactive Demo - Actor Hierarchy Visualization"/>
@@ -507,25 +426,11 @@ The supervision example includes an interactive demo that visualizes actor hiera
 
 Learn more in the [Supervision Guide](https://seonwkim.github.io/spring-boot-starter-actor/examples/supervision/).
 
-### Spring Boot 3 Support
-
-This library fully supports both Spring Boot 2.7.x and 3.2.x:
-
-**Spring Boot 2.7.x:**
-```gradle
-implementation 'io.github.seonwkim:spring-boot-starter-actor:0.1.0'
-```
-
-**Spring Boot 3.2.x:**
-```gradle
-implementation 'io.github.seonwkim:spring-boot-starter-actor_3:0.1.0'
-```
-
-The API is identical across both versions. Simply choose the appropriate artifact based on your Spring Boot version. The `_3` suffix indicates Boot 3 compatibility.
-
 ## Running Examples
 
 ### Chat Application (Distributed)
+
+Run a distributed chat application across multiple nodes:
 
 ```bash
 # Start 3-node cluster on ports 8080, 8081, 8082
@@ -535,7 +440,7 @@ $ sh cluster-start.sh chat io.github.seonwkim.example.SpringPekkoApplication 808
 $ sh cluster-stop.sh
 ```
 
-Or use Docker:
+**Or use Docker:**
 ```bash
 cd example/chat
 sh init-local-docker.sh
@@ -558,6 +463,9 @@ Access:
 - **Prometheus**: http://localhost:9090
 - **Grafana**: http://localhost:3000 (admin/admin)
 
+## Documentation
+
+Full documentation: [https://seonwkim.github.io/spring-boot-starter-actor/](https://seonwkim.github.io/spring-boot-starter-actor/)
 
 ## Contributing
 
@@ -567,10 +475,6 @@ Contributions welcome! Please:
 2. Open a PR with clear explanation
 3. Run `./gradlew spotlessApply` for formatting
 4. Ensure tests pass
-
-## Documentation
-
-Full documentation: [https://seonwkim.github.io/spring-boot-starter-actor/](https://seonwkim.github.io/spring-boot-starter-actor/)
 
 ## License
 
