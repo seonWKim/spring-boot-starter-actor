@@ -265,7 +265,7 @@ public class SpringActorRef<T> {
     public <CC> CompletionStage<Boolean> existsChild(
             Class<? extends SpringActorWithContext<CC, ?>> childActorClass, String childId) {
         // Cast to Object actor ref to send framework command
-        ActorRef<Object> actorRefAsObject = (ActorRef<Object>) (ActorRef<?>) actorRef;
+        ActorRef<Object> actorRefAsObject = (ActorRef<Object>) actorRef;
 
         return AskPattern.ask(
                         actorRefAsObject,
