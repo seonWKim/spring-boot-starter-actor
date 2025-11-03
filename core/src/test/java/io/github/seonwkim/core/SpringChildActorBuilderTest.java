@@ -754,7 +754,7 @@ class SpringChildActorBuilderTest {
     class IntegrationWithSpringActorRefTests {
 
         @Test
-        void testBuilderMethodMatchesDirectSpawnChild(org.springframework.context.ApplicationContext springContext)
+        void testBuilderMethodVsUnifiedReferenceAPI(org.springframework.context.ApplicationContext springContext)
                 throws Exception {
             // Given: A parent actor
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
@@ -763,21 +763,22 @@ class SpringChildActorBuilderTest {
                     .withId("parent-comparison")
                     .spawnAndWait();
 
-            // When: Spawning children using both methods
+            // When: Spawning children using both the builder API and unified reference API
             SpringActorRef<SimpleChildActor.Command> childViaBuilder = parent
                     .child(SimpleChildActor.class)
                     .withId("builder-child")
                     .withSupervisionStrategy(SupervisorStrategy.restart())
                     .spawnAndWait();
 
-            SpringActorRef<SimpleChildActor.Command> childViaDirectMethod = parent
-                    .spawnChild(SimpleChildActor.class, "direct-child", SupervisorStrategy.restart())
+            SpringActorRef<SimpleChildActor.Command> childViaUnifiedAPI = parent
+                    .child(SimpleChildActor.class, "unified-child")
+                    .spawn(SupervisorStrategy.restart())
                     .toCompletableFuture()
                     .get(5, TimeUnit.SECONDS);
 
             // Then: Both should work identically
             assertThat(childViaBuilder).isNotNull();
-            assertThat(childViaDirectMethod).isNotNull();
+            assertThat(childViaUnifiedAPI).isNotNull();
 
             String response1 = childViaBuilder
                     .askBuilder(SimpleChildActor.Ping::new)
@@ -785,7 +786,7 @@ class SpringChildActorBuilderTest {
                     .execute()
                     .toCompletableFuture()
                     .get();
-            String response2 = childViaDirectMethod
+            String response2 = childViaUnifiedAPI
                     .askBuilder(SimpleChildActor.Ping::new)
                     .withTimeout(Duration.ofSeconds(5))
                     .execute()

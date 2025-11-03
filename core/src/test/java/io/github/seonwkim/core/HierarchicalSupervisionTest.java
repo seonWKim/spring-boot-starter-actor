@@ -163,7 +163,7 @@ class HierarchicalSupervisionTest {
      * <p>Key features demonstrated:
      * <ul>
      *   <li>Using {@link SpringActorRef#getChild(Class, String)} to check for existing children</li>
-     *   <li>Using {@link SpringActorRef#spawnChild(Class, String, SupervisorStrategy)} for on-demand spawning</li>
+     *   <li>Using {@link SpringActorRef#child(Class, String)} with {@code spawn()} for on-demand spawning</li>
      *   <li>Async message handling with {@code ctx.pipeToSelf()}</li>
      *   <li>Automatic framework command handling when Command extends {@link FrameworkCommand}</li>
      * </ul>
@@ -249,9 +249,9 @@ class HierarchicalSupervisionTest {
                 SpringActorRef<Command> self =
                         new SpringActorRef<>(ctx.getSystem().scheduler(), ctx.getSelf());
 
-                // Spawn child using SpringActorRef API
+                // Spawn child using SpringActorRef unified API
                 ctx.pipeToSelf(
-                        self.spawnChild(ChildWorkerActor.class, msg.workerId, strategy),
+                        self.child(ChildWorkerActor.class, msg.workerId).spawn(strategy),
                         (childRef, failure) -> new ChildReady(msg, childRef, failure));
 
                 return Behaviors.same();
@@ -349,9 +349,10 @@ class HierarchicalSupervisionTest {
                     .withId("supervisor-spawn-test")
                     .spawnAndWait();
 
-            // When: Spawning a child directly using the API
+            // When: Spawning a child directly using the unified reference API
             SpringActorRef<ChildWorkerActor.Command> childRef = supervisor
-                    .spawnChild(ChildWorkerActor.class, "direct-spawn-child", SupervisorStrategy.restart())
+                    .child(ChildWorkerActor.class, "direct-spawn-child")
+                    .spawn(SupervisorStrategy.restart())
                     .toCompletableFuture()
                     .get(5, TimeUnit.SECONDS);
 

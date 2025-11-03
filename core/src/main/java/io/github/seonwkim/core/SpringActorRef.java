@@ -225,52 +225,6 @@ public class SpringActorRef<T> {
     }
 
     /**
-     * Spawns a child actor under this actor's supervision with Spring DI support.
-     *
-     * <p>Example usage:
-     * <pre>
-     * {@code
-     * CompletionStage<SpringActorRef<ChildCommand>> childRef = parentRef.spawnChild(
-     *     ChildActor.class,
-     *     "child-1",
-     *     SupervisorStrategy.restart()
-     * );
-     * }
-     * </pre>
-     *
-     * @param childActorClass The child actor class (must be a Spring component)
-     * @param childId The unique ID for the child actor
-     * @param strategy The supervision strategy for the child
-     * @param <CC> The command type of the child actor
-     * @return A CompletionStage that completes with a SpringActorRef to the child, or fails if spawning failed
-     */
-    @SuppressWarnings("unchecked")
-    public <CC> CompletionStage<SpringActorRef<CC>> spawnChild(
-            Class<? extends SpringActorWithContext<CC, ?>> childActorClass,
-            String childId,
-            org.apache.pekko.actor.typed.SupervisorStrategy strategy) {
-        io.github.seonwkim.core.impl.DefaultSpringActorContext childContext =
-                new io.github.seonwkim.core.impl.DefaultSpringActorContext(childId);
-
-        // Cast to Object actor ref to send framework command
-        ActorRef<Object> actorRefAsObject = (ActorRef<Object>) (ActorRef<?>) actorRef;
-
-        return AskPattern.ask(
-                        actorRefAsObject,
-                        (ActorRef<FrameworkCommands.SpawnChildResponse<CC>> replyTo) ->
-                                new FrameworkCommands.SpawnChild<>(childActorClass, childContext, strategy, replyTo),
-                        defaultTimeout,
-                        scheduler)
-                .thenApply(response -> {
-                    if (response.success || "Child already exists".equals(response.message)) {
-                        return new SpringActorRef<>(scheduler, response.childRef, defaultTimeout);
-                    } else {
-                        throw new RuntimeException("Failed to spawn child: " + response.message);
-                    }
-                });
-    }
-
-    /**
      * Gets a reference to an existing child actor.
      *
      * @param childActorClass The child actor class
