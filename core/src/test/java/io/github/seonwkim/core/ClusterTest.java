@@ -13,6 +13,8 @@ import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
+
+import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.cluster.ClusterEvent.MemberLeft;
 import org.apache.pekko.cluster.ClusterEvent.MemberUp;
 import org.apache.pekko.cluster.MemberStatus;
@@ -228,12 +230,12 @@ public class ClusterTest {
                 .get();
 
         // Test Echo message
-        String echoResponse =
-                (String) actor.askBuilder(replyTo -> new SimpleShardedActorWithoutOnCreate.Echo("hello", replyTo))
-                        .withTimeout(Duration.ofSeconds(3))
-                        .execute()
-                        .toCompletableFuture()
-                        .get();
+        String echoResponse = actor.askBuilder(
+                        (ActorRef<String> replyTo) -> new SimpleShardedActorWithoutOnCreate.Echo("hello", replyTo))
+                .withTimeout(Duration.ofSeconds(3))
+                .execute()
+                .toCompletableFuture()
+                .get();
         assertEquals("Echo from entity [" + entityId + "]: hello", echoResponse);
 
         // Test GetEntityId message

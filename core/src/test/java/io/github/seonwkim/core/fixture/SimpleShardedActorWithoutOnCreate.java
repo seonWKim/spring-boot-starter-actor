@@ -26,10 +26,10 @@ public class SimpleShardedActorWithoutOnCreate implements SpringShardedActor<Sim
 
     public static class Echo implements Command {
         public final String message;
-        public final ActorRef<Object> replyTo;
+        public final ActorRef<String> replyTo;
 
         @JsonCreator
-        public Echo(@JsonProperty("message") String message, @JsonProperty("replyTo") ActorRef<Object> replyTo) {
+        public Echo(@JsonProperty("message") String message, @JsonProperty("replyTo") ActorRef<String> replyTo) {
             this.message = message;
             this.replyTo = replyTo;
         }

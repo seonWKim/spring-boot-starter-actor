@@ -4,6 +4,7 @@ import io.github.seonwkim.core.SpringActorSystem;
 import io.github.seonwkim.core.SpringShardedActorRef;
 import java.time.Duration;
 import java.util.concurrent.CompletionStage;
+import org.apache.pekko.actor.typed.ActorRef;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
@@ -22,8 +23,8 @@ public class HelloService {
                 springActorSystem.sharded(HelloActor.class).withId(entityId).get();
 
         // Send the message using the fluent ask builder with timeout and error handling
-        CompletionStage<String> response = actorRef.<HelloActor.SayHello, String>askBuilder(
-                        replyTo -> new HelloActor.SayHello(replyTo, message))
+        CompletionStage<String> response = actorRef.askBuilder(
+                        (ActorRef<String> replyTo) -> new HelloActor.SayHello(replyTo, message))
                 .withTimeout(Duration.ofSeconds(3))
                 .onTimeout(() -> "Request timed out for entity: " + entityId)
                 .execute();

@@ -14,8 +14,19 @@ import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
 import org.springframework.stereotype.Component;
 
 /**
- * Actor that handles hello messages in a cluster environment. Each entity is a separate instance
- * identified by an entity ID. The actor responds with information about the node it's running on.
+ * Sharded actor that demonstrates cluster distribution and location transparency.
+ *
+ * <p>This actor shows how sharding works in a cluster:
+ * <ul>
+ *   <li>Each entity ID maps to a specific actor instance
+ *   <li>Entities are automatically distributed across cluster nodes
+ *   <li>The cluster sharding system routes messages to the correct node
+ *   <li>Entities can be rebalanced when nodes join or leave
+ *   <li>Actors are created on-demand and passivated when idle
+ * </ul>
+ *
+ * <p>The response includes node information to demonstrate that entities
+ * can run on different nodes in the cluster.
  */
 @Component
 public class HelloActor implements SpringShardedActor<HelloActor.Command> {

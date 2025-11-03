@@ -16,8 +16,19 @@ import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
 import org.springframework.stereotype.Component;
 
 /**
- * Actor that manages a chat room. Each chat room is a separate entity identified by a room ID. The
- * actor maintains a list of connected users and broadcasts messages to all users in the room.
+ * Sharded actor that manages a chat room in a distributed cluster.
+ *
+ * <p>Each chat room is a separate entity identified by a room ID. The actor maintains
+ * a list of connected users and broadcasts messages to all users in the room.
+ *
+ * <p>Sharded actor benefits for chat rooms:
+ * <ul>
+ *   <li>Automatic distribution - rooms are spread across cluster nodes
+ *   <li>Location transparency - clients don't need to know which node hosts a room
+ *   <li>Scalability - add more nodes to handle more rooms
+ *   <li>State management - each room maintains its user list locally
+ *   <li>Message ordering - guaranteed per-room message ordering
+ * </ul>
  */
 @Component
 public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> {

@@ -5,8 +5,18 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
 /**
- * Service that handles interactions with the HelloActor. Demonstrates the simplified getOrSpawn
- * pattern for actor lifecycle management.
+ * Service that demonstrates best practices for interacting with actors.
+ *
+ * <p>Key patterns shown:
+ * <ul>
+ *   <li>Use getOrSpawn() for simplified actor lifecycle - automatically gets existing or creates new
+ *   <li>Use askBuilder() for request-response with timeout handling
+ *   <li>Use SpringActorSystem as a Spring bean via dependency injection
+ *   <li>Integrate actors with reactive programming (returns Mono)
+ * </ul>
+ *
+ * <p>This is the recommended pattern for most use cases. For advanced scenarios
+ * (custom supervision, explicit spawn control), see the supervision example.
  */
 @Service
 public class HelloService {
