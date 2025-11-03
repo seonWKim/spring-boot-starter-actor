@@ -225,58 +225,6 @@ public class SpringActorRef<T> {
     }
 
     /**
-     * Gets a reference to an existing child actor.
-     *
-     * @param childActorClass The child actor class
-     * @param childId The unique ID of the child actor
-     * @param <CC> The command type of the child actor
-     * @return A CompletionStage that completes with a SpringActorRef to the child, or null if not found
-     */
-    @SuppressWarnings("unchecked")
-    public <CC> CompletionStage<SpringActorRef<CC>> getChild(
-            Class<? extends SpringActorWithContext<CC, ?>> childActorClass, String childId) {
-        // Cast to Object actor ref to send framework command
-        ActorRef<Object> actorRefAsObject = (ActorRef<Object>) actorRef;
-
-        return AskPattern.ask(
-                        actorRefAsObject,
-                        (ActorRef<FrameworkCommands.GetChildResponse<CC>> replyTo) ->
-                                new FrameworkCommands.GetChild<>(childActorClass, childId, replyTo),
-                        defaultTimeout,
-                        scheduler)
-                .thenApply(response -> {
-                    if (response.found) {
-                        return new SpringActorRef<>(scheduler, response.childRef, defaultTimeout);
-                    } else {
-                        return null;
-                    }
-                });
-    }
-
-    /**
-     * Checks if a child actor exists.
-     *
-     * @param childActorClass The child actor class
-     * @param childId The unique ID of the child actor
-     * @param <CC> The command type of the child actor
-     * @return A CompletionStage that completes with true if the child exists, false otherwise
-     */
-    @SuppressWarnings("unchecked")
-    public <CC> CompletionStage<Boolean> existsChild(
-            Class<? extends SpringActorWithContext<CC, ?>> childActorClass, String childId) {
-        // Cast to Object actor ref to send framework command
-        ActorRef<Object> actorRefAsObject = (ActorRef<Object>) actorRef;
-
-        return AskPattern.ask(
-                        actorRefAsObject,
-                        (ActorRef<FrameworkCommands.ExistsChildResponse> replyTo) ->
-                                new FrameworkCommands.ExistsChild<>(childActorClass, childId, replyTo),
-                        defaultTimeout,
-                        scheduler)
-                .thenApply(response -> response.exists);
-    }
-
-    /**
      * Fluent builder for asking the actor a question with advanced configuration options.
      * This builder provides a more flexible API compared to the simple ask() methods,
      * allowing configuration of timeouts and error handling.

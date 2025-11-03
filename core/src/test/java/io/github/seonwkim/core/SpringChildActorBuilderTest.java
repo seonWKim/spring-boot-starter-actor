@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 import org.springframework.test.context.TestPropertySource;
 
@@ -119,7 +120,7 @@ class SpringChildActorBuilderTest {
     class BuilderConfigurationTests {
 
         @Test
-        void testWithId(org.springframework.context.ApplicationContext springContext) throws Exception {
+        void testWithId(ApplicationContext springContext) throws Exception {
             // Given: A parent actor
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
             SpringActorRef<ParentActor.Command> parent = actorSystem
@@ -145,7 +146,7 @@ class SpringChildActorBuilderTest {
         }
 
         @Test
-        void testWithContext(org.springframework.context.ApplicationContext springContext) throws Exception {
+        void testWithContext(ApplicationContext springContext) throws Exception {
             // Given: A parent actor
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
             SpringActorRef<ParentActor.Command> parent = actorSystem
@@ -172,7 +173,7 @@ class SpringChildActorBuilderTest {
         }
 
         @Test
-        void testWithSupervisionStrategy(org.springframework.context.ApplicationContext springContext) throws Exception {
+        void testWithSupervisionStrategy(ApplicationContext springContext) throws Exception {
             // Given: A parent actor
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
             SpringActorRef<ParentActor.Command> parent = actorSystem
@@ -199,7 +200,7 @@ class SpringChildActorBuilderTest {
         }
 
         @Test
-        void testWithTimeout(org.springframework.context.ApplicationContext springContext) {
+        void testWithTimeout(ApplicationContext springContext) {
             // Given: A parent actor
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
             SpringActorRef<ParentActor.Command> parent = actorSystem
@@ -219,7 +220,7 @@ class SpringChildActorBuilderTest {
         }
 
         @Test
-        void testFluentChaining(org.springframework.context.ApplicationContext springContext) throws Exception {
+        void testFluentChaining(ApplicationContext springContext) throws Exception {
             // Given: A parent actor
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
             SpringActorRef<ParentActor.Command> parent = actorSystem
@@ -253,7 +254,7 @@ class SpringChildActorBuilderTest {
     class ValidationTests {
 
         @Test
-        void testWithTimeoutThrowsOnNull(org.springframework.context.ApplicationContext springContext) {
+        void testWithTimeoutThrowsOnNull(ApplicationContext springContext) {
             // Given: A parent actor
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
             SpringActorRef<ParentActor.Command> parent = actorSystem
@@ -270,7 +271,7 @@ class SpringChildActorBuilderTest {
         }
 
         @Test
-        void testSpawnThrowsWhenNoIdOrContext(org.springframework.context.ApplicationContext springContext) {
+        void testSpawnThrowsWhenNoIdOrContext(ApplicationContext springContext) {
             // Given: A parent actor
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
             SpringActorRef<ParentActor.Command> parent = actorSystem
@@ -285,7 +286,7 @@ class SpringChildActorBuilderTest {
         }
 
         @Test
-        void testGetThrowsWhenNoIdOrContext(org.springframework.context.ApplicationContext springContext) {
+        void testGetThrowsWhenNoIdOrContext(ApplicationContext springContext) {
             // Given: A parent actor
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
             SpringActorRef<ParentActor.Command> parent = actorSystem
@@ -300,7 +301,7 @@ class SpringChildActorBuilderTest {
         }
 
         @Test
-        void testExistsThrowsWhenNoIdOrContext(org.springframework.context.ApplicationContext springContext) {
+        void testExistsThrowsWhenNoIdOrContext(ApplicationContext springContext) {
             // Given: A parent actor
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
             SpringActorRef<ParentActor.Command> parent = actorSystem
@@ -315,7 +316,7 @@ class SpringChildActorBuilderTest {
         }
 
         @Test
-        void testGetOrSpawnThrowsWhenNoIdOrContext(org.springframework.context.ApplicationContext springContext) {
+        void testGetOrSpawnThrowsWhenNoIdOrContext(ApplicationContext springContext) {
             // Given: A parent actor
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
             SpringActorRef<ParentActor.Command> parent = actorSystem
@@ -336,7 +337,7 @@ class SpringChildActorBuilderTest {
     class SpawnOperationTests {
 
         @Test
-        void testSpawnAsync(org.springframework.context.ApplicationContext springContext) throws Exception {
+        void testSpawnAsync(ApplicationContext springContext) throws Exception {
             // Given: A parent actor
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
             SpringActorRef<ParentActor.Command> parent = actorSystem
@@ -364,7 +365,7 @@ class SpringChildActorBuilderTest {
         }
 
         @Test
-        void testSpawnAndWait(org.springframework.context.ApplicationContext springContext) throws Exception {
+        void testSpawnAndWait(ApplicationContext springContext) throws Exception {
             // Given: A parent actor
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
             SpringActorRef<ParentActor.Command> parent = actorSystem
@@ -390,7 +391,7 @@ class SpringChildActorBuilderTest {
         }
 
         @Test
-        void testSpawnDuplicateReturnsExisting(org.springframework.context.ApplicationContext springContext) {
+        void testSpawnDuplicateReturnsExisting(ApplicationContext springContext) {
             // Given: A parent actor with an existing child
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
             SpringActorRef<ParentActor.Command> parent = actorSystem
@@ -422,7 +423,7 @@ class SpringChildActorBuilderTest {
     class GetOperationTests {
 
         @Test
-        void testGetReturnsExistingChild(org.springframework.context.ApplicationContext springContext) throws Exception {
+        void testGetReturnsExistingChild(ApplicationContext springContext) throws Exception {
             // Given: A parent actor with an existing child
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
             SpringActorRef<ParentActor.Command> parent = actorSystem
@@ -449,7 +450,7 @@ class SpringChildActorBuilderTest {
         }
 
         @Test
-        void testGetReturnsNullForNonExistent(org.springframework.context.ApplicationContext springContext)
+        void testGetReturnsNullForNonExistent(ApplicationContext springContext)
                 throws Exception {
             // Given: A parent actor without children
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
@@ -477,7 +478,7 @@ class SpringChildActorBuilderTest {
     class ExistsOperationTests {
 
         @Test
-        void testExistsReturnsTrueForExistingChild(org.springframework.context.ApplicationContext springContext)
+        void testExistsReturnsTrueForExistingChild(ApplicationContext springContext)
                 throws Exception {
             // Given: A parent actor with an existing child
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
@@ -503,7 +504,7 @@ class SpringChildActorBuilderTest {
         }
 
         @Test
-        void testExistsReturnsFalseForNonExistent(org.springframework.context.ApplicationContext springContext)
+        void testExistsReturnsFalseForNonExistent(ApplicationContext springContext)
                 throws Exception {
             // Given: A parent actor without children
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
@@ -531,7 +532,7 @@ class SpringChildActorBuilderTest {
     class GetOrSpawnOperationTests {
 
         @Test
-        void testGetOrSpawnReturnsExistingChild(org.springframework.context.ApplicationContext springContext)
+        void testGetOrSpawnReturnsExistingChild(ApplicationContext springContext)
                 throws Exception {
             // Given: A parent actor with an existing child
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
@@ -559,7 +560,7 @@ class SpringChildActorBuilderTest {
         }
 
         @Test
-        void testGetOrSpawnCreatesNewChild(org.springframework.context.ApplicationContext springContext)
+        void testGetOrSpawnCreatesNewChild(ApplicationContext springContext)
                 throws Exception {
             // Given: A parent actor without children
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
@@ -588,7 +589,7 @@ class SpringChildActorBuilderTest {
         }
 
         @Test
-        void testGetOrSpawnIdempotent(org.springframework.context.ApplicationContext springContext) throws Exception {
+        void testGetOrSpawnIdempotent(ApplicationContext springContext) throws Exception {
             // Given: A parent actor
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
             SpringActorRef<ParentActor.Command> parent = actorSystem
@@ -624,7 +625,7 @@ class SpringChildActorBuilderTest {
     class EdgeCaseTests {
 
         @Test
-        void testMultipleChildrenWithDifferentIds(org.springframework.context.ApplicationContext springContext)
+        void testMultipleChildrenWithDifferentIds(ApplicationContext springContext)
                 throws Exception {
             // Given: A parent actor
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
@@ -681,7 +682,7 @@ class SpringChildActorBuilderTest {
 
         @Test
         void testBuilderReuseCreatesIndependentOperations(
-                org.springframework.context.ApplicationContext springContext) throws Exception {
+                ApplicationContext springContext) throws Exception {
             // Given: A parent actor
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
             SpringActorRef<ParentActor.Command> parent = actorSystem
@@ -719,7 +720,7 @@ class SpringChildActorBuilderTest {
         }
 
         @Test
-        void testCustomContextTakesPrecedenceOverId(org.springframework.context.ApplicationContext springContext)
+        void testCustomContextTakesPrecedenceOverId(ApplicationContext springContext)
                 throws Exception {
             // Given: A parent actor
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
@@ -754,7 +755,7 @@ class SpringChildActorBuilderTest {
     class IntegrationWithSpringActorRefTests {
 
         @Test
-        void testBuilderMethodVsUnifiedReferenceAPI(org.springframework.context.ApplicationContext springContext)
+        void testBuilderMethodVsUnifiedReferenceAPI(ApplicationContext springContext)
                 throws Exception {
             // Given: A parent actor
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
@@ -798,68 +799,64 @@ class SpringChildActorBuilderTest {
         }
 
         @Test
-        void testGetMethodMatchesGetChild(org.springframework.context.ApplicationContext springContext)
+        void testUnifiedAPIGetMethod(ApplicationContext springContext)
                 throws Exception {
             // Given: A parent actor with a child
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
             SpringActorRef<ParentActor.Command> parent = actorSystem
                     .actor(ParentActor.class)
-                    .withId("parent-get-comparison")
+                    .withId("parent-get-unified")
                     .spawnAndWait();
 
-            parent.child(SimpleChildActor.class)
-                    .withId("comparison-child")
-                    .spawnAndWait();
-
-            // When: Getting the child using both methods
-            SpringActorRef<SimpleChildActor.Command> childViaBuilder = parent
+            SpringActorRef<SimpleChildActor.Command> spawnedChild = parent
                     .child(SimpleChildActor.class)
                     .withId("comparison-child")
+                    .spawnAndWait();
+
+            // When: Getting the child using the unified API
+            SpringActorRef<SimpleChildActor.Command> retrievedChild = parent
+                    .child(SimpleChildActor.class, "comparison-child")
                     .get()
                     .toCompletableFuture()
-                    .get(5, TimeUnit.SECONDS);
+                    .get(5, TimeUnit.SECONDS)
+                    .orElse(null);
 
-            SpringActorRef<SimpleChildActor.Command> childViaDirectMethod = parent
-                    .getChild(SimpleChildActor.class, "comparison-child")
-                    .toCompletableFuture()
-                    .get(5, TimeUnit.SECONDS);
-
-            // Then: Both should return the same child reference
-            assertThat(childViaBuilder).isNotNull();
-            assertThat(childViaDirectMethod).isNotNull();
-            assertThat(childViaBuilder.getUnderlying()).isEqualTo(childViaDirectMethod.getUnderlying());
+            // Then: Should retrieve the same child reference
+            assertThat(retrievedChild).isNotNull();
+            assertThat(retrievedChild.getUnderlying()).isEqualTo(spawnedChild.getUnderlying());
         }
 
         @Test
-        void testExistsMethodMatchesExistsChild(org.springframework.context.ApplicationContext springContext)
+        void testUnifiedAPIExistsMethod(ApplicationContext springContext)
                 throws Exception {
             // Given: A parent actor with a child
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
             SpringActorRef<ParentActor.Command> parent = actorSystem
                     .actor(ParentActor.class)
-                    .withId("parent-exists-comparison")
+                    .withId("parent-exists-unified")
                     .spawnAndWait();
 
             parent.child(SimpleChildActor.class)
                     .withId("exists-comparison-child")
                     .spawnAndWait();
 
-            // When: Checking existence using both methods
-            Boolean existsViaBuilder = parent
-                    .child(SimpleChildActor.class)
-                    .withId("exists-comparison-child")
+            // When: Checking existence using the unified API
+            Boolean exists = parent
+                    .child(SimpleChildActor.class, "exists-comparison-child")
                     .exists()
                     .toCompletableFuture()
                     .get(5, TimeUnit.SECONDS);
 
-            Boolean existsViaDirectMethod = parent
-                    .existsChild(SimpleChildActor.class, "exists-comparison-child")
+            // Then: Should return true for existing child
+            assertThat(exists).isTrue();
+
+            // And: Should return false for non-existent child
+            Boolean notExists = parent
+                    .child(SimpleChildActor.class, "non-existent")
+                    .exists()
                     .toCompletableFuture()
                     .get(5, TimeUnit.SECONDS);
-
-            // Then: Both should return the same result
-            assertThat(existsViaBuilder).isTrue();
-            assertThat(existsViaDirectMethod).isTrue();
+            assertThat(notExists).isFalse();
         }
     }
 }

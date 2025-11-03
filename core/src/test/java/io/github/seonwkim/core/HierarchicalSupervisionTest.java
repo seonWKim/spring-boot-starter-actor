@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.test.context.TestPropertySource;
@@ -162,7 +163,7 @@ class HierarchicalSupervisionTest {
      *
      * <p>Key features demonstrated:
      * <ul>
-     *   <li>Using {@link SpringActorRef#getChild(Class, String)} to check for existing children</li>
+     *   <li>Using {@link SpringActorRef#child(Class, String)} with {@code get()} to check for existing children</li>
      *   <li>Using {@link SpringActorRef#child(Class, String)} with {@code spawn()} for on-demand spawning</li>
      *   <li>Async message handling with {@code ctx.pipeToSelf()}</li>
      *   <li>Automatic framework command handling when Command extends {@link FrameworkCommand}</li>
@@ -218,7 +219,8 @@ class HierarchicalSupervisionTest {
 
                 // Try to get existing child first
                 ctx.pipeToSelf(
-                        self.getChild(ChildWorkerActor.class, msg.workerId),
+                        self.child(ChildWorkerActor.class, msg.workerId).get()
+                                .thenApply(opt -> opt.orElse(null)),
                         (childRef, failure) -> new ChildReady(msg, childRef, failure));
 
                 return Behaviors.same();
@@ -301,7 +303,7 @@ class HierarchicalSupervisionTest {
     class ChildManagementAPITests {
 
         @Test
-        void testExistsChildReturnsFalseForNonExistent(org.springframework.context.ApplicationContext springContext)
+        void testExistsChildReturnsFalseForNonExistent(ApplicationContext springContext)
                 throws Exception {
             // Given: A parent supervisor
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
@@ -312,7 +314,8 @@ class HierarchicalSupervisionTest {
 
             // When: Checking if a child exists that was never spawned
             Boolean exists = supervisor
-                    .existsChild(ChildWorkerActor.class, "non-existent-child")
+                    .child(ChildWorkerActor.class, "non-existent-child")
+                    .exists()
                     .toCompletableFuture()
                     .get(5, TimeUnit.SECONDS);
 
@@ -321,7 +324,7 @@ class HierarchicalSupervisionTest {
         }
 
         @Test
-        void testGetChildReturnsNullForNonExistent(org.springframework.context.ApplicationContext springContext)
+        void testGetChildReturnsNullForNonExistent(ApplicationContext springContext)
                 throws Exception {
             // Given: A parent supervisor
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
@@ -332,16 +335,18 @@ class HierarchicalSupervisionTest {
 
             // When: Getting a child that doesn't exist
             SpringActorRef<ChildWorkerActor.Command> childRef = supervisor
-                    .getChild(ChildWorkerActor.class, "non-existent-child")
+                    .child(ChildWorkerActor.class, "non-existent-child")
+                    .get()
                     .toCompletableFuture()
-                    .get(5, TimeUnit.SECONDS);
+                    .get(5, TimeUnit.SECONDS)
+                    .orElse(null);
 
             // Then: Should return null
             assertThat(childRef).isNull();
         }
 
         @Test
-        void testSpawnChildDirectly(org.springframework.context.ApplicationContext springContext) throws Exception {
+        void testSpawnChildDirectly(ApplicationContext springContext) throws Exception {
             // Given: A parent supervisor
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
             SpringActorRef<ParentSupervisorActor.Command> supervisor = actorSystem
@@ -370,16 +375,19 @@ class HierarchicalSupervisionTest {
 
             // And: Child exists when checked
             Boolean exists = supervisor
-                    .existsChild(ChildWorkerActor.class, "direct-spawn-child")
+                    .child(ChildWorkerActor.class, "direct-spawn-child")
+                    .exists()
                     .toCompletableFuture()
                     .get(5, TimeUnit.SECONDS);
             assertThat(exists).isTrue();
 
             // And: Can retrieve child ref again
             SpringActorRef<ChildWorkerActor.Command> retrievedChild = supervisor
-                    .getChild(ChildWorkerActor.class, "direct-spawn-child")
+                    .child(ChildWorkerActor.class, "direct-spawn-child")
+                    .get()
                     .toCompletableFuture()
-                    .get(5, TimeUnit.SECONDS);
+                    .get(5, TimeUnit.SECONDS)
+                    .orElse(null);
             assertThat(retrievedChild).isNotNull();
         }
     }
@@ -390,7 +398,7 @@ class HierarchicalSupervisionTest {
     class ChildSpawningTests {
 
         @Test
-        void testSpawnChildWithSpringDI(org.springframework.context.ApplicationContext springContext) throws Exception {
+        void testSpawnChildWithSpringDI(ApplicationContext springContext) throws Exception {
             // Given: Actor system and task logger
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
             TaskLogger taskLogger = springContext.getBean(TaskLogger.class);
@@ -425,7 +433,7 @@ class HierarchicalSupervisionTest {
         }
 
         @Test
-        void testMultipleChildrenWithDifferentIds(org.springframework.context.ApplicationContext springContext)
+        void testMultipleChildrenWithDifferentIds(ApplicationContext springContext)
                 throws Exception {
             // Given: Actor system
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
@@ -479,7 +487,7 @@ class HierarchicalSupervisionTest {
     class RestartSupervisionTests {
 
         @Test
-        void testRestartStrategyRestoresActor(org.springframework.context.ApplicationContext springContext)
+        void testRestartStrategyRestoresActor(ApplicationContext springContext)
                 throws Exception {
             // Given: Supervisor with restart strategy
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
@@ -534,7 +542,7 @@ class HierarchicalSupervisionTest {
         }
 
         @Test
-        void testRestartStrategyResetsState(org.springframework.context.ApplicationContext springContext)
+        void testRestartStrategyResetsState(ApplicationContext springContext)
                 throws Exception {
             // Given: Supervisor
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
@@ -606,7 +614,7 @@ class HierarchicalSupervisionTest {
     class StopSupervisionTests {
 
         @Test
-        void testStopStrategyTerminatesActor(org.springframework.context.ApplicationContext springContext)
+        void testStopStrategyTerminatesActor(ApplicationContext springContext)
                 throws Exception {
             // Given: Supervisor with stop strategy
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
@@ -675,7 +683,7 @@ class HierarchicalSupervisionTest {
     class TopLevelSupervisionTests {
 
         @Test
-        void testTopLevelRestartStrategy(org.springframework.context.ApplicationContext springContext)
+        void testTopLevelRestartStrategy(ApplicationContext springContext)
                 throws Exception {
             // Given: Actor spawned with restart supervision
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
@@ -717,7 +725,7 @@ class HierarchicalSupervisionTest {
         }
 
         @Test
-        void testTopLevelRestartStrategyResetsState(org.springframework.context.ApplicationContext springContext)
+        void testTopLevelRestartStrategyResetsState(ApplicationContext springContext)
                 throws Exception {
             // Given: Actor spawned with restart supervision
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
@@ -769,7 +777,7 @@ class HierarchicalSupervisionTest {
         }
 
         @Test
-        void testTopLevelRestartWithLimitStrategy(org.springframework.context.ApplicationContext springContext)
+        void testTopLevelRestartWithLimitStrategy(ApplicationContext springContext)
                 throws Exception {
             // Given: Actor spawned with limited restart supervision (max 2 restarts)
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
@@ -832,7 +840,7 @@ class HierarchicalSupervisionTest {
         }
 
         @Test
-        void testTopLevelStopStrategy(org.springframework.context.ApplicationContext springContext) throws Exception {
+        void testTopLevelStopStrategy(ApplicationContext springContext) throws Exception {
             // Given: Actor spawned with stop supervision
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
 
@@ -869,7 +877,7 @@ class HierarchicalSupervisionTest {
         }
 
         @Test
-        void testTopLevelResumeStrategy(org.springframework.context.ApplicationContext springContext) throws Exception {
+        void testTopLevelResumeStrategy(ApplicationContext springContext) throws Exception {
             // Given: Actor spawned with resume supervision
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
 
@@ -938,7 +946,7 @@ class HierarchicalSupervisionTest {
         }
 
         @Test
-        void testTopLevelNoSupervision(org.springframework.context.ApplicationContext springContext) throws Exception {
+        void testTopLevelNoSupervision(ApplicationContext springContext) throws Exception {
             // Given: Actor spawned without supervision (null strategy)
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
 
