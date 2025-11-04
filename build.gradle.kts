@@ -192,8 +192,8 @@ subprojects {
         }
     }
 
-    // Apply NullAway only to :core and :metrics subprojects
-    if (project.name == "core" || project.name == "metrics") {
+    // Apply NullAway only to :core, :core-boot3, and :metrics subprojects
+    if (project.name == "core" || project.name == "core-boot3" || project.name == "metrics") {
         tasks.withType<JavaCompile> {
             options.errorprone {
                 // Let's select which checks to perform. NullAway is enough for now.
