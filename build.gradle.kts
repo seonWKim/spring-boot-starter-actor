@@ -1,12 +1,15 @@
 import com.vanniktech.maven.publish.SonatypeHost
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
+import net.ltgt.gradle.errorprone.CheckSeverity
+import net.ltgt.gradle.errorprone.errorprone
 
 plugins {
     java
     `java-library`
     id("com.diffplug.spotless") version "6.13.0"
     id("com.vanniktech.maven.publish") version "0.31.0"
+    id("net.ltgt.errorprone") version "3.1.0"
 }
 
 repositories {
@@ -23,6 +26,7 @@ subprojects {
     apply(plugin = "java-library")
     apply(plugin = "com.diffplug.spotless")
     apply(plugin = "com.vanniktech.maven.publish")
+    apply(plugin = "net.ltgt.errorprone")
 
     repositories {
         mavenCentral()
@@ -76,6 +80,8 @@ subprojects {
         implementation("org.apache.pekko:pekko-cluster-typed_3:${pekkoVersion}")
         implementation("org.apache.pekko:pekko-cluster-sharding-typed_3:${pekkoVersion}")
         implementation("org.apache.pekko:pekko-serialization-jackson_3:${pekkoVersion}")
+        errorprone("com.uber.nullaway:nullaway:0.10.26")
+        errorprone("com.google.errorprone:error_prone_core:2.10.0")
 
         testImplementation("org.apache.pekko:pekko-actor-testkit-typed_3:$pekkoVersion")
         testImplementation("org.awaitility:awaitility:4.3.0")
@@ -184,4 +190,23 @@ subprojects {
             }))
         }
     }
+
+    // Apply NullAway only to :core and :metrics subprojects
+    if (project.name == "core" || project.name == "metrics") {
+        tasks.withType<JavaCompile> {
+            options.errorprone {
+                // Let's select which checks to perform. NullAway is enough for now.
+                disableAllChecks = true
+                check("NullAway", CheckSeverity.ERROR)
+
+                option("NullAway:AnnotatedPackages", "io.github.seonwkim")
+            }
+            if (name.lowercase().contains("test")) {
+                options.errorprone {
+                    disable("NullAway")
+                }
+            }
+        }
+    }
 }
+
