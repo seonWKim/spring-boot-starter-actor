@@ -149,10 +149,14 @@ SpringActorRef<HelloActor.Command> actor = springActorSystem
         .withId("myActor")
         .withTimeout(Duration.ofSeconds(5))
         .withMailbox("bounded")  // or "unbounded", "default"
+        .withBlockingDispatcher()  // For blocking I/O operations
         .asClusterSingleton()     // For cluster singleton actors
         .withContext(customContext)  // Custom actor context
         .spawn();
 ```
+
+**Learn more about dispatchers:**
+- See the [Dispatchers Guide](dispatchers.md) for detailed information about thread management and dispatcher configuration
 
 ## Sending Messages to Actors
 
@@ -429,10 +433,7 @@ self.child(WorkerActor.class)
 // Limited restart for production systems
 self.child(WorkerActor.class)
     .withId("critical-worker")
-    .withSupervisionStrategy(
-        SupervisorStrategy.restart()
-            .withLimit(3, Duration.ofMinutes(1))
-    )
+    .withSupervisionStrategy(SupervisorStrategy.restart().withLimit(3, Duration.ofMinutes(1)))
     .spawn();
 
 // Stop strategy for actors that should fail fast
