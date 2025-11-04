@@ -11,7 +11,7 @@ import io.github.seonwkim.core.serialization.JsonSerializable;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
-import org.springframework.lang.Nullable;
+import javax.annotation.Nullable;
 import org.springframework.stereotype.Component;
 
 @Component

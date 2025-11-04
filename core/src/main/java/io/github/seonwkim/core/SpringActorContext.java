@@ -1,6 +1,6 @@
 package io.github.seonwkim.core;
 
-import org.springframework.lang.Nullable;
+import javax.annotation.Nullable;
 
 /**
  * Represents the context for an actor in the Spring Actor system.
@@ -37,6 +37,7 @@ public abstract class SpringActorContext {
      */
     public abstract String actorId();
 
+    @Nullable
     public ActorTypeRegistry registry() {
         return registry;
     }

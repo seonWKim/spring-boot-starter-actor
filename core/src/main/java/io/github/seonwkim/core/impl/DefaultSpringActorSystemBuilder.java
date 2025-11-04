@@ -20,7 +20,7 @@ import org.apache.pekko.cluster.sharding.typed.javadsl.Entity;
 import org.apache.pekko.cluster.typed.Cluster;
 import org.apache.pekko.cluster.typed.ClusterSingleton;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.lang.Nullable;
+import javax.annotation.Nullable;
 
 /**
  * Default implementation of the SpringActorSystemBuilder interface. This class builds
@@ -30,7 +30,7 @@ import org.springframework.lang.Nullable;
 public class DefaultSpringActorSystemBuilder implements SpringActorSystemBuilder {
 
     /** The root guardian supplier wrapper */
-    private RootGuardianSupplierWrapper supplier;
+    @Nullable private RootGuardianSupplierWrapper supplier;
     /** The configuration map */
     private Map<String, Object> configMap = Collections.emptyMap();
     /** The Spring application event publisher */
@@ -101,6 +101,10 @@ public class DefaultSpringActorSystemBuilder implements SpringActorSystemBuilder
      */
     @Override
     public SpringActorSystem build() {
+        if (supplier == null) {
+            throw new IllegalStateException("RootGuardianSupplierWrapper is not set. Call withRootGuardianSupplier() before build().");
+        }
+
         final Config config = ConfigFactory.parseMap(ConfigValueFactory.fromMap(applyDefaultSerializers(configMap)))
                 .withFallback(ConfigFactory.load());
         final String name = config.hasPath("pekko.name") ? config.getString("pekko.name") : DEFAULT_SYSTEM_NAME;

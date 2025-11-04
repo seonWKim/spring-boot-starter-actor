@@ -5,6 +5,7 @@ import java.time.Duration;
 import java.util.concurrent.CompletionStage;
 import org.apache.pekko.actor.typed.MailboxSelector;
 import org.apache.pekko.actor.typed.SupervisorStrategy;
+import javax.annotation.Nullable;
 
 /**
  * A fluent builder for spawning actors with a simplified API. This builder provides a more
@@ -16,12 +17,12 @@ import org.apache.pekko.actor.typed.SupervisorStrategy;
 public class SpringActorSpawnBuilder<A extends SpringActorWithContext<C, ?>, C> {
     private final SpringActorSystem actorSystem;
     private final Class<A> actorClass;
-    private String actorId;
-    private SpringActorContext actorContext;
+    @Nullable private String actorId;
+    @Nullable private SpringActorContext actorContext;
     private Duration timeout = Duration.ofSeconds(3);
     private MailboxSelector mailboxSelector = MailboxSelector.defaultMailbox();
     private boolean isClusterSingleton = false;
-    private SupervisorStrategy supervisorStrategy = null;
+    @Nullable private SupervisorStrategy supervisorStrategy = null;
 
     /**
      * Creates a new SpringActorSpawnBuilder.

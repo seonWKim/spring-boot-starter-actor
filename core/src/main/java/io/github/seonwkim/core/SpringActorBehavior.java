@@ -11,6 +11,7 @@ import org.apache.pekko.actor.typed.SupervisorStrategy;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.BehaviorBuilder;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
+import javax.annotation.Nullable;
 
 /**
  * A behavior wrapper that provides framework-level features for Spring actors.
@@ -95,7 +96,7 @@ public final class SpringActorBehavior<C> {
         private final List<MessageHandler<C, S, ?>> messageHandlers = new ArrayList<>();
         private final List<SignalHandler<C, S, ?>> signalHandlers = new ArrayList<>();
         private boolean enableFrameworkCommands = false;
-        private SupervisorStrategy supervisionStrategy = null;
+        @Nullable private SupervisorStrategy supervisionStrategy = null;
 
         private Builder(
                 Class<C> commandClass, SpringActorContext actorContext, Function<ActorContext<C>, S> onCreateCallback) {
@@ -388,6 +389,7 @@ public final class SpringActorBehavior<C> {
             }
 
             @SuppressWarnings("unchecked")
+            @Nullable
             Behavior<C> tryHandle(C msg, S state) {
                 if (type.isInstance(msg)) {
                     return handler.apply(state, (M) msg);
@@ -413,6 +415,7 @@ public final class SpringActorBehavior<C> {
             }
 
             @SuppressWarnings("unchecked")
+            @Nullable
             Behavior<C> tryHandle(Signal sig, S state) {
                 if (type.isInstance(sig)) {
                     return handler.apply(state, (M) sig);

@@ -80,6 +80,7 @@ subprojects {
         implementation("org.apache.pekko:pekko-cluster-typed_3:${pekkoVersion}")
         implementation("org.apache.pekko:pekko-cluster-sharding-typed_3:${pekkoVersion}")
         implementation("org.apache.pekko:pekko-serialization-jackson_3:${pekkoVersion}")
+        implementation("com.google.code.findbugs:jsr305:3.0.2")
         errorprone("com.uber.nullaway:nullaway:0.10.26")
         errorprone("com.google.errorprone:error_prone_core:2.10.0")
 

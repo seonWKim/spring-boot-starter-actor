@@ -5,6 +5,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
+import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,6 +50,7 @@ public class InvokeAdviceEventInterceptorImpl
         }
     }
 
+    @Nullable
     public TimerMetric getProcessingTimeMetric(String messageType) {
         return processingTimeMetrics.get(messageType);
     }

@@ -9,6 +9,7 @@ import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Scheduler;
 import org.apache.pekko.actor.typed.javadsl.AskPattern;
 import org.apache.pekko.japi.function.Function;
+import javax.annotation.Nullable;
 
 /**
  * A wrapper around Pekko's ActorRef that provides methods for asking and telling messages to an
@@ -237,7 +238,7 @@ public class SpringActorRef<T> {
         private final ActorRef<REQ> actorRef;
         private final Scheduler scheduler;
         private Duration timeout;
-        private Supplier<RES> timeoutHandler;
+        @Nullable private Supplier<RES> timeoutHandler;
 
         /**
          * Creates a new AskBuilder.
@@ -293,10 +294,11 @@ public class SpringActorRef<T> {
 
             // Apply timeout handler if configured
             if (timeoutHandler != null) {
+                final Supplier<RES> handler = timeoutHandler;
                 result = result.exceptionally(throwable -> {
                     if (throwable instanceof TimeoutException
                             || (throwable.getCause() != null && throwable.getCause() instanceof TimeoutException)) {
-                        return timeoutHandler.get();
+                        return handler.get();
                     }
                     // Re-throw non-timeout exceptions
                     if (throwable instanceof RuntimeException) {

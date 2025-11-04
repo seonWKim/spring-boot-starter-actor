@@ -17,7 +17,7 @@ import org.apache.pekko.cluster.typed.ClusterSingleton;
 import org.apache.pekko.cluster.typed.Subscribe;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.lang.Nullable;
+import javax.annotation.Nullable;
 
 /**
  * A wrapper around Pekko's ActorSystem that provides methods for spawning actors and getting
@@ -116,7 +116,7 @@ public class SpringActorSystem implements DisposableBean {
             ClusterSharding clusterSharding,
             ClusterSingleton clusterSingleton,
             ApplicationEventPublisher publisher,
-            io.github.seonwkim.core.shard.ShardedActorRegistry shardedActorRegistry) {
+            @Nullable io.github.seonwkim.core.shard.ShardedActorRegistry shardedActorRegistry) {
         this.actorSystem = actorSystem;
         this.cluster = cluster;
         this.clusterSharding = clusterSharding;
@@ -316,7 +316,7 @@ public class SpringActorSystem implements DisposableBean {
             SpringActorContext actorContext,
             MailboxSelector mailboxSelector,
             boolean isClusterSingleton,
-            SupervisorStrategy supervisorStrategy,
+            @Nullable SupervisorStrategy supervisorStrategy,
             Duration timeout) {
 
         // If cluster singleton is requested, validate cluster mode

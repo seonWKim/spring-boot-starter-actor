@@ -15,6 +15,8 @@ dependencies {
     implementation("net.bytebuddy:byte-buddy-agent:${bytebuddyVersion}")
     implementation("org.slf4j:slf4j-api:2.0.17")
 
+    compileOnly("com.google.code.findbugs:jsr305:3.0.2")
+
     testImplementation("org.apache.pekko:pekko-actor-typed_3")
     testImplementation("org.apache.pekko:pekko-cluster-typed_3")
     testImplementation("org.apache.pekko:pekko-cluster-sharding-typed_3")

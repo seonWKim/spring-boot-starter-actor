@@ -8,6 +8,7 @@ import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Scheduler;
 import org.apache.pekko.actor.typed.SupervisorStrategy;
 import org.apache.pekko.actor.typed.javadsl.AskPattern;
+import javax.annotation.Nullable;
 
 /**
  * A fluent builder for spawning child actors with a consistent API.
@@ -35,9 +36,9 @@ public class SpringChildActorBuilder<P, C> {
     private final Class<? extends SpringActorWithContext<C, ?>> childActorClass;
     private final Duration defaultTimeout;
 
-    private String childId;
-    private SpringActorContext childContext;
-    private SupervisorStrategy supervisionStrategy;
+    @Nullable private String childId;
+    @Nullable private SpringActorContext childContext;
+    @Nullable private SupervisorStrategy supervisionStrategy;
     private Duration timeout;
 
     /**
@@ -135,15 +136,23 @@ public class SpringChildActorBuilder<P, C> {
         // Cast parent ref to Object to send framework command
         ActorRef<Object> parentAsObject = (ActorRef<Object>) parentRef;
 
+        // Ensure childContext is initialized
+        if (childContext == null) {
+            throw new IllegalStateException("childContext must be initialized");
+        }
+
+        final SpringActorContext context = childContext;
+        final SupervisorStrategy strategy = supervisionStrategy;
+
         return AskPattern.ask(
                         parentAsObject,
                         (ActorRef<FrameworkCommands.SpawnChildResponse<C>> replyTo) ->
                                 new FrameworkCommands.SpawnChild<>(
-                                        childActorClass, childContext, supervisionStrategy, replyTo),
+                                        childActorClass, context, strategy, replyTo),
                         timeout,
                         scheduler)
                 .thenApply(response -> {
-                    if (response.success || "Child already exists".equals(response.message)) {
+                    if ((response.success || "Child already exists".equals(response.message)) && response.childRef != null) {
                         return new SpringActorRef<>(scheduler, response.childRef, defaultTimeout);
                     } else {
                         throw new RuntimeException("Failed to spawn child: " + response.message);
@@ -178,17 +187,24 @@ public class SpringChildActorBuilder<P, C> {
             childContext = new DefaultSpringActorContext(childId);
         }
 
+        // Ensure childContext is initialized
+        if (childContext == null) {
+            throw new IllegalStateException("childContext must be initialized");
+        }
+
+        final SpringActorContext context = childContext;
+
         // Try to get existing child first
         ActorRef<Object> parentAsObject = (ActorRef<Object>) parentRef;
 
         return AskPattern.ask(
                         parentAsObject,
                         (ActorRef<FrameworkCommands.GetChildResponse<C>> replyTo) ->
-                                new FrameworkCommands.GetChild<>(childActorClass, childContext.actorId(), replyTo),
+                                new FrameworkCommands.GetChild<>(childActorClass, context.actorId(), replyTo),
                         timeout,
                         scheduler)
                 .thenCompose(response -> {
-                    if (response.found) {
+                    if (response.found && response.childRef != null) {
                         // Child exists, return it
                         return CompletableFuture.completedFuture(
                                 new SpringActorRef<>(scheduler, response.childRef, defaultTimeout));
@@ -215,16 +231,22 @@ public class SpringChildActorBuilder<P, C> {
             childContext = new DefaultSpringActorContext(childId);
         }
 
+        // Ensure childContext is initialized
+        if (childContext == null) {
+            throw new IllegalStateException("childContext must be initialized");
+        }
+
+        final SpringActorContext context = childContext;
         ActorRef<Object> parentAsObject = (ActorRef<Object>) parentRef;
 
         return AskPattern.ask(
                         parentAsObject,
                         (ActorRef<FrameworkCommands.GetChildResponse<C>> replyTo) ->
-                                new FrameworkCommands.GetChild<>(childActorClass, childContext.actorId(), replyTo),
+                                new FrameworkCommands.GetChild<>(childActorClass, context.actorId(), replyTo),
                         timeout,
                         scheduler)
                 .thenApply(response -> {
-                    if (response.found) {
+                    if (response.found && response.childRef != null) {
                         return new SpringActorRef<>(scheduler, response.childRef, defaultTimeout);
                     } else {
                         return null;
@@ -247,13 +269,19 @@ public class SpringChildActorBuilder<P, C> {
             childContext = new DefaultSpringActorContext(childId);
         }
 
+        // Ensure childContext is initialized
+        if (childContext == null) {
+            throw new IllegalStateException("childContext must be initialized");
+        }
+
+        final SpringActorContext context = childContext;
         ActorRef<Object> parentAsObject = (ActorRef<Object>) parentRef;
 
         return AskPattern.ask(
                         parentAsObject,
                         (ActorRef<FrameworkCommands.ExistsChildResponse> replyTo) ->
                                 new FrameworkCommands.ExistsChild<>(
-                                        childActorClass, childContext.actorId(), replyTo),
+                                        childActorClass, context.actorId(), replyTo),
                         timeout,
                         scheduler)
                 .thenApply(response -> response.exists);
