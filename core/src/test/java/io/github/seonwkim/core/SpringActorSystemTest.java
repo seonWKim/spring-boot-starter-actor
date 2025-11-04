@@ -148,7 +148,17 @@ class SpringActorSystemTest {
 
     @Nested
     @SpringBootTest(classes = TestApp.class)
-    @TestPropertySource(properties = {"spring.actor.pekko.loglevel=INFO", "spring.actor.pekko.actor.provider=local"})
+    @TestPropertySource(properties = {
+            "spring.actor.pekko.loglevel=INFO",
+            "spring.actor.pekko.actor.provider=local",
+            // Custom dispatcher configuration for testing
+            "spring.actor.my-custom-dispatcher.type=Dispatcher",
+            "spring.actor.my-custom-dispatcher.executor=fork-join-executor",
+            "spring.actor.my-custom-dispatcher.fork-join-executor.parallelism-min=2",
+            "spring.actor.my-custom-dispatcher.fork-join-executor.parallelism-factor=2.0",
+            "spring.actor.my-custom-dispatcher.fork-join-executor.parallelism-max=4",
+            "spring.actor.my-custom-dispatcher.throughput=100"
+    })
     class SimpleTest {
 
         @Test
@@ -450,6 +460,29 @@ class SpringActorSystemTest {
 
             // Same-as-parent dispatcher should be the same as default (since spawned from root guardian)
             assertThat(dispatcherName).contains("pekko.actor.default-dispatcher");
+        }
+
+        @Test
+        void spawnActorWithCustomDispatcherFromConfig(ApplicationContext context) throws Exception {
+            SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
+
+            final String actorId = "custom-dispatcher-actor";
+            final SpringActorRef<DispatcherTestActor.Command> actorRef = actorSystem
+                    .actor(DispatcherTestActor.class)
+                    .withId(actorId)
+                    .withDispatcherFromConfig("my-custom-dispatcher")
+                    .spawnAndWait();
+
+            assertThat(actorRef).isNotNull();
+
+            String dispatcherName = actorRef.askBuilder(DispatcherTestActor.GetDispatcherName::new)
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
+                    .toCompletableFuture()
+                    .get();
+
+            // Custom dispatcher should contain "pekko.actor.my-custom-dispatcher"
+            assertThat(dispatcherName).contains("my-custom-dispatcher");
         }
     }
 }
