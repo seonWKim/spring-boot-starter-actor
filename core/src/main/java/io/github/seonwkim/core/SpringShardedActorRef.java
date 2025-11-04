@@ -59,6 +59,15 @@ public class SpringShardedActorRef<T> {
      * @param defaultTimeout The default timeout for ask operations
      */
     public SpringShardedActorRef(Scheduler scheduler, EntityRef<T> entityRef, Duration defaultTimeout) {
+        if (scheduler == null) {
+            throw new IllegalArgumentException("scheduler must not be null");
+        }
+        if (entityRef == null) {
+            throw new IllegalArgumentException("entityRef must not be null");
+        }
+        if (defaultTimeout == null) {
+            throw new IllegalArgumentException("defaultTimeout must not be null");
+        }
         this.scheduler = scheduler;
         this.entityRef = entityRef;
         this.defaultTimeout = defaultTimeout;
@@ -175,6 +184,9 @@ public class SpringShardedActorRef<T> {
          * @return This builder for method chaining
          */
         public AskBuilder<REQ, RES> withTimeout(Duration timeout) {
+            if (timeout == null) {
+                throw new IllegalArgumentException("timeout must not be null");
+            }
             this.timeout = timeout;
             return this;
         }

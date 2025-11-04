@@ -33,6 +33,12 @@ public class SpringShardedActorBuilder<T> {
      * @param actorClass The class of the sharded actor
      */
     public SpringShardedActorBuilder(SpringActorSystem actorSystem, Class<? extends SpringShardedActor<T>> actorClass) {
+        if (actorSystem == null) {
+            throw new IllegalArgumentException("actorSystem must not be null");
+        }
+        if (actorClass == null) {
+            throw new IllegalArgumentException("actorClass must not be null");
+        }
         this.actorSystem = actorSystem;
         this.typeKey = resolveTypeKey(actorClass);
     }

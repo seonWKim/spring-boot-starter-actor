@@ -56,6 +56,15 @@ public class SpringActorRef<T> {
      * @param defaultTimeout The default timeout for ask operations
      */
     public SpringActorRef(Scheduler scheduler, ActorRef<T> actorRef, Duration defaultTimeout) {
+        if (scheduler == null) {
+            throw new IllegalArgumentException("scheduler must not be null");
+        }
+        if (actorRef == null) {
+            throw new IllegalArgumentException("actorRef must not be null");
+        }
+        if (defaultTimeout == null) {
+            throw new IllegalArgumentException("defaultTimeout must not be null");
+        }
         this.scheduler = scheduler;
         this.actorRef = actorRef;
         this.defaultTimeout = defaultTimeout;
@@ -266,6 +275,9 @@ public class SpringActorRef<T> {
          * @return This builder for method chaining
          */
         public AskBuilder<REQ, RES> withTimeout(Duration timeout) {
+            if (timeout == null) {
+                throw new IllegalArgumentException("timeout must not be null");
+            }
             this.timeout = timeout;
             return this;
         }
