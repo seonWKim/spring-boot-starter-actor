@@ -116,12 +116,12 @@ public class DefaultRootGuardian implements RootGuardian {
             ref = clusterSingleton.init(singletonActor);
         } else {
             // Regular actor spawn
-            if (msg.dispatcherConfig != null) {
-                // If dispatcher is configured (including empty string for same-as-parent), use Props
-                Props props = buildPropsWithDispatcher(msg.dispatcherConfig);
+            if (msg.dispatcherConfig.shouldUseProps()) {
+                // If dispatcher requires Props (blocking, fromConfig, sameAsParent), use Props
+                Props props = msg.dispatcherConfig.toProps();
                 ref = ctx.spawn(behavior, key, props);
             } else {
-                // If no dispatcher configured (null), use MailboxSelector with default dispatcher
+                // If default dispatcher, use MailboxSelector
                 ref = ctx.spawn(behavior, key, msg.mailboxSelector);
             }
         }

@@ -24,7 +24,7 @@ public class SpringActorSpawnBuilder<A extends SpringActorWithContext<C, ?>, C> 
     @Nullable private SpringActorContext actorContext;
     private Duration timeout = Duration.ofSeconds(3);
     private MailboxSelector mailboxSelector = MailboxSelector.defaultMailbox();
-    @Nullable private String dispatcherConfig = null; // null means default dispatcher
+    private DispatcherConfig dispatcherConfig = DispatcherConfig.defaultDispatcher();
     private boolean isClusterSingleton = false;
     @Nullable private SupervisorStrategy supervisorStrategy = null;
 
@@ -134,14 +134,11 @@ public class SpringActorSpawnBuilder<A extends SpringActorWithContext<C, ?>, C> 
      *         throughput: 1
      * </pre>
      *
-     * @param dispatcherPath The path to the dispatcher configuration (e.g., "pekko.actor.my-blocking-dispatcher")
+     * @param dispatcherPath The path to the dispatcher configuration (e.g., "my-blocking-dispatcher")
      * @return This builder
      */
     public SpringActorSpawnBuilder<A, C> withDispatcherFromConfig(String dispatcherPath) {
-        if (dispatcherPath == null || ObjectUtils.isEmpty(dispatcherPath)) {
-            throw new IllegalArgumentException("dispatcherPath must not be null or empty");
-        }
-        this.dispatcherConfig = dispatcherPath;
+        this.dispatcherConfig = DispatcherConfig.fromConfig(dispatcherPath);
         return this;
     }
 
@@ -153,7 +150,7 @@ public class SpringActorSpawnBuilder<A extends SpringActorWithContext<C, ?>, C> 
      * @return This builder
      */
     public SpringActorSpawnBuilder<A, C> withBlockingDispatcher() {
-        this.dispatcherConfig = "pekko.actor.default-blocking-io-dispatcher";
+        this.dispatcherConfig = DispatcherConfig.blocking();
         return this;
     }
 
@@ -164,7 +161,7 @@ public class SpringActorSpawnBuilder<A extends SpringActorWithContext<C, ?>, C> 
      * @return This builder
      */
     public SpringActorSpawnBuilder<A, C> withDefaultDispatcher() {
-        this.dispatcherConfig = null; // null means use default
+        this.dispatcherConfig = DispatcherConfig.defaultDispatcher();
         return this;
     }
 
@@ -174,7 +171,7 @@ public class SpringActorSpawnBuilder<A extends SpringActorWithContext<C, ?>, C> 
      * @return This builder
      */
     public SpringActorSpawnBuilder<A, C> withDispatcherSameAsParent() {
-        this.dispatcherConfig = ""; // empty string is a special marker for same-as-parent
+        this.dispatcherConfig = DispatcherConfig.sameAsParent();
         return this;
     }
 

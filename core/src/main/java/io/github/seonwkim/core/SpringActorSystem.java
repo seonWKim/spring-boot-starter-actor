@@ -315,7 +315,7 @@ public class SpringActorSystem implements DisposableBean {
             Class<A> actorClass,
             SpringActorContext actorContext,
             MailboxSelector mailboxSelector,
-            @Nullable String dispatcherConfig,
+            DispatcherConfig dispatcherConfig,
             boolean isClusterSingleton,
             @Nullable SupervisorStrategy supervisorStrategy,
             Duration timeout) {

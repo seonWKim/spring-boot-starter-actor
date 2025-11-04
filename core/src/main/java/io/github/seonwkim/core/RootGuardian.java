@@ -31,8 +31,8 @@ public interface RootGuardian {
         public final ActorRef<Spawned<?>> replyTo;
         /** The mailbox selector to use * */
         public final MailboxSelector mailboxSelector;
-        /** The dispatcher config path (null = default, empty string = same-as-parent, or config path) * */
-        @Nullable public final String dispatcherConfig;
+        /** The dispatcher configuration */
+        public final DispatcherConfig dispatcherConfig;
         /** Whether the ActorRef should be cluster singleton * */
         public final Boolean isClusterSingleton;
         /** The supervisor strategy to use for this actor */
@@ -44,7 +44,7 @@ public interface RootGuardian {
          * @param actorContext The ID of the actor
          * @param replyTo The actor reference to reply to with the spawned actor reference
          * @param mailboxSelector The mailboxSelector
-         * @param dispatcherConfig The dispatcher config path (null = default, empty = same-as-parent)
+         * @param dispatcherConfig The dispatcher configuration
          * @param isClusterSingleton Whether the actor should be cluster singleton
          * @param supervisorStrategy The supervisor strategy (null for no supervision)
          */
@@ -53,7 +53,7 @@ public interface RootGuardian {
                 SpringActorContext actorContext,
                 ActorRef<Spawned<?>> replyTo,
                 MailboxSelector mailboxSelector,
-                @Nullable String dispatcherConfig,
+                DispatcherConfig dispatcherConfig,
                 Boolean isClusterSingleton,
                 @Nullable SupervisorStrategy supervisorStrategy) {
             this.actorClass = actorClass;
