@@ -319,51 +319,30 @@ public class SpringActorSystem implements DisposableBean {
             SupervisorStrategy supervisorStrategy,
             Duration timeout) {
 
-        // If cluster singleton is requested, validate cluster mode and use ClusterSingleton API
-        if (isClusterSingleton) {
-            if (clusterSingleton == null) {
-                return CompletableFuture.failedFuture(
-                    new IllegalStateException("Cluster singleton requested but cluster mode is not enabled. " +
-                        "Ensure your application is running in cluster mode.")
-                );
-            }
-
-            // Spawn using ClusterSingleton - delegate to RootGuardian for singleton creation
-            return AskPattern.ask(
-                            actorSystem,
-                            (ActorRef<Spawned<?>> replyTo) -> new RootGuardian.SpawnActor(
-                                    actorClass,
-                                    actorContext,
-                                    replyTo,
-                                    mailboxSelector,
-                                    true,  // isClusterSingleton
-                                    supervisorStrategy),
-                            timeout,
-                            actorSystem.scheduler())
-                    .thenApply(spawned -> {
-                        @SuppressWarnings("unchecked")
-                        ActorRef<C> typedRef = (ActorRef<C>) spawned.ref;
-                        return new SpringActorRef<>(actorSystem.scheduler(), typedRef, defaultActorRefTimeout);
-                    });
-        } else {
-            // Regular actor spawn
-            return AskPattern.ask(
-                            actorSystem,
-                            (ActorRef<Spawned<?>> replyTo) -> new RootGuardian.SpawnActor(
-                                    actorClass,
-                                    actorContext,
-                                    replyTo,
-                                    mailboxSelector,
-                                    false,
-                                    supervisorStrategy),
-                            timeout,
-                            actorSystem.scheduler())
-                    .thenApply(spawned -> {
-                        @SuppressWarnings("unchecked")
-                        ActorRef<C> typedRef = (ActorRef<C>) spawned.ref;
-                        return new SpringActorRef<>(actorSystem.scheduler(), typedRef, defaultActorRefTimeout);
-                    });
+        // If cluster singleton is requested, validate cluster mode
+        if (isClusterSingleton && clusterSingleton == null) {
+            return CompletableFuture.failedFuture(
+                new IllegalStateException("Cluster singleton requested but cluster mode is not enabled. " +
+                    "Ensure your application is running in cluster mode.")
+            );
         }
+
+        return AskPattern.ask(
+                        actorSystem,
+                        (ActorRef<Spawned<?>> replyTo) -> new RootGuardian.SpawnActor(
+                                actorClass,
+                                actorContext,
+                                replyTo,
+                                mailboxSelector,
+                                isClusterSingleton,
+                                supervisorStrategy),
+                        timeout,
+                        actorSystem.scheduler())
+                .thenApply(spawned -> {
+                    @SuppressWarnings("unchecked")
+                    ActorRef<C> typedRef = (ActorRef<C>) spawned.ref;
+                    return new SpringActorRef<>(actorSystem.scheduler(), typedRef, defaultActorRefTimeout);
+                });
     }
 
     /**
