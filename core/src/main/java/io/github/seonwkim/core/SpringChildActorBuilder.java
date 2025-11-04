@@ -8,6 +8,8 @@ import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Scheduler;
 import org.apache.pekko.actor.typed.SupervisorStrategy;
 import org.apache.pekko.actor.typed.javadsl.AskPattern;
+import org.springframework.util.ObjectUtils;
+
 import javax.annotation.Nullable;
 
 /**
@@ -77,6 +79,9 @@ public class SpringChildActorBuilder<P, C> {
      * @return This builder for method chaining
      */
     public SpringChildActorBuilder<P, C> withId(String childId) {
+        if (childId == null || ObjectUtils.isEmpty(childId)) {
+            throw new IllegalArgumentException("childId must not be null or empty");
+        }
         this.childId = childId;
         return this;
     }
@@ -88,6 +93,9 @@ public class SpringChildActorBuilder<P, C> {
      * @return This builder for method chaining
      */
     public SpringChildActorBuilder<P, C> withContext(SpringActorContext context) {
+        if (context == null) {
+            throw new IllegalArgumentException("context must not be null");
+        }
         this.childContext = context;
         return this;
     }

@@ -5,6 +5,9 @@ import java.time.Duration;
 import java.util.concurrent.CompletionStage;
 import org.apache.pekko.actor.typed.MailboxSelector;
 import org.apache.pekko.actor.typed.SupervisorStrategy;
+import org.springframework.util.ObjectUtils;
+import org.springframework.util.StringUtils;
+
 import javax.annotation.Nullable;
 
 /**
@@ -48,6 +51,9 @@ public class SpringActorSpawnBuilder<A extends SpringActorWithContext<C, ?>, C> 
      * @return This builder
      */
     public SpringActorSpawnBuilder<A, C> withId(String actorId) {
+        if (actorId == null || ObjectUtils.isEmpty(actorId)) {
+            throw new IllegalArgumentException("actorId must not be null or empty");
+        }
         this.actorId = actorId;
         return this;
     }
@@ -73,6 +79,9 @@ public class SpringActorSpawnBuilder<A extends SpringActorWithContext<C, ?>, C> 
      * @return This builder
      */
     public SpringActorSpawnBuilder<A, C> withContext(SpringActorContext context) {
+        if (context == null) {
+            throw new IllegalArgumentException("context must not be null");
+        }
         this.actorContext = context;
         return this;
     }
