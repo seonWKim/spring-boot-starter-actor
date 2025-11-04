@@ -45,6 +45,32 @@ class SpringActorSystemTest {
     }
 
     @Component
+    static class DispatcherTestActor implements SpringActor<DispatcherTestActor.Command> {
+
+        public interface Command {}
+
+        public static class GetDispatcherName implements Command {
+            private final ActorRef<String> replyTo;
+
+            public GetDispatcherName(ActorRef<String> replyTo) {
+                this.replyTo = replyTo;
+            }
+        }
+
+        @Override
+        public SpringActorBehavior<Command> create(SpringActorContext id) {
+            return SpringActorBehavior.builder(Command.class, id)
+                    .onMessage(GetDispatcherName.class, (ctx, msg) -> {
+                        // Get the dispatcher name from the execution context
+                        String dispatcherName = ctx.getExecutionContext().toString();
+                        msg.replyTo.tell(dispatcherName);
+                        return Behaviors.same();
+                    })
+                    .build();
+        }
+    }
+
+    @Component
     static class CustomActorContextActor
             implements SpringActorWithContext<CustomActorContextActor.Command, CustomActorContext> {
 
@@ -122,7 +148,17 @@ class SpringActorSystemTest {
 
     @Nested
     @SpringBootTest(classes = TestApp.class)
-    @TestPropertySource(properties = {"spring.actor.pekko.loglevel=INFO", "spring.actor.pekko.actor.provider=local"})
+    @TestPropertySource(properties = {
+            "spring.actor.pekko.loglevel=INFO",
+            "spring.actor.pekko.actor.provider=local",
+            // Custom dispatcher configuration for testing
+            "spring.actor.my-custom-dispatcher.type=Dispatcher",
+            "spring.actor.my-custom-dispatcher.executor=fork-join-executor",
+            "spring.actor.my-custom-dispatcher.fork-join-executor.parallelism-min=2",
+            "spring.actor.my-custom-dispatcher.fork-join-executor.parallelism-factor=2.0",
+            "spring.actor.my-custom-dispatcher.fork-join-executor.parallelism-max=4",
+            "spring.actor.my-custom-dispatcher.throughput=100"
+    })
     class SimpleTest {
 
         @Test
@@ -139,7 +175,7 @@ class SpringActorSystemTest {
             assertEquals(
                     "hello world!!",
                     actorRef.askBuilder(SayHello::new)
-                            .withTimeout(java.time.Duration.ofSeconds(5))
+                            .withTimeout(Duration.ofSeconds(5))
                             .execute()
                             .toCompletableFuture()
                             .get());
@@ -162,7 +198,7 @@ class SpringActorSystemTest {
             assertThat(actorRef).isNotNull();
             assertEquals(
                     actorRef.askBuilder(CustomActorContextActor.SayHello::new)
-                            .withTimeout(java.time.Duration.ofSeconds(5))
+                            .withTimeout(Duration.ofSeconds(5))
                             .execute()
                             .toCompletableFuture()
                             .get(),
@@ -241,7 +277,7 @@ class SpringActorSystemTest {
             // Verify we can use the retrieved ref to send messages
             Object response = retrievedRef
                     .askBuilder(SayHello::new)
-                    .withTimeout(java.time.Duration.ofSeconds(5))
+                    .withTimeout(Duration.ofSeconds(5))
                     .execute()
                     .toCompletableFuture()
                     .get();
@@ -355,6 +391,98 @@ class SpringActorSystemTest {
                     .toCompletableFuture()
                     .get();
             assertEquals(3, count3);
+        }
+
+        @Test
+        void spawnActorWithDefaultDispatcher(ApplicationContext context) throws Exception {
+            SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
+
+            final String actorId = "default-dispatcher-actor";
+            final SpringActorRef<DispatcherTestActor.Command> actorRef = actorSystem
+                    .actor(DispatcherTestActor.class)
+                    .withId(actorId)
+                    .withDefaultDispatcher()
+                    .spawnAndWait();
+
+            assertThat(actorRef).isNotNull();
+
+            String dispatcherName = actorRef.askBuilder(DispatcherTestActor.GetDispatcherName::new)
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
+                    .toCompletableFuture()
+                    .get();
+
+            // Default dispatcher should contain "pekko.actor.default-dispatcher"
+            assertThat(dispatcherName).contains("pekko.actor.default-dispatcher");
+        }
+
+        @Test
+        void spawnActorWithBlockingDispatcher(ApplicationContext context) throws Exception {
+            SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
+
+            final String actorId = "blocking-dispatcher-actor";
+            final SpringActorRef<DispatcherTestActor.Command> actorRef = actorSystem
+                    .actor(DispatcherTestActor.class)
+                    .withId(actorId)
+                    .withBlockingDispatcher()
+                    .spawnAndWait();
+
+            assertThat(actorRef).isNotNull();
+
+            String dispatcherName = actorRef.askBuilder(DispatcherTestActor.GetDispatcherName::new)
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
+                    .toCompletableFuture()
+                    .get();
+
+            // Blocking dispatcher should contain "pekko.actor.default-blocking-io-dispatcher"
+            assertThat(dispatcherName).contains("pekko.actor.default-blocking-io-dispatcher");
+        }
+
+        @Test
+        void spawnActorWithDispatcherSameAsParent(ApplicationContext context) throws Exception {
+            SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
+
+            final String actorId = "same-as-parent-dispatcher-actor";
+            final SpringActorRef<DispatcherTestActor.Command> actorRef = actorSystem
+                    .actor(DispatcherTestActor.class)
+                    .withId(actorId)
+                    .withDispatcherSameAsParent()
+                    .spawnAndWait();
+
+            assertThat(actorRef).isNotNull();
+
+            String dispatcherName = actorRef.askBuilder(DispatcherTestActor.GetDispatcherName::new)
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
+                    .toCompletableFuture()
+                    .get();
+
+            // Same-as-parent dispatcher should be the same as default (since spawned from root guardian)
+            assertThat(dispatcherName).contains("pekko.actor.default-dispatcher");
+        }
+
+        @Test
+        void spawnActorWithCustomDispatcherFromConfig(ApplicationContext context) throws Exception {
+            SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
+
+            final String actorId = "custom-dispatcher-actor";
+            final SpringActorRef<DispatcherTestActor.Command> actorRef = actorSystem
+                    .actor(DispatcherTestActor.class)
+                    .withId(actorId)
+                    .withDispatcherFromConfig("my-custom-dispatcher")
+                    .spawnAndWait();
+
+            assertThat(actorRef).isNotNull();
+
+            String dispatcherName = actorRef.askBuilder(DispatcherTestActor.GetDispatcherName::new)
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
+                    .toCompletableFuture()
+                    .get();
+
+            // Custom dispatcher should contain "pekko.actor.my-custom-dispatcher"
+            assertThat(dispatcherName).contains("my-custom-dispatcher");
         }
     }
 }

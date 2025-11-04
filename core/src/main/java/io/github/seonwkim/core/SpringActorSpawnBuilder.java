@@ -24,6 +24,7 @@ public class SpringActorSpawnBuilder<A extends SpringActorWithContext<C, ?>, C> 
     @Nullable private SpringActorContext actorContext;
     private Duration timeout = Duration.ofSeconds(3);
     private MailboxSelector mailboxSelector = MailboxSelector.defaultMailbox();
+    private DispatcherConfig dispatcherConfig = DispatcherConfig.defaultDispatcher();
     private boolean isClusterSingleton = false;
     @Nullable private SupervisorStrategy supervisorStrategy = null;
 
@@ -117,6 +118,64 @@ public class SpringActorSpawnBuilder<A extends SpringActorWithContext<C, ?>, C> 
     }
 
     /**
+     * Sets the dispatcher using a configuration path from application.yml.
+     * The dispatcher should be configured under spring.actor in your application.yml.
+     *
+     * Example configuration in application.yml:
+     * <pre>
+     * spring:
+     *   actor:
+     *     actor:
+     *       my-blocking-dispatcher:
+     *         type: Dispatcher
+     *         executor: "thread-pool-executor"
+     *         thread-pool-executor:
+     *           fixed-pool-size: 16
+     *         throughput: 1
+     * </pre>
+     *
+     * @param dispatcherPath The path to the dispatcher configuration (e.g., "my-blocking-dispatcher")
+     * @return This builder
+     */
+    public SpringActorSpawnBuilder<A, C> withDispatcherFromConfig(String dispatcherPath) {
+        this.dispatcherConfig = DispatcherConfig.fromConfig(dispatcherPath);
+        return this;
+    }
+
+    /**
+     * Configures the actor to use the blocking dispatcher.
+     * This should be used for actors that perform blocking I/O operations.
+     * Uses Pekko's default blocking IO dispatcher.
+     *
+     * @return This builder
+     */
+    public SpringActorSpawnBuilder<A, C> withBlockingDispatcher() {
+        this.dispatcherConfig = DispatcherConfig.blocking();
+        return this;
+    }
+
+    /**
+     * Configures the actor to use the default dispatcher.
+     * This is the default behavior if no dispatcher is specified.
+     *
+     * @return This builder
+     */
+    public SpringActorSpawnBuilder<A, C> withDefaultDispatcher() {
+        this.dispatcherConfig = DispatcherConfig.defaultDispatcher();
+        return this;
+    }
+
+    /**
+     * Configures the actor to use the same dispatcher as its parent.
+     *
+     * @return This builder
+     */
+    public SpringActorSpawnBuilder<A, C> withDispatcherSameAsParent() {
+        this.dispatcherConfig = DispatcherConfig.sameAsParent();
+        return this;
+    }
+
+    /**
      * Sets whether the actor should be a cluster singleton.
      *
      * @param isClusterSingleton Whether the actor should be a cluster singleton
@@ -163,7 +222,7 @@ public class SpringActorSpawnBuilder<A extends SpringActorWithContext<C, ?>, C> 
         }
 
         return actorSystem.spawn(
-                actorClass, actorContext, mailboxSelector, isClusterSingleton, supervisorStrategy, timeout);
+                actorClass, actorContext, mailboxSelector, dispatcherConfig, isClusterSingleton, supervisorStrategy, timeout);
     }
 
     /**

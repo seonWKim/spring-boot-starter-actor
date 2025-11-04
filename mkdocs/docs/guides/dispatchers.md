@@ -1,0 +1,175 @@
+# Dispatchers
+
+This guide explains how to use dispatchers to control thread execution for your actors.
+
+## What are Dispatchers?
+
+A dispatcher is the "engine" that makes Pekko Actors work. It is responsible for selecting which actors receive messages and allocating threads from the thread pool.
+
+By default, all actors use Pekko's default dispatcher, but you can configure actors to use different dispatchers based on their workload characteristics.
+
+## Why Use Different Dispatchers?
+
+The main reason to use different dispatchers is to **isolate blocking operations** from the default dispatcher. If you perform blocking operations (like blocking I/O) on the default dispatcher, it can starve the thread pool and prevent other actors from processing messages.
+
+## Dispatcher Selection API
+
+Spring Boot Starter Actor provides a fluent API for selecting dispatchers when spawning actors:
+
+### Default Dispatcher
+
+Use the default Pekko dispatcher (this is the default behavior):
+
+```java
+SpringActorRef<MyActor.Command> actor = actorSystem
+    .actor(MyActor.class)
+    .withId("my-actor")
+    .withDefaultDispatcher()  // Optional - this is the default
+    .spawnAndWait();
+```
+
+### Blocking Dispatcher
+
+Use Pekko's default blocking I/O dispatcher for actors that perform blocking operations:
+
+```java
+SpringActorRef<DatabaseActor.Command> dbActor = actorSystem
+    .actor(DatabaseActor.class)
+    .withId("db-actor")
+    .withBlockingDispatcher()  // Use blocking I/O dispatcher
+    .spawnAndWait();
+```
+
+**When to use:**
+- Database operations
+- File I/O
+- Network calls (blocking APIs)
+- Any operation that blocks the thread
+
+### Custom Dispatcher from Configuration
+
+Use a custom dispatcher defined in your application configuration:
+
+```java
+SpringActorRef<WorkerActor.Command> worker = actorSystem
+    .actor(WorkerActor.class)
+    .withId("worker")
+    .withDispatcherFromConfig("my-custom-dispatcher")
+    .spawnAndWait();
+```
+
+### Same-as-Parent Dispatcher
+
+Inherit the dispatcher from the parent actor (useful for child actors):
+
+```java
+SpringActorRef<ChildActor.Command> child = parentRef
+    .child(ChildActor.class)
+    .withId("child")
+    .withDispatcherSameAsParent()
+    .spawnAndWait();
+```
+
+## Types of Dispatchers
+
+### Dispatcher (Default)
+
+The default dispatcher is used when no specific dispatcher is configured. It uses a fork-join-executor by default and provides excellent performance for non-blocking operations.
+
+### PinnedDispatcher
+
+A PinnedDispatcher dedicates a unique thread for each actor using it. This can be useful for actors that need thread-local state or for bulkheading critical actors.
+
+## Configuring Custom Dispatchers
+
+Define custom dispatchers in your `application.yml`:
+
+### Fork-Join Executor
+
+The fork-join-executor is a work-stealing thread pool:
+
+```yaml
+spring:
+  actor:
+    my-dispatcher:
+      type: Dispatcher
+      executor: fork-join-executor
+      fork-join-executor:
+        # Min number of threads
+        parallelism-min: 2
+        # Thread count = ceil(available processors * factor)
+        parallelism-factor: 2.0
+        # Max number of threads
+        parallelism-max: 10
+      # Throughput defines the maximum number of messages
+      # to be processed per actor before the thread jumps
+      # to the next actor. Set to 1 for as fair as possible.
+      throughput: 100
+```
+
+### Thread Pool Executor
+
+The thread-pool-executor is based on a `java.util.concurrent.ThreadPoolExecutor`:
+
+```yaml
+spring:
+  actor:
+    my-blocking-dispatcher:
+      type: Dispatcher
+      executor: thread-pool-executor
+      thread-pool-executor:
+        # Fixed pool size
+        fixed-pool-size: 16
+      throughput: 1
+```
+
+### Dynamic Thread Pool Executor
+
+For variable pool sizes:
+
+```yaml
+spring:
+  actor:
+    my-dynamic-dispatcher:
+      type: Dispatcher
+      executor: thread-pool-executor
+      thread-pool-executor:
+        core-pool-size-min: 4
+        core-pool-size-factor: 2.0
+        core-pool-size-max: 16
+        max-pool-size-min: 8
+        max-pool-size-factor: 2.0
+        max-pool-size-max: 32
+      throughput: 10
+```
+
+## Blocking Operations
+
+The most important reason to use a separate dispatcher is to isolate blocking operations from the default dispatcher.
+
+**Problem:** If you have blocking operations (such as blocking I/O, database calls, or expensive computations) and run them on the default dispatcher, it will block threads that are needed for other actors to process their messages. This can cause your application to become unresponsive.
+
+**Solution:** Always use a separate dispatcher with a thread pool executor for actors that perform blocking operations. Use `.withBlockingDispatcher()` or a custom dispatcher with a thread-pool-executor.
+
+Example configuration for blocking operations:
+
+```yaml
+spring:
+  actor:
+    my-blocking-dispatcher:
+      type: Dispatcher
+      executor: thread-pool-executor
+      thread-pool-executor:
+        fixed-pool-size: 16
+      throughput: 1
+```
+
+## Throughput Configuration
+
+The `throughput` setting defines the maximum number of messages to be processed per actor before the thread jumps to the next actor. Set to 1 for as fair as possible.
+
+Higher throughput values can improve performance by reducing the number of context switches, but may increase latency for individual messages.
+
+## More Information
+
+For more detailed information about dispatchers, refer to the [Pekko Dispatcher Documentation](https://pekko.apache.org/docs/pekko/1.0/typed/dispatchers.html).

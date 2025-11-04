@@ -315,6 +315,7 @@ public class SpringActorSystem implements DisposableBean {
             Class<A> actorClass,
             SpringActorContext actorContext,
             MailboxSelector mailboxSelector,
+            DispatcherConfig dispatcherConfig,
             boolean isClusterSingleton,
             @Nullable SupervisorStrategy supervisorStrategy,
             Duration timeout) {
@@ -334,6 +335,7 @@ public class SpringActorSystem implements DisposableBean {
                                 actorContext,
                                 replyTo,
                                 mailboxSelector,
+                                dispatcherConfig,
                                 isClusterSingleton,
                                 supervisorStrategy),
                         timeout,

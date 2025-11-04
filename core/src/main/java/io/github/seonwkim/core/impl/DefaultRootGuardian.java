@@ -5,6 +5,8 @@ import io.github.seonwkim.core.RootGuardian;
 import io.github.seonwkim.core.SpringActorContext;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
+import org.apache.pekko.actor.typed.MailboxSelector;
+import org.apache.pekko.actor.typed.Props;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.apache.pekko.cluster.typed.ClusterSingleton;
@@ -114,7 +116,14 @@ public class DefaultRootGuardian implements RootGuardian {
             ref = clusterSingleton.init(singletonActor);
         } else {
             // Regular actor spawn
-            ref = ctx.spawn(behavior, key, msg.mailboxSelector);
+            if (msg.dispatcherConfig.shouldUseProps()) {
+                // If dispatcher requires Props (blocking, fromConfig, sameAsParent), use Props
+                Props props = msg.dispatcherConfig.toProps();
+                ref = ctx.spawn(behavior, key, props);
+            } else {
+                // If default dispatcher, use MailboxSelector
+                ref = ctx.spawn(behavior, key, msg.mailboxSelector);
+            }
         }
 
         msg.replyTo.tell(new Spawned<>(ref));
@@ -153,5 +162,29 @@ public class DefaultRootGuardian implements RootGuardian {
 
     private String buildActorKey(Class<?> actorClass, SpringActorContext actorContext) {
         return actorClass.getName() + ":" + actorContext.actorId();
+    }
+
+    /**
+     * Builds Props with dispatcher configuration.
+     *
+     * @param dispatcherConfig The dispatcher config path (null = default, empty = same-as-parent, or config path)
+     * @return Props configured with the specified dispatcher
+     */
+    private Props buildPropsWithDispatcher(@Nullable String dispatcherConfig) {
+        Props props = Props.empty();
+
+        // Apply dispatcher configuration
+        if (dispatcherConfig == null) {
+            // null means use default dispatcher
+            props = props.withDispatcherDefault();
+        } else if (dispatcherConfig.isEmpty()) {
+            // empty string means use same dispatcher as parent
+            props = props.withDispatcherSameAsParent();
+        } else {
+            // Use the specified dispatcher from config
+            props = props.withDispatcherFromConfig(dispatcherConfig);
+        }
+
+        return props;
     }
 }
