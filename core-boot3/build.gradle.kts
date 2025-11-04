@@ -31,6 +31,7 @@ dependencies {
     api("org.apache.pekko:pekko-cluster-sharding-typed_3:$pekkoVersion")
     api("org.apache.pekko:pekko-serialization-jackson_3:$pekkoVersion")
 
+    implementation("com.google.code.findbugs:jsr305")
     implementation("org.springframework.boot:spring-boot-starter")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")

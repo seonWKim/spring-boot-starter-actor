@@ -4,6 +4,7 @@ import io.github.seonwkim.core.shard.SpringShardedActor;
 import io.github.seonwkim.core.shard.ShardedActorRegistry;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityRef;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
+import javax.annotation.Nullable;
 
 /**
  * A fluent builder for creating references to sharded actors. This builder simplifies the process
@@ -22,7 +23,7 @@ import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
 public class SpringShardedActorBuilder<T> {
 
     private final SpringActorSystem actorSystem;
-    private String entityId;
+    @Nullable private String entityId;
     private EntityTypeKey<T> typeKey;
 
     /**
@@ -32,6 +33,12 @@ public class SpringShardedActorBuilder<T> {
      * @param actorClass The class of the sharded actor
      */
     public SpringShardedActorBuilder(SpringActorSystem actorSystem, Class<? extends SpringShardedActor<T>> actorClass) {
+        if (actorSystem == null) {
+            throw new IllegalArgumentException("actorSystem must not be null");
+        }
+        if (actorClass == null) {
+            throw new IllegalArgumentException("actorClass must not be null");
+        }
         this.actorSystem = actorSystem;
         this.typeKey = resolveTypeKey(actorClass);
     }

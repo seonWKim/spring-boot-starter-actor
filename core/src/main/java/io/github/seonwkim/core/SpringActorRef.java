@@ -9,6 +9,7 @@ import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Scheduler;
 import org.apache.pekko.actor.typed.javadsl.AskPattern;
 import org.apache.pekko.japi.function.Function;
+import javax.annotation.Nullable;
 
 /**
  * A wrapper around Pekko's ActorRef that provides methods for asking and telling messages to an
@@ -55,6 +56,15 @@ public class SpringActorRef<T> {
      * @param defaultTimeout The default timeout for ask operations
      */
     public SpringActorRef(Scheduler scheduler, ActorRef<T> actorRef, Duration defaultTimeout) {
+        if (scheduler == null) {
+            throw new IllegalArgumentException("scheduler must not be null");
+        }
+        if (actorRef == null) {
+            throw new IllegalArgumentException("actorRef must not be null");
+        }
+        if (defaultTimeout == null) {
+            throw new IllegalArgumentException("defaultTimeout must not be null");
+        }
         this.scheduler = scheduler;
         this.actorRef = actorRef;
         this.defaultTimeout = defaultTimeout;
@@ -237,7 +247,7 @@ public class SpringActorRef<T> {
         private final ActorRef<REQ> actorRef;
         private final Scheduler scheduler;
         private Duration timeout;
-        private Supplier<RES> timeoutHandler;
+        @Nullable private Supplier<RES> timeoutHandler;
 
         /**
          * Creates a new AskBuilder.
@@ -265,6 +275,9 @@ public class SpringActorRef<T> {
          * @return This builder for method chaining
          */
         public AskBuilder<REQ, RES> withTimeout(Duration timeout) {
+            if (timeout == null) {
+                throw new IllegalArgumentException("timeout must not be null");
+            }
             this.timeout = timeout;
             return this;
         }
@@ -293,10 +306,11 @@ public class SpringActorRef<T> {
 
             // Apply timeout handler if configured
             if (timeoutHandler != null) {
+                final Supplier<RES> handler = timeoutHandler;
                 result = result.exceptionally(throwable -> {
                     if (throwable instanceof TimeoutException
                             || (throwable.getCause() != null && throwable.getCause() instanceof TimeoutException)) {
-                        return timeoutHandler.get();
+                        return handler.get();
                     }
                     // Re-throw non-timeout exceptions
                     if (throwable instanceof RuntimeException) {

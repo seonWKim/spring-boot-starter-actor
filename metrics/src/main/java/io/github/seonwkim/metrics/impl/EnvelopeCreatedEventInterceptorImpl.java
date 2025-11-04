@@ -3,6 +3,7 @@ package io.github.seonwkim.metrics.impl;
 import io.github.seonwkim.metrics.interceptor.EnvelopeCreatedEventInterceptorsHolder;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.LongAdder;
+import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,6 +36,7 @@ public class EnvelopeCreatedEventInterceptorImpl
         }
     }
 
+    @Nullable
     public EnvelopeMetrics getEnvelopeMetrics(String messageType) {
         return envelopeMetrics.get(messageType);
     }

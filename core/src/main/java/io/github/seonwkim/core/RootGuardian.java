@@ -5,7 +5,7 @@ import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.MailboxSelector;
 import org.apache.pekko.actor.typed.SupervisorStrategy;
-import org.springframework.lang.Nullable;
+import javax.annotation.Nullable;
 
 /**
  * Root guardian interface for the actor system. The root guardian is the top-level actor that
@@ -51,7 +51,7 @@ public interface RootGuardian {
                 ActorRef<Spawned<?>> replyTo,
                 MailboxSelector mailboxSelector,
                 Boolean isClusterSingleton,
-                SupervisorStrategy supervisorStrategy) {
+                @Nullable SupervisorStrategy supervisorStrategy) {
             this.actorClass = actorClass;
             this.actorContext = actorContext;
             this.replyTo = replyTo;
@@ -82,9 +82,9 @@ public interface RootGuardian {
      * @param <T> The type of messages that the actor can handle
      */
     class GetActorResponse<T> {
-        public final ActorRef<T> ref;
+        @Nullable public final ActorRef<T> ref;
 
-        public GetActorResponse(ActorRef<T> ref) {
+        public GetActorResponse(@Nullable ActorRef<T> ref) {
             this.ref = ref;
         }
     }

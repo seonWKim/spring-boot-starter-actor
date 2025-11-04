@@ -2,6 +2,7 @@ package io.github.seonwkim.core;
 
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.SupervisorStrategy;
+import javax.annotation.Nullable;
 
 /**
  * Framework-provided commands that actors can use when their Command interface
@@ -76,13 +77,13 @@ public final class FrameworkCommands {
     public static final class SpawnChild<C> implements FrameworkCommand {
         public final Class<? extends SpringActorWithContext<C, ?>> actorClass;
         public final SpringActorContext childContext;
-        public final SupervisorStrategy strategy;
+        @Nullable public final SupervisorStrategy strategy;
         public final ActorRef<SpawnChildResponse<C>> replyTo;
 
         public SpawnChild(
                 Class<? extends SpringActorWithContext<C, ?>> actorClass,
                 SpringActorContext childContext,
-                SupervisorStrategy strategy,
+                @Nullable SupervisorStrategy strategy,
                 ActorRef<SpawnChildResponse<C>> replyTo) {
             this.actorClass = actorClass;
             this.childContext = childContext;
@@ -100,11 +101,11 @@ public final class FrameworkCommands {
      * @param <C> The command type of the spawned child actor
      */
     public static final class SpawnChildResponse<C> {
-        public final ActorRef<C> childRef;
+        @Nullable public final ActorRef<C> childRef;
         public final boolean success;
         public final String message;
 
-        private SpawnChildResponse(ActorRef<C> childRef, boolean success, String message) {
+        private SpawnChildResponse(@Nullable ActorRef<C> childRef, boolean success, String message) {
             this.childRef = childRef;
             this.success = success;
             this.message = message;
@@ -151,10 +152,10 @@ public final class FrameworkCommands {
      * @param <C> The command type of the child actor
      */
     public static final class GetChildResponse<C> {
-        public final ActorRef<C> childRef;
+        @Nullable public final ActorRef<C> childRef;
         public final boolean found;
 
-        private GetChildResponse(ActorRef<C> childRef, boolean found) {
+        private GetChildResponse(@Nullable ActorRef<C> childRef, boolean found) {
             this.childRef = childRef;
             this.found = found;
         }

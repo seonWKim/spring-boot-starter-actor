@@ -9,7 +9,7 @@ import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.apache.pekko.cluster.typed.ClusterSingleton;
 import org.apache.pekko.cluster.typed.SingletonActor;
-import org.springframework.lang.Nullable;
+import javax.annotation.Nullable;
 
 /**
  * Default implementation of the {@code RootGuardian} interface. This class manages the lifecycle of

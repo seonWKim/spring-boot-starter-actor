@@ -133,7 +133,7 @@ public class SpringChildActorReference<P, C> {
                         timeout,
                         scheduler)
                 .thenApply(response -> {
-                    if (response.found) {
+                    if (response.found && response.childRef != null) {
                         return Optional.of(new SpringActorRef<>(scheduler, response.childRef, defaultTimeout));
                     } else {
                         return Optional.empty();
@@ -212,7 +212,7 @@ public class SpringChildActorReference<P, C> {
                         timeout,
                         scheduler)
                 .thenApply(response -> {
-                    if (response.success || "Child already exists".equals(response.message)) {
+                    if ((response.success || "Child already exists".equals(response.message)) && response.childRef != null) {
                         return new SpringActorRef<>(scheduler, response.childRef, defaultTimeout);
                     } else {
                         throw new RuntimeException("Failed to spawn child: " + response.message);
@@ -267,7 +267,7 @@ public class SpringChildActorReference<P, C> {
                         timeout,
                         scheduler)
                 .thenCompose(response -> {
-                    if (response.found) {
+                    if (response.found && response.childRef != null) {
                         // Child exists, return it
                         return CompletableFuture.completedFuture(
                                 new SpringActorRef<>(scheduler, response.childRef, defaultTimeout));
