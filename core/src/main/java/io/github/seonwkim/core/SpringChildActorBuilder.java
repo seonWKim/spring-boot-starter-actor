@@ -263,11 +263,6 @@ public class SpringChildActorBuilder<P, C> {
             childContext = new DefaultSpringActorContext(childId);
         }
 
-        // Ensure childContext is initialized
-        if (childContext == null) {
-            throw new IllegalStateException("childContext must be initialized");
-        }
-
         final SpringActorContext context = childContext;
 
         // Try to get existing child first
@@ -307,11 +302,6 @@ public class SpringChildActorBuilder<P, C> {
             childContext = new DefaultSpringActorContext(childId);
         }
 
-        // Ensure childContext is initialized
-        if (childContext == null) {
-            throw new IllegalStateException("childContext must be initialized");
-        }
-
         final SpringActorContext context = childContext;
         ActorRef<Object> parentAsObject = (ActorRef<Object>) parentRef;
 
@@ -343,11 +333,6 @@ public class SpringChildActorBuilder<P, C> {
                 throw new IllegalStateException("Either childId or childContext must be set");
             }
             childContext = new DefaultSpringActorContext(childId);
-        }
-
-        // Ensure childContext is initialized
-        if (childContext == null) {
-            throw new IllegalStateException("childContext must be initialized");
         }
 
         final SpringActorContext context = childContext;
