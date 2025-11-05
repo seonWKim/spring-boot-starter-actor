@@ -314,7 +314,7 @@ public class SpringActorSystem implements DisposableBean {
     protected <A extends SpringActorWithContext<C, ?>, C> CompletionStage<SpringActorRef<C>> spawn(
             Class<A> actorClass,
             SpringActorContext actorContext,
-            MailboxSelector mailboxSelector,
+            MailboxConfig mailboxConfig,
             DispatcherConfig dispatcherConfig,
             boolean isClusterSingleton,
             @Nullable SupervisorStrategy supervisorStrategy,
@@ -334,7 +334,7 @@ public class SpringActorSystem implements DisposableBean {
                                 actorClass,
                                 actorContext,
                                 replyTo,
-                                mailboxSelector,
+                                mailboxConfig,
                                 dispatcherConfig,
                                 isClusterSingleton,
                                 supervisorStrategy),

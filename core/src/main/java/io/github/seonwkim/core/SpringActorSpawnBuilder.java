@@ -23,7 +23,7 @@ public class SpringActorSpawnBuilder<A extends SpringActorWithContext<C, ?>, C> 
     @Nullable private String actorId;
     @Nullable private SpringActorContext actorContext;
     private Duration timeout = Duration.ofSeconds(3);
-    private MailboxSelector mailboxSelector = MailboxSelector.defaultMailbox();
+    private MailboxConfig mailboxConfig = MailboxConfig.defaultMailbox();
     private DispatcherConfig dispatcherConfig = DispatcherConfig.defaultDispatcher();
     private boolean isClusterSingleton = false;
     @Nullable private SupervisorStrategy supervisorStrategy = null;
@@ -88,33 +88,26 @@ public class SpringActorSpawnBuilder<A extends SpringActorWithContext<C, ?>, C> 
     }
 
     /**
-     * Sets the mailbox selector for the actor.
+     * Sets the mailbox configuration using the type-safe MailboxConfig API.
      *
-     * @param mailboxSelector The mailbox selector
+     * <p>Example usage:
+     * <pre>{@code
+     * // Bounded mailbox
+     * .withMailbox(MailboxConfig.bounded(100))
+     *
+     * // Custom mailbox from configuration
+     * .withMailbox(MailboxConfig.fromConfig("my-priority-mailbox"))
+     * }</pre>
+     *
+     * @param mailboxConfig The mailbox configuration
      * @return This builder
      */
-    public SpringActorSpawnBuilder<A, C> withMailbox(MailboxSelector mailboxSelector) {
-        if (mailboxSelector == null) {
-            throw new IllegalArgumentException("mailboxSelector must not be null");
+    public SpringActorSpawnBuilder<A, C> withMailbox(MailboxConfig mailboxConfig) {
+        if (mailboxConfig == null) {
+            throw new IllegalArgumentException("mailboxConfig must not be null");
         }
-        this.mailboxSelector = mailboxSelector;
+        this.mailboxConfig = mailboxConfig;
         return this;
-    }
-
-    /**
-     * Sets the mailbox selector using a string name. Common values: "default", "bounded", "unbounded"
-     *
-     * @param mailboxName The name of the mailbox type
-     * @return This builder
-     */
-    public SpringActorSpawnBuilder<A, C> withMailbox(String mailboxName) {
-        if ("bounded".equalsIgnoreCase(mailboxName)) {
-            return withMailbox(MailboxSelector.bounded(1000));
-        } else if ("unbounded".equalsIgnoreCase(mailboxName)) {
-            return withMailbox(MailboxSelector.fromConfig("pekko.actor.default-mailbox"));
-        } else {
-            return withMailbox(MailboxSelector.defaultMailbox());
-        }
     }
 
     /**
@@ -222,7 +215,7 @@ public class SpringActorSpawnBuilder<A extends SpringActorWithContext<C, ?>, C> 
         }
 
         return actorSystem.spawn(
-                actorClass, actorContext, mailboxSelector, dispatcherConfig, isClusterSingleton, supervisorStrategy, timeout);
+                actorClass, actorContext, mailboxConfig, dispatcherConfig, isClusterSingleton, supervisorStrategy, timeout);
     }
 
     /**
