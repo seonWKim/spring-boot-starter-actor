@@ -1,7 +1,6 @@
 package io.github.seonwkim.core;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
@@ -311,12 +310,7 @@ public final class SpringActorBehavior<C> {
                 // Both static and dynamic MDC
                 // Capture in final variable and add explicit null check for NullAway
                 final Function<C, Map<String, String>> mdcFn = mdcForMessage;
-                if (mdcFn == null) {
-                    throw new IllegalStateException("mdcForMessage should not be null");
-                }
-                org.apache.pekko.japi.function.Function<C, Map<String, String>> pekkoFunction =
-                    msg -> mdcFn.apply(msg);
-                return Behaviors.withMdc(commandClass, staticMdc, pekkoFunction, behavior);
+                return Behaviors.withMdc(commandClass, staticMdc, mdcFn::apply, behavior);
             } else if (hasStaticMdc) {
                 // Only static MDC
                 return Behaviors.withMdc(commandClass, staticMdc, behavior);
@@ -324,12 +318,7 @@ public final class SpringActorBehavior<C> {
                 // Only dynamic MDC
                 // Capture in final variable and add explicit null check for NullAway
                 final Function<C, Map<String, String>> mdcFn = mdcForMessage;
-                if (mdcFn == null) {
-                    throw new IllegalStateException("mdcForMessage should not be null");
-                }
-                org.apache.pekko.japi.function.Function<C, Map<String, String>> pekkoFunction =
-                    msg -> mdcFn.apply(msg);
-                return Behaviors.withMdc(commandClass, pekkoFunction, behavior);
+                return Behaviors.withMdc(commandClass, mdcFn::apply, behavior);
             }
 
             return behavior;
@@ -376,7 +365,7 @@ public final class SpringActorBehavior<C> {
                         for (SignalHandler<C, S, ?> handler : signalHandlers) {
                             Behavior<C> result = handler.tryHandle(sig, state);
                             if (result != null) {
-                                return (Behavior<Object>) (Behavior<?>) result;
+                                return (Behavior<Object>) result;
                             }
                         }
                         return Behaviors.unhandled();
