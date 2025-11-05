@@ -8,7 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.stereotype.Component;
+import org.springframework.test.annotation.DirtiesContext;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -31,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.*;
             "spring.actor.bounded-stable-priority-mailbox.mailbox-type=io.github.seonwkim.core.TestPriorityMailboxes$TestBoundedStablePriorityMailbox",
             "spring.actor.bounded-stable-priority-mailbox.mailbox-capacity=100"
         })
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 public class MailboxConfigIntegrationTest {
 
     @Autowired
@@ -65,7 +66,6 @@ public class MailboxConfigIntegrationTest {
         }
     }
 
-    @Component
     public static class TestActor implements SpringActorWithContext<TestCommand, SpringActorContext> {
         @Override
         public SpringActorBehavior<TestCommand> create(SpringActorContext actorContext) {
@@ -78,7 +78,6 @@ public class MailboxConfigIntegrationTest {
         }
     }
 
-    @Component
     public static class TestParentActor implements SpringActorWithContext<TestCommand, SpringActorContext> {
         @Override
         public SpringActorBehavior<TestCommand> create(SpringActorContext actorContext) {
@@ -91,7 +90,6 @@ public class MailboxConfigIntegrationTest {
         }
     }
 
-    @Component
     public static class TestChildActor implements SpringActorWithContext<TestCommand, SpringActorContext> {
         @Override
         public SpringActorBehavior<TestCommand> create(SpringActorContext actorContext) {

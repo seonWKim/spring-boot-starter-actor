@@ -3,6 +3,7 @@ package io.github.seonwkim.core;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import org.apache.pekko.actor.typed.ActorRef;
@@ -308,16 +309,16 @@ public final class SpringActorBehavior<C> {
             // Only wrap if we have MDC configuration
             if (hasStaticMdc && hasDynamicMdc) {
                 // Both static and dynamic MDC
-                // Capture in final variable and add explicit null check for NullAway
-                final Function<C, Map<String, String>> mdcFn = mdcForMessage;
+                // requireNonNull for NullAway - we already checked hasDynamicMdc
+                final Function<C, Map<String, String>> mdcFn = Objects.requireNonNull(mdcForMessage);
                 return Behaviors.withMdc(commandClass, staticMdc, mdcFn::apply, behavior);
             } else if (hasStaticMdc) {
                 // Only static MDC
                 return Behaviors.withMdc(commandClass, staticMdc, behavior);
             } else if (hasDynamicMdc) {
                 // Only dynamic MDC
-                // Capture in final variable and add explicit null check for NullAway
-                final Function<C, Map<String, String>> mdcFn = mdcForMessage;
+                // requireNonNull for NullAway - we already checked hasDynamicMdc
+                final Function<C, Map<String, String>> mdcFn = Objects.requireNonNull(mdcForMessage);
                 return Behaviors.withMdc(commandClass, mdcFn::apply, behavior);
             }
 
