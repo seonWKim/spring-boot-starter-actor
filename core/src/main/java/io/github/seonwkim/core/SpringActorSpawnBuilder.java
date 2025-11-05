@@ -26,6 +26,7 @@ public class SpringActorSpawnBuilder<A extends SpringActorWithContext<C, ?>, C> 
     private MailboxConfig mailboxConfig = MailboxConfig.defaultMailbox();
     private DispatcherConfig dispatcherConfig = DispatcherConfig.defaultDispatcher();
     private TagsConfig tagsConfig = TagsConfig.empty();
+    private MdcConfig mdcConfig = MdcConfig.empty();
     private boolean isClusterSingleton = false;
     @Nullable private SupervisorStrategy supervisorStrategy = null;
 
@@ -194,6 +195,38 @@ public class SpringActorSpawnBuilder<A extends SpringActorWithContext<C, ?>, C> 
     }
 
     /**
+     * Sets static MDC (Mapped Diagnostic Context) values for this actor.
+     * These values will be included in all log entries from the actor.
+     *
+     * <p>MDC is useful for adding contextual information like request IDs, user IDs,
+     * correlation IDs, or any other data that should appear in logs.
+     *
+     * <p>Example usage:
+     * <pre>{@code
+     * Map<String, String> mdc = Map.of(
+     *     "userId", "user-123",
+     *     "requestId", "req-456",
+     *     "service", "order-service"
+     * );
+     *
+     * .withMdc(MdcConfig.of(mdc))
+     * }</pre>
+     *
+     * <p>The actor can combine these static MDC values with dynamic per-message MDC
+     * using {@link SpringActorBehavior.Builder#withMdc(java.util.function.Function)}.
+     *
+     * @param mdcConfig The MDC configuration
+     * @return This builder
+     */
+    public SpringActorSpawnBuilder<A, C> withMdc(MdcConfig mdcConfig) {
+        if (mdcConfig == null) {
+            throw new IllegalArgumentException("mdcConfig must not be null");
+        }
+        this.mdcConfig = mdcConfig;
+        return this;
+    }
+
+    /**
      * Sets whether the actor should be a cluster singleton.
      *
      * @param isClusterSingleton Whether the actor should be a cluster singleton
@@ -238,6 +271,9 @@ public class SpringActorSpawnBuilder<A extends SpringActorWithContext<C, ?>, C> 
             }
             actorContext = new DefaultSpringActorContext(actorId);
         }
+
+        // Apply MDC configuration to the context
+        actorContext.setMdcConfig(mdcConfig);
 
         return actorSystem.spawn(
                 actorClass, actorContext, mailboxConfig, dispatcherConfig, tagsConfig, isClusterSingleton, supervisorStrategy, timeout);

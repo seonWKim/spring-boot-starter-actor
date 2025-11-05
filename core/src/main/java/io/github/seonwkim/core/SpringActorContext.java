@@ -26,6 +26,7 @@ import javax.annotation.Nullable;
 public abstract class SpringActorContext {
 
     @Nullable private ActorTypeRegistry registry;
+    private MdcConfig mdcConfig = MdcConfig.empty();
 
     /**
      * Returns the unique identifier for this actor.
@@ -44,5 +45,24 @@ public abstract class SpringActorContext {
 
     public void setRegistry(ActorTypeRegistry registry) {
         this.registry = registry;
+    }
+
+    /**
+     * Returns the MDC configuration for this actor context.
+     * Static MDC values configured here will be available in the actor's logs.
+     *
+     * @return the MDC configuration
+     */
+    public MdcConfig mdcConfig() {
+        return mdcConfig;
+    }
+
+    /**
+     * Sets the MDC configuration for this actor context.
+     *
+     * @param mdcConfig the MDC configuration
+     */
+    public void setMdcConfig(MdcConfig mdcConfig) {
+        this.mdcConfig = mdcConfig != null ? mdcConfig : MdcConfig.empty();
     }
 }
