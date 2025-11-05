@@ -38,6 +38,38 @@ public final class ActorSpawner {
     }
 
     /**
+     * Gets a reference to an existing actor (child) in the given context.
+     * Returns null if the actor does not exist.
+     *
+     * @param ctx The actor context to search in
+     * @param actorClass The class of the actor to find
+     * @param actorId The ID of the actor to find
+     * @param <T> The command type of the actor
+     * @return The actor reference if found, null otherwise
+     */
+    @Nullable
+    public static <T> ActorRef<T> getActor(ActorContext<?> ctx, Class<?> actorClass, String actorId) {
+        String actorName = buildActorName(actorClass, actorId);
+
+        @SuppressWarnings("unchecked")
+        ActorRef<T> ref = (ActorRef<T>) ctx.getChild(actorName).orElse(null);
+        return ref;
+    }
+
+    /**
+     * Checks if an actor exists in the given context.
+     *
+     * @param ctx The actor context to search in
+     * @param actorClass The class of the actor to check
+     * @param actorId The ID of the actor to check
+     * @return true if the actor exists, false otherwise
+     */
+    public static boolean actorExists(ActorContext<?> ctx, Class<?> actorClass, String actorId) {
+        String actorName = buildActorName(actorClass, actorId);
+        return ctx.getChild(actorName).isPresent();
+    }
+
+    /**
      * Spawns an actor with the given configuration.
      * This method handles all the common spawning logic including:
      * <ul>

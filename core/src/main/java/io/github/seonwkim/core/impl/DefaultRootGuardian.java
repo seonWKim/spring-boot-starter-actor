@@ -111,9 +111,7 @@ public class DefaultRootGuardian implements RootGuardian {
      * @return The same behavior
      */
     public Behavior<RootGuardian.Command> handleGetActor(GetActor msg) {
-        String key = buildActorKey(msg.actorClass, msg.actorContext);
-        ActorRef<?> ref = ctx.getChild(key).orElse(null);
-
+        ActorRef<?> ref = ActorSpawner.getActor(ctx, msg.actorClass, msg.actorContext.actorId());
         msg.replyTo.tell(new GetActorResponse<>(ref));
         return Behaviors.same();
     }
@@ -126,9 +124,7 @@ public class DefaultRootGuardian implements RootGuardian {
      * @return The same behavior
      */
     public Behavior<RootGuardian.Command> handleCheckExists(CheckExists msg) {
-        String key = buildActorKey(msg.actorClass, msg.actorContext);
-        boolean exists = ctx.getChild(key).isPresent();
-
+        boolean exists = ActorSpawner.actorExists(ctx, msg.actorClass, msg.actorContext.actorId());
         msg.replyTo.tell(new ExistsResponse(exists));
         return Behaviors.same();
     }
