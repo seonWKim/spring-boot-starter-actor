@@ -43,6 +43,7 @@ public class SpringChildActorBuilder<P, C> {
     @Nullable private SupervisorStrategy supervisionStrategy;
     @Nullable private MailboxConfig mailboxConfig;
     @Nullable private DispatcherConfig dispatcherConfig;
+    @Nullable private TagsConfig tagsConfig;
     private Duration timeout;
 
     /**
@@ -172,6 +173,29 @@ public class SpringChildActorBuilder<P, C> {
     }
 
     /**
+     * Sets the tags configuration for this child actor. Tags are used for logging and categorization,
+     * appearing in the MDC pekkoTags attribute.
+     *
+     * <p>Example usage:
+     * <pre>{@code
+     * parent.child(ChildActor.class)
+     *     .withId("worker")
+     *     .withTags(TagsConfig.of("worker", "high-priority"))
+     *     .spawn();
+     * }</pre>
+     *
+     * @param tagsConfig The tags configuration
+     * @return This builder for method chaining
+     */
+    public SpringChildActorBuilder<P, C> withTags(TagsConfig tagsConfig) {
+        if (tagsConfig == null) {
+            throw new IllegalArgumentException("tagsConfig must not be null");
+        }
+        this.tagsConfig = tagsConfig;
+        return this;
+    }
+
+    /**
      * Spawns the child actor and returns a CompletionStage with the child actor reference.
      * If the child already exists, the existing reference is returned.
      *
@@ -194,12 +218,13 @@ public class SpringChildActorBuilder<P, C> {
         final SupervisorStrategy strategy = supervisionStrategy;
         final MailboxConfig mailbox = mailboxConfig;
         final DispatcherConfig dispatcher = dispatcherConfig;
+        final TagsConfig tags = tagsConfig;
 
         return AskPattern.ask(
                         parentAsObject,
                         (ActorRef<FrameworkCommands.SpawnChildResponse<C>> replyTo) ->
                                 new FrameworkCommands.SpawnChild<>(
-                                        childActorClass, context, strategy, mailbox, dispatcher, replyTo),
+                                        childActorClass, context, strategy, mailbox, dispatcher, tags, replyTo),
                         timeout,
                         scheduler)
                 .thenApply(response -> {

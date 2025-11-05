@@ -25,6 +25,7 @@ public class SpringActorSpawnBuilder<A extends SpringActorWithContext<C, ?>, C> 
     private Duration timeout = Duration.ofSeconds(3);
     private MailboxConfig mailboxConfig = MailboxConfig.defaultMailbox();
     private DispatcherConfig dispatcherConfig = DispatcherConfig.defaultDispatcher();
+    private TagsConfig tagsConfig = TagsConfig.empty();
     private boolean isClusterSingleton = false;
     @Nullable private SupervisorStrategy supervisorStrategy = null;
 
@@ -169,6 +170,30 @@ public class SpringActorSpawnBuilder<A extends SpringActorWithContext<C, ?>, C> 
     }
 
     /**
+     * Sets the tags configuration for this actor. Tags are used for logging and categorization,
+     * appearing in the MDC pekkoTags attribute.
+     *
+     * <p>Example usage:
+     * <pre>{@code
+     * // Single tag
+     * .withTags(TagsConfig.of("worker"))
+     *
+     * // Multiple tags
+     * .withTags(TagsConfig.of("worker", "high-priority", "cpu-intensive"))
+     * }</pre>
+     *
+     * @param tagsConfig The tags configuration
+     * @return This builder
+     */
+    public SpringActorSpawnBuilder<A, C> withTags(TagsConfig tagsConfig) {
+        if (tagsConfig == null) {
+            throw new IllegalArgumentException("tagsConfig must not be null");
+        }
+        this.tagsConfig = tagsConfig;
+        return this;
+    }
+
+    /**
      * Sets whether the actor should be a cluster singleton.
      *
      * @param isClusterSingleton Whether the actor should be a cluster singleton
@@ -215,7 +240,7 @@ public class SpringActorSpawnBuilder<A extends SpringActorWithContext<C, ?>, C> 
         }
 
         return actorSystem.spawn(
-                actorClass, actorContext, mailboxConfig, dispatcherConfig, isClusterSingleton, supervisorStrategy, timeout);
+                actorClass, actorContext, mailboxConfig, dispatcherConfig, tagsConfig, isClusterSingleton, supervisorStrategy, timeout);
     }
 
     /**

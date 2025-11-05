@@ -340,6 +340,7 @@ public final class SpringActorBehavior<C> {
                         msg.strategy,
                         msg.mailboxConfig,
                         msg.dispatcherConfig,
+                        msg.tagsConfig,
                         null,  // clusterSingleton - not supported for child actors
                         false  // isClusterSingleton - not supported for child actors
                 );

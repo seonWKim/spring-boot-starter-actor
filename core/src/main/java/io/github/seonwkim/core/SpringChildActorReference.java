@@ -63,6 +63,7 @@ public class SpringChildActorReference<P, C> {
     private Duration timeout;
     private MailboxConfig mailboxConfig;
     private DispatcherConfig dispatcherConfig;
+    private TagsConfig tagsConfig;
 
     /**
      * Creates a new SpringChildActorReference.
@@ -99,6 +100,7 @@ public class SpringChildActorReference<P, C> {
         this.timeout = defaultTimeout;
         this.mailboxConfig = MailboxConfig.defaultMailbox();
         this.dispatcherConfig = DispatcherConfig.defaultDispatcher();
+        this.tagsConfig = TagsConfig.empty();
     }
 
     /**
@@ -143,6 +145,21 @@ public class SpringChildActorReference<P, C> {
             throw new IllegalArgumentException("dispatcherConfig must not be null");
         }
         this.dispatcherConfig = dispatcherConfig;
+        return this;
+    }
+
+    /**
+     * Sets the tags configuration for the child actor.
+     * This affects spawn() and getOrSpawn() calls made after this method.
+     *
+     * @param tagsConfig The tags configuration
+     * @return This reference for method chaining
+     */
+    public SpringChildActorReference<P, C> withTags(TagsConfig tagsConfig) {
+        if (tagsConfig == null) {
+            throw new IllegalArgumentException("tagsConfig must not be null");
+        }
+        this.tagsConfig = tagsConfig;
         return this;
     }
 
@@ -242,7 +259,7 @@ public class SpringChildActorReference<P, C> {
         return AskPattern.ask(
                         parentAsObject,
                         (ActorRef<FrameworkCommands.SpawnChildResponse<C>> replyTo) ->
-                                new FrameworkCommands.SpawnChild<>(childActorClass, childContext, strategy, mailboxConfig, dispatcherConfig, replyTo),
+                                new FrameworkCommands.SpawnChild<>(childActorClass, childContext, strategy, mailboxConfig, dispatcherConfig, tagsConfig, replyTo),
                         timeout,
                         scheduler)
                 .thenApply(response -> {
