@@ -42,6 +42,7 @@ public class SpringChildActorBuilder<P, C> {
     @Nullable private SpringActorContext childContext;
     @Nullable private SupervisorStrategy supervisionStrategy;
     @Nullable private MailboxConfig mailboxConfig;
+    @Nullable private DispatcherConfig dispatcherConfig;
     private Duration timeout;
 
     /**
@@ -149,6 +150,28 @@ public class SpringChildActorBuilder<P, C> {
     }
 
     /**
+     * Sets the dispatcher configuration using the type-safe DispatcherConfig API.
+     *
+     * <p>Example usage:
+     * <pre>{@code
+     * parent.child(ChildActor.class)
+     *     .withId("worker")
+     *     .withDispatcher(DispatcherConfig.blocking())
+     *     .spawn();
+     * }</pre>
+     *
+     * @param dispatcherConfig The dispatcher configuration
+     * @return This builder for method chaining
+     */
+    public SpringChildActorBuilder<P, C> withDispatcher(DispatcherConfig dispatcherConfig) {
+        if (dispatcherConfig == null) {
+            throw new IllegalArgumentException("dispatcherConfig must not be null");
+        }
+        this.dispatcherConfig = dispatcherConfig;
+        return this;
+    }
+
+    /**
      * Spawns the child actor and returns a CompletionStage with the child actor reference.
      * If the child already exists, the existing reference is returned.
      *
@@ -170,12 +193,13 @@ public class SpringChildActorBuilder<P, C> {
         final SpringActorContext context = childContext;
         final SupervisorStrategy strategy = supervisionStrategy;
         final MailboxConfig mailbox = mailboxConfig;
+        final DispatcherConfig dispatcher = dispatcherConfig;
 
         return AskPattern.ask(
                         parentAsObject,
                         (ActorRef<FrameworkCommands.SpawnChildResponse<C>> replyTo) ->
                                 new FrameworkCommands.SpawnChild<>(
-                                        childActorClass, context, strategy, mailbox, replyTo),
+                                        childActorClass, context, strategy, mailbox, dispatcher, replyTo),
                         timeout,
                         scheduler)
                 .thenApply(response -> {

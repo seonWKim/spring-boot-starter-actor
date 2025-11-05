@@ -79,6 +79,7 @@ public final class FrameworkCommands {
         public final SpringActorContext childContext;
         @Nullable public final SupervisorStrategy strategy;
         public final MailboxConfig mailboxConfig;
+        public final DispatcherConfig dispatcherConfig;
         public final ActorRef<SpawnChildResponse<C>> replyTo;
 
         public SpawnChild(
@@ -86,11 +87,13 @@ public final class FrameworkCommands {
                 SpringActorContext childContext,
                 @Nullable SupervisorStrategy strategy,
                 @Nullable MailboxConfig mailboxConfig,
+                @Nullable DispatcherConfig dispatcherConfig,
                 ActorRef<SpawnChildResponse<C>> replyTo) {
             this.actorClass = actorClass;
             this.childContext = childContext;
             this.strategy = strategy;
             this.mailboxConfig = mailboxConfig != null ? mailboxConfig : MailboxConfig.defaultMailbox();
+            this.dispatcherConfig = dispatcherConfig != null ? dispatcherConfig : DispatcherConfig.defaultDispatcher();
             this.replyTo = replyTo;
         }
     }

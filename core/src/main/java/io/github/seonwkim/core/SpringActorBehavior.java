@@ -6,6 +6,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
+import org.apache.pekko.actor.typed.Props;
 import org.apache.pekko.actor.typed.Signal;
 import org.apache.pekko.actor.typed.SupervisorStrategy;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
@@ -326,9 +327,18 @@ public final class SpringActorBehavior<C> {
                     behavior = Behaviors.supervise(behavior).onFailure(msg.strategy);
                 }
 
-                // Spawn the child with mailbox configuration (defaults to unbounded mailbox)
-                // TODO: add support for spawning child with different dispatchers
-                ActorRef<CC> childRef = ctx.spawn(behavior, childName, msg.mailboxConfig.toMailboxSelector());
+                // Spawn the child with mailbox and dispatcher configuration
+                ActorRef<CC> childRef;
+                if (msg.dispatcherConfig.shouldUseProps()) {
+                    // If dispatcher requires Props (blocking, fromConfig, sameAsParent), use Props
+                    // and apply mailbox configuration to Props as well
+                    Props props = msg.dispatcherConfig.toProps();
+                    props = msg.mailboxConfig.applyToProps(props);
+                    childRef = ctx.spawn(behavior, childName, props);
+                } else {
+                    // If default dispatcher, use MailboxSelector
+                    childRef = ctx.spawn(behavior, childName, msg.mailboxConfig.toMailboxSelector());
+                }
                 msg.replyTo.tell(FrameworkCommands.SpawnChildResponse.success(childRef));
 
             } catch (Exception e) {

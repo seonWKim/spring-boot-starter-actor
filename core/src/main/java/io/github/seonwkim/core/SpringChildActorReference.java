@@ -61,6 +61,8 @@ public class SpringChildActorReference<P, C> {
     private final String childId;
     private final Duration defaultTimeout;
     private Duration timeout;
+    private MailboxConfig mailboxConfig;
+    private DispatcherConfig dispatcherConfig;
 
     /**
      * Creates a new SpringChildActorReference.
@@ -95,6 +97,8 @@ public class SpringChildActorReference<P, C> {
         this.childId = childId;
         this.defaultTimeout = defaultTimeout;
         this.timeout = defaultTimeout;
+        this.mailboxConfig = MailboxConfig.defaultMailbox();
+        this.dispatcherConfig = DispatcherConfig.defaultDispatcher();
     }
 
     /**
@@ -109,6 +113,36 @@ public class SpringChildActorReference<P, C> {
             throw new IllegalArgumentException("timeout must not be null");
         }
         this.timeout = timeout;
+        return this;
+    }
+
+    /**
+     * Sets the mailbox configuration for the child actor.
+     * This affects spawn() and getOrSpawn() calls made after this method.
+     *
+     * @param mailboxConfig The mailbox configuration
+     * @return This reference for method chaining
+     */
+    public SpringChildActorReference<P, C> withMailbox(MailboxConfig mailboxConfig) {
+        if (mailboxConfig == null) {
+            throw new IllegalArgumentException("mailboxConfig must not be null");
+        }
+        this.mailboxConfig = mailboxConfig;
+        return this;
+    }
+
+    /**
+     * Sets the dispatcher configuration for the child actor.
+     * This affects spawn() and getOrSpawn() calls made after this method.
+     *
+     * @param dispatcherConfig The dispatcher configuration
+     * @return This reference for method chaining
+     */
+    public SpringChildActorReference<P, C> withDispatcher(DispatcherConfig dispatcherConfig) {
+        if (dispatcherConfig == null) {
+            throw new IllegalArgumentException("dispatcherConfig must not be null");
+        }
+        this.dispatcherConfig = dispatcherConfig;
         return this;
     }
 
@@ -208,7 +242,7 @@ public class SpringChildActorReference<P, C> {
         return AskPattern.ask(
                         parentAsObject,
                         (ActorRef<FrameworkCommands.SpawnChildResponse<C>> replyTo) ->
-                                new FrameworkCommands.SpawnChild<>(childActorClass, childContext, strategy, MailboxConfig.defaultMailbox(), replyTo),
+                                new FrameworkCommands.SpawnChild<>(childActorClass, childContext, strategy, mailboxConfig, dispatcherConfig, replyTo),
                         timeout,
                         scheduler)
                 .thenApply(response -> {

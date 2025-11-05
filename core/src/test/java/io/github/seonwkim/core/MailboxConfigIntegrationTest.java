@@ -262,4 +262,49 @@ public class MailboxConfigIntegrationTest {
     void testFromConfigEmptyPath() {
         assertThrows(IllegalArgumentException.class, () -> MailboxConfig.fromConfig(""));
     }
+
+    @Test
+    void testChildActorWithDispatcher() throws Exception {
+        // Spawn parent actor
+        SpringActorRef<TestCommand> parent = actorSystem.actor(TestParentActor.class)
+                .withId("parent-with-dispatcher-child")
+                .spawnAndWait();
+
+        assertNotNull(parent);
+
+        // Spawn child actor with blocking dispatcher
+        CompletionStage<SpringActorRef<TestCommand>> childFuture = parent.child(TestChildActor.class)
+                .withId("blocking-dispatcher-child")
+                .withDispatcher(DispatcherConfig.blocking())
+                .spawn();
+
+        SpringActorRef<TestCommand> child = childFuture.toCompletableFuture().get();
+        assertNotNull(child);
+
+        // Send a message to verify the child is working with the blocking dispatcher
+        child.tell(new Ping("Hello from child with blocking dispatcher"));
+    }
+
+    @Test
+    void testChildActorWithMailboxAndDispatcher() throws Exception {
+        // Spawn parent actor
+        SpringActorRef<TestCommand> parent = actorSystem.actor(TestParentActor.class)
+                .withId("parent-with-configured-child")
+                .spawnAndWait();
+
+        assertNotNull(parent);
+
+        // Spawn child actor with both bounded mailbox and blocking dispatcher
+        CompletionStage<SpringActorRef<TestCommand>> childFuture = parent.child(TestChildActor.class)
+                .withId("configured-child")
+                .withMailbox(MailboxConfig.bounded(50))
+                .withDispatcher(DispatcherConfig.blocking())
+                .spawn();
+
+        SpringActorRef<TestCommand> child = childFuture.toCompletableFuture().get();
+        assertNotNull(child);
+
+        // Send a message to verify the child is working with both configurations
+        child.tell(new Ping("Hello from child with bounded mailbox and blocking dispatcher"));
+    }
 }
