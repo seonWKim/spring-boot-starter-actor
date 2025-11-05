@@ -22,9 +22,9 @@ public class WorkerActor implements SpringActorWithContext<HierarchicalActor.Com
 
     @Override
     public SpringActorBehavior<HierarchicalActor.Command> create(SpringActorContext actorContext) {
-        // Use array holder to capture behaviorHandler from onCreate callback
+        // Use array holder to capture behaviorHandler from withState callback
         return SpringActorBehavior.builder(HierarchicalActor.Command.class, actorContext)
-                .onCreate(ctx -> {
+                .withState(ctx -> {
                     HierarchicalActorBehavior<HierarchicalActor.Command> behavior = new HierarchicalActorBehavior<>(
                             ctx, actorContext, logPublisher, true, "Worker", WorkerActor.class);
 

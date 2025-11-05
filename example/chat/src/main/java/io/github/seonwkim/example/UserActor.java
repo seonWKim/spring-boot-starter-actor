@@ -114,7 +114,7 @@ public class UserActor implements SpringActorWithContext<UserActor.Command, User
     @Override
     public SpringActorBehavior<Command> create(UserActorContext actorContext) {
         return SpringActorBehavior.builder(Command.class, actorContext)
-                .onCreate(ctx -> new UserActorBehavior(
+                .withState(ctx -> new UserActorBehavior(
                         ctx, actorContext.actorSystem, actorContext.userId, actorContext.messageSink))
                 .onMessage(Connect.class, UserActorBehavior::onConnect)
                 .onMessage(JoinRoom.class, UserActorBehavior::onJoinRoom)

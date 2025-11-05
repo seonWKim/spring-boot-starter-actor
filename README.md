@@ -291,7 +291,7 @@ public class UserSessionActor implements SpringShardedActor<UserSessionActor.Com
     @Override
     public SpringShardedActorBehavior<Command> create(EntityContext<Command> ctx) {
         return SpringShardedActorBehavior.builder(Command.class, ctx)
-            .onCreate(entityCtx -> new UserSessionBehavior(ctx.getEntityId()))
+            .withState(entityCtx -> new UserSessionBehavior(ctx.getEntityId()))
             .onMessage(UpdateActivity.class, UserSessionBehavior::onUpdateActivity)
             .onMessage(GetActivity.class, UserSessionBehavior::onGetActivity)
             .build();

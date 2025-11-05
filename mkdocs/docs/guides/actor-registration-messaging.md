@@ -43,7 +43,7 @@ public class HelloActor implements SpringActor<HelloActor.Command> {
     @Override
     public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
         return SpringActorBehavior.builder(Command.class, actorContext)
-            .onCreate(ctx -> new HelloActorBehavior(ctx, actorContext))
+            .withState(ctx -> new HelloActorBehavior(ctx, actorContext))
             .onMessage(SayHi.class, HelloActorBehavior::onSayHi)
             .onMessage(SayHello.class, HelloActorBehavior::onSayHello)
             .build();
@@ -337,7 +337,7 @@ public class ParentActor implements SpringActor<ParentActor.Command> {
     @Override
     public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
         return SpringActorBehavior.builder(Command.class, actorContext)
-            .onCreate(ctx -> {
+            .withState(ctx -> {
                 // Get reference to self
                 SpringActorRef<Command> self = new SpringActorRef<>(
                     ctx.getSystem().scheduler(), ctx.getSelf());

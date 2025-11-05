@@ -61,7 +61,7 @@ public class HelloActor implements SpringActor<HelloActor.Command> {
     @Override
     public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
         return SpringActorBehavior.builder(Command.class, actorContext)
-                .onCreate(ctx -> {
+                .withState(ctx -> {
                     ctx.getLog().info("PreStart hook for id={}", actorContext.actorId());
                     return new HelloActorBehavior(ctx, actorContext);
                 })

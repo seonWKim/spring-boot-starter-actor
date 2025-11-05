@@ -46,7 +46,7 @@ public class HelloActor implements SpringActor<HelloActor.Command> {
     @Override
     public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
         return SpringActorBehavior.builder(Command.class, actorContext)
-                .onCreate(ctx -> new HelloActorBehavior(ctx, actorContext))
+                .withState(ctx -> new HelloActorBehavior(ctx, actorContext))
                 .onMessage(SayHello.class, HelloActorBehavior::onSayHello)
                 .onMessage(TriggerFailure.class, HelloActorBehavior::onTriggerFailure)
                 .onSignal(PreRestart.class, HelloActorBehavior::onPreRestart)
@@ -169,7 +169,7 @@ Unlike restart and stop events which use signals, the **prestart hook is impleme
 @Override
 public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
     return SpringActorBehavior.builder(Command.class, actorContext)
-            .onCreate(ctx -> new HelloActorBehavior(ctx, actorContext))
+            .withState(ctx -> new HelloActorBehavior(ctx, actorContext))
             .onMessage(SayHello.class, HelloActorBehavior::onSayHello)
             .build();
 }
@@ -209,7 +209,7 @@ The prestart hook is useful for:
 @Override
 public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
     return SpringActorBehavior.builder(Command.class, actorContext)
-            .onCreate(ctx -> new HelloActorBehavior(ctx, actorContext))
+            .withState(ctx -> new HelloActorBehavior(ctx, actorContext))
             .onMessage(SayHello.class, HelloActorBehavior::onSayHello)
             .onMessage(TriggerFailure.class, HelloActorBehavior::onTriggerFailure)
             .onSignal(PreRestart.class, HelloActorBehavior::onPreRestart)
@@ -255,7 +255,7 @@ The `PostStop` signal is sent when an actor is stopped, either gracefully or due
 
 To implement lifecycle hooks in your actor using the builder pattern:
 
-1. **PreStart**: Call a method in your behavior handler's constructor (within `.onCreate()`)
+1. **PreStart**: Call a method in your behavior handler's constructor (within `.withState()`)
 2. **PreRestart and PostStop**: Use the `.onSignal()` method when building your behavior
 3. **Supervision Strategy**: Use `.withSupervisionStrategy()` to enable restarts
 
@@ -264,7 +264,7 @@ To implement lifecycle hooks in your actor using the builder pattern:
 public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
     return SpringActorBehavior.builder(Command.class, actorContext)
             // 1. PreStart: called in behavior handler constructor
-            .onCreate(ctx -> new HelloActorBehavior(ctx, actorContext))
+            .withState(ctx -> new HelloActorBehavior(ctx, actorContext))
             // 2. Message and signal handlers
             .onMessage(SayHello.class, HelloActorBehavior::onSayHello)
             .onSignal(PreRestart.class, HelloActorBehavior::onPreRestart)
