@@ -271,7 +271,7 @@ public final class SpringActorBehavior<C> {
                             for (MessageHandler<C, S, ?> handler : messageHandlers) {
                                 Behavior<C> result = handler.tryHandle(typedMsg, state);
                                 if (result != null) {
-                                    return (Behavior<Object>) (Behavior<?>) result;
+                                    return (Behavior<Object>) result;
                                 }
                             }
                         }
@@ -308,7 +308,7 @@ public final class SpringActorBehavior<C> {
 
                 // Build child context and name
                 SpringActorContext childContext = msg.childContext;
-                String childName = buildChildName(msg.actorClass, childContext.actorId());
+                String childName = ActorSpawner.buildActorName(msg.actorClass, childContext.actorId());
 
                 // Check if child already exists
                 if (ctx.getChild(childName).isPresent()) {
@@ -318,27 +318,20 @@ public final class SpringActorBehavior<C> {
                     return;
                 }
 
-                // Create behavior using Spring DI
-                Behavior<CC> behavior = (Behavior<CC>)
-                        registry.createBehavior(msg.actorClass, childContext).asBehavior();
+                // Spawn the child using the centralized spawning logic
+                ActorRef<CC> childRef = ActorSpawner.spawnActor(
+                        ctx,
+                        registry,
+                        msg.actorClass,
+                        childContext,
+                        childName,
+                        msg.strategy,
+                        msg.mailboxConfig,
+                        msg.dispatcherConfig,
+                        null,  // clusterSingleton - not supported for child actors
+                        false  // isClusterSingleton - not supported for child actors
+                );
 
-                // Apply supervision if provided
-                if (msg.strategy != null) {
-                    behavior = Behaviors.supervise(behavior).onFailure(msg.strategy);
-                }
-
-                // Spawn the child with mailbox and dispatcher configuration
-                ActorRef<CC> childRef;
-                if (msg.dispatcherConfig.shouldUseProps()) {
-                    // If dispatcher requires Props (blocking, fromConfig, sameAsParent), use Props
-                    // and apply mailbox configuration to Props as well
-                    Props props = msg.dispatcherConfig.toProps();
-                    props = msg.mailboxConfig.applyToProps(props);
-                    childRef = ctx.spawn(behavior, childName, props);
-                } else {
-                    // If default dispatcher, use MailboxSelector
-                    childRef = ctx.spawn(behavior, childName, msg.mailboxConfig.toMailboxSelector());
-                }
                 msg.replyTo.tell(FrameworkCommands.SpawnChildResponse.success(childRef));
 
             } catch (Exception e) {
@@ -353,10 +346,9 @@ public final class SpringActorBehavior<C> {
          */
         @SuppressWarnings("unchecked")
         private <CC> void handleGetChild(ActorContext<C> ctx, FrameworkCommands.GetChild<CC> msg) {
-            String childName = buildChildName(msg.actorClass, msg.childId);
+            ActorRef<CC> childRef = ActorSpawner.getActor(ctx, msg.actorClass, msg.childId);
 
-            if (ctx.getChild(childName).isPresent()) {
-                ActorRef<CC> childRef = (ActorRef<CC>) ctx.getChild(childName).get();
+            if (childRef != null) {
                 msg.replyTo.tell(FrameworkCommands.GetChildResponse.found(childRef));
             } else {
                 msg.replyTo.tell(FrameworkCommands.GetChildResponse.notFound());
@@ -367,20 +359,13 @@ public final class SpringActorBehavior<C> {
          * Handles ExistsChild framework command.
          */
         private void handleExistsChild(ActorContext<C> ctx, FrameworkCommands.ExistsChild<?> msg) {
-            String childName = buildChildName(msg.actorClass, msg.childId);
+            boolean exists = ActorSpawner.actorExists(ctx, msg.actorClass, msg.childId);
 
-            if (ctx.getChild(childName).isPresent()) {
+            if (exists) {
                 msg.replyTo.tell(FrameworkCommands.ExistsChildResponse.exists());
             } else {
                 msg.replyTo.tell(FrameworkCommands.ExistsChildResponse.notExists());
             }
-        }
-
-        /**
-         * Builds a unique child name from the actor class and ID.
-         */
-        private static String buildChildName(Class<?> actorClass, String actorId) {
-            return actorClass.getName() + ":" + actorId;
         }
 
         /**
