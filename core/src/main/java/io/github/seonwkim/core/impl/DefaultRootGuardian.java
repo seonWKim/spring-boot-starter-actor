@@ -1,15 +1,14 @@
 package io.github.seonwkim.core.impl;
 
+import io.github.seonwkim.core.ActorSpawner;
 import io.github.seonwkim.core.ActorTypeRegistry;
 import io.github.seonwkim.core.RootGuardian;
 import io.github.seonwkim.core.SpringActorContext;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
-import org.apache.pekko.actor.typed.Props;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.apache.pekko.cluster.typed.ClusterSingleton;
-import org.apache.pekko.cluster.typed.SingletonActor;
 import javax.annotation.Nullable;
 
 /**
@@ -88,44 +87,17 @@ public class DefaultRootGuardian implements RootGuardian {
     public Behavior<RootGuardian.Command> handleSpawnActor(SpawnActor msg) {
         String key = buildActorKey(msg.actorClass, msg.actorContext);
 
-        Behavior<?> behavior =
-                registry.createBehavior(msg.actorClass, msg.actorContext).asBehavior();
-
-        if (msg.supervisorStrategy != null) {
-            behavior = Behaviors.supervise(behavior).onFailure(msg.supervisorStrategy);
-        }
-
-        ActorRef<?> ref;
-
-        if (msg.isClusterSingleton) {
-            // Spawn as cluster singleton using Pekko's ClusterSingleton API
-            if (clusterSingleton == null) {
-                throw new IllegalStateException(
-                    "Cluster singleton requested but cluster mode is not enabled. " +
-                    "Ensure your application is running in cluster mode."
-                );
-            }
-
-            // Create SingletonActor with the behavior
-            // The singleton name should be unique across the cluster
-            SingletonActor<?> singletonActor = SingletonActor.of(behavior, key);
-
-            // Initialize the singleton and get the proxy reference
-            // The proxy transparently routes messages to whichever node hosts the singleton
-            ref = clusterSingleton.init(singletonActor);
-        } else {
-            // Regular actor spawn
-            if (msg.dispatcherConfig.shouldUseProps()) {
-                // If dispatcher requires Props (blocking, fromConfig, sameAsParent), use Props
-                // and apply mailbox configuration to Props as well
-                Props props = msg.dispatcherConfig.toProps();
-                props = msg.mailboxConfig.applyToProps(props);
-                ref = ctx.spawn(behavior, key, props);
-            } else {
-                // If default dispatcher, use MailboxSelector
-                ref = ctx.spawn(behavior, key, msg.mailboxConfig.toMailboxSelector());
-            }
-        }
+        ActorRef<?> ref = ActorSpawner.spawnActor(
+                ctx,
+                registry,
+                msg.actorClass,
+                msg.actorContext,
+                key,
+                msg.supervisorStrategy,
+                msg.mailboxConfig,
+                msg.dispatcherConfig,
+                clusterSingleton,
+                msg.isClusterSingleton);
 
         msg.replyTo.tell(new Spawned<>(ref));
         return Behaviors.same();
@@ -162,6 +134,6 @@ public class DefaultRootGuardian implements RootGuardian {
     }
 
     private String buildActorKey(Class<?> actorClass, SpringActorContext actorContext) {
-        return actorClass.getName() + ":" + actorContext.actorId();
+        return io.github.seonwkim.core.ActorSpawner.buildActorName(actorClass, actorContext.actorId());
     }
 }
