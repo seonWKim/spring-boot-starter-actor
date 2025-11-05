@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.seonwkim.core.behavior.ClusterEventBehavior.ClusterDomainWrappedEvent;
-import io.github.seonwkim.core.fixture.SimpleShardedActorWithoutOnCreate;
+import io.github.seonwkim.core.fixture.SimpleShardedActorWithoutwithState;
 import io.github.seonwkim.core.fixture.TestShardedActor;
 import io.github.seonwkim.core.fixture.TestShardedActor.GetState;
 import java.time.Duration;
@@ -36,8 +36,8 @@ public class ClusterTest extends AbstractClusterTest {
         }
 
         @Bean
-        public SimpleShardedActorWithoutOnCreate simpleShardedActorWithoutOnCreate() {
-            return new SimpleShardedActorWithoutOnCreate();
+        public SimpleShardedActorWithoutwithState simpleShardedActorWithoutwithState() {
+            return new SimpleShardedActorWithoutwithState();
         }
     }
 
@@ -152,19 +152,19 @@ public class ClusterTest extends AbstractClusterTest {
     }
 
     @Test
-    void shardedActorWithoutOnCreateWorks() throws Exception {
+    void shardedActorWithoutwithStateWorks() throws Exception {
         SpringActorSystem system1 = context1.getBean(SpringActorSystem.class);
         waitUntilClusterInitialized();
 
         final String entityId = "test-entity";
-        SpringShardedActorRef<SimpleShardedActorWithoutOnCreate.Command> actor = system1.sharded(
-                        SimpleShardedActorWithoutOnCreate.class)
+        SpringShardedActorRef<SimpleShardedActorWithoutwithState.Command> actor = system1.sharded(
+                        SimpleShardedActorWithoutwithState.class)
                 .withId(entityId)
                 .get();
 
         // Test Echo message
         String echoResponse = actor.askBuilder(
-                        (ActorRef<String> replyTo) -> new SimpleShardedActorWithoutOnCreate.Echo("hello", replyTo))
+                        (ActorRef<String> replyTo) -> new SimpleShardedActorWithoutwithState.Echo("hello", replyTo))
                 .withTimeout(Duration.ofSeconds(3))
                 .execute()
                 .toCompletableFuture()
@@ -172,7 +172,7 @@ public class ClusterTest extends AbstractClusterTest {
         assertEquals("Echo from entity [" + entityId + "]: hello", echoResponse);
 
         // Test GetEntityId message
-        String entityIdResponse = (String) actor.askBuilder(SimpleShardedActorWithoutOnCreate.GetEntityId::new)
+        String entityIdResponse = (String) actor.askBuilder(SimpleShardedActorWithoutwithState.GetEntityId::new)
                 .withTimeout(Duration.ofSeconds(3))
                 .execute()
                 .toCompletableFuture()

@@ -59,7 +59,7 @@ public class TestShardedActor implements SpringShardedActor<TestShardedActor.Com
     @Override
     public SpringShardedActorBehavior<Command> create(EntityContext<Command> ctx) {
         return SpringShardedActorBehavior.builder(Command.class, ctx)
-                .onCreate(context -> new ActorState(context, ctx.getEntityId()))
+                .withState(context -> new ActorState(context, ctx.getEntityId()))
                 .onMessage(Ping.class, (state, msg) -> {
                     state.counter.incrementAndGet();
                     state.context.getLog().info("entityId: {} received message: {}", state.entityId, msg.message);

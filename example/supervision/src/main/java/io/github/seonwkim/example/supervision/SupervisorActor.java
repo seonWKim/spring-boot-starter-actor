@@ -21,7 +21,7 @@ public class SupervisorActor implements SpringActorWithContext<HierarchicalActor
     @Override
     public SpringActorBehavior<HierarchicalActor.Command> create(SpringActorContext actorContext) {
         return SpringActorBehavior.builder(HierarchicalActor.Command.class, actorContext)
-                .onCreate(ctx -> {
+                .withState(ctx -> {
                     HierarchicalActorBehavior<HierarchicalActor.Command> behavior = new HierarchicalActorBehavior<>(
                             ctx, actorContext, logPublisher, false, "Supervisor", WorkerActor.class);
 

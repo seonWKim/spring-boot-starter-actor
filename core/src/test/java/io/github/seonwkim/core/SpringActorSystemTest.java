@@ -96,11 +96,11 @@ class SpringActorSystemTest {
     }
 
     /**
-     * Test actor that demonstrates building an actor WITHOUT using onCreate().
+     * Test actor that demonstrates building an actor WITHOUT using withState().
      * This uses the default state type (ActorContext) and handles messages directly.
      */
     @Component
-    static class SimpleActorWithoutOnCreate implements SpringActor<SimpleActorWithoutOnCreate.Command> {
+    static class SimpleActorWithoutwithState implements SpringActor<SimpleActorWithoutwithState.Command> {
 
         public interface Command {}
 
@@ -114,11 +114,11 @@ class SpringActorSystemTest {
 
         @Override
         public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
-            // Using a simple closure to maintain state without onCreate
+            // Using a simple closure to maintain state without withState
             final int[] counter = {0};
 
             return SpringActorBehavior.builder(Command.class, actorContext)
-                    // No onCreate() - message handlers work directly with ActorContext
+                    // No withState() - message handlers work directly with ActorContext
                     .onMessage(Increment.class, (ctx, msg) -> {
                         counter[0]++;
                         ctx.getLog().info("Counter for {} incremented to {}", actorContext.actorId(), counter[0]);
@@ -359,33 +359,33 @@ class SpringActorSystemTest {
         }
 
         @Test
-        void actorWithoutOnCreateWorks(ApplicationContext context) throws Exception {
+        void actorWithoutwithStateWorks(ApplicationContext context) throws Exception {
             SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
 
             final String actorId = "counter-actor";
-            final SpringActorRef<SimpleActorWithoutOnCreate.Command> actorRef = actorSystem
-                    .actor(SimpleActorWithoutOnCreate.class)
+            final SpringActorRef<SimpleActorWithoutwithState.Command> actorRef = actorSystem
+                    .actor(SimpleActorWithoutwithState.class)
                     .withId(actorId)
                     .spawnAndWait();
 
             assertThat(actorRef).isNotNull();
 
             // Send increment messages and verify counter increases
-            Integer count1 = actorRef.askBuilder(SimpleActorWithoutOnCreate.Increment::new)
+            Integer count1 = actorRef.askBuilder(SimpleActorWithoutwithState.Increment::new)
                     .withTimeout(Duration.ofSeconds(5))
                     .execute()
                     .toCompletableFuture()
                     .get();
             assertEquals(1, count1);
 
-            Integer count2 = actorRef.askBuilder(SimpleActorWithoutOnCreate.Increment::new)
+            Integer count2 = actorRef.askBuilder(SimpleActorWithoutwithState.Increment::new)
                     .withTimeout(Duration.ofSeconds(5))
                     .execute()
                     .toCompletableFuture()
                     .get();
             assertEquals(2, count2);
 
-            Integer count3 = actorRef.askBuilder(SimpleActorWithoutOnCreate.Increment::new)
+            Integer count3 = actorRef.askBuilder(SimpleActorWithoutwithState.Increment::new)
                     .withTimeout(Duration.ofSeconds(5))
                     .execute()
                     .toCompletableFuture()

@@ -124,7 +124,7 @@ public class ClusterMetricsAggregator implements SpringActorWithContext<ClusterM
     @Override
     public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
         return SpringActorBehavior.builder(Command.class, actorContext)
-                .onCreate(ctx -> new MetricsAggregatorBehavior(ctx))
+                .withState(MetricsAggregatorBehavior::new)
                 .onMessage(RecordMetric.class, MetricsAggregatorBehavior::onRecordMetric)
                 .onMessage(GetMetrics.class, MetricsAggregatorBehavior::onGetMetrics)
                 .onMessage(GetNodeMetrics.class, MetricsAggregatorBehavior::onGetNodeMetrics)

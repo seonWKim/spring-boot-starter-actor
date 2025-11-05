@@ -83,7 +83,7 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
         final String roomId = ctx.getEntityId();
 
         return SpringShardedActorBehavior.builder(Command.class, ctx)
-                .onCreate(actorCtx -> new ChatRoomBehavior(actorCtx, roomId))
+                .withState(actorCtx -> new ChatRoomBehavior(actorCtx, roomId))
                 .onMessage(JoinRoom.class, ChatRoomBehavior::onJoinRoom)
                 .onMessage(LeaveRoom.class, ChatRoomBehavior::onLeaveRoom)
                 .onMessage(SendMessage.class, ChatRoomBehavior::onSendMessage)

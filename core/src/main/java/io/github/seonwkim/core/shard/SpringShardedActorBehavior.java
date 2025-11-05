@@ -33,6 +33,16 @@ import org.apache.pekko.cluster.sharding.typed.javadsl.EntityContext;
  * }
  * </pre>
  *
+ * <p>You can use {@code .withState()} to create a custom state object that encapsulates your behavior logic:
+ * <pre>
+ * {@code
+ * return SpringShardedActorBehavior.builder(Command.class, entityContext)
+ *     .withState(ctx -> new MyBehaviorHandler(ctx, entityContext))
+ *     .onMessage(DoWork.class, (handler, msg) -> handler.handleWork(msg))
+ *     .build();
+ * }
+ * </pre>
+ *
  * @param <T> The message type this behavior handles
  */
 public final class SpringShardedActorBehavior<T> {
@@ -55,7 +65,7 @@ public final class SpringShardedActorBehavior<T> {
     /**
      * Creates a new builder for constructing a SpringShardedActorBehavior.
      *
-     * <p>The builder starts with ActorContext as the default state type. Use {@link Builder#onCreate(Function)}
+     * <p>The builder starts with ActorContext as the default state type. Use {@link Builder#withState(Function)}
      * to evolve the builder to use a custom state type that will be passed to message handlers.
      *
      * @param commandClass  the command class
@@ -70,7 +80,7 @@ public final class SpringShardedActorBehavior<T> {
     /**
      * Builder for creating SpringShardedActorBehavior instances with a fluent API.
      *
-     * <p>This builder supports type-safe state evolution through the {@link #onCreate(Function)} method.
+     * <p>This builder supports type-safe state evolution through the {@link #withState(Function)} method.
      * The state type parameter {@code S} represents the type of object passed to message handlers.
      *
      * @param <T> the message type
@@ -79,46 +89,47 @@ public final class SpringShardedActorBehavior<T> {
     public static final class Builder<T, S> {
         private final EntityContext<T> entityContext;
         private final Class<T> commandClass;
-        private final Function<ActorContext<T>, S> onCreateCallback;
+        private final Function<ActorContext<T>, S> stateFactory;
         private final List<MessageHandler<T, S, ?>> messageHandlers = new ArrayList<>();
         private final List<SignalHandler<T, S, ?>> signalHandlers = new ArrayList<>();
 
         private Builder(
-                Class<T> commandClass, EntityContext<T> entityContext, Function<ActorContext<T>, S> onCreateCallback) {
+                Class<T> commandClass, EntityContext<T> entityContext, Function<ActorContext<T>, S> stateFactory) {
             this.commandClass = commandClass;
             this.entityContext = entityContext;
-            this.onCreateCallback = onCreateCallback;
+            this.stateFactory = stateFactory;
         }
 
         /**
-         * Evolves this builder to use a custom state type for message handlers.
+         * Configures the builder to use a custom state type for message handlers.
          *
-         * <p>This method allows you to create a state object during actor initialization that will be
-         * passed to all message handlers. This is useful for encapsulating behavior logic in a separate class.
+         * <p>This method evolves the builder's type to work with a custom state object that will be
+         * created during actor initialization and passed to all message handlers. This is useful for
+         * encapsulating behavior logic in a separate class or storing actor-specific data.
          *
          * <p>Example usage:
          * <pre>
          * {@code
          * return SpringShardedActorBehavior.builder(Command.class, entityContext)
-         *     .onCreate(ctx -> new MyBehaviorHandler(ctx, entityContext))
+         *     .withState(ctx -> new MyBehaviorHandler(ctx, entityContext))
          *     .onMessage(DoWork.class, (handler, msg) -> handler.handleWork(msg))
          *     .build();
          * }
          * </pre>
          *
-         * @param callback the function that creates the state object from ActorContext
+         * @param stateFactory the function that creates the state object from ActorContext
          * @param <NewS> the new state type
          * @return a new builder with the evolved state type
          */
-        public <NewS> Builder<T, NewS> onCreate(Function<ActorContext<T>, NewS> callback) {
-            return new Builder<>(commandClass, entityContext, callback);
+        public <NewS> Builder<T, NewS> withState(Function<ActorContext<T>, NewS> stateFactory) {
+            return new Builder<>(commandClass, entityContext, stateFactory);
         }
 
         /**
          * Adds a message handler for a specific message type.
          *
-         * <p>The handler receives the state object (from onCreate) and the message.
-         * If onCreate was not called, the state will be the ActorContext.
+         * <p>The handler receives the state object (from withState) and the message.
+         * If withState was not called, the state will be the ActorContext.
          *
          * @param type    the message class to handle
          * @param handler the handler function that receives state and message
@@ -138,7 +149,7 @@ public final class SpringShardedActorBehavior<T> {
         public SpringShardedActorBehavior<T> build() {
             Behavior<T> userBehavior = Behaviors.setup(ctx -> {
                 // Create the state object
-                S state = onCreateCallback.apply(ctx);
+                S state = stateFactory.apply(ctx);
 
                 BehaviorBuilder<T> builder = Behaviors.receive(commandClass);
 

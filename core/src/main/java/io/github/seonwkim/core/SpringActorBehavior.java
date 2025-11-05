@@ -32,6 +32,17 @@ import javax.annotation.Nullable;
  *         })
  *         .build();
  * }
+ * }
+ * </pre>
+ *
+ * <p>You can use {@code .withState()} to create a custom state object that encapsulates your behavior logic:
+ * <pre>
+ * {@code
+ * return SpringActorBehavior.builder(Command.class, actorContext)
+ *     .withState(ctx -> new MyBehaviorHandler(ctx, actorContext))
+ *     .onMessage(DoWork.class, (handler, msg) -> handler.handleWork(msg))
+ *     .build();
+ * }
  * </pre>
  *
  * <p><b>Framework Commands:</b> Framework command handling is automatically enabled when your
@@ -69,7 +80,7 @@ public final class SpringActorBehavior<C> {
     /**
      * Creates a new builder for constructing a SpringActorBehavior.
      *
-     * <p>The builder starts with ActorContext as the default state type. Use {@link Builder#onCreate(Function)}
+     * <p>The builder starts with ActorContext as the default state type. Use {@link Builder#withState(Function)}
      * to evolve the builder to use a custom state type that will be passed to message handlers.
      *
      * @param commandClass the command class
@@ -84,7 +95,7 @@ public final class SpringActorBehavior<C> {
     /**
      * Builder for creating SpringActorBehavior instances with a fluent API.
      *
-     * <p>This builder supports type-safe state evolution through the {@link #onCreate(Function)} method.
+     * <p>This builder supports type-safe state evolution through the {@link #withState(Function)} method.
      * The state type parameter {@code S} represents the type of object passed to message handlers.
      *
      * @param <C> the command type
@@ -93,17 +104,17 @@ public final class SpringActorBehavior<C> {
     public static final class Builder<C, S> {
         private final SpringActorContext actorContext;
         private final Class<C> commandClass;
-        private final Function<ActorContext<C>, S> onCreateCallback;
+        private final Function<ActorContext<C>, S> stateFactory;
         private final List<MessageHandler<C, S, ?>> messageHandlers = new ArrayList<>();
         private final List<SignalHandler<C, S, ?>> signalHandlers = new ArrayList<>();
         private boolean enableFrameworkCommands = false;
         @Nullable private SupervisorStrategy supervisionStrategy = null;
 
         private Builder(
-                Class<C> commandClass, SpringActorContext actorContext, Function<ActorContext<C>, S> onCreateCallback) {
+                Class<C> commandClass, SpringActorContext actorContext, Function<ActorContext<C>, S> stateFactory) {
             this.commandClass = commandClass;
             this.actorContext = actorContext;
-            this.onCreateCallback = onCreateCallback;
+            this.stateFactory = stateFactory;
 
             // Auto-detect: if Command extends FrameworkCommand, automatically enable framework commands
             this.enableFrameworkCommands = FrameworkCommand.class.isAssignableFrom(commandClass);
@@ -131,27 +142,28 @@ public final class SpringActorBehavior<C> {
         }
 
         /**
-         * Evolves this builder to use a custom state type for message handlers.
+         * Configures the builder to use a custom state type for message handlers.
          *
-         * <p>This method allows you to create a state object during actor initialization that will be
-         * passed to all message handlers. This is useful for encapsulating behavior logic in a separate class.
+         * <p>This method evolves the builder's type to work with a custom state object that will be
+         * created during actor initialization and passed to all message handlers. This is useful for
+         * encapsulating behavior logic in a separate class or storing actor-specific data.
          *
          * <p>Example usage:
          * <pre>
          * {@code
          * return SpringActorBehavior.builder(Command.class, actorContext)
-         *     .onCreate(ctx -> new MyBehaviorHandler(ctx, actorContext))
+         *     .withState(ctx -> new MyBehaviorHandler(ctx, actorContext))
          *     .onMessage(DoWork.class, (handler, msg) -> handler.handleWork(msg))
          *     .build();
          * }
          * </pre>
          *
-         * @param callback the function that creates the state object from ActorContext
+         * @param stateFactory the function that creates the state object from ActorContext
          * @param <NewS> the new state type
          * @return a new builder with the evolved state type
          */
-        public <NewS> Builder<C, NewS> onCreate(Function<ActorContext<C>, NewS> callback) {
-            Builder<C, NewS> newBuilder = new Builder<>(commandClass, actorContext, callback);
+        public <NewS> Builder<C, NewS> withState(Function<ActorContext<C>, NewS> stateFactory) {
+            Builder<C, NewS> newBuilder = new Builder<>(commandClass, actorContext, stateFactory);
             newBuilder.enableFrameworkCommands = this.enableFrameworkCommands;
             newBuilder.supervisionStrategy = this.supervisionStrategy;
             return newBuilder;
@@ -160,8 +172,8 @@ public final class SpringActorBehavior<C> {
         /**
          * Adds a message handler for a specific message type.
          *
-         * <p>The handler receives the state object (from onCreate) and the message.
-         * If onCreate was not called, the state will be the ActorContext.
+         * <p>The handler receives the state object (from withState) and the message.
+         * If withState was not called, the state will be the ActorContext.
          *
          * @param type    the message class to handle
          * @param handler the handler function that receives state and message
@@ -176,8 +188,8 @@ public final class SpringActorBehavior<C> {
         /**
          * Adds a signal handler for a specific signal type.
          *
-         * <p>The handler receives the state object (from onCreate) and the signal.
-         * If onCreate was not called, the state will be the ActorContext.
+         * <p>The handler receives the state object (from withState) and the signal.
+         * If withState was not called, the state will be the ActorContext.
          *
          * @param type    the signal class to handle
          * @param handler the handler function that receives state and signal
@@ -199,7 +211,7 @@ public final class SpringActorBehavior<C> {
                 // Wrap with framework command handling
                 Behavior<C> behaviorWithFramework = Behaviors.setup(ctx -> {
                     // Create the state object
-                    S state = onCreateCallback.apply(ctx);
+                    S state = stateFactory.apply(ctx);
 
                     Behavior<C> behavior = createFrameworkCommandHandlingBehavior(ctx, state);
 
@@ -215,7 +227,7 @@ public final class SpringActorBehavior<C> {
                 // No framework commands - just create the user behavior
                 Behavior<C> userBehavior = Behaviors.setup(ctx -> {
                     // Create the state object
-                    S state = onCreateCallback.apply(ctx);
+                    S state = stateFactory.apply(ctx);
 
                     BehaviorBuilder<C> builder = Behaviors.receive(commandClass);
 

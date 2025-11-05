@@ -66,7 +66,7 @@ public class CounterActor implements SpringShardedActor<CounterActor.Command> {
     @Override
     public SpringShardedActorBehavior<Command> create(EntityContext<Command> ctx) {
         return SpringShardedActorBehavior.builder(Command.class, ctx)
-                .onCreate(context -> new CounterActorBehavior(context, ctx.getEntityId()))
+                .withState(context -> new CounterActorBehavior(context, ctx.getEntityId()))
                 .onMessage(Increment.class, (behaviorHandler, msg) -> behaviorHandler.onIncrement(msg))
                 .onMessage(GetValue.class, (behaviorHandler, msg) -> behaviorHandler.onGetValue(msg))
                 .build();

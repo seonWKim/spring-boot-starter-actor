@@ -61,7 +61,7 @@ public class HelloActor implements SpringShardedActor<HelloActor.Command> {
         final String entityId = ctx.getEntityId();
 
         return SpringShardedActorBehavior.builder(Command.class, ctx)
-                .onCreate(actorCtx -> new HelloActorBehavior(actorCtx, entityId))
+                .withState(actorCtx -> new HelloActorBehavior(actorCtx, entityId))
                 .onMessage(SayHello.class, HelloActorBehavior::onSayHello)
                 .build();
     }

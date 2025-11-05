@@ -14,13 +14,13 @@ import org.apache.pekko.cluster.sharding.typed.javadsl.EntityContext;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
 
 /**
- * Test sharded actor that demonstrates building a sharded actor WITHOUT using onCreate().
+ * Test sharded actor that demonstrates building a sharded actor WITHOUT using withState().
  * This uses the default state type (ActorContext) and handles messages directly with closures.
  */
-public class SimpleShardedActorWithoutOnCreate implements SpringShardedActor<SimpleShardedActorWithoutOnCreate.Command> {
+public class SimpleShardedActorWithoutwithState implements SpringShardedActor<SimpleShardedActorWithoutwithState.Command> {
 
     public static final EntityTypeKey<Command> TYPE_KEY =
-            EntityTypeKey.create(Command.class, "SimpleShardedActorWithoutOnCreate");
+            EntityTypeKey.create(Command.class, "SimpleShardedActorWithoutwithState");
 
     public interface Command extends JsonSerializable {}
 
@@ -54,7 +54,7 @@ public class SimpleShardedActorWithoutOnCreate implements SpringShardedActor<Sim
         final String entityId = ctx.getEntityId();
 
         return SpringShardedActorBehavior.builder(Command.class, ctx)
-                // No onCreate() - message handlers work directly with ActorContext
+                // No withState() - message handlers work directly with ActorContext
                 .onMessage(Echo.class, (actorCtx, msg) -> {
                     actorCtx.getLog().info("Entity {} received echo: {}", entityId, msg.message);
                     msg.replyTo.tell("Echo from entity [" + entityId + "]: " + msg.message);

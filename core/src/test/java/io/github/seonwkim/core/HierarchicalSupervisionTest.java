@@ -91,7 +91,7 @@ class HierarchicalSupervisionTest {
         @Override
         public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
             return SpringActorBehavior.builder(Command.class, actorContext)
-                    .onCreate(ctx -> {
+                    .withState(ctx -> {
                         ctx.getLog().info("ChildWorker {} started", actorContext.actorId());
                         return new ChildWorkerBehavior(ctx, actorContext, taskLogger);
                     })
@@ -196,7 +196,7 @@ class HierarchicalSupervisionTest {
         @Override
         public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
             return SpringActorBehavior.builder(Command.class, actorContext)
-                    .onCreate(ctx -> new ParentSupervisorBehavior(ctx, actorContext))
+                    .withState(ctx -> new ParentSupervisorBehavior(ctx, actorContext))
                     .onMessage(DelegateWork.class, ParentSupervisorBehavior::onDelegateWork)
                     .onMessage(ChildReady.class, ParentSupervisorBehavior::onChildReady)
                     .build();
@@ -367,7 +367,7 @@ class HierarchicalSupervisionTest {
         @Override
         public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
             return SpringActorBehavior.builder(Command.class, actorContext)
-                    .onCreate(ctx -> {
+                    .withState(ctx -> {
                         // Verify services are not null (properly injected)
                         if (verificationService == null || taskLogger == null) {
                             throw new IllegalStateException("Spring DI failed: services are null");
