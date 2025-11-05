@@ -326,8 +326,9 @@ public final class SpringActorBehavior<C> {
                     behavior = Behaviors.supervise(behavior).onFailure(msg.strategy);
                 }
 
-                // Spawn the child
-                ActorRef<CC> childRef = ctx.spawn(behavior, childName);
+                // Spawn the child with mailbox configuration (defaults to unbounded mailbox)
+                // TODO: add support for spawning child with different dispatchers
+                ActorRef<CC> childRef = ctx.spawn(behavior, childName, msg.mailboxConfig.toMailboxSelector());
                 msg.replyTo.tell(FrameworkCommands.SpawnChildResponse.success(childRef));
 
             } catch (Exception e) {

@@ -3,7 +3,6 @@ package io.github.seonwkim.core;
 import io.github.seonwkim.core.impl.DefaultRootGuardian;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
-import org.apache.pekko.actor.typed.MailboxSelector;
 import org.apache.pekko.actor.typed.SupervisorStrategy;
 import javax.annotation.Nullable;
 
@@ -29,8 +28,8 @@ public interface RootGuardian {
         public final SpringActorContext actorContext;
         /** The actor reference to reply to with the spawned actor reference */
         public final ActorRef<Spawned<?>> replyTo;
-        /** The mailbox selector to use * */
-        public final MailboxSelector mailboxSelector;
+        /** The mailbox configuration to use * */
+        public final MailboxConfig mailboxConfig;
         /** The dispatcher configuration */
         public final DispatcherConfig dispatcherConfig;
         /** Whether the ActorRef should be cluster singleton * */
@@ -43,7 +42,7 @@ public interface RootGuardian {
          *
          * @param actorContext The ID of the actor
          * @param replyTo The actor reference to reply to with the spawned actor reference
-         * @param mailboxSelector The mailboxSelector
+         * @param mailboxConfig The mailbox configuration
          * @param dispatcherConfig The dispatcher configuration
          * @param isClusterSingleton Whether the actor should be cluster singleton
          * @param supervisorStrategy The supervisor strategy (null for no supervision)
@@ -52,14 +51,14 @@ public interface RootGuardian {
                 Class<?> actorClass,
                 SpringActorContext actorContext,
                 ActorRef<Spawned<?>> replyTo,
-                MailboxSelector mailboxSelector,
+                MailboxConfig mailboxConfig,
                 DispatcherConfig dispatcherConfig,
                 Boolean isClusterSingleton,
                 @Nullable SupervisorStrategy supervisorStrategy) {
             this.actorClass = actorClass;
             this.actorContext = actorContext;
             this.replyTo = replyTo;
-            this.mailboxSelector = mailboxSelector;
+            this.mailboxConfig = mailboxConfig;
             this.dispatcherConfig = dispatcherConfig;
             this.isClusterSingleton = isClusterSingleton;
             this.supervisorStrategy = supervisorStrategy;

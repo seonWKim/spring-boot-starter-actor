@@ -78,16 +78,19 @@ public final class FrameworkCommands {
         public final Class<? extends SpringActorWithContext<C, ?>> actorClass;
         public final SpringActorContext childContext;
         @Nullable public final SupervisorStrategy strategy;
+        public final MailboxConfig mailboxConfig;
         public final ActorRef<SpawnChildResponse<C>> replyTo;
 
         public SpawnChild(
                 Class<? extends SpringActorWithContext<C, ?>> actorClass,
                 SpringActorContext childContext,
                 @Nullable SupervisorStrategy strategy,
+                @Nullable MailboxConfig mailboxConfig,
                 ActorRef<SpawnChildResponse<C>> replyTo) {
             this.actorClass = actorClass;
             this.childContext = childContext;
             this.strategy = strategy;
+            this.mailboxConfig = mailboxConfig != null ? mailboxConfig : MailboxConfig.defaultMailbox();
             this.replyTo = replyTo;
         }
     }

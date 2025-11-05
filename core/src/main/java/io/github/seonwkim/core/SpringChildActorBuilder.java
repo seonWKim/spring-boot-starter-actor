@@ -41,6 +41,7 @@ public class SpringChildActorBuilder<P, C> {
     @Nullable private String childId;
     @Nullable private SpringActorContext childContext;
     @Nullable private SupervisorStrategy supervisionStrategy;
+    @Nullable private MailboxConfig mailboxConfig;
     private Duration timeout;
 
     /**
@@ -126,6 +127,28 @@ public class SpringChildActorBuilder<P, C> {
     }
 
     /**
+     * Sets the mailbox configuration using the type-safe MailboxConfig API.
+     *
+     * <p>Example usage:
+     * <pre>{@code
+     * parent.child(ChildActor.class)
+     *     .withId("worker")
+     *     .withMailbox(MailboxConfig.bounded(100))
+     *     .spawn();
+     * }</pre>
+     *
+     * @param mailboxConfig The mailbox configuration
+     * @return This builder for method chaining
+     */
+    public SpringChildActorBuilder<P, C> withMailbox(MailboxConfig mailboxConfig) {
+        if (mailboxConfig == null) {
+            throw new IllegalArgumentException("mailboxConfig must not be null");
+        }
+        this.mailboxConfig = mailboxConfig;
+        return this;
+    }
+
+    /**
      * Spawns the child actor and returns a CompletionStage with the child actor reference.
      * If the child already exists, the existing reference is returned.
      *
@@ -144,19 +167,15 @@ public class SpringChildActorBuilder<P, C> {
         // Cast parent ref to Object to send framework command
         ActorRef<Object> parentAsObject = (ActorRef<Object>) parentRef;
 
-        // Ensure childContext is initialized
-        if (childContext == null) {
-            throw new IllegalStateException("childContext must be initialized");
-        }
-
         final SpringActorContext context = childContext;
         final SupervisorStrategy strategy = supervisionStrategy;
+        final MailboxConfig mailbox = mailboxConfig;
 
         return AskPattern.ask(
                         parentAsObject,
                         (ActorRef<FrameworkCommands.SpawnChildResponse<C>> replyTo) ->
                                 new FrameworkCommands.SpawnChild<>(
-                                        childActorClass, context, strategy, replyTo),
+                                        childActorClass, context, strategy, mailbox, replyTo),
                         timeout,
                         scheduler)
                 .thenApply(response -> {

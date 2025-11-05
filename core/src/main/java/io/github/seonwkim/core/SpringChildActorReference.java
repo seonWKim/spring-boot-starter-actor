@@ -208,7 +208,7 @@ public class SpringChildActorReference<P, C> {
         return AskPattern.ask(
                         parentAsObject,
                         (ActorRef<FrameworkCommands.SpawnChildResponse<C>> replyTo) ->
-                                new FrameworkCommands.SpawnChild<>(childActorClass, childContext, strategy, replyTo),
+                                new FrameworkCommands.SpawnChild<>(childActorClass, childContext, strategy, MailboxConfig.defaultMailbox(), replyTo),
                         timeout,
                         scheduler)
                 .thenApply(response -> {
