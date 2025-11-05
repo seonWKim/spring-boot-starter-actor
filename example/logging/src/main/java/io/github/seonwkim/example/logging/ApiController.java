@@ -1,0 +1,248 @@
+package io.github.seonwkim.example.logging;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Mono;
+
+/**
+ * REST API Controller demonstrating the logging example.
+ * All endpoints trigger actor operations that showcase MDC and tag-based logging.
+ */
+@RestController
+@RequestMapping("/api")
+public class ApiController {
+
+    private static final Logger log = LoggerFactory.getLogger(ApiController.class);
+
+    private final OrderService orderService;
+    private final PaymentService paymentService;
+    private final NotificationService notificationService;
+
+    public ApiController(OrderService orderService,
+                        PaymentService paymentService,
+                        NotificationService notificationService) {
+        this.orderService = orderService;
+        this.paymentService = paymentService;
+        this.notificationService = notificationService;
+    }
+
+    /**
+     * Process an order.
+     * Demonstrates dynamic MDC with order details.
+     *
+     * Example:
+     * POST /api/orders
+     * {
+     *   "customerId": "CUST-123",
+     *   "amount": 99.99
+     * }
+     */
+    @PostMapping("/orders")
+    public Mono<OrderResponse> createOrder(@RequestBody OrderRequest request) {
+        log.info("Received order request for customer: {}, amount: {}",
+            request.customerId, request.amount);
+
+        return orderService.processOrder(request.customerId, request.amount)
+            .map(result -> new OrderResponse(
+                result.orderId,
+                result.status,
+                result.message
+            ));
+    }
+
+    /**
+     * Process a payment.
+     * Demonstrates both static MDC (service, region) and dynamic MDC (payment details).
+     *
+     * Example:
+     * POST /api/payments
+     * {
+     *   "orderId": "ORD-123",
+     *   "customerId": "CUST-123",
+     *   "amount": 99.99,
+     *   "paymentMethod": "credit_card"
+     * }
+     */
+    @PostMapping("/payments")
+    public Mono<PaymentResponse> processPayment(@RequestBody PaymentRequest request) {
+        log.info("Received payment request for order: {}, amount: {}",
+            request.orderId, request.amount);
+
+        return paymentService.processPayment(
+                request.orderId,
+                request.customerId,
+                request.amount,
+                request.paymentMethod
+            )
+            .map(result -> new PaymentResponse(
+                result.paymentId,
+                result.status,
+                result.transactionId,
+                result.message
+            ));
+    }
+
+    /**
+     * Send a notification.
+     * Demonstrates actor tags for categorization (notification, low-priority, io-bound).
+     *
+     * Example:
+     * POST /api/notifications
+     * {
+     *   "userId": "USER-123",
+     *   "type": "email",
+     *   "message": "Your order has been processed"
+     * }
+     */
+    @PostMapping("/notifications")
+    public Mono<NotificationResponse> sendNotification(@RequestBody NotificationRequest request) {
+        log.info("Received notification request for user: {}, type: {}",
+            request.userId, request.type);
+
+        return notificationService.sendNotification(
+                request.userId,
+                request.type,
+                request.message
+            )
+            .map(result -> new NotificationResponse(
+                result.notificationId,
+                result.status,
+                result.message
+            ));
+    }
+
+    /**
+     * End-to-end workflow: order -> payment -> notification
+     * Demonstrates request tracing across multiple actors with MDC.
+     *
+     * Example:
+     * POST /api/checkout
+     * {
+     *   "customerId": "CUST-123",
+     *   "amount": 99.99,
+     *   "paymentMethod": "credit_card"
+     * }
+     */
+    @PostMapping("/checkout")
+    public Mono<CheckoutResponse> checkout(@RequestBody CheckoutRequest request) {
+        log.info("Starting checkout for customer: {}, amount: {}",
+            request.customerId, request.amount);
+
+        return orderService.processOrder(request.customerId, request.amount)
+            .flatMap(orderResult -> {
+                if ("SUCCESS".equals(orderResult.status)) {
+                    log.info("Order processed, initiating payment for order: {}", orderResult.orderId);
+                    return paymentService.processPayment(
+                        orderResult.orderId,
+                        request.customerId,
+                        request.amount,
+                        request.paymentMethod
+                    ).map(paymentResult -> new Object[]{ orderResult, paymentResult });
+                } else {
+                    return Mono.error(new RuntimeException("Order processing failed: " + orderResult.message));
+                }
+            })
+            .flatMap(results -> {
+                OrderProcessorActor.OrderProcessed orderResult =
+                    (OrderProcessorActor.OrderProcessed) results[0];
+                PaymentProcessorActor.PaymentProcessed paymentResult =
+                    (PaymentProcessorActor.PaymentProcessed) results[1];
+
+                if ("SUCCESS".equals(paymentResult.status)) {
+                    log.info("Payment successful, sending notification");
+                    return notificationService.sendNotification(
+                        request.customerId,
+                        "email",
+                        "Your order " + orderResult.orderId + " has been processed successfully"
+                    ).map(notifResult -> new CheckoutResponse(
+                        "SUCCESS",
+                        orderResult.orderId,
+                        paymentResult.transactionId,
+                        "Checkout completed successfully"
+                    ));
+                } else {
+                    return Mono.error(new RuntimeException("Payment failed: " + paymentResult.message));
+                }
+            })
+            .doOnSuccess(result -> log.info("Checkout completed successfully for order: {}", result.orderId))
+            .doOnError(error -> log.error("Checkout failed", error));
+    }
+
+    // Request/Response DTOs
+    public static class OrderRequest {
+        public String customerId;
+        public double amount;
+    }
+
+    public static class OrderResponse {
+        public String orderId;
+        public String status;
+        public String message;
+
+        public OrderResponse(String orderId, String status, String message) {
+            this.orderId = orderId;
+            this.status = status;
+            this.message = message;
+        }
+    }
+
+    public static class PaymentRequest {
+        public String orderId;
+        public String customerId;
+        public double amount;
+        public String paymentMethod;
+    }
+
+    public static class PaymentResponse {
+        public String paymentId;
+        public String status;
+        public String transactionId;
+        public String message;
+
+        public PaymentResponse(String paymentId, String status, String transactionId, String message) {
+            this.paymentId = paymentId;
+            this.status = status;
+            this.transactionId = transactionId;
+            this.message = message;
+        }
+    }
+
+    public static class NotificationRequest {
+        public String userId;
+        public String type;
+        public String message;
+    }
+
+    public static class NotificationResponse {
+        public String notificationId;
+        public String status;
+        public String message;
+
+        public NotificationResponse(String notificationId, String status, String message) {
+            this.notificationId = notificationId;
+            this.status = status;
+            this.message = message;
+        }
+    }
+
+    public static class CheckoutRequest {
+        public String customerId;
+        public double amount;
+        public String paymentMethod;
+    }
+
+    public static class CheckoutResponse {
+        public String status;
+        public String orderId;
+        public String transactionId;
+        public String message;
+
+        public CheckoutResponse(String status, String orderId, String transactionId, String message) {
+            this.status = status;
+            this.orderId = orderId;
+            this.transactionId = transactionId;
+            this.message = message;
+        }
+    }
+}

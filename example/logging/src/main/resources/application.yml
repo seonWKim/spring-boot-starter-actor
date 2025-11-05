@@ -1,0 +1,45 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: logging-example
+
+  # Actor system configuration
+  actor:
+    # Actor system name
+    actor-system-name: LoggingExampleSystem
+
+    # Custom dispatchers for different workload types
+    dispatchers:
+      # Blocking I/O dispatcher for payment and notification actors
+      blocking-io-dispatcher:
+        type: Dispatcher
+        executor: thread-pool-executor
+        thread-pool-executor:
+          fixed-pool-size: 16
+        throughput: 1
+
+      # CPU-intensive dispatcher for order processing
+      cpu-dispatcher:
+        type: Dispatcher
+        executor: fork-join-executor
+        fork-join-executor:
+          parallelism-min: 4
+          parallelism-factor: 2.0
+          parallelism-max: 16
+        throughput: 100
+
+logging:
+  level:
+    root: INFO
+    io.github.seonwkim.example.logging: DEBUG
+    org.apache.pekko: INFO
+    org.apache.pekko.actor: INFO
+
+  # Log patterns are configured in logback.xml
+  # See logback.xml for production-ready logging configuration with:
+  # - Async appenders
+  # - JSON structured logging
+  # - MDC context
+  # - Rolling file policies
