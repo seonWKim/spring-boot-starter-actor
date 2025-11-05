@@ -64,6 +64,7 @@ public class SpringChildActorReference<P, C> {
     private MailboxConfig mailboxConfig;
     private DispatcherConfig dispatcherConfig;
     private TagsConfig tagsConfig;
+    private MdcConfig mdcConfig;
 
     /**
      * Creates a new SpringChildActorReference.
@@ -101,6 +102,7 @@ public class SpringChildActorReference<P, C> {
         this.mailboxConfig = MailboxConfig.defaultMailbox();
         this.dispatcherConfig = DispatcherConfig.defaultDispatcher();
         this.tagsConfig = TagsConfig.empty();
+        this.mdcConfig = MdcConfig.empty();
     }
 
     /**
@@ -160,6 +162,22 @@ public class SpringChildActorReference<P, C> {
             throw new IllegalArgumentException("tagsConfig must not be null");
         }
         this.tagsConfig = tagsConfig;
+        return this;
+    }
+
+    /**
+     * Sets static MDC (Mapped Diagnostic Context) values for the child actor.
+     * These values will be included in all log entries from the child actor.
+     * This affects spawn() and getOrSpawn() calls made after this method.
+     *
+     * @param mdcConfig The MDC configuration
+     * @return This reference for method chaining
+     */
+    public SpringChildActorReference<P, C> withMdc(MdcConfig mdcConfig) {
+        if (mdcConfig == null) {
+            throw new IllegalArgumentException("mdcConfig must not be null");
+        }
+        this.mdcConfig = mdcConfig;
         return this;
     }
 
@@ -254,6 +272,9 @@ public class SpringChildActorReference<P, C> {
         }
 
         SpringActorContext childContext = new DefaultSpringActorContext(childId);
+        // Apply MDC configuration to the child context
+        childContext.setMdcConfig(mdcConfig);
+
         ActorRef<Object> parentAsObject = (ActorRef<Object>) parentRef;
 
         return AskPattern.ask(

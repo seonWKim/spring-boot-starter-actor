@@ -208,6 +208,16 @@ public class MdcIntegrationTest {
         @Override
         public SpringActorBehavior<TestCommand> create(SpringActorContext actorContext) {
             return SpringActorBehavior.builder(TestCommand.class, actorContext)
+                    .withMdc(msg -> {
+                        if (msg instanceof Ping) {
+                            Ping ping = (Ping) msg;
+                            return Map.of(
+                                "dynamicMessageId", ping.messageId,
+                                "dynamicTimestamp", String.valueOf(System.currentTimeMillis())
+                            );
+                        }
+                        return Map.of();
+                    })
                     .onMessage(Ping.class, (ctx, msg) -> {
                         ctx.getLog().info("Child received: {}", msg.message);
                         msg.replyTo.tell(new Pong("Pong: " + msg.message, ctx.getSelf().path().toString()));
@@ -382,26 +392,83 @@ public class MdcIntegrationTest {
 
         assertNotNull(parent);
 
+        // Send a message to the parent to verify parent's MDC
+        Pong parentResponse = sendPingAndWait(parent, "Hello parent", "msg-parent-1");
+        assertNotNull(parentResponse);
+        assertTrue(parentResponse.actorPath.contains("parent-with-mdc"));
+
+        // Define child's static MDC
         Map<String, String> childMdc = Map.of(
             "childId", "child-1",
             "role", "worker"
         );
 
-        // Spawn child actor with its own MDC
+        // Spawn child actor with its own MDC (static)
         CompletionStage<SpringActorRef<TestCommand>> childFuture = parent.child(TestChildActor.class)
                 .withId("child-with-mdc")
-                // TODO: implement withMDC for the child spwaning
+                .withMdc(MdcConfig.of(childMdc))
                 .spawn();
 
         SpringActorRef<TestCommand> child = childFuture.toCompletableFuture().get();
         assertNotNull(child);
 
-        Pong response = sendPingAndWait(child, "Hello from child with MDC", "msg-child-1");
-        assertNotNull(response);
-        assertTrue(response.actorPath.contains("child-with-mdc"));
+        // Send a message to the child to verify child's MDC (both static and dynamic)
+        Pong childResponse = sendPingAndWait(child, "Hello from child with MDC", "msg-child-1");
+        assertNotNull(childResponse);
+        assertTrue(childResponse.actorPath.contains("child-with-mdc"));
 
-        // Note: Child actors inherit the parent's context, but can have their own MDC
-        // For now, we just verify the child logs properly
+        // Wait for logs
+        Thread.sleep(200);
+
+        List<ILoggingEvent> events = logAppender.getEvents();
+
+        // Verify parent's MDC contains only parent values (no child values)
+        boolean foundParentLog = false;
+        for (ILoggingEvent event : events) {
+            Map<String, String> mdc = event.getMDCPropertyMap();
+            String pekkoSource = mdc.get("pekkoSource");
+
+            if (pekkoSource != null && pekkoSource.contains("parent-with-mdc")) {
+                // Parent should have its own static MDC
+                if ("parent-1".equals(mdc.get("parentId")) &&
+                    "session-abc".equals(mdc.get("sessionId"))) {
+                    // Ensure child's MDC does NOT leak into parent
+                    assertNull(mdc.get("childId"), "Parent should not have child's MDC");
+                    assertNull(mdc.get("role"), "Parent should not have child's MDC");
+                    assertNull(mdc.get("dynamicMessageId"), "Parent should not have child's dynamic MDC");
+                    foundParentLog = true;
+                    break;
+                }
+            }
+        }
+        assertTrue(foundParentLog, "Should find parent log with parent's MDC");
+
+        // Verify child's MDC contains child's static MDC + dynamic MDC (no parent values)
+        boolean foundChildLog = false;
+        for (ILoggingEvent event : events) {
+            Map<String, String> mdc = event.getMDCPropertyMap();
+            String pekkoSource = mdc.get("pekkoSource");
+
+            if (pekkoSource != null && pekkoSource.contains("child-with-mdc")) {
+                // Child should have its own static MDC
+                if ("child-1".equals(mdc.get("childId")) &&
+                    "worker".equals(mdc.get("role"))) {
+                    // Child should also have dynamic MDC
+                    assertEquals("msg-child-1", mdc.get("dynamicMessageId"),
+                        "Child should have dynamic MDC from message");
+                    assertNotNull(mdc.get("dynamicTimestamp"),
+                        "Child should have dynamic timestamp");
+
+                    // Ensure parent's MDC does NOT leak into child
+                    assertNull(mdc.get("parentId"), "Child should not inherit parent's MDC");
+                    assertNull(mdc.get("sessionId"), "Child should not inherit parent's MDC");
+
+                    foundChildLog = true;
+                    break;
+                }
+            }
+        }
+        assertTrue(foundChildLog, "Should find child log with child's static and dynamic MDC");
     }
 
     @Test
