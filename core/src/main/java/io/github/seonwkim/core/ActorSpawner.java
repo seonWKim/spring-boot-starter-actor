@@ -108,7 +108,6 @@ public final class ActorSpawner {
         // Create behavior from registry using Spring DI
         Behavior<?> behavior = registry.createBehavior(actorClass, actorContext).asBehavior();
 
-        // Apply supervision strategy if provided
         if (supervisorStrategy != null) {
             behavior = Behaviors.supervise(behavior).onFailure(supervisorStrategy);
         }
@@ -116,7 +115,6 @@ public final class ActorSpawner {
         ActorRef<?> ref;
 
         if (isClusterSingleton) {
-            // Spawn as cluster singleton using Pekko's ClusterSingleton API
             if (clusterSingleton == null) {
                 throw new IllegalStateException(
                     "Cluster singleton requested but cluster mode is not enabled. " +
@@ -124,23 +122,21 @@ public final class ActorSpawner {
                 );
             }
 
-            // Create SingletonActor with the behavior
-            // The singleton name should be unique across the cluster
             SingletonActor<?> singletonActor = SingletonActor.of(behavior, actorName);
 
-            // Initialize the singleton and get the proxy reference
-            // The proxy transparently routes messages to whichever node hosts the singleton
+            if (dispatcherConfig.shouldUseProps()) {
+                Props props = dispatcherConfig.toProps();
+                props = mailboxConfig.applyToProps(props);
+                singletonActor = singletonActor.withProps(props);
+            }
+
             ref = clusterSingleton.init(singletonActor);
         } else {
-            // Regular actor spawn with mailbox/dispatcher configuration
             if (dispatcherConfig.shouldUseProps()) {
-                // If dispatcher requires Props (blocking, fromConfig, sameAsParent), use Props
-                // and apply mailbox configuration to Props as well
                 Props props = dispatcherConfig.toProps();
                 props = mailboxConfig.applyToProps(props);
                 ref = ctx.spawn(behavior, actorName, props);
             } else {
-                // If default dispatcher, use MailboxSelector
                 ref = ctx.spawn(behavior, actorName, mailboxConfig.toMailboxSelector());
             }
         }
