@@ -44,7 +44,7 @@ public class SpringChildActorBuilder<P, C> {
     @Nullable private MailboxConfig mailboxConfig;
     @Nullable private DispatcherConfig dispatcherConfig;
     @Nullable private TagsConfig tagsConfig;
-    @Nullable private MdcConfig mdcConfig;
+    private MdcConfig mdcConfig = MdcConfig.empty();
     private Duration timeout;
 
     /**
@@ -247,9 +247,7 @@ public class SpringChildActorBuilder<P, C> {
         }
 
         // Apply MDC configuration to the child context
-        if (mdcConfig != null) {
-            childContext.setMdcConfig(mdcConfig);
-        }
+        childContext.setMdcConfig(mdcConfig);
 
         // Cast parent ref to Object to send framework command
         ActorRef<Object> parentAsObject = (ActorRef<Object>) parentRef;
