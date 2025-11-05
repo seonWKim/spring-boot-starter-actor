@@ -13,7 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.stereotype.Component;
+import org.springframework.test.annotation.DirtiesContext;
 
 import java.util.*;
 import java.util.concurrent.CompletionStage;
@@ -29,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.*;
             ActorConfiguration.class,
             MdcIntegrationTest.TestConfig.class
         })
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 public class MdcIntegrationTest {
 
     @Autowired
@@ -77,27 +78,27 @@ public class MdcIntegrationTest {
     @Configuration
     static class TestConfig {
         @Bean
-        public StaticMdcActor staticMdcActor() {
+        public StaticMdcActor mdcStaticMdcActor() {
             return new StaticMdcActor();
         }
 
         @Bean
-        public DynamicMdcActor dynamicMdcActor() {
+        public DynamicMdcActor mdcDynamicMdcActor() {
             return new DynamicMdcActor();
         }
 
         @Bean
-        public CombinedMdcActor combinedMdcActor() {
+        public CombinedMdcActor mdcCombinedMdcActor() {
             return new CombinedMdcActor();
         }
 
         @Bean
-        public TestParentActor testParentActor() {
+        public TestParentActor mdcTestParentActor() {
             return new TestParentActor();
         }
 
         @Bean
-        public TestChildActor testChildActor() {
+        public TestChildActor mdcTestChildActor() {
             return new TestChildActor();
         }
     }
@@ -127,7 +128,6 @@ public class MdcIntegrationTest {
         }
     }
 
-    @Component
     public static class StaticMdcActor implements SpringActorWithContext<TestCommand, SpringActorContext> {
         @Override
         public SpringActorBehavior<TestCommand> create(SpringActorContext actorContext) {
@@ -141,7 +141,6 @@ public class MdcIntegrationTest {
         }
     }
 
-    @Component
     public static class DynamicMdcActor implements SpringActorWithContext<TestCommand, SpringActorContext> {
         @Override
         public SpringActorBehavior<TestCommand> create(SpringActorContext actorContext) {
@@ -165,7 +164,6 @@ public class MdcIntegrationTest {
         }
     }
 
-    @Component
     public static class CombinedMdcActor implements SpringActorWithContext<TestCommand, SpringActorContext> {
         @Override
         public SpringActorBehavior<TestCommand> create(SpringActorContext actorContext) {
@@ -189,7 +187,6 @@ public class MdcIntegrationTest {
         }
     }
 
-    @Component
     public static class TestParentActor implements SpringActorWithContext<TestCommand, SpringActorContext> {
         @Override
         public SpringActorBehavior<TestCommand> create(SpringActorContext actorContext) {
@@ -203,7 +200,6 @@ public class MdcIntegrationTest {
         }
     }
 
-    @Component
     public static class TestChildActor implements SpringActorWithContext<TestCommand, SpringActorContext> {
         @Override
         public SpringActorBehavior<TestCommand> create(SpringActorContext actorContext) {

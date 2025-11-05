@@ -21,7 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.stereotype.Component;
+import org.springframework.test.annotation.DirtiesContext;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -34,6 +34,7 @@ import static org.junit.jupiter.api.Assertions.*;
             ActorConfiguration.class,
             ActorTagsIntegrationTest.TestConfig.class
         })
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 public class ActorTagsIntegrationTest {
 
     @Autowired
@@ -82,17 +83,17 @@ public class ActorTagsIntegrationTest {
     @Configuration
     static class TestConfig {
         @Bean
-        public TestActor testActor() {
+        public TestActor tagsTestActor() {
             return new TestActor();
         }
 
         @Bean
-        public TestParentActor testParentActor() {
+        public TestParentActor tagsTestParentActor() {
             return new TestParentActor();
         }
 
         @Bean
-        public TestChildActor testChildActor() {
+        public TestChildActor tagsTestChildActor() {
             return new TestChildActor();
         }
     }
@@ -120,7 +121,6 @@ public class ActorTagsIntegrationTest {
         }
     }
 
-    @Component
     public static class TestActor implements SpringActorWithContext<TestCommand, SpringActorContext> {
         @Override
         public SpringActorBehavior<TestCommand> create(SpringActorContext actorContext) {
@@ -134,7 +134,6 @@ public class ActorTagsIntegrationTest {
         }
     }
 
-    @Component
     public static class TestParentActor implements SpringActorWithContext<TestCommand, SpringActorContext> {
         @Override
         public SpringActorBehavior<TestCommand> create(SpringActorContext actorContext) {
@@ -148,7 +147,6 @@ public class ActorTagsIntegrationTest {
         }
     }
 
-    @Component
     public static class TestChildActor implements SpringActorWithContext<TestCommand, SpringActorContext> {
         @Override
         public SpringActorBehavior<TestCommand> create(SpringActorContext actorContext) {

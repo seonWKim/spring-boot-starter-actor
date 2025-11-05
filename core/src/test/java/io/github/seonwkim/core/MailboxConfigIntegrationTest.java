@@ -40,17 +40,17 @@ public class MailboxConfigIntegrationTest {
     @Configuration
     static class TestConfig {
         @Bean
-        public TestActor testActor() {
+        public TestActor mailboxTestActor() {
             return new TestActor();
         }
 
         @Bean
-        public TestParentActor testParentActor() {
+        public TestParentActor mailboxTestParentActor() {
             return new TestParentActor();
         }
 
         @Bean
-        public TestChildActor testChildActor() {
+        public TestChildActor mailboxTestChildActor() {
             return new TestChildActor();
         }
     }
