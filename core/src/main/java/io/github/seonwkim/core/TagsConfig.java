@@ -42,7 +42,7 @@ import org.apache.pekko.actor.typed.Props;
  *
  * <p>In logs, tags appear in the MDC:
  * <pre>
- * [INFO] [pekkoSource=akka://MySystem/user/my-actor] [pekkoTags=worker,high-priority] Processing task
+ * [INFO] [pekkoSource=pekko://MySystem/user/my-actor] [pekkoTags=worker,high-priority] Processing task
  * </pre>
  *
  * <p>Use tags to categorize actors by:

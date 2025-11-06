@@ -26,8 +26,8 @@ Pekko automatically adds these MDC properties to all actor log entries:
 
 | Property | Description | Example |
 |----------|-------------|---------|
-| `pekkoSource` | The actor's path | `akka://MySystem/user/my-actor` |
-| `pekkoAddress` | The ActorSystem address | `akka://MySystem@localhost:25520` |
+| `pekkoSource` | The actor's path | `pekko://MySystem/user/my-actor` |
+| `pekkoAddress` | The ActorSystem address | `pekko://MySystem@localhost:25520` |
 | `pekkoTags` | Comma-separated list of tags | `worker,high-priority` |
 | `sourceActorSystem` | The ActorSystem name | `MySystem` |
 
@@ -215,7 +215,7 @@ SpringActorRef<Worker.Command> backendWorker = actorSystem
 
 Tags appear in the `pekkoTags` MDC property:
 ```
-[INFO] [pekkoSource=akka://MySystem/user/worker-2] [pekkoTags=worker,high-priority,cpu-intensive] Processing task
+[INFO] [pekkoSource=pekko://MySystem/user/worker-2] [pekkoTags=worker,high-priority,cpu-intensive] Processing task
 ```
 
 ### Common Tag Categories

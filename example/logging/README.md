@@ -120,7 +120,7 @@ This endpoint chains order -> payment -> notification, allowing you to trace a r
 Console output includes human-readable logs with MDC context:
 
 ```
-2024-11-06 10:30:45,123 INFO  [pekkoSource=akka://LoggingExampleSystem/user/order-processor] [pekkoTags=order-service,critical,cpu-intensive] [reqId=REQ-abc] [userId=CUST-123] [orderId=ORD-123] io.github.seonwkim.example.logging.OrderProcessorActor - Starting order processing
+2024-11-06 10:30:45,123 INFO  [pekkoSource=pekko://LoggingExampleSystem/user/order-processor] [pekkoTags=order-service,critical,cpu-intensive] [reqId=REQ-abc] [userId=CUST-123] [orderId=ORD-123] io.github.seonwkim.example.logging.OrderProcessorActor - Starting order processing
 ```
 
 ### File Logs (Production)
@@ -137,7 +137,7 @@ Example JSON log entry:
   "level": "INFO",
   "logger_name": "io.github.seonwkim.example.logging.OrderProcessorActor",
   "message": "Starting order processing",
-  "pekkoSource": "akka://LoggingExampleSystem/user/order-processor",
+  "pekkoSource": "pekko://LoggingExampleSystem/user/order-processor",
   "pekkoTags": "order-service,critical,cpu-intensive",
   "orderId": "ORD-123",
   "userId": "CUST-123",
