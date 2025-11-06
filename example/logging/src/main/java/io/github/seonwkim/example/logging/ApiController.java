@@ -34,16 +34,16 @@ public class ApiController {
      * Example:
      * POST /api/orders
      * {
-     *   "customerId": "CUST-123",
+     *   "userId": "USER-123",
      *   "amount": 99.99
      * }
      */
     @PostMapping("/orders")
     public Mono<OrderResponse> createOrder(@RequestBody OrderRequest request) {
-        log.info("Received order request for customer: {}, amount: {}",
-            request.customerId, request.amount);
+        log.info("Received order request for user: {}, amount: {}",
+            request.userId, request.amount);
 
-        return orderService.processOrder(request.customerId, request.amount)
+        return orderService.processOrder(request.userId, request.amount)
             .map(result -> new OrderResponse(
                 result.orderId,
                 result.status,
@@ -59,7 +59,7 @@ public class ApiController {
      * POST /api/payments
      * {
      *   "orderId": "ORD-123",
-     *   "customerId": "CUST-123",
+     *   "userId": "USER-123",
      *   "amount": 99.99,
      *   "paymentMethod": "credit_card"
      * }
@@ -71,7 +71,7 @@ public class ApiController {
 
         return paymentService.processPayment(
                 request.orderId,
-                request.customerId,
+                request.userId,
                 request.amount,
                 request.paymentMethod
             )
@@ -119,25 +119,30 @@ public class ApiController {
      * Example:
      * POST /api/checkout
      * {
-     *   "customerId": "CUST-123",
+     *   "userId": "USER-123",
      *   "amount": 99.99,
      *   "paymentMethod": "credit_card"
      * }
      */
     @PostMapping("/checkout")
     public Mono<CheckoutResponse> checkout(@RequestBody CheckoutRequest request) {
-        log.info("Starting checkout for customer: {}, amount: {}",
-            request.customerId, request.amount);
+        // Capture MDC values ONCE before entering reactive chain
+        // This is crucial because MDC is ThreadLocal and won't be available in reactive operators
+        final String requestId = org.slf4j.MDC.get("requestId");
+        final String userId = request.userId;
 
-        return orderService.processOrder(request.customerId, request.amount)
+        log.info("Starting checkout for user: {}, amount: {}", userId, request.amount);
+
+        // Pass requestId explicitly through the entire chain to ensure proper MDC propagation
+        return orderService.processOrder(userId, request.amount, requestId)
             .flatMap(orderResult -> {
                 if ("SUCCESS".equals(orderResult.status)) {
-                    log.info("Order processed, initiating payment for order: {}", orderResult.orderId);
                     return paymentService.processPayment(
                         orderResult.orderId,
-                        request.customerId,
+                        userId,
                         request.amount,
-                        request.paymentMethod
+                        request.paymentMethod,
+                        requestId  // Pass explicitly through reactive chain
                     ).map(paymentResult -> new Object[]{ orderResult, paymentResult });
                 } else {
                     return Mono.error(new RuntimeException("Order processing failed: " + orderResult.message));
@@ -150,11 +155,11 @@ public class ApiController {
                     (PaymentProcessorActor.PaymentProcessed) results[1];
 
                 if ("SUCCESS".equals(paymentResult.status)) {
-                    log.info("Payment successful, sending notification");
                     return notificationService.sendNotification(
-                        request.customerId,
+                        userId,
                         "email",
-                        "Your order " + orderResult.orderId + " has been processed successfully"
+                        "Your order " + orderResult.orderId + " has been processed successfully",
+                        requestId  // Pass explicitly through reactive chain
                     ).map(notifResult -> new CheckoutResponse(
                         "SUCCESS",
                         orderResult.orderId,
@@ -171,7 +176,7 @@ public class ApiController {
 
     // Request/Response DTOs
     public static class OrderRequest {
-        public String customerId;
+        public String userId;
         public double amount;
     }
 
@@ -189,7 +194,7 @@ public class ApiController {
 
     public static class PaymentRequest {
         public String orderId;
-        public String customerId;
+        public String userId;
         public double amount;
         public String paymentMethod;
     }
@@ -227,7 +232,7 @@ public class ApiController {
     }
 
     public static class CheckoutRequest {
-        public String customerId;
+        public String userId;
         public double amount;
         public String paymentMethod;
     }

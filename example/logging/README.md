@@ -48,14 +48,14 @@ Demonstrates dynamic MDC where order details are added to each log entry.
 curl -X POST http://localhost:8080/api/orders \
   -H "Content-Type: application/json" \
   -d '{
-    "customerId": "CUST-123",
+    "userId": "CUST-123",
     "amount": 99.99
   }'
 ```
 
 **Log Output:**
 ```
-[INFO] [pekkoSource=...] [pekkoTags=order-service,critical,cpu-intensive] [orderId=ORD-xxx] [customerId=CUST-123] [amount=99.99] Starting order processing
+[INFO] [pekkoSource=...] [pekkoTags=order-service,critical,cpu-intensive] [orderId=ORD-xxx] [userId=CUST-123] [amount=99.99] Starting order processing
 ```
 
 ### 2. Process Payment (Static + Dynamic MDC)
@@ -67,7 +67,7 @@ curl -X POST http://localhost:8080/api/payments \
   -H "Content-Type: application/json" \
   -d '{
     "orderId": "ORD-123",
-    "customerId": "CUST-123",
+    "userId": "CUST-123",
     "amount": 99.99,
     "paymentMethod": "credit_card"
   }'
@@ -105,7 +105,7 @@ Demonstrates end-to-end request tracing across multiple actors.
 curl -X POST http://localhost:8080/api/checkout \
   -H "Content-Type: application/json" \
   -d '{
-    "customerId": "CUST-123",
+    "userId": "CUST-123",
     "amount": 99.99,
     "paymentMethod": "credit_card"
   }'
@@ -140,7 +140,7 @@ Example JSON log entry:
   "pekkoSource": "akka://LoggingExampleSystem/user/order-processor",
   "pekkoTags": "order-service,critical,cpu-intensive",
   "orderId": "ORD-123",
-  "customerId": "CUST-123",
+  "userId": "CUST-123",
   "amount": "99.99"
 }
 ```
@@ -181,7 +181,7 @@ Filter logs by MDC values:
 grep "orderId=ORD-123" logs/application.log
 
 # View all logs for a specific customer
-grep "customerId=CUST-123" logs/application.log
+grep "userId=CUST-123" logs/application.log
 
 # View all payment-service logs
 grep "service=payment-service" logs/application.log
@@ -234,7 +234,7 @@ Computed per message, adds message-specific context:
         ProcessOrder order = (ProcessOrder) msg;
         return Map.of(
             "orderId", order.orderId,
-            "customerId", order.customerId
+            "userId", order.userId
         );
     }
     return Map.of();
@@ -287,7 +287,7 @@ pekkoTags:order-service AND level:ERROR
 pekkoTags:payment-service AND duration:>5000
 
 # Find all operations for a customer
-customerId:"CUST-123"
+userId:"CUST-123"
 ```
 
 ## Testing the Logging
@@ -299,7 +299,7 @@ Run multiple requests to see logging in action:
 for i in {1..5}; do
   curl -X POST http://localhost:8080/api/orders \
     -H "Content-Type: application/json" \
-    -d "{\"customerId\": \"CUST-$i\", \"amount\": $((RANDOM % 100 + 50))}"
+    -d "{\"userId\": \"CUST-$i\", \"amount\": $((RANDOM % 100 + 50))}"
   echo
 done
 

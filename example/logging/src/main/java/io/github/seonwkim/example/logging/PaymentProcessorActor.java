@@ -22,18 +22,20 @@ public class PaymentProcessorActor implements SpringActor<PaymentProcessorActor.
     public static class ProcessPayment implements Command {
         public final String paymentId;
         public final String orderId;
-        public final String customerId;
+        public final String userId;
         public final double amount;
         public final String paymentMethod;
+        public final String requestId;
         public final ActorRef<PaymentProcessed> replyTo;
 
-        public ProcessPayment(String paymentId, String orderId, String customerId,
-                            double amount, String paymentMethod, ActorRef<PaymentProcessed> replyTo) {
+        public ProcessPayment(String paymentId, String orderId, String userId,
+                            double amount, String paymentMethod, String requestId, ActorRef<PaymentProcessed> replyTo) {
             this.paymentId = paymentId;
             this.orderId = orderId;
-            this.customerId = customerId;
+            this.userId = userId;
             this.amount = amount;
             this.paymentMethod = paymentMethod;
+            this.requestId = requestId;
             this.replyTo = replyTo;
         }
     }
@@ -59,13 +61,16 @@ public class PaymentProcessorActor implements SpringActor<PaymentProcessorActor.
             .withMdc(msg -> {
                 if (msg instanceof ProcessPayment) {
                     ProcessPayment payment = (ProcessPayment) msg;
-                    return Map.of(
-                        "paymentId", payment.paymentId,
-                        "orderId", payment.orderId,
-                        "customerId", payment.customerId,
-                        "amount", String.valueOf(payment.amount),
-                        "paymentMethod", payment.paymentMethod
-                    );
+                    Map<String, String> mdc = new java.util.HashMap<>();
+                    mdc.put("paymentId", payment.paymentId);
+                    mdc.put("orderId", payment.orderId);
+                    mdc.put("userId", payment.userId);
+                    mdc.put("amount", String.valueOf(payment.amount));
+                    mdc.put("paymentMethod", payment.paymentMethod);
+                    if (payment.requestId != null) {
+                        mdc.put("requestId", payment.requestId);
+                    }
+                    return mdc;
                 }
                 return Map.of();
             })

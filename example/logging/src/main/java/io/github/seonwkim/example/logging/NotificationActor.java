@@ -24,14 +24,16 @@ public class NotificationActor implements SpringActor<NotificationActor.Command>
         public final String userId;
         public final String type; // email, sms, push
         public final String message;
+        public final String requestId;
         public final ActorRef<NotificationSent> replyTo;
 
         public SendNotification(String notificationId, String userId, String type,
-                               String message, ActorRef<NotificationSent> replyTo) {
+                               String message, String requestId, ActorRef<NotificationSent> replyTo) {
             this.notificationId = notificationId;
             this.userId = userId;
             this.type = type;
             this.message = message;
+            this.requestId = requestId;
             this.replyTo = replyTo;
         }
     }
@@ -55,11 +57,14 @@ public class NotificationActor implements SpringActor<NotificationActor.Command>
             .withMdc(msg -> {
                 if (msg instanceof SendNotification) {
                     SendNotification notification = (SendNotification) msg;
-                    return Map.of(
-                        "notificationId", notification.notificationId,
-                        "userId", notification.userId,
-                        "notificationType", notification.type
-                    );
+                    Map<String, String> mdc = new java.util.HashMap<>();
+                    mdc.put("notificationId", notification.notificationId);
+                    mdc.put("userId", notification.userId);
+                    mdc.put("notificationType", notification.type);
+                    if (notification.requestId != null) {
+                        mdc.put("requestId", notification.requestId);
+                    }
+                    return mdc;
                 }
                 return Map.of();
             })

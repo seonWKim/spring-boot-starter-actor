@@ -20,14 +20,16 @@ public class OrderProcessorActor implements SpringActor<OrderProcessorActor.Comm
 
     public static class ProcessOrder implements Command {
         public final String orderId;
-        public final String customerId;
+        public final String userId;
         public final double amount;
+        public final String requestId;
         public final ActorRef<OrderProcessed> replyTo;
 
-        public ProcessOrder(String orderId, String customerId, double amount, ActorRef<OrderProcessed> replyTo) {
+        public ProcessOrder(String orderId, String userId, double amount, String requestId, ActorRef<OrderProcessed> replyTo) {
             this.orderId = orderId;
-            this.customerId = customerId;
+            this.userId = userId;
             this.amount = amount;
+            this.requestId = requestId;
             this.replyTo = replyTo;
         }
     }
@@ -49,18 +51,20 @@ public class OrderProcessorActor implements SpringActor<OrderProcessorActor.Comm
         return SpringActorBehavior.builder(Command.class, actorContext)
             // Dynamic MDC: computed per message
             .withMdc(msg -> {
-                if (msg instanceof ProcessOrder) {
-                    ProcessOrder order = (ProcessOrder) msg;
-                    return Map.of(
-                        "orderId", order.orderId,
-                        "customerId", order.customerId,
-                        "amount", String.valueOf(order.amount)
-                    );
+                if (msg instanceof ProcessOrder order) {
+                    Map<String, String> mdc = new java.util.HashMap<>();
+                    mdc.put("orderId", order.orderId);
+                    mdc.put("userId", order.userId);
+                    mdc.put("amount", String.valueOf(order.amount));
+                    if (order.requestId != null) {
+                        mdc.put("requestId", order.requestId);
+                    }
+                    return mdc;
                 }
                 return Map.of();
             })
             .onMessage(ProcessOrder.class, (ctx, msg) -> {
-                // All log entries will include orderId, customerId, and amount in MDC
+                // All log entries will include orderId, userId, and amount in MDC
                 ctx.getLog().info("Starting order processing");
 
                 try {

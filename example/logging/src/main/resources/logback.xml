@@ -44,7 +44,7 @@
             <includeMdcKeyName>requestId</includeMdcKeyName>
             <includeMdcKeyName>userId</includeMdcKeyName>
             <includeMdcKeyName>orderId</includeMdcKeyName>
-            <includeMdcKeyName>customerId</includeMdcKeyName>
+            <includeMdcKeyName>userId</includeMdcKeyName>
             <includeMdcKeyName>traceId</includeMdcKeyName>
             <includeMdcKeyName>spanId</includeMdcKeyName>
             <customFields>{"application":"logging-example","environment":"development"}</customFields>

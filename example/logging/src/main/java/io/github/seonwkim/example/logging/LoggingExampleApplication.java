@@ -39,9 +39,9 @@ public class LoggingExampleApplication {
         SpringApplication.run(LoggingExampleApplication.class, args);
         log.info("Logging Example Application started successfully!");
         log.info("Try the following endpoints:");
-        log.info("curl -X POST http://localhost:8080/api/orders");
-        log.info("curl -X POST http://localhost:8080/api/payments");
-        log.info("curl -X POST http://localhost:8080/api/notifications");
-        log.info("curl -X POST http://localhost:8080/api/checkout");
+        log.info("curl -X POST http://localhost:8080/api/orders -H 'Content-Type: application/json' -d '{\"userId\":\"USER-123\",\"amount\":99.99}'");
+        log.info("curl -X POST http://localhost:8080/api/payments -H 'Content-Type: application/json' -d '{\"orderId\":\"ORD-123\",\"userId\":\"USER-456\",\"amount\":99.99,\"paymentMethod\":\"credit_card\"}'");
+        log.info("curl -X POST http://localhost:8080/api/notifications -H 'Content-Type: application/json' -d '{\"userId\":\"USER-789\",\"type\":\"email\",\"message\":\"Test notification\"}'");
+        log.info("curl -X POST http://localhost:8080/api/checkout -H 'Content-Type: application/json' -d '{\"userId\":\"USER-999\",\"amount\":99.99,\"paymentMethod\":\"credit_card\"}'");
     }
 }

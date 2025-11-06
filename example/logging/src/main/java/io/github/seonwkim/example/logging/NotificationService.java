@@ -4,6 +4,7 @@ import io.github.seonwkim.core.MdcConfig;
 import io.github.seonwkim.core.SpringActorRef;
 import io.github.seonwkim.core.SpringActorSystem;
 import io.github.seonwkim.core.TagsConfig;
+import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
@@ -48,12 +49,24 @@ public class NotificationService {
     public Mono<NotificationActor.NotificationSent> sendNotification(
             String userId, String type, String message) {
 
+        String requestId = MDC.get("requestId");
+        return sendNotification(userId, type, message, requestId);
+    }
+
+    /**
+     * Send a notification with explicit requestId (for reactive chain calls).
+     * Use this when calling from within reactive chains where MDC may not be available.
+     */
+    public Mono<NotificationActor.NotificationSent> sendNotification(
+            String userId, String type, String message, String requestId) {
+
         String notificationId = "NOTIF-" + UUID.randomUUID().toString().substring(0, 8);
 
+        // Pass requestId to actor so it appears in logs via withMdc()
         return Mono.fromCompletionStage(
-            notificationActor.<NotificationActor.SendNotification, NotificationActor.NotificationSent>ask(
+            notificationActor.ask(
                 replyTo -> new NotificationActor.SendNotification(
-                    notificationId, userId, type, message, replyTo),
+                    notificationId, userId, type, message, requestId, replyTo),
                 Duration.ofSeconds(10)
             )
         );

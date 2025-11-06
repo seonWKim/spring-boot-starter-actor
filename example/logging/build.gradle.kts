@@ -23,7 +23,7 @@ dependencies {
 	implementation("ch.qos.logback:logback-classic")
 
 	// JSON logging support
-	implementation("net.logstash.logback:logstash-logback-encoder:7.4")
+	implementation("net.logstash.logback:logstash-logback-encoder:6.6")
 
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")

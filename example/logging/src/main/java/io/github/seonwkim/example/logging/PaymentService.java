@@ -4,6 +4,7 @@ import io.github.seonwkim.core.MdcConfig;
 import io.github.seonwkim.core.SpringActorRef;
 import io.github.seonwkim.core.SpringActorSystem;
 import io.github.seonwkim.core.TagsConfig;
+import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
@@ -48,15 +49,28 @@ public class PaymentService {
      * Combines static MDC (service, region) with dynamic MDC (paymentId, orderId, etc.)
      */
     public Mono<PaymentProcessorActor.PaymentProcessed> processPayment(
-            String orderId, String customerId, double amount, String paymentMethod) {
+            String orderId, String userId, double amount, String paymentMethod) {
+
+        String paymentId = "PAY-" + UUID.randomUUID().toString().substring(0, 8);
+        String requestId = MDC.get("requestId");
+
+        return processPayment(orderId, userId, amount, paymentMethod, requestId);
+    }
+
+    /**
+     * Process a payment with explicit requestId (for reactive chain calls).
+     * Use this when calling from within reactive chains where MDC may not be available.
+     */
+    public Mono<PaymentProcessorActor.PaymentProcessed> processPayment(
+            String orderId, String userId, double amount, String paymentMethod, String requestId) {
 
         String paymentId = "PAY-" + UUID.randomUUID().toString().substring(0, 8);
 
-        // The actor will add payment-specific details to MDC automatically
+        // Pass requestId to actor so it appears in logs via withMdc()
         return Mono.fromCompletionStage(
-            paymentProcessor.<PaymentProcessorActor.ProcessPayment, PaymentProcessorActor.PaymentProcessed>ask(
+            paymentProcessor.ask(
                 replyTo -> new PaymentProcessorActor.ProcessPayment(
-                    paymentId, orderId, customerId, amount, paymentMethod, replyTo),
+                    paymentId, orderId, userId, amount, paymentMethod, requestId, replyTo),
                 Duration.ofSeconds(15)
             )
         );

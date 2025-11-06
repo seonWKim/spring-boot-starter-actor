@@ -94,11 +94,11 @@ public class OrderActor implements SpringActor<OrderActor.Command> {
 
     public static class ProcessOrder implements Command {
         public final String orderId;
-        public final String customerId;
+        public final String userId;
 
-        public ProcessOrder(String orderId, String customerId) {
+        public ProcessOrder(String orderId, String userId) {
             this.orderId = orderId;
-            this.customerId = customerId;
+            this.userId = userId;
         }
     }
 
@@ -110,13 +110,13 @@ public class OrderActor implements SpringActor<OrderActor.Command> {
                     ProcessOrder order = (ProcessOrder) msg;
                     return Map.of(
                         "orderId", order.orderId,
-                        "customerId", order.customerId
+                        "userId", order.userId
                     );
                 }
                 return Map.of();
             })
             .onMessage(ProcessOrder.class, (ctx, msg) -> {
-                // orderId and customerId are now in MDC
+                // orderId and userId are now in MDC
                 ctx.getLog().info("Processing order");
                 return Behaviors.same();
             })
@@ -127,7 +127,7 @@ public class OrderActor implements SpringActor<OrderActor.Command> {
 
 Log output includes dynamic values:
 ```
-[INFO] [orderId=order-456] [customerId=cust-789] Processing order
+[INFO] [orderId=order-456] [userId=cust-789] Processing order
 ```
 
 ## Combining Static and Dynamic MDC
