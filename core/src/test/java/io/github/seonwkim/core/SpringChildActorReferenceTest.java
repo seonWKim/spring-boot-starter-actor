@@ -143,8 +143,8 @@ class SpringChildActorReferenceTest {
                     .spawnAndWait();
 
             // When: Getting with custom timeout
-            Optional<SpringActorRef<ReferenceTestChildActor.Command>>child = parent
-                    .child(ReferenceTestChildActor.class,"timeout-child")
+            Optional<SpringActorRef<ReferenceTestChildActor.Command>> child = parent
+                    .child(ReferenceTestChildActor.class, "timeout-child")
                     .withTimeout(Duration.ofSeconds(10))
                     .get()
                     .toCompletableFuture()
@@ -176,7 +176,7 @@ class SpringChildActorReferenceTest {
 
             // When: Checking if the child exists
             Boolean exists = parent
-                    .child(ReferenceTestChildActor.class,"existing-child-check")
+                    .child(ReferenceTestChildActor.class, "existing-child-check")
                     .exists()
                     .toCompletableFuture()
                     .get(5, TimeUnit.SECONDS);
@@ -197,7 +197,7 @@ class SpringChildActorReferenceTest {
 
             // When: Checking if a non-existent child exists
             Boolean exists = parent
-                    .child(ReferenceTestChildActor.class,"non-existent-check")
+                    .child(ReferenceTestChildActor.class, "non-existent-check")
                     .exists()
                     .toCompletableFuture()
                     .get(5, TimeUnit.SECONDS);
