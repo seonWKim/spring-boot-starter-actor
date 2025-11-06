@@ -9,10 +9,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.Map;
 
-/**
- * OrderProcessorActor demonstrates dynamic MDC usage.
- * Each message includes order-specific context in the logs.
- */
 @Component
 public class OrderProcessorActor implements SpringActor<OrderProcessorActor.Command> {
 
@@ -49,7 +45,6 @@ public class OrderProcessorActor implements SpringActor<OrderProcessorActor.Comm
     @Override
     public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
         return SpringActorBehavior.builder(Command.class, actorContext)
-            // Dynamic MDC: computed per message
             .withMdc(msg -> {
                 if (msg instanceof ProcessOrder order) {
                     Map<String, String> mdc = new java.util.HashMap<>();
@@ -64,11 +59,9 @@ public class OrderProcessorActor implements SpringActor<OrderProcessorActor.Comm
                 return Map.of();
             })
             .onMessage(ProcessOrder.class, (ctx, msg) -> {
-                // All log entries will include orderId, userId, and amount in MDC
                 ctx.getLog().info("Starting order processing");
 
                 try {
-                    // Simulate order processing
                     ctx.getLog().debug("Validating order details");
                     Thread.sleep(100);
 

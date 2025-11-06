@@ -9,11 +9,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.Map;
 
-/**
- * NotificationActor demonstrates actor tags and MDC for categorization.
- * This actor is tagged as "notification", "low-priority", and "io-bound"
- * to help filter and monitor notification processing in logs.
- */
 @Component
 public class NotificationActor implements SpringActor<NotificationActor.Command> {
 
@@ -22,7 +17,7 @@ public class NotificationActor implements SpringActor<NotificationActor.Command>
     public static class SendNotification implements Command {
         public final String notificationId;
         public final String userId;
-        public final String type; // email, sms, push
+        public final String type;
         public final String message;
         public final String requestId;
         public final ActorRef<NotificationSent> replyTo;
@@ -53,10 +48,8 @@ public class NotificationActor implements SpringActor<NotificationActor.Command>
     @Override
     public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
         return SpringActorBehavior.builder(Command.class, actorContext)
-            // Dynamic MDC for notification details
             .withMdc(msg -> {
-                if (msg instanceof SendNotification) {
-                    SendNotification notification = (SendNotification) msg;
+                if (msg instanceof SendNotification notification) {
                     Map<String, String> mdc = new java.util.HashMap<>();
                     mdc.put("notificationId", notification.notificationId);
                     mdc.put("userId", notification.userId);
@@ -69,11 +62,9 @@ public class NotificationActor implements SpringActor<NotificationActor.Command>
                 return Map.of();
             })
             .onMessage(SendNotification.class, (ctx, msg) -> {
-                // Tags (notification, low-priority, io-bound) appear in pekkoTags MDC
                 ctx.getLog().info("Sending {} notification", msg.type);
 
                 try {
-                    // Simulate notification sending
                     ctx.getLog().debug("Preparing notification content");
                     Thread.sleep(50);
 

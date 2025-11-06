@@ -5,10 +5,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
-/**
- * REST API Controller demonstrating the logging example.
- * All endpoints trigger actor operations that showcase MDC and tag-based logging.
- */
 @RestController
 @RequestMapping("/api")
 public class ApiController {
@@ -27,17 +23,6 @@ public class ApiController {
         this.notificationService = notificationService;
     }
 
-    /**
-     * Process an order.
-     * Demonstrates dynamic MDC with order details.
-     *
-     * Example:
-     * POST /api/orders
-     * {
-     *   "userId": "USER-123",
-     *   "amount": 99.99
-     * }
-     */
     @PostMapping("/orders")
     public Mono<OrderResponse> createOrder(@RequestBody OrderRequest request) {
         log.info("Received order request for user: {}, amount: {}",
@@ -51,19 +36,6 @@ public class ApiController {
             ));
     }
 
-    /**
-     * Process a payment.
-     * Demonstrates both static MDC (service, region) and dynamic MDC (payment details).
-     *
-     * Example:
-     * POST /api/payments
-     * {
-     *   "orderId": "ORD-123",
-     *   "userId": "USER-123",
-     *   "amount": 99.99,
-     *   "paymentMethod": "credit_card"
-     * }
-     */
     @PostMapping("/payments")
     public Mono<PaymentResponse> processPayment(@RequestBody PaymentRequest request) {
         log.info("Received payment request for order: {}, amount: {}",
@@ -83,18 +55,6 @@ public class ApiController {
             ));
     }
 
-    /**
-     * Send a notification.
-     * Demonstrates actor tags for categorization (notification, low-priority, io-bound).
-     *
-     * Example:
-     * POST /api/notifications
-     * {
-     *   "userId": "USER-123",
-     *   "type": "email",
-     *   "message": "Your order has been processed"
-     * }
-     */
     @PostMapping("/notifications")
     public Mono<NotificationResponse> sendNotification(@RequestBody NotificationRequest request) {
         log.info("Received notification request for user: {}, type: {}",
@@ -112,28 +72,13 @@ public class ApiController {
             ));
     }
 
-    /**
-     * End-to-end workflow: order -> payment -> notification
-     * Demonstrates request tracing across multiple actors with MDC.
-     *
-     * Example:
-     * POST /api/checkout
-     * {
-     *   "userId": "USER-123",
-     *   "amount": 99.99,
-     *   "paymentMethod": "credit_card"
-     * }
-     */
     @PostMapping("/checkout")
     public Mono<CheckoutResponse> checkout(@RequestBody CheckoutRequest request) {
-        // Capture MDC values ONCE before entering reactive chain
-        // This is crucial because MDC is ThreadLocal and won't be available in reactive operators
         final String requestId = org.slf4j.MDC.get("requestId");
         final String userId = request.userId;
 
         log.info("Starting checkout for user: {}, amount: {}", userId, request.amount);
 
-        // Pass requestId explicitly through the entire chain to ensure proper MDC propagation
         return orderService.processOrder(userId, request.amount, requestId)
             .flatMap(orderResult -> {
                 if ("SUCCESS".equals(orderResult.status)) {
@@ -142,7 +87,7 @@ public class ApiController {
                         userId,
                         request.amount,
                         request.paymentMethod,
-                        requestId  // Pass explicitly through reactive chain
+                        requestId
                     ).map(paymentResult -> new Object[]{ orderResult, paymentResult });
                 } else {
                     return Mono.error(new RuntimeException("Order processing failed: " + orderResult.message));
@@ -159,7 +104,7 @@ public class ApiController {
                         userId,
                         "email",
                         "Your order " + orderResult.orderId + " has been processed successfully",
-                        requestId  // Pass explicitly through reactive chain
+                        requestId
                     ).map(notifResult -> new CheckoutResponse(
                         "SUCCESS",
                         orderResult.orderId,

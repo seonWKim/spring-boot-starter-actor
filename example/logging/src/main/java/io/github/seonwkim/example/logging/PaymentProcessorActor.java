@@ -9,11 +9,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.Map;
 
-/**
- * PaymentProcessorActor demonstrates both static and dynamic MDC.
- * Static MDC (service, region) is set at spawn time.
- * Dynamic MDC (paymentId, orderId) is computed per message.
- */
 @Component
 public class PaymentProcessorActor implements SpringActor<PaymentProcessorActor.Command> {
 
@@ -57,10 +52,8 @@ public class PaymentProcessorActor implements SpringActor<PaymentProcessorActor.
     @Override
     public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
         return SpringActorBehavior.builder(Command.class, actorContext)
-            // Dynamic MDC: computed per message
             .withMdc(msg -> {
-                if (msg instanceof ProcessPayment) {
-                    ProcessPayment payment = (ProcessPayment) msg;
+                if (msg instanceof ProcessPayment payment) {
                     Map<String, String> mdc = new java.util.HashMap<>();
                     mdc.put("paymentId", payment.paymentId);
                     mdc.put("orderId", payment.orderId);
@@ -75,11 +68,9 @@ public class PaymentProcessorActor implements SpringActor<PaymentProcessorActor.
                 return Map.of();
             })
             .onMessage(ProcessPayment.class, (ctx, msg) -> {
-                // All log entries include both static and dynamic MDC
                 ctx.getLog().info("Starting payment processing");
 
                 try {
-                    // Simulate payment processing
                     ctx.getLog().debug("Validating payment method");
                     Thread.sleep(80);
 
