@@ -71,6 +71,38 @@ public class SpringActorRef<T> {
     }
 
     /**
+     * Asks the actor a question using an AskCommand and returns a builder for configuring
+     * the ask operation. This method automatically injects the reply-to reference into the command.
+     *
+     * <p>Example usage:
+     * <pre>
+     * {@code
+     * // Simple ask
+     * CompletionStage<String> result = springActorRef.ask(new GetUserName("user123")).execute();
+     *
+     * // With timeout
+     * CompletionStage<String> result = springActorRef.ask(new GetUserName("user123"))
+     *     .withTimeout(Duration.ofSeconds(5))
+     *     .execute();
+     *
+     * // With timeout handler
+     * CompletionStage<String> result = springActorRef.ask(new GetUserName("user123"))
+     *     .withTimeout(Duration.ofSeconds(5))
+     *     .onTimeout(() -> "default-value")
+     *     .execute();
+     * }
+     * </pre>
+     *
+     * @param command The command that implements AskCommand (must also be assignable to T)
+     * @param <RES> The type of the response message
+     * @return An AskBuilder for configuring and executing the ask operation
+     */
+    @SuppressWarnings("unchecked")
+    public <RES> AskBuilder<T, RES> ask(AskCommand<RES> command) {
+        return new AskBuilder<>(replyTo -> (T) command.withReplyTo(replyTo), (ActorRef<T>) actorRef, scheduler, defaultTimeout);
+    }
+
+    /**
      * Asks the actor a question and expects a response, using the default timeout. This method sends
      * a message to the actor and returns a CompletionStage that will be completed with the response.
      *
@@ -120,6 +152,7 @@ public class SpringActorRef<T> {
     public <REQ extends T, RES> AskBuilder<REQ, RES> askBuilder(Function<ActorRef<RES>, REQ> messageFactory) {
         return new AskBuilder<>(messageFactory, (ActorRef<REQ>) actorRef, scheduler, defaultTimeout);
     }
+
 
     /**
      * Sends a message to the actor without expecting a response.
