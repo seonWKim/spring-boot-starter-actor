@@ -277,6 +277,7 @@ public class SpringActorSpawnBuilder<A extends SpringActorWithContext<C, ?>, C> 
                 actorContext,
                 mailboxConfig,
                 dispatcherConfig,
+                tagsConfig,
                 isClusterSingleton,
                 supervisorStrategy,
                 timeout);

@@ -157,7 +157,7 @@ public class HierarchicalActorBehavior<C> {
         // Check if this is me
         if (actorId.equals(msg.childId)) {
             ctx.getLog().info("{} {} processing work '{}'", actorTypeName, actorId, msg.taskName);
-            return onProcessWork(new HierarchicalActor.ProcessWork(msg.taskName, msg.replyTo));
+            return onProcessWork(new HierarchicalActor.ProcessWork(msg.taskName, msg.getReplyTo()));
         }
 
         // Check if it's a direct child
@@ -168,7 +168,7 @@ public class HierarchicalActorBehavior<C> {
             logPublisher.publish(
                     String.format("[%s] 📬 Routing task '%s' to child '%s'", actorId, msg.taskName, msg.childId));
 
-            child.tell((C) new HierarchicalActor.ProcessWork(msg.taskName, msg.replyTo));
+            child.tell((C) new HierarchicalActor.ProcessWork(msg.taskName, msg.getReplyTo()));
             return Behaviors.same();
         }
 
@@ -176,8 +176,8 @@ public class HierarchicalActorBehavior<C> {
         ctx.getLog().info("{} {} forwarding work to children to find {}", actorTypeName, actorId, msg.childId);
 
         for (ActorRef<Void> childRef : (Iterable<ActorRef<Void>>) ctx.getChildren()::iterator) {
-            ActorRef<C> child = (ActorRef<C>) (ActorRef<?>) childRef;
-            child.tell((C) new HierarchicalActor.RouteToChild(msg.childId, msg.taskName, msg.replyTo));
+            ActorRef<C> child = (ActorRef<C>) childRef;
+            child.tell((C) new HierarchicalActor.RouteToChild(msg.childId, msg.taskName));
         }
 
         return Behaviors.same();
@@ -190,7 +190,7 @@ public class HierarchicalActorBehavior<C> {
         // Check if this is me
         if (actorId.equals(msg.childId)) {
             ctx.getLog().info("{} {} triggering failure on self", actorTypeName, actorId);
-            return onTriggerFailure(new HierarchicalActor.TriggerFailure(msg.replyTo));
+            return onTriggerFailure(new HierarchicalActor.TriggerFailure(msg.getReplyTo()));
         }
 
         // Check if it's a direct child
@@ -200,7 +200,7 @@ public class HierarchicalActorBehavior<C> {
             ctx.getLog().info("{} {} triggering failure in child {}", actorTypeName, actorId, msg.childId);
             logPublisher.publish(String.format("[%s] 💥 Triggering failure in child '%s'", actorId, msg.childId));
 
-            child.tell((C) new HierarchicalActor.TriggerFailure(msg.replyTo));
+            child.tell((C) new HierarchicalActor.TriggerFailure(msg.getReplyTo()));
             return Behaviors.same();
         }
 
@@ -209,8 +209,8 @@ public class HierarchicalActorBehavior<C> {
                 .info("{} {} forwarding failure trigger to children to find {}", actorTypeName, actorId, msg.childId);
 
         for (ActorRef<Void> childRef : (Iterable<ActorRef<Void>>) ctx.getChildren()::iterator) {
-            ActorRef<C> child = (ActorRef<C>) (ActorRef<?>) childRef;
-            child.tell((C) new HierarchicalActor.TriggerChildFailure(msg.childId, msg.replyTo));
+            ActorRef<C> child = (ActorRef<C>) childRef;
+            child.tell((C) new HierarchicalActor.TriggerChildFailure(msg.childId));
         }
 
         return Behaviors.same();
@@ -237,9 +237,9 @@ public class HierarchicalActorBehavior<C> {
         ctx.getLog().info("{} {} forwarding stop request to children to find {}", actorTypeName, actorId, msg.childId);
 
         for (ActorRef<Void> childRef : (Iterable<ActorRef<Void>>) ctx.getChildren()::iterator) {
-            ActorRef<C> child = (ActorRef<C>) (ActorRef<?>) childRef;
+            ActorRef<C> child = (ActorRef<C>) childRef;
             HierarchicalActor.StopChild stopCmd = new HierarchicalActor.StopChild(msg.childId);
-            stopCmd.setReplyTo(msg.getReplyTo());
+            stopCmd.withReplyTo(msg.getReplyTo());
             child.tell((C) stopCmd);
         }
 
@@ -254,7 +254,7 @@ public class HierarchicalActorBehavior<C> {
         if (actorId.equals(msg.parentId)) {
             ctx.getLog().info("{} {} is the parent, spawning child {}", actorTypeName, actorId, msg.childId);
             HierarchicalActor.SpawnChild spawnCmd = new HierarchicalActor.SpawnChild(msg.childId, msg.strategy);
-            spawnCmd.setReplyTo(msg.getReplyTo());
+            spawnCmd.withReplyTo(msg.getReplyTo());
             return onSpawnChild(spawnCmd);
         }
 
@@ -263,7 +263,7 @@ public class HierarchicalActorBehavior<C> {
         if (directChildOpt.isPresent()) {
             ActorRef<C> child = (ActorRef<C>) (ActorRef<?>) directChildOpt.get();
             HierarchicalActor.SpawnChild spawnCmd = new HierarchicalActor.SpawnChild(msg.childId, msg.strategy);
-            spawnCmd.setReplyTo(msg.getReplyTo());
+            spawnCmd.withReplyTo(msg.getReplyTo());
             child.tell((C) spawnCmd);
 
             ctx.getLog()
@@ -293,7 +293,7 @@ public class HierarchicalActorBehavior<C> {
             ActorRef<C> child = (ActorRef<C>) (ActorRef<?>) childRef;
             HierarchicalActor.RouteSpawnChild routeCmd =
                     new HierarchicalActor.RouteSpawnChild(msg.parentId, msg.childId, msg.strategy);
-            routeCmd.setReplyTo(msg.getReplyTo());
+            routeCmd.withReplyTo(msg.getReplyTo());
             child.tell((C) routeCmd);
         }
 
@@ -314,15 +314,13 @@ public class HierarchicalActorBehavior<C> {
         List<CompletableFuture<ActorHierarchy.ActorNode>> childFutures = new ArrayList<>();
 
         ctx.getChildren().forEach(childRef -> {
-            String childName = childRef.path().name();
-
             // Ask each child for its hierarchy (recursive)
-            ActorRef<C> typedChild = (ActorRef<C>) (ActorRef<?>) childRef;
+            ActorRef<C> typedChild = (ActorRef<C>) childRef;
             CompletableFuture<ActorHierarchy.ActorNode> future = AskPattern.<C, ActorHierarchy.ActorNode>ask(
                             typedChild,
                             replyTo -> {
                                 HierarchicalActor.GetHierarchy cmd = new HierarchicalActor.GetHierarchy();
-                                cmd.setReplyTo(replyTo);
+                                cmd.withReplyTo(replyTo);
                                 return (C) cmd;
                             },
                             Duration.ofSeconds(3),

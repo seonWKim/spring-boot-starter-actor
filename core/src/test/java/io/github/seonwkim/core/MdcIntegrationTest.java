@@ -3,7 +3,6 @@ package io.github.seonwkim.core;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.AppenderBase;
-import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -106,15 +105,13 @@ public class MdcIntegrationTest {
     // Test message types
     public interface TestCommand extends FrameworkCommand {}
 
-    public static class Ping implements TestCommand {
+    public static class Ping extends AskCommand<Pong> implements TestCommand {
         public final String message;
         public final String messageId;
-        public final ActorRef<Pong> replyTo;
 
-        public Ping(String message, String messageId, ActorRef<Pong> replyTo) {
+        public Ping(String message, String messageId) {
             this.message = message;
             this.messageId = messageId;
-            this.replyTo = replyTo;
         }
     }
 
@@ -134,7 +131,7 @@ public class MdcIntegrationTest {
             return SpringActorBehavior.builder(TestCommand.class, actorContext)
                     .onMessage(Ping.class, (ctx, msg) -> {
                         ctx.getLog().info("Static MDC actor received: {}", msg.message);
-                        msg.replyTo.tell(new Pong("Pong: " + msg.message, ctx.getSelf().path().toString()));
+                        msg.reply(new Pong("Pong: " + msg.message, ctx.getSelf().path().toString()));
                         return Behaviors.same();
                     })
                     .build();
@@ -157,7 +154,7 @@ public class MdcIntegrationTest {
                     })
                     .onMessage(Ping.class, (ctx, msg) -> {
                         ctx.getLog().info("Dynamic MDC actor received: {}", msg.message);
-                        msg.replyTo.tell(new Pong("Pong: " + msg.message, ctx.getSelf().path().toString()));
+                        msg.reply(new Pong("Pong: " + msg.message, ctx.getSelf().path().toString()));
                         return Behaviors.same();
                     })
                     .build();
@@ -180,7 +177,7 @@ public class MdcIntegrationTest {
                     })
                     .onMessage(Ping.class, (ctx, msg) -> {
                         ctx.getLog().info("Combined MDC actor received: {}", msg.message);
-                        msg.replyTo.tell(new Pong("Pong: " + msg.message, ctx.getSelf().path().toString()));
+                        msg.reply(new Pong("Pong: " + msg.message, ctx.getSelf().path().toString()));
                         return Behaviors.same();
                     })
                     .build();
@@ -193,7 +190,7 @@ public class MdcIntegrationTest {
             return SpringActorBehavior.builder(TestCommand.class, actorContext)
                     .onMessage(Ping.class, (ctx, msg) -> {
                         ctx.getLog().info("Parent received: {}", msg.message);
-                        msg.replyTo.tell(new Pong("Pong: " + msg.message, ctx.getSelf().path().toString()));
+                        msg.reply(new Pong("Pong: " + msg.message, ctx.getSelf().path().toString()));
                         return Behaviors.same();
                     })
                     .build();
@@ -216,7 +213,7 @@ public class MdcIntegrationTest {
                     })
                     .onMessage(Ping.class, (ctx, msg) -> {
                         ctx.getLog().info("Child received: {}", msg.message);
-                        msg.replyTo.tell(new Pong("Pong: " + msg.message, ctx.getSelf().path().toString()));
+                        msg.reply(new Pong("Pong: " + msg.message, ctx.getSelf().path().toString()));
                         return Behaviors.same();
                     })
                     .build();
@@ -224,7 +221,8 @@ public class MdcIntegrationTest {
     }
 
     private Pong sendPingAndWait(SpringActorRef<TestCommand> actor, String message, String messageId) throws Exception {
-        return actor.<Ping, Pong>ask(replyTo -> new Ping(message, messageId, replyTo))
+        return actor.ask(new Ping(message, messageId))
+                .execute()
                 .toCompletableFuture()
                 .get();
     }

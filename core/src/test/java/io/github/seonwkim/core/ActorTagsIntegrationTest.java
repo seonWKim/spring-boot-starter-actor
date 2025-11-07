@@ -1,6 +1,5 @@
 package io.github.seonwkim.core;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -11,7 +10,6 @@ import java.util.concurrent.CompletionStage;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.AppenderBase;
-import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -101,13 +99,10 @@ public class ActorTagsIntegrationTest {
     // Test message types
     public interface TestCommand extends FrameworkCommand {}
 
-    public static class Ping implements TestCommand {
+    public static class Ping extends AskCommand<Pong> implements TestCommand {
         public final String message;
-        public final ActorRef<Pong> replyTo;
-
-        public Ping(String message, ActorRef<Pong> replyTo) {
+        public Ping(String message) {
             this.message = message;
-            this.replyTo = replyTo;
         }
     }
 
@@ -127,7 +122,7 @@ public class ActorTagsIntegrationTest {
             return SpringActorBehavior.builder(TestCommand.class, actorContext)
                     .onMessage(Ping.class, (ctx, msg) -> {
                         ctx.getLog().info("Received: {}", msg.message);
-                        msg.replyTo.tell(new Pong("Pong: " + msg.message, ctx.getSelf().path().toString()));
+                        msg.reply(new Pong("Pong: " + msg.message, ctx.getSelf().path().toString()));
                         return Behaviors.same();
                     })
                     .build();
@@ -140,7 +135,7 @@ public class ActorTagsIntegrationTest {
             return SpringActorBehavior.builder(TestCommand.class, actorContext)
                     .onMessage(Ping.class, (ctx, msg) -> {
                         ctx.getLog().info("Parent received: {}", msg.message);
-                        msg.replyTo.tell(new Pong("Pong: " + msg.message, ctx.getSelf().path().toString()));
+                        msg.reply(new Pong("Pong: " + msg.message, ctx.getSelf().path().toString()));
                         return Behaviors.same();
                     })
                     .build();
@@ -153,7 +148,7 @@ public class ActorTagsIntegrationTest {
             return SpringActorBehavior.builder(TestCommand.class, actorContext)
                     .onMessage(Ping.class, (ctx, msg) -> {
                         ctx.getLog().info("Child received: {}", msg.message);
-                        msg.replyTo.tell(new Pong("Pong: " + msg.message, ctx.getSelf().path().toString()));
+                        msg.reply(new Pong("Pong: " + msg.message, ctx.getSelf().path().toString()));
                         return Behaviors.same();
                     })
                     .build();
@@ -161,7 +156,8 @@ public class ActorTagsIntegrationTest {
     }
 
     private Pong sendPingAndWait(SpringActorRef<TestCommand> actor, String message) throws Exception {
-        return actor.<Ping, Pong>ask(replyTo -> new Ping(message, replyTo))
+        return actor.ask(new Ping(message))
+                .execute()
                 .toCompletableFuture()
                 .get();
     }
