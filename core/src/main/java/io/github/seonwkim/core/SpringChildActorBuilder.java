@@ -43,6 +43,8 @@ public class SpringChildActorBuilder<P, C> {
     @Nullable private SupervisorStrategy supervisionStrategy;
     @Nullable private MailboxConfig mailboxConfig;
     @Nullable private DispatcherConfig dispatcherConfig;
+    @Nullable private TagsConfig tagsConfig;
+    private MdcConfig mdcConfig = MdcConfig.empty();
     private Duration timeout;
 
     /**
@@ -172,6 +174,63 @@ public class SpringChildActorBuilder<P, C> {
     }
 
     /**
+     * Sets the tags configuration for this child actor. Tags are used for logging and categorization,
+     * appearing in the MDC pekkoTags attribute.
+     *
+     * <p>Example usage:
+     * <pre>{@code
+     * parent.child(ChildActor.class)
+     *     .withId("worker")
+     *     .withTags(TagsConfig.of("worker", "high-priority"))
+     *     .spawn();
+     * }</pre>
+     *
+     * @param tagsConfig The tags configuration
+     * @return This builder for method chaining
+     */
+    public SpringChildActorBuilder<P, C> withTags(TagsConfig tagsConfig) {
+        if (tagsConfig == null) {
+            throw new IllegalArgumentException("tagsConfig must not be null");
+        }
+        this.tagsConfig = tagsConfig;
+        return this;
+    }
+
+    /**
+     * Sets static MDC (Mapped Diagnostic Context) values for this child actor.
+     * These values will be included in all log entries from the child actor.
+     *
+     * <p>MDC is useful for adding contextual information like request IDs, user IDs,
+     * correlation IDs, or any other data that should appear in logs.
+     *
+     * <p>Example usage:
+     * <pre>{@code
+     * Map<String, String> mdc = Map.of(
+     *     "childId", "child-123",
+     *     "role", "worker"
+     * );
+     *
+     * parent.child(ChildActor.class)
+     *     .withId("worker")
+     *     .withMdc(MdcConfig.of(mdc))
+     *     .spawn();
+     * }</pre>
+     *
+     * <p>The child actor can combine these static MDC values with dynamic per-message MDC
+     * using {@link SpringActorBehavior.Builder#withMdc(java.util.function.Function)}.
+     *
+     * @param mdcConfig The MDC configuration
+     * @return This builder for method chaining
+     */
+    public SpringChildActorBuilder<P, C> withMdc(MdcConfig mdcConfig) {
+        if (mdcConfig == null) {
+            throw new IllegalArgumentException("mdcConfig must not be null");
+        }
+        this.mdcConfig = mdcConfig;
+        return this;
+    }
+
+    /**
      * Spawns the child actor and returns a CompletionStage with the child actor reference.
      * If the child already exists, the existing reference is returned.
      *
@@ -187,6 +246,9 @@ public class SpringChildActorBuilder<P, C> {
             childContext = new DefaultSpringActorContext(childId);
         }
 
+        // Apply MDC configuration to the child context
+        childContext.setMdcConfig(mdcConfig);
+
         // Cast parent ref to Object to send framework command
         ActorRef<Object> parentAsObject = (ActorRef<Object>) parentRef;
 
@@ -194,12 +256,13 @@ public class SpringChildActorBuilder<P, C> {
         final SupervisorStrategy strategy = supervisionStrategy;
         final MailboxConfig mailbox = mailboxConfig;
         final DispatcherConfig dispatcher = dispatcherConfig;
+        final TagsConfig tags = tagsConfig;
 
         return AskPattern.ask(
                         parentAsObject,
                         (ActorRef<FrameworkCommands.SpawnChildResponse<C>> replyTo) ->
                                 new FrameworkCommands.SpawnChild<>(
-                                        childActorClass, context, strategy, mailbox, dispatcher, replyTo),
+                                        childActorClass, context, strategy, mailbox, dispatcher, tags, replyTo),
                         timeout,
                         scheduler)
                 .thenApply(response -> {
@@ -236,11 +299,6 @@ public class SpringChildActorBuilder<P, C> {
                 throw new IllegalStateException("Either childId or childContext must be set");
             }
             childContext = new DefaultSpringActorContext(childId);
-        }
-
-        // Ensure childContext is initialized
-        if (childContext == null) {
-            throw new IllegalStateException("childContext must be initialized");
         }
 
         final SpringActorContext context = childContext;
@@ -282,11 +340,6 @@ public class SpringChildActorBuilder<P, C> {
             childContext = new DefaultSpringActorContext(childId);
         }
 
-        // Ensure childContext is initialized
-        if (childContext == null) {
-            throw new IllegalStateException("childContext must be initialized");
-        }
-
         final SpringActorContext context = childContext;
         ActorRef<Object> parentAsObject = (ActorRef<Object>) parentRef;
 
@@ -318,11 +371,6 @@ public class SpringChildActorBuilder<P, C> {
                 throw new IllegalStateException("Either childId or childContext must be set");
             }
             childContext = new DefaultSpringActorContext(childId);
-        }
-
-        // Ensure childContext is initialized
-        if (childContext == null) {
-            throw new IllegalStateException("childContext must be initialized");
         }
 
         final SpringActorContext context = childContext;

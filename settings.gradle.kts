@@ -6,6 +6,7 @@ include(":metrics")
 
 include(":example:chat")
 include(":example:cluster")
+include(":example:logging")
 include(":example:simple")
 include(":example:supervision")
 include(":example:synchronization")

@@ -32,6 +32,8 @@ public interface RootGuardian {
         public final MailboxConfig mailboxConfig;
         /** The dispatcher configuration */
         public final DispatcherConfig dispatcherConfig;
+        /** The tags configuration for logging/categorization */
+        public final TagsConfig tagsConfig;
         /** Whether the ActorRef should be cluster singleton * */
         public final Boolean isClusterSingleton;
         /** The supervisor strategy to use for this actor */
@@ -44,6 +46,7 @@ public interface RootGuardian {
          * @param replyTo The actor reference to reply to with the spawned actor reference
          * @param mailboxConfig The mailbox configuration
          * @param dispatcherConfig The dispatcher configuration
+         * @param tagsConfig The tags configuration
          * @param isClusterSingleton Whether the actor should be cluster singleton
          * @param supervisorStrategy The supervisor strategy (null for no supervision)
          */
@@ -53,6 +56,7 @@ public interface RootGuardian {
                 ActorRef<Spawned<?>> replyTo,
                 MailboxConfig mailboxConfig,
                 DispatcherConfig dispatcherConfig,
+                TagsConfig tagsConfig,
                 Boolean isClusterSingleton,
                 @Nullable SupervisorStrategy supervisorStrategy) {
             this.actorClass = actorClass;
@@ -60,6 +64,7 @@ public interface RootGuardian {
             this.replyTo = replyTo;
             this.mailboxConfig = mailboxConfig;
             this.dispatcherConfig = dispatcherConfig;
+            this.tagsConfig = tagsConfig;
             this.isClusterSingleton = isClusterSingleton;
             this.supervisorStrategy = supervisorStrategy;
         }

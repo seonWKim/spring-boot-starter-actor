@@ -204,11 +204,9 @@ class HierarchicalSupervisionTest {
 
         private static class ParentSupervisorBehavior {
             private final ActorContext<Command> ctx;
-            private final SpringActorContext actorContext;
 
             ParentSupervisorBehavior(ActorContext<Command> ctx, SpringActorContext actorContext) {
                 this.ctx = ctx;
-                this.actorContext = actorContext;
                 ctx.getLog().info("ParentSupervisor {} started", actorContext.actorId());
             }
 
@@ -251,9 +249,9 @@ class HierarchicalSupervisionTest {
                 SpringActorRef<Command> self =
                         new SpringActorRef<>(ctx.getSystem().scheduler(), ctx.getSelf());
 
-                // Spawn child using SpringActorRef unified API
+                // Spawn child using SpringActorRef builder API
                 ctx.pipeToSelf(
-                        self.child(ChildWorkerActor.class, msg.workerId).spawn(strategy),
+                        self.child(ChildWorkerActor.class).withId(msg.workerId).withSupervisionStrategy(strategy).spawn(),
                         (childRef, failure) -> new ChildReady(msg, childRef, failure));
 
                 return Behaviors.same();
@@ -448,10 +446,12 @@ class HierarchicalSupervisionTest {
                     .withId("di-test-parent")
                     .spawnAndWait();
 
-            // When: Spawning a child actor using unified API
+            // When: Spawning a child actor using builder API
             SpringActorRef<DependencyVerificationActor.Command> child = parent
-                    .child(DependencyVerificationActor.class, "di-test-child")
-                    .spawn(SupervisorStrategy.restart())
+                    .child(DependencyVerificationActor.class)
+                    .withId("di-test-child")
+                    .withSupervisionStrategy(SupervisorStrategy.restart())
+                    .spawn()
                     .toCompletableFuture()
                     .get(5, TimeUnit.SECONDS);
 
@@ -484,19 +484,22 @@ class HierarchicalSupervisionTest {
 
             // When: Spawning multiple child actors
             SpringActorRef<DependencyVerificationActor.Command> child1 = parent
-                    .child(DependencyVerificationActor.class, "singleton-child-1")
+                    .child(DependencyVerificationActor.class)
+                    .withId("singleton-child-1")
                     .spawn()
                     .toCompletableFuture()
                     .get(5, TimeUnit.SECONDS);
 
             SpringActorRef<DependencyVerificationActor.Command> child2 = parent
-                    .child(DependencyVerificationActor.class, "singleton-child-2")
+                    .child(DependencyVerificationActor.class)
+                    .withId("singleton-child-2")
                     .spawn()
                     .toCompletableFuture()
                     .get(5, TimeUnit.SECONDS);
 
             SpringActorRef<DependencyVerificationActor.Command> child3 = parent
-                    .child(DependencyVerificationActor.class, "singleton-child-3")
+                    .child(DependencyVerificationActor.class)
+                    .withId("singleton-child-3")
                     .spawn()
                     .toCompletableFuture()
                     .get(5, TimeUnit.SECONDS);
@@ -592,7 +595,7 @@ class HierarchicalSupervisionTest {
             SpringActorRef<ChildWorkerActor.Command> worker = actorSystem
                     .actor(ChildWorkerActor.class)
                     .withId("di-restart-test-worker")
-                    .withSupervisonStrategy(SupervisorStrategy.restart())
+                    .withSupervisionStrategy(SupervisorStrategy.restart())
                     .spawnAndWait();
 
             // When: Actor processes a task (uses injected TaskLogger)
@@ -686,10 +689,12 @@ class HierarchicalSupervisionTest {
                     .withId("supervisor-spawn-test")
                     .spawnAndWait();
 
-            // When: Spawning a child directly using the unified reference API
+            // When: Spawning a child directly using the builder API
             SpringActorRef<ChildWorkerActor.Command> childRef = supervisor
-                    .child(ChildWorkerActor.class, "direct-spawn-child")
-                    .spawn(SupervisorStrategy.restart())
+                    .child(ChildWorkerActor.class)
+                    .withId("direct-spawn-child")
+                    .withSupervisionStrategy(SupervisorStrategy.restart())
+                    .spawn()
                     .toCompletableFuture()
                     .get(5, TimeUnit.SECONDS);
 
@@ -1007,7 +1012,7 @@ class HierarchicalSupervisionTest {
     /**
      * Tests for top-level actor supervision strategies.
      * These tests verify that actors spawned directly from SpringActorSystem
-     * can be supervised using the withSupervisonStrategy() API.
+     * can be supervised using the withSupervisionStrategy() API.
      */
     @Nested
     @SpringBootTest(classes = TestApp.class)
@@ -1023,7 +1028,7 @@ class HierarchicalSupervisionTest {
             SpringActorRef<ChildWorkerActor.Command> worker = actorSystem
                     .actor(ChildWorkerActor.class)
                     .withId("top-level-restart-worker")
-                    .withSupervisonStrategy(SupervisorStrategy.restart())
+                    .withSupervisionStrategy(SupervisorStrategy.restart())
                     .spawnAndWait();
 
             // When: Actor processes a task successfully
@@ -1036,8 +1041,7 @@ class HierarchicalSupervisionTest {
             assertThat(taskResult).isEqualTo("Completed: task-before-failure");
 
             // And: Actor fails (triggering restart)
-            String failResult = worker.<ChildWorkerActor.Fail, String>askBuilder(it ->
-                            new ChildWorkerActor.Fail(it))
+            String failResult = worker.<ChildWorkerActor.Fail, String>askBuilder(ChildWorkerActor.Fail::new)
                     .withTimeout(Duration.ofSeconds(5))
                     .execute()
                     .toCompletableFuture()
@@ -1065,7 +1069,7 @@ class HierarchicalSupervisionTest {
             SpringActorRef<ChildWorkerActor.Command> worker = actorSystem
                     .actor(ChildWorkerActor.class)
                     .withId("top-level-state-worker")
-                    .withSupervisonStrategy(SupervisorStrategy.restart())
+                    .withSupervisionStrategy(SupervisorStrategy.restart())
                     .spawnAndWait();
 
             // When: Actor processes multiple tasks
@@ -1081,8 +1085,7 @@ class HierarchicalSupervisionTest {
                     .get();
 
             // Then: State should reflect 2 completed tasks
-            Integer stateBefore = worker.<ChildWorkerActor.GetState, Integer>askBuilder(it ->
-                            new ChildWorkerActor.GetState(it))
+            Integer stateBefore = worker.<ChildWorkerActor.GetState, Integer>askBuilder(ChildWorkerActor.GetState::new)
                     .withTimeout(Duration.ofSeconds(5))
                     .execute()
                     .toCompletableFuture()
@@ -1090,8 +1093,7 @@ class HierarchicalSupervisionTest {
             assertThat(stateBefore).isEqualTo(2);
 
             // When: Actor fails (triggering restart that resets state)
-            worker.<ChildWorkerActor.Fail, String>askBuilder(it ->
-                            new ChildWorkerActor.Fail(it))
+            worker.<ChildWorkerActor.Fail, String>askBuilder(ChildWorkerActor.Fail::new)
                     .withTimeout(Duration.ofSeconds(5))
                     .execute()
                     .toCompletableFuture()
@@ -1100,8 +1102,7 @@ class HierarchicalSupervisionTest {
             Thread.sleep(100); // Wait for restart
 
             // Then: State should be reset to 0 after restart
-            Integer stateAfter = worker.<ChildWorkerActor.GetState, Integer>askBuilder(it ->
-                            new ChildWorkerActor.GetState(it))
+            Integer stateAfter = worker.<ChildWorkerActor.GetState, Integer>askBuilder(ChildWorkerActor.GetState::new)
                     .withTimeout(Duration.ofSeconds(5))
                     .execute()
                     .toCompletableFuture()
@@ -1118,7 +1119,7 @@ class HierarchicalSupervisionTest {
             SpringActorRef<ChildWorkerActor.Command> worker = actorSystem
                     .actor(ChildWorkerActor.class)
                     .withId("top-level-limited-worker")
-                    .withSupervisonStrategy(SupervisorStrategy.restart().withLimit(2, Duration.ofSeconds(10)))
+                    .withSupervisionStrategy(SupervisorStrategy.restart().withLimit(2, Duration.ofSeconds(10)))
                     .spawnAndWait();
 
             // When: Actor fails once (first restart)
@@ -1180,7 +1181,7 @@ class HierarchicalSupervisionTest {
             SpringActorRef<ChildWorkerActor.Command> worker = actorSystem
                     .actor(ChildWorkerActor.class)
                     .withId("top-level-stop-worker")
-                    .withSupervisonStrategy(SupervisorStrategy.stop())
+                    .withSupervisionStrategy(SupervisorStrategy.stop())
                     .spawnAndWait();
 
             // When: Actor processes a task successfully
@@ -1217,7 +1218,7 @@ class HierarchicalSupervisionTest {
             SpringActorRef<ChildWorkerActor.Command> worker = actorSystem
                     .actor(ChildWorkerActor.class)
                     .withId("top-level-resume-worker")
-                    .withSupervisonStrategy(SupervisorStrategy.resume())
+                    .withSupervisionStrategy(SupervisorStrategy.resume())
                     .spawnAndWait();
 
             // When: Actor processes tasks before failure
@@ -1251,8 +1252,7 @@ class HierarchicalSupervisionTest {
             Thread.sleep(100);
 
             // Then: State should be preserved (not reset) - this is the key difference from restart
-            Integer stateAfter = worker.<ChildWorkerActor.GetState, Integer>askBuilder(it ->
-                            new ChildWorkerActor.GetState(it))
+            Integer stateAfter = worker.<ChildWorkerActor.GetState, Integer>askBuilder(ChildWorkerActor.GetState::new)
                     .withTimeout(Duration.ofSeconds(5))
                     .execute()
                     .toCompletableFuture()
@@ -1269,8 +1269,7 @@ class HierarchicalSupervisionTest {
             assertThat(result).isEqualTo("Completed: task-after-resume");
 
             // State incremented after resume
-            Integer finalState = worker.<ChildWorkerActor.GetState, Integer>askBuilder(it ->
-                            new ChildWorkerActor.GetState(it))
+            Integer finalState = worker.<ChildWorkerActor.GetState, Integer>askBuilder(ChildWorkerActor.GetState::new)
                     .withTimeout(Duration.ofSeconds(5))
                     .execute()
                     .toCompletableFuture()
@@ -1286,7 +1285,7 @@ class HierarchicalSupervisionTest {
             SpringActorRef<ChildWorkerActor.Command> worker = actorSystem
                     .actor(ChildWorkerActor.class)
                     .withId("top-level-no-supervision-worker")
-                    // No withSupervisonStrategy() call - defaults to null
+                    // No withSupervisionStrategy() call - defaults to null
                     .spawnAndWait();
 
             // When: Actor processes a task successfully
@@ -1299,7 +1298,7 @@ class HierarchicalSupervisionTest {
             assertThat(taskResult).isEqualTo("Completed: task-before-failure");
 
             // And: Actor fails (no supervision means it stops)
-            worker.<ChildWorkerActor.Fail, String>askBuilder(it -> new ChildWorkerActor.Fail(it))
+            worker.<ChildWorkerActor.Fail, String>askBuilder(ChildWorkerActor.Fail::new)
                     .withTimeout(Duration.ofSeconds(5))
                     .execute()
                     .toCompletableFuture()

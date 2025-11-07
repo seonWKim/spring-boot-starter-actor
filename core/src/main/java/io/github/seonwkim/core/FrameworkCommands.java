@@ -80,6 +80,7 @@ public final class FrameworkCommands {
         @Nullable public final SupervisorStrategy strategy;
         public final MailboxConfig mailboxConfig;
         public final DispatcherConfig dispatcherConfig;
+        public final TagsConfig tagsConfig;
         public final ActorRef<SpawnChildResponse<C>> replyTo;
 
         public SpawnChild(
@@ -88,12 +89,14 @@ public final class FrameworkCommands {
                 @Nullable SupervisorStrategy strategy,
                 @Nullable MailboxConfig mailboxConfig,
                 @Nullable DispatcherConfig dispatcherConfig,
+                @Nullable TagsConfig tagsConfig,
                 ActorRef<SpawnChildResponse<C>> replyTo) {
             this.actorClass = actorClass;
             this.childContext = childContext;
             this.strategy = strategy;
             this.mailboxConfig = mailboxConfig != null ? mailboxConfig : MailboxConfig.defaultMailbox();
             this.dispatcherConfig = dispatcherConfig != null ? dispatcherConfig : DispatcherConfig.defaultDispatcher();
+            this.tagsConfig = tagsConfig != null ? tagsConfig : TagsConfig.empty();
             this.replyTo = replyTo;
         }
     }

@@ -2,11 +2,12 @@ package io.github.seonwkim.core;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
-import org.apache.pekko.actor.typed.Props;
 import org.apache.pekko.actor.typed.Signal;
 import org.apache.pekko.actor.typed.SupervisorStrategy;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
@@ -109,6 +110,7 @@ public final class SpringActorBehavior<C> {
         private final List<SignalHandler<C, S, ?>> signalHandlers = new ArrayList<>();
         private boolean enableFrameworkCommands = false;
         @Nullable private SupervisorStrategy supervisionStrategy = null;
+        @Nullable private Function<C, Map<String, String>> mdcForMessage = null;
 
         private Builder(
                 Class<C> commandClass, SpringActorContext actorContext, Function<ActorContext<C>, S> stateFactory) {
@@ -166,6 +168,7 @@ public final class SpringActorBehavior<C> {
             Builder<C, NewS> newBuilder = new Builder<>(commandClass, actorContext, stateFactory);
             newBuilder.enableFrameworkCommands = this.enableFrameworkCommands;
             newBuilder.supervisionStrategy = this.supervisionStrategy;
+            newBuilder.mdcForMessage = this.mdcForMessage;
             return newBuilder;
         }
 
@@ -202,6 +205,40 @@ public final class SpringActorBehavior<C> {
         }
 
         /**
+         * Configures dynamic MDC (Mapped Diagnostic Context) values that are computed per message.
+         *
+         * <p>MDC allows you to add contextual information to log entries. This method configures
+         * dynamic MDC values that are computed for each incoming message. These will be combined
+         * with any static MDC values configured via {@link SpringActorSpawnBuilder#withMdc(MdcConfig)}.
+         *
+         * <p>Example usage:
+         * <pre>{@code
+         * SpringActorBehavior.builder(Command.class, actorContext)
+         *     .withMdc(msg -> Map.of(
+         *         "messageType", msg.getClass().getSimpleName(),
+         *         "messageId", msg.getId(),
+         *         "timestamp", String.valueOf(System.currentTimeMillis())
+         *     ))
+         *     .onMessage(ProcessOrder.class, (ctx, msg) -> {
+         *         // MDC automatically includes messageType, messageId, timestamp
+         *         ctx.getLog().info("Processing order");
+         *         return Behaviors.same();
+         *     })
+         *     .build();
+         * }</pre>
+         *
+         * <p>The function receives each message and should return a Map of MDC key-value pairs
+         * to be added to the logging context for that message.
+         *
+         * @param mdcForMessage A function that computes MDC values from a message
+         * @return this builder for chaining
+         */
+        public Builder<C, S> withMdc(Function<C, Map<String, String>> mdcForMessage) {
+            this.mdcForMessage = mdcForMessage;
+            return this;
+        }
+
+        /**
          * Builds the final SpringActorBehavior.
          *
          * @return the constructed behavior
@@ -219,6 +256,9 @@ public final class SpringActorBehavior<C> {
                     if (supervisionStrategy != null) {
                         behavior = Behaviors.supervise(behavior).onFailure(supervisionStrategy);
                     }
+
+                    // Wrap with MDC if configured
+                    behavior = wrapWithMdcIfConfigured(behavior);
 
                     return behavior;
                 });
@@ -248,10 +288,41 @@ public final class SpringActorBehavior<C> {
                         behavior = Behaviors.supervise(behavior).onFailure(supervisionStrategy);
                     }
 
+                    // Wrap with MDC if configured
+                    behavior = wrapWithMdcIfConfigured(behavior);
+
                     return behavior;
                 });
                 return new SpringActorBehavior<>(userBehavior);
             }
+        }
+
+        /**
+         * Wraps the behavior with MDC if either static or dynamic MDC is configured.
+         */
+        private Behavior<C> wrapWithMdcIfConfigured(Behavior<C> behavior) {
+            // Get static MDC from context
+            Map<String, String> staticMdc = actorContext.mdcConfig().getMdc();
+            boolean hasStaticMdc = !staticMdc.isEmpty();
+            boolean hasDynamicMdc = mdcForMessage != null;
+
+            // Only wrap if we have MDC configuration
+            if (hasStaticMdc && hasDynamicMdc) {
+                // Both static and dynamic MDC
+                // requireNonNull for NullAway - we already checked hasDynamicMdc
+                final Function<C, Map<String, String>> mdcFn = Objects.requireNonNull(mdcForMessage);
+                return Behaviors.withMdc(commandClass, staticMdc, mdcFn::apply, behavior);
+            } else if (hasStaticMdc) {
+                // Only static MDC
+                return Behaviors.withMdc(commandClass, staticMdc, behavior);
+            } else if (hasDynamicMdc) {
+                // Only dynamic MDC
+                // requireNonNull for NullAway - we already checked hasDynamicMdc
+                final Function<C, Map<String, String>> mdcFn = Objects.requireNonNull(mdcForMessage);
+                return Behaviors.withMdc(commandClass, mdcFn::apply, behavior);
+            }
+
+            return behavior;
         }
 
         /**
@@ -295,7 +366,7 @@ public final class SpringActorBehavior<C> {
                         for (SignalHandler<C, S, ?> handler : signalHandlers) {
                             Behavior<C> result = handler.tryHandle(sig, state);
                             if (result != null) {
-                                return (Behavior<Object>) (Behavior<?>) result;
+                                return (Behavior<Object>) result;
                             }
                         }
                         return Behaviors.unhandled();
@@ -340,6 +411,7 @@ public final class SpringActorBehavior<C> {
                         msg.strategy,
                         msg.mailboxConfig,
                         msg.dispatcherConfig,
+                        msg.tagsConfig,
                         null,  // clusterSingleton - not supported for child actors
                         false  // isClusterSingleton - not supported for child actors
                 );

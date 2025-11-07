@@ -96,6 +96,7 @@ public class DefaultRootGuardian implements RootGuardian {
                 msg.supervisorStrategy,
                 msg.mailboxConfig,
                 msg.dispatcherConfig,
+                msg.tagsConfig,
                 clusterSingleton,
                 msg.isClusterSingleton);
 

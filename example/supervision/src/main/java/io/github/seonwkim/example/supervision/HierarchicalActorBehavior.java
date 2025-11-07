@@ -1,5 +1,6 @@
 package io.github.seonwkim.example.supervision;
 
+import io.github.seonwkim.core.ActorTypeRegistry;
 import io.github.seonwkim.core.SpringActorContext;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -119,14 +120,14 @@ public class HierarchicalActorBehavior<C> {
                 "[%s] 🚀 Spawning child '%s' with strategy: %s", actorId, msg.childId, strategyDescription));
 
         // Get the registry and create the child behavior
-        io.github.seonwkim.core.ActorTypeRegistry registry = actorContext.registry();
+        ActorTypeRegistry registry = actorContext.registry();
         if (registry == null) {
             msg.replyTo.tell(new ActorHierarchy.SpawnResult(msg.childId, false, "Registry not available"));
             return Behaviors.same();
         }
 
         // Create child context
-        io.github.seonwkim.core.SpringActorContext childContext = new io.github.seonwkim.core.SpringActorContext() {
+        SpringActorContext childContext = new SpringActorContext() {
             @Override
             public String actorId() {
                 return msg.childId;
@@ -162,7 +163,7 @@ public class HierarchicalActorBehavior<C> {
         // Check if it's a direct child
         Optional<ActorRef<Void>> childOpt = ctx.getChild(msg.childId);
         if (childOpt.isPresent()) {
-            ActorRef<C> child = (ActorRef<C>) (ActorRef<?>) childOpt.get();
+            ActorRef<C> child = (ActorRef<C>) childOpt.get();
             ctx.getLog().info("{} {} routing work '{}' to child {}", actorTypeName, actorId, msg.taskName, msg.childId);
             logPublisher.publish(
                     String.format("[%s] 📬 Routing task '%s' to child '%s'", actorId, msg.taskName, msg.childId));

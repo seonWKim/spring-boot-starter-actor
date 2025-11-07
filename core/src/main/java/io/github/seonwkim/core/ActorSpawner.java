@@ -76,6 +76,7 @@ public final class ActorSpawner {
      *   <li>Creating behavior from the actor type registry</li>
      *   <li>Applying supervision strategy</li>
      *   <li>Configuring mailbox and dispatcher</li>
+     *   <li>Applying actor tags for logging/categorization</li>
      *   <li>Supporting cluster singleton spawning</li>
      * </ul>
      *
@@ -87,6 +88,7 @@ public final class ActorSpawner {
      * @param supervisorStrategy The supervision strategy (null for no supervision)
      * @param mailboxConfig The mailbox configuration
      * @param dispatcherConfig The dispatcher configuration
+     * @param tagsConfig The tags configuration for logging/categorization
      * @param clusterSingleton The cluster singleton (null if not in cluster mode)
      * @param isClusterSingleton Whether to spawn as a cluster singleton
      * @param <T> The command type of the spawned actor
@@ -102,6 +104,7 @@ public final class ActorSpawner {
             @Nullable SupervisorStrategy supervisorStrategy,
             MailboxConfig mailboxConfig,
             DispatcherConfig dispatcherConfig,
+            TagsConfig tagsConfig,
             @Nullable ClusterSingleton clusterSingleton,
             boolean isClusterSingleton) {
 
@@ -124,19 +127,21 @@ public final class ActorSpawner {
 
             SingletonActor<?> singletonActor = SingletonActor.of(behavior, actorName);
 
-            if (dispatcherConfig.shouldUseProps()) {
-                Props props = dispatcherConfig.toProps();
-                props = mailboxConfig.applyToProps(props);
+            // Build Props with dispatcher, mailbox, and tags
+            Props props = buildProps(dispatcherConfig, mailboxConfig, tagsConfig);
+            if (props != Props.empty()) {
                 singletonActor = singletonActor.withProps(props);
             }
 
             ref = clusterSingleton.init(singletonActor);
         } else {
-            if (dispatcherConfig.shouldUseProps()) {
-                Props props = dispatcherConfig.toProps();
-                props = mailboxConfig.applyToProps(props);
+            // Build Props with dispatcher, mailbox, and tags
+            Props props = buildProps(dispatcherConfig, mailboxConfig, tagsConfig);
+
+            if (props != Props.empty()) {
                 ref = ctx.spawn(behavior, actorName, props);
             } else {
+                // If no props needed, use mailbox selector (more efficient)
                 ref = ctx.spawn(behavior, actorName, mailboxConfig.toMailboxSelector());
             }
         }
@@ -144,5 +149,36 @@ public final class ActorSpawner {
         @SuppressWarnings("unchecked")
         ActorRef<T> typedRef = (ActorRef<T>) ref;
         return typedRef;
+    }
+
+    /**
+     * Builds Props by combining dispatcher, mailbox, and tags configurations.
+     * Returns Props.empty() if no configuration is needed.
+     *
+     * <p>Props are combined using the {@code withNext()} method, allowing multiple
+     * configurations to be applied together (e.g., dispatcher + mailbox + tags).
+     *
+     * @param dispatcherConfig The dispatcher configuration
+     * @param mailboxConfig The mailbox configuration
+     * @param tagsConfig The tags configuration
+     * @return Combined Props or Props.empty()
+     */
+    private static Props buildProps(
+            DispatcherConfig dispatcherConfig,
+            MailboxConfig mailboxConfig,
+            TagsConfig tagsConfig) {
+
+        // Start with either dispatcher props or empty props
+        Props props = dispatcherConfig.shouldUseProps()
+                ? dispatcherConfig.toProps()
+                : Props.empty();
+
+        // Apply mailbox configuration
+        props = mailboxConfig.applyToProps(props);
+
+        // Apply tags configuration
+        props = tagsConfig.applyToProps(props);
+
+        return props;
     }
 }

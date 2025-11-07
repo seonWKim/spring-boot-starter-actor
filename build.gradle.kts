@@ -26,7 +26,11 @@ subprojects {
     apply(plugin = "java-library")
     apply(plugin = "com.diffplug.spotless")
     apply(plugin = "com.vanniktech.maven.publish")
-    apply(plugin = "net.ltgt.errorprone")
+
+    // Only apply error-prone to core modules, not examples
+    if (!project.path.startsWith(":example")) {
+        apply(plugin = "net.ltgt.errorprone")
+    }
 
     repositories {
         mavenCentral()
@@ -81,8 +85,12 @@ subprojects {
         implementation("org.apache.pekko:pekko-cluster-sharding-typed_3:${pekkoVersion}")
         implementation("org.apache.pekko:pekko-serialization-jackson_3:${pekkoVersion}")
         implementation("com.google.code.findbugs:jsr305:3.0.2")
-        errorprone("com.uber.nullaway:nullaway:0.10.26")
-        errorprone("com.google.errorprone:error_prone_core:2.10.0")
+
+        // Only add error-prone dependencies for non-example projects
+        if (!project.path.startsWith(":example")) {
+            errorprone("com.uber.nullaway:nullaway:0.10.26")
+            errorprone("com.google.errorprone:error_prone_core:2.10.0")
+        }
 
         testImplementation("org.apache.pekko:pekko-actor-testkit-typed_3:$pekkoVersion")
         testImplementation("org.awaitility:awaitility:4.3.0")
