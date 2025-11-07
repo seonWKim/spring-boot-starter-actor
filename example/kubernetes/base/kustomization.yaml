@@ -9,9 +9,6 @@ resources:
 - configmap.yaml
 - service.yaml
 - deployment.yaml
-- servicemonitor.yaml
-- podmonitor.yaml
-- networkpolicy.yaml
 
 commonLabels:
   app: spring-actor
@@ -19,4 +16,5 @@ commonLabels:
 
 images:
 - name: your-registry/spring-actor-app
-  newTag: latest
+  newName: spring-actor-chat
+  newTag: local

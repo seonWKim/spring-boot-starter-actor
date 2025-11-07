@@ -13,7 +13,7 @@ echo -e "${CYAN}"
 cat << "EOF"
 ╔════════════════════════════════════════════════════════════════╗
 ║                                                                ║
-║   Spring Boot Starter Actor - Kubernetes Example Setup        ║
+║   Spring Boot Starter Actor - Kubernetes Example Setup         ║
 ║                                                                ║
 ╚════════════════════════════════════════════════════════════════╝
 EOF
@@ -60,15 +60,22 @@ nodes:
 - role: control-plane
   image: kindest/node:v1.27.3
   extraPortMappings:
+  # Main load-balanced service
   - containerPort: 30080
     hostPort: 8080
     protocol: TCP
+  # Individual pod access (when using StatefulSet or specific pod services)
   - containerPort: 30081
     hostPort: 8081
     protocol: TCP
   - containerPort: 30082
     hostPort: 8082
     protocol: TCP
+# Add worker nodes for multi-node cluster testing
+- role: worker
+  image: kindest/node:v1.27.3
+- role: worker
+  image: kindest/node:v1.27.3
 EOF
     echo -e "${GREEN}✓ Cluster created${NC}"
 fi
@@ -92,8 +99,8 @@ echo
 # Build Docker image
 echo -e "${YELLOW}[4/6] Building Docker image...${NC}"
 
-if [ -f "build/libs/"*.jar ]; then
-    docker build -t spring-actor-chat:local .
+if ls build/libs/*.jar 1> /dev/null 2>&1; then
+    docker build -f Dockerfile.kubernetes -t spring-actor-chat:local .
 
     # Load image into kind
     kind load docker-image spring-actor-chat:local --name spring-actor-demo
@@ -252,9 +259,10 @@ echo -e "${CYAN}📝 Useful Commands:${NC}"
 echo -e "   ${GREEN}View pods:${NC}             kubectl get pods -n spring-actor"
 echo -e "   ${GREEN}View logs:${NC}             kubectl logs -f -n spring-actor -l app=spring-actor"
 echo -e "   ${GREEN}Check cluster:${NC}         kubectl exec -n spring-actor <pod-name> -- curl localhost:8558/cluster/members | jq"
-echo -e "   ${GREEN}Port forward:${NC}          kubectl port-forward -n spring-actor svc/spring-actor-http 8080:80"
+echo -e "   ${GREEN}Access all pods:${NC}       ./port-forward-pods.sh (ports 8080, 8081, 8082)"
 echo -e "   ${GREEN}Cleanup:${NC}               ./cleanup-local.sh"
 
 echo
 echo -e "${YELLOW}💡 Tip: Wait 30-60 seconds for the cluster to fully form before testing!${NC}"
+echo -e "${YELLOW}💡 To access individual pods, run: ./port-forward-pods.sh${NC}"
 echo

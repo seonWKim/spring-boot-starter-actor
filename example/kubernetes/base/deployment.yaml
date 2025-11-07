@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: spring-actor
-  namespace: spring-actor
   labels:
     app: spring-actor
     version: v1

@@ -3,7 +3,6 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: spring-actor-sa
-  namespace: spring-actor
   labels:
     app: spring-actor
 
@@ -12,7 +11,6 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: spring-actor-pod-reader
-  namespace: spring-actor
   labels:
     app: spring-actor
 rules:
@@ -25,13 +23,11 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: spring-actor-pod-reader-binding
-  namespace: spring-actor
   labels:
     app: spring-actor
 subjects:
 - kind: ServiceAccount
   name: spring-actor-sa
-  namespace: spring-actor
 roleRef:
   kind: Role
   name: spring-actor-pod-reader

@@ -1,0 +1,11 @@
+# Kubernetes-specific configuration
+# This profile is activated when running in Kubernetes
+# It overrides the default seed-nodes configuration to use Cluster Bootstrap instead
+
+spring:
+  actor:
+    pekko:
+      cluster:
+        # Don't use hardcoded seed nodes in Kubernetes
+        # Cluster Bootstrap will be configured via ConfigMap
+        seed-nodes: []

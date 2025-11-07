@@ -1,0 +1,24 @@
+# Kubernetes Deployment Dockerfile
+# This Dockerfile is optimized for Kubernetes with Cluster Bootstrap
+# Uses Spring profiles and ConfigMap for configuration
+
+FROM eclipse-temurin:17-jre-jammy
+
+WORKDIR /app
+
+# Copy the application jar
+COPY build/libs/chat-*.jar app.jar
+
+# Create non-root user for security
+RUN addgroup --system --gid 1001 appuser && \
+    adduser --system --uid 1001 --gid 1001 appuser && \
+    chown -R appuser:appuser /app
+
+USER appuser
+
+# Expose ports
+EXPOSE 8080 8558 2551
+
+# Run with kubernetes profile
+ENTRYPOINT ["java", "-jar", "app.jar"]
+CMD ["--spring.profiles.active=kubernetes"]

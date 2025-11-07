@@ -12,7 +12,7 @@ echo -e "${CYAN}"
 cat << "EOF"
 ╔════════════════════════════════════════════════════════════════╗
 ║                                                                ║
-║   Spring Boot Starter Actor - Cleanup                         ║
+║   Spring Boot Starter Actor - Cleanup                          ║
 ║                                                                ║
 ╚════════════════════════════════════════════════════════════════╝
 EOF
