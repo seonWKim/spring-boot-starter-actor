@@ -21,4 +21,4 @@ spec:
             -XX:+UseContainerSupport
             -XX:MaxRAMPercentage=75
             -XX:+UseG1GC
-            -Dpekko.management.cluster.bootstrap.contact-point-discovery.required-contact-point-nr=1
+            -Dpekko.management.cluster.bootstrap.contact-point-discovery.required-contact-point-nr=2

@@ -16,10 +16,10 @@ images:
 - name: your-registry/spring-actor-app
   newTag: dev
 
-# Reduce replicas for dev
+# Dev replicas - 3 pods for testing clustering
 replicas:
 - name: spring-actor
-  count: 1
+  count: 3
 
 # Patches for dev environment
 patchesStrategicMerge:
