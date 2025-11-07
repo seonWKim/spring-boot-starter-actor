@@ -26,6 +26,7 @@ dependencyManagement {
 
 val pekkoVersion: String by project
 val pekkoManagementVersion: String by project
+
 dependencies {
 	api("org.apache.pekko:pekko-actor-typed_3:$pekkoVersion")
 	api("org.apache.pekko:pekko-cluster-typed_3:$pekkoVersion")
@@ -33,8 +34,6 @@ dependencies {
 	api("org.apache.pekko:pekko-serialization-jackson_3:$pekkoVersion")
 
 	// Optional: Cluster Bootstrap & Management HTTP
-	// Enables auto-configuration for dynamic cluster formation
-	// Users must add these explicitly to their build.gradle to enable
 	// Additionally, add a discovery method dependency (e.g., pekko-discovery-kubernetes-api_3)
 	compileOnly("org.apache.pekko:pekko-management-cluster-bootstrap_3:$pekkoManagementVersion")
 	compileOnly("org.apache.pekko:pekko-management-cluster-http_3:$pekkoManagementVersion")
