@@ -105,13 +105,19 @@ public class GreeterActor implements SpringActor<GreeterActor.Command> {
 
     public interface Command {}
 
-    public record Greet(String name, ActorRef<String> replyTo) implements Command {}
+    public static class Greet extends AskCommand<String> implements Command {
+        public final String name;
+
+        public Greet(String name) {
+            this.name = name;
+        }
+    }
 
     @Override
     public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
         return SpringActorBehavior.builder(Command.class, actorContext)
             .onMessage(Greet.class, (ctx, msg) -> {
-                msg.replyTo.tell("Hello, " + msg.name + "!");
+                msg.reply("Hello, " + msg.name + "!");
                 return Behaviors.same();
             })
             .build();
@@ -135,7 +141,7 @@ public class GreeterService {
     public CompletionStage<String> greet(String name) {
         return actorSystem.getOrSpawn(GreeterActor.class, "greeter")
             .thenCompose(actor -> actor
-                .askBuilder(replyTo -> new GreeterActor.Greet(name, replyTo))
+                .ask(new GreeterActor.Greet(name))
                 .withTimeout(Duration.ofSeconds(5))
                 .execute()
             );
@@ -192,7 +198,7 @@ actor.tell(new ProcessOrder("order-123"));
 **Request-response (ask):**
 ```java
 CompletionStage<String> response = actor
-    .askBuilder(GetValue::new)
+    .ask(new GetValue())
     .withTimeout(Duration.ofSeconds(5))
     .execute();
 ```
@@ -200,7 +206,7 @@ CompletionStage<String> response = actor
 **With error handling:**
 ```java
 CompletionStage<String> response = actor
-    .askBuilder(GetValue::new)
+    .ask(new GetValue())
     .withTimeout(Duration.ofSeconds(5))
     .onTimeout(() -> "default-value")
     .execute();
@@ -281,7 +287,10 @@ public class UserSessionActor implements SpringShardedActor<UserSessionActor.Com
     public interface Command extends JsonSerializable {}
 
     public record UpdateActivity(String activity) implements Command {}
-    public record GetActivity(ActorRef<String> replyTo) implements Command {}
+
+    public static class GetActivity extends AskCommand<String> implements Command {
+        public GetActivity() {}
+    }
 
     @Override
     public EntityTypeKey<Command> typeKey() {
@@ -311,7 +320,7 @@ public class UserSessionActor implements SpringShardedActor<UserSessionActor.Com
         }
 
         Behavior<Command> onGetActivity(GetActivity msg) {
-            msg.replyTo.tell(activity);
+            msg.reply(activity);
             return Behaviors.same();
         }
     }
@@ -331,7 +340,7 @@ actor.tell(new UpdateActivity("logged-in"));
 
 // Request-response
 CompletionStage<String> activity = actor
-    .askBuilder(GetActivity::new)
+    .ask(new GetActivity())
     .withTimeout(Duration.ofSeconds(5))
     .execute();
 ```

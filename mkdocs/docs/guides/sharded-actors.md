@@ -83,15 +83,11 @@ public class HelloActor implements SpringShardedActor<HelloActor.Command> {
     public interface Command extends JsonSerializable {}
 
     // Define a message type
-    public static class SayHello implements Command {
-        public final ActorRef<String> replyTo;
+    public static class SayHello extends AskCommand<String> implements Command {
         public final String message;
 
         @JsonCreator
-        public SayHello(
-                @JsonProperty("replyTo") ActorRef<String> replyTo,
-                @JsonProperty("message") String message) {
-            this.replyTo = replyTo;
+        public SayHello(@JsonProperty("message") String message) {
             this.message = message;
         }
     }
@@ -137,7 +133,7 @@ public class HelloActor implements SpringShardedActor<HelloActor.Command> {
             final String message = "Received from entity [" + entityId + "] on node [" + nodeAddress + "]";
 
             // Send the response back to the caller
-            msg.replyTo.tell(message);
+            msg.reply(message);
 
             // Log the message for debugging
             ctx.getLog().info(message);
@@ -193,7 +189,7 @@ public class HelloService {
      * - Get reference on each request (references are lightweight)
      * - No need to cache (entities are managed by cluster sharding)
      * - No need to check existence (entities are created on-demand)
-     * - Use askBuilder for timeout and error handling
+     * - Use ask for timeout and error handling
      */
     public Mono<String> hello(String message, String entityId) {
         // Get a reference to the sharded actor entity
@@ -201,8 +197,8 @@ public class HelloService {
                 springActorSystem.sharded(HelloActor.class).withId(entityId).get();
 
         // Send the message using the fluent ask builder with timeout and error handling
-        CompletionStage<String> response = actorRef.askBuilder(
-                        replyTo -> new HelloActor.SayHello(replyTo, message))
+        CompletionStage<String> response = actorRef
+                .ask(new HelloActor.SayHello(message))
                 .withTimeout(Duration.ofSeconds(3))
                 .onTimeout(() -> "Request timed out for entity: " + entityId)
                 .execute();
@@ -313,7 +309,7 @@ allow for finer-grained distribution but increase overhead.
 ## Best Practices for Sharded Actors
 
 1. **Don't Cache References**: Get references on each request - they're lightweight and don't create entities
-2. **Use askBuilder**: Always use `askBuilder()` with timeout and error handling for production code
+2. **Use ask**: Always use `ask()` with timeout and error handling for production code
 3. **Design for Idempotency**: Messages may be redelivered during rebalancing, so design handlers to be idempotent
 4. **Choose Entity IDs Wisely**: Use natural business keys for even distribution across shards
 5. **Avoid Cross-Entity Dependencies**: Minimize communication between entities to reduce network overhead

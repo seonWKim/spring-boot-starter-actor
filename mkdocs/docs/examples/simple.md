@@ -35,12 +35,8 @@ public class HelloActor implements SpringActor<HelloActor.Command> {
     // Command interface and message types
     public interface Command {}
 
-    public static class SayHello implements Command {
-        public final ActorRef<String> replyTo;
-
-        public SayHello(ActorRef<String> replyTo) {
-            this.replyTo = replyTo;
-        }
+    public static class SayHello extends AskCommand<String> implements Command {
+        public SayHello() {}
     }
 
     @Override
@@ -70,7 +66,7 @@ public class HelloActor implements SpringActor<HelloActor.Command> {
 
         private Behavior<Command> onSayHello(SayHello msg) {
             // Send response
-            msg.replyTo.tell("Hello from actor " + actorContext.actorId());
+            msg.reply("Hello from actor " + actorContext.actorId());
             return Behaviors.same();
         }
 
@@ -126,7 +122,7 @@ public class HelloService {
     public Mono<String> hello() {
         // Send a SayHello message to the actor and convert the response to a Mono
         return Mono.fromCompletionStage(
-                helloActor.askBuilder(HelloActor.SayHello::new)
+                helloActor.ask(new HelloActor.SayHello())
                         .withTimeout(Duration.ofSeconds(3))
                         .execute());
     }

@@ -178,13 +178,9 @@ public class CounterActor implements SpringShardedActor<CounterActor.Command> {
         public Increment() {}
     }
 
-    public static class GetValue implements Command {
-        public final ActorRef<Long> replyTo;
-
+    public static class GetValue extends AskCommand<Long> implements Command {
         @JsonCreator
-        public GetValue(@JsonProperty("replyTo") ActorRef<Long> replyTo) {
-            this.replyTo = replyTo;
-        }
+        public GetValue() {}
     }
 
     // Implementation of SpringShardedActor methods...
@@ -202,7 +198,7 @@ public class CounterActor implements SpringShardedActor<CounterActor.Command> {
         }
 
         private Behavior<Command> onGetValue(GetValue msg) {
-            msg.replyTo.tell(value);
+            msg.reply(value);
             return Behaviors.same();
         }
     }
@@ -240,7 +236,7 @@ public class ActorCounterService implements CounterService {
 
         // Send a get value message to the actor and get the response
         CompletionStage<Long> response = actorRef
-                .askBuilder(CounterActor.GetValue::new)
+                .ask(new CounterActor.GetValue())
                 .withTimeout(Duration.ofSeconds(3))
                 .execute();
 
