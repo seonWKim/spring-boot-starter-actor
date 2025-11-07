@@ -696,8 +696,7 @@ class SpringChildActorBuilderTest {
                     .withSupervisionStrategy(SupervisorStrategy.restart())
                     .spawnAndWait();
 
-            SpringActorRef<SimpleChildActor.Command> childViaUnifiedAPI = parent
-                    .child(SimpleChildActor.class)
+            SpringActorRef<SimpleChildActor.Command> childViaUnifiedAPI = parent.child(SimpleChildActor.class)
                     .withId("unified-child")
                     .withSupervisionStrategy(SupervisorStrategy.restart())
                     .spawn()

@@ -41,8 +41,7 @@ public class DefaultRootGuardian implements RootGuardian {
     /** The actor type registry */
     private final ActorTypeRegistry registry;
     /** The cluster singleton (null in local mode) */
-    @Nullable
-    private final ClusterSingleton clusterSingleton;
+    @Nullable private final ClusterSingleton clusterSingleton;
 
     /**
      * Creates a new DefaultRootGuardian with the given actor context and actor type registry.

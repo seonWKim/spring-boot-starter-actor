@@ -17,14 +17,18 @@ import org.springframework.util.ObjectUtils;
 public class SpringActorSpawnBuilder<A extends SpringActorWithContext<C, ?>, C> {
     private final SpringActorSystem actorSystem;
     private final Class<A> actorClass;
+
     @Nullable private String actorId;
+
     @Nullable private SpringActorContext actorContext;
+
     private Duration timeout = Duration.ofSeconds(3);
     private MailboxConfig mailboxConfig = MailboxConfig.defaultMailbox();
     private DispatcherConfig dispatcherConfig = DispatcherConfig.defaultDispatcher();
     private TagsConfig tagsConfig = TagsConfig.empty();
     private MdcConfig mdcConfig = MdcConfig.empty();
     private boolean isClusterSingleton = false;
+
     @Nullable private SupervisorStrategy supervisorStrategy = null;
 
     /**

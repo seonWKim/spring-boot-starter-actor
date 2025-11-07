@@ -29,7 +29,8 @@ class SpringChildActorReferenceTest {
      * A simple child actor for testing reference operations.
      */
     @Component
-    static class ReferenceTestChildActor implements SpringActorWithContext<ReferenceTestChildActor.Command, SpringActorContext> {
+    static class ReferenceTestChildActor
+            implements SpringActorWithContext<ReferenceTestChildActor.Command, SpringActorContext> {
 
         public interface Command {}
 
@@ -73,7 +74,8 @@ class SpringChildActorReferenceTest {
      * A parent actor that supports framework commands for child management.
      */
     @Component
-    static class ReferenceTestParentActor implements SpringActorWithContext<ReferenceTestParentActor.Command, SpringActorContext> {
+    static class ReferenceTestParentActor
+            implements SpringActorWithContext<ReferenceTestParentActor.Command, SpringActorContext> {
 
         public interface Command extends FrameworkCommand {}
 
@@ -97,8 +99,7 @@ class SpringChildActorReferenceTest {
     class GetOperationTests {
 
         @Test
-        void testGetReturnsOptionalWithExistingChild(ApplicationContext springContext)
-                throws Exception {
+        void testGetReturnsOptionalWithExistingChild(ApplicationContext springContext) throws Exception {
             // Given: A parent actor with an existing child (spawned using builder)
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
             SpringActorRef<ReferenceTestParentActor.Command> parent = actorSystem
@@ -107,14 +108,13 @@ class SpringChildActorReferenceTest {
                     .spawnAndWait();
 
             // Spawn a child using the builder API
-            SpringActorRef<ReferenceTestChildActor.Command>spawnedChild = parent
-                    .child(ReferenceTestChildActor.class)
+            SpringActorRef<ReferenceTestChildActor.Command> spawnedChild = parent.child(ReferenceTestChildActor.class)
                     .withId("existing-child")
                     .spawnAndWait();
 
             // When: Getting the child using the reference API
-            Optional<SpringActorRef<ReferenceTestChildActor.Command>>retrievedChild = parent
-                    .child(ReferenceTestChildActor.class,"existing-child")
+            Optional<SpringActorRef<ReferenceTestChildActor.Command>> retrievedChild = parent.child(
+                            ReferenceTestChildActor.class, "existing-child")
                     .get()
                     .toCompletableFuture()
                     .get(5, TimeUnit.SECONDS);
@@ -134,8 +134,8 @@ class SpringChildActorReferenceTest {
                     .spawnAndWait();
 
             // When: Getting a non-existent child
-            Optional<SpringActorRef<ReferenceTestChildActor.Command>>child = parent
-                    .child(ReferenceTestChildActor.class,"non-existent-child")
+            Optional<SpringActorRef<ReferenceTestChildActor.Command>> child = parent.child(
+                            ReferenceTestChildActor.class, "non-existent-child")
                     .get()
                     .toCompletableFuture()
                     .get(5, TimeUnit.SECONDS);
@@ -153,13 +153,11 @@ class SpringChildActorReferenceTest {
                     .withId("parent-get-timeout")
                     .spawnAndWait();
 
-            parent.child(ReferenceTestChildActor.class)
-                    .withId("timeout-child")
-                    .spawnAndWait();
+            parent.child(ReferenceTestChildActor.class).withId("timeout-child").spawnAndWait();
 
             // When: Getting with custom timeout
-            Optional<SpringActorRef<ReferenceTestChildActor.Command>> child = parent
-                    .child(ReferenceTestChildActor.class, "timeout-child")
+            Optional<SpringActorRef<ReferenceTestChildActor.Command>> child = parent.child(
+                            ReferenceTestChildActor.class, "timeout-child")
                     .withTimeout(Duration.ofSeconds(10))
                     .get()
                     .toCompletableFuture()
@@ -176,8 +174,7 @@ class SpringChildActorReferenceTest {
     class ExistsOperationTests {
 
         @Test
-        void testExistsReturnsTrueForExistingChild(ApplicationContext springContext)
-                throws Exception {
+        void testExistsReturnsTrueForExistingChild(ApplicationContext springContext) throws Exception {
             // Given: A parent actor with an existing child
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
             SpringActorRef<ReferenceTestParentActor.Command> parent = actorSystem
@@ -190,8 +187,7 @@ class SpringChildActorReferenceTest {
                     .spawnAndWait();
 
             // When: Checking if the child exists
-            Boolean exists = parent
-                    .child(ReferenceTestChildActor.class, "existing-child-check")
+            Boolean exists = parent.child(ReferenceTestChildActor.class, "existing-child-check")
                     .exists()
                     .toCompletableFuture()
                     .get(5, TimeUnit.SECONDS);
@@ -201,8 +197,7 @@ class SpringChildActorReferenceTest {
         }
 
         @Test
-        void testExistsReturnsFalseForNonExistent(ApplicationContext springContext)
-                throws Exception {
+        void testExistsReturnsFalseForNonExistent(ApplicationContext springContext) throws Exception {
             // Given: A parent actor without children
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
             SpringActorRef<ReferenceTestParentActor.Command> parent = actorSystem
@@ -211,8 +206,7 @@ class SpringChildActorReferenceTest {
                     .spawnAndWait();
 
             // When: Checking if a non-existent child exists
-            Boolean exists = parent
-                    .child(ReferenceTestChildActor.class, "non-existent-check")
+            Boolean exists = parent.child(ReferenceTestChildActor.class, "non-existent-check")
                     .exists()
                     .toCompletableFuture()
                     .get(5, TimeUnit.SECONDS);
@@ -267,8 +261,7 @@ class SpringChildActorReferenceTest {
                     .spawnAndWait();
 
             // When/Then: Setting null timeout should throw
-            assertThatThrownBy(() -> parent
-                            .child(ReferenceTestChildActor.class,"test-child")
+            assertThatThrownBy(() -> parent.child(ReferenceTestChildActor.class, "test-child")
                             .withTimeout(null))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessage("timeout must not be null");
@@ -281,8 +274,7 @@ class SpringChildActorReferenceTest {
     class ReferenceReuseTests {
 
         @Test
-        void testReferenceCanBeReusedForMultipleOperations(ApplicationContext springContext)
-                throws Exception {
+        void testReferenceCanBeReusedForMultipleOperations(ApplicationContext springContext) throws Exception {
             // Given: A parent actor with a spawned child
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
             SpringActorRef<ReferenceTestParentActor.Command> parent = actorSystem
@@ -290,9 +282,7 @@ class SpringChildActorReferenceTest {
                     .withId("parent-reuse")
                     .spawnAndWait();
 
-            parent.child(ReferenceTestChildActor.class)
-                    .withId("reuse-child")
-                    .spawnAndWait();
+            parent.child(ReferenceTestChildActor.class).withId("reuse-child").spawnAndWait();
 
             // When: Creating a single reference and using it for multiple operations
             SpringChildActorReference<ReferenceTestParentActor.Command, ReferenceTestChildActor.Command> childRef =
@@ -300,7 +290,7 @@ class SpringChildActorReferenceTest {
 
             // All operations use the same reference
             Boolean exists = childRef.exists().toCompletableFuture().get();
-            Optional<SpringActorRef<ReferenceTestChildActor.Command>>gotten =
+            Optional<SpringActorRef<ReferenceTestChildActor.Command>> gotten =
                     childRef.get().toCompletableFuture().get();
 
             // Then: All should succeed
@@ -309,8 +299,7 @@ class SpringChildActorReferenceTest {
         }
 
         @Test
-        void testMultipleReferencesToSameChildPointToSameActor(ApplicationContext springContext)
-                throws Exception {
+        void testMultipleReferencesToSameChildPointToSameActor(ApplicationContext springContext) throws Exception {
             // Given: A parent actor with a spawned child
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
             SpringActorRef<ReferenceTestParentActor.Command> parent = actorSystem
@@ -318,19 +307,17 @@ class SpringChildActorReferenceTest {
                     .withId("parent-multiple-refs")
                     .spawnAndWait();
 
-            parent.child(ReferenceTestChildActor.class)
-                    .withId("same-child")
-                    .spawnAndWait();
+            parent.child(ReferenceTestChildActor.class).withId("same-child").spawnAndWait();
 
             // When: Creating multiple references to the same child
-            Optional<SpringActorRef<ReferenceTestChildActor.Command>>child1 = parent
-                    .child(ReferenceTestChildActor.class,"same-child")
+            Optional<SpringActorRef<ReferenceTestChildActor.Command>> child1 = parent.child(
+                            ReferenceTestChildActor.class, "same-child")
                     .get()
                     .toCompletableFuture()
                     .get();
 
-            Optional<SpringActorRef<ReferenceTestChildActor.Command>>child2 = parent
-                    .child(ReferenceTestChildActor.class,"same-child")
+            Optional<SpringActorRef<ReferenceTestChildActor.Command>> child2 = parent.child(
+                            ReferenceTestChildActor.class, "same-child")
                     .get()
                     .toCompletableFuture()
                     .get();

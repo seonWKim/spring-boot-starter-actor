@@ -11,8 +11,6 @@ import org.apache.pekko.actor.typed.SupervisorStrategy;
 import org.apache.pekko.actor.typed.javadsl.AskPattern;
 import org.springframework.util.ObjectUtils;
 
-import javax.annotation.Nullable;
-
 /**
  * A fluent builder for spawning child actors with a consistent API.
  * This builder provides the same fluent interface as SpringActorSpawnBuilder
@@ -40,11 +38,17 @@ public class SpringChildActorBuilder<P, C> {
     private final Duration defaultTimeout;
 
     @Nullable private String childId;
+
     @Nullable private SpringActorContext childContext;
+
     @Nullable private SupervisorStrategy supervisionStrategy;
+
     @Nullable private MailboxConfig mailboxConfig;
+
     @Nullable private DispatcherConfig dispatcherConfig;
+
     @Nullable private TagsConfig tagsConfig;
+
     private MdcConfig mdcConfig = MdcConfig.empty();
     private Duration timeout;
 

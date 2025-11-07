@@ -35,8 +35,7 @@ import org.apache.pekko.actor.typed.ActorRef;
  */
 public abstract class AskCommand<RES> {
 
-    @Nullable
-    private ActorRef<RES> replyTo;
+    @Nullable private ActorRef<RES> replyTo;
 
     /**
      * Gets the ActorRef that should receive the reply.
@@ -44,8 +43,7 @@ public abstract class AskCommand<RES> {
      *
      * @return The ActorRef for the reply
      */
-    @Nullable
-    public final ActorRef<RES> getReplyTo() {
+    @Nullable public final ActorRef<RES> getReplyTo() {
         return replyTo;
     }
 
@@ -81,8 +79,7 @@ public abstract class AskCommand<RES> {
      */
     public final void reply(RES response) {
         if (replyTo == null) {
-            throw new IllegalStateException(
-                    "Cannot send reply: replyTo has not been set. "
+            throw new IllegalStateException("Cannot send reply: replyTo has not been set. "
                     + "This command may not have been sent through the ask() method.");
         }
         replyTo.tell(response);

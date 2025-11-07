@@ -229,8 +229,7 @@ public class SpringActorRef<T> {
         private final Scheduler scheduler;
         private Duration timeout;
 
-        @Nullable
-        private Supplier<RES> timeoutHandler;
+        @Nullable private Supplier<RES> timeoutHandler;
 
         /**
          * Creates a new AskBuilder.

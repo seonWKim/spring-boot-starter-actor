@@ -77,9 +77,7 @@ public abstract class TagsConfig {
      */
     public static TagsConfig of(String... tags) {
         if (tags == null || tags.length == 0) {
-            throw new IllegalArgumentException(
-                "Tags must not be null or empty. Use TagsConfig.empty() for no tags."
-            );
+            throw new IllegalArgumentException("Tags must not be null or empty. Use TagsConfig.empty() for no tags.");
         }
         return new WithTags(Set.of(tags));
     }
@@ -94,8 +92,7 @@ public abstract class TagsConfig {
     public static TagsConfig of(Set<String> tags) {
         if (tags == null || tags.isEmpty()) {
             throw new IllegalArgumentException(
-                "Tags set must not be null or empty. Use TagsConfig.empty() for no tags."
-            );
+                    "Tags set must not be null or empty. Use TagsConfig.empty() for no tags.");
         }
         return new WithTags(tags);
     }

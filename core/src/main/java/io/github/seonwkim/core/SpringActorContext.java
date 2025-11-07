@@ -26,6 +26,7 @@ import javax.annotation.Nullable;
 public abstract class SpringActorContext {
 
     @Nullable private ActorTypeRegistry registry;
+
     private MdcConfig mdcConfig = MdcConfig.empty();
 
     /**

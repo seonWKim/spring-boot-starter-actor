@@ -1,5 +1,6 @@
 package io.github.seonwkim.core;
 
+import javax.annotation.Nullable;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.Props;
@@ -8,7 +9,6 @@ import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.apache.pekko.cluster.typed.ClusterSingleton;
 import org.apache.pekko.cluster.typed.SingletonActor;
-import javax.annotation.Nullable;
 
 /**
  * Utility class that provides centralized actor spawning logic.
@@ -47,8 +47,7 @@ public final class ActorSpawner {
      * @param <T> The command type of the actor
      * @return The actor reference if found, null otherwise
      */
-    @Nullable
-    public static <T> ActorRef<T> getActor(ActorContext<?> ctx, Class<?> actorClass, String actorId) {
+    @Nullable public static <T> ActorRef<T> getActor(ActorContext<?> ctx, Class<?> actorClass, String actorId) {
         String actorName = buildActorName(actorClass, actorId);
 
         @SuppressWarnings("unchecked")
@@ -119,10 +118,8 @@ public final class ActorSpawner {
 
         if (isClusterSingleton) {
             if (clusterSingleton == null) {
-                throw new IllegalStateException(
-                    "Cluster singleton requested but cluster mode is not enabled. " +
-                    "Ensure your application is running in cluster mode."
-                );
+                throw new IllegalStateException("Cluster singleton requested but cluster mode is not enabled. "
+                        + "Ensure your application is running in cluster mode.");
             }
 
             SingletonActor<?> singletonActor = SingletonActor.of(behavior, actorName);
@@ -164,14 +161,10 @@ public final class ActorSpawner {
      * @return Combined Props or Props.empty()
      */
     private static Props buildProps(
-            DispatcherConfig dispatcherConfig,
-            MailboxConfig mailboxConfig,
-            TagsConfig tagsConfig) {
+            DispatcherConfig dispatcherConfig, MailboxConfig mailboxConfig, TagsConfig tagsConfig) {
 
         // Start with either dispatcher props or empty props
-        Props props = dispatcherConfig.shouldUseProps()
-                ? dispatcherConfig.toProps()
-                : Props.empty();
+        Props props = dispatcherConfig.shouldUseProps() ? dispatcherConfig.toProps() : Props.empty();
 
         // Apply mailbox configuration
         props = mailboxConfig.applyToProps(props);

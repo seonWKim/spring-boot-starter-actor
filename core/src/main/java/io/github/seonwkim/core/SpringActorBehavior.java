@@ -109,7 +109,9 @@ public final class SpringActorBehavior<C> {
         private final List<MessageHandler<C, S, ?>> messageHandlers = new ArrayList<>();
         private final List<SignalHandler<C, S, ?>> signalHandlers = new ArrayList<>();
         private boolean enableFrameworkCommands = false;
+
         @Nullable private SupervisorStrategy supervisionStrategy = null;
+
         @Nullable private Function<C, Map<String, String>> mdcForMessage = null;
 
         private Builder(
@@ -412,9 +414,9 @@ public final class SpringActorBehavior<C> {
                         msg.mailboxConfig,
                         msg.dispatcherConfig,
                         msg.tagsConfig,
-                        null,  // clusterSingleton - not supported for child actors
-                        false  // isClusterSingleton - not supported for child actors
-                );
+                        null, // clusterSingleton - not supported for child actors
+                        false // isClusterSingleton - not supported for child actors
+                        );
 
                 msg.replyTo.tell(FrameworkCommands.SpawnChildResponse.success(childRef));
 
@@ -469,8 +471,7 @@ public final class SpringActorBehavior<C> {
             }
 
             @SuppressWarnings("unchecked")
-            @Nullable
-            Behavior<C> tryHandle(C msg, S state) {
+            @Nullable Behavior<C> tryHandle(C msg, S state) {
                 if (type.isInstance(msg)) {
                     return handler.apply(state, (M) msg);
                 }
@@ -495,8 +496,7 @@ public final class SpringActorBehavior<C> {
             }
 
             @SuppressWarnings("unchecked")
-            @Nullable
-            Behavior<C> tryHandle(Signal sig, S state) {
+            @Nullable Behavior<C> tryHandle(Signal sig, S state) {
                 if (type.isInstance(sig)) {
                     return handler.apply(state, (M) sig);
                 }
