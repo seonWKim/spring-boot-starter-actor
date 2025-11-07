@@ -19,6 +19,11 @@ cat << "EOF"
 EOF
 echo -e "${NC}"
 
+echo -e "${YELLOW}⚠️  Prerequisites:${NC}"
+echo -e "   Docker Desktop must have ${GREEN}at least 8 GB${NC} of memory allocated"
+echo -e "   (Settings → Resources → Memory → 8 GB → Apply & Restart)"
+echo
+
 # Check prerequisites
 echo -e "${YELLOW}[1/6] Checking prerequisites...${NC}"
 
@@ -45,6 +50,22 @@ if [ $MISSING_DEPS -eq 1 ]; then
     exit 1
 fi
 
+# Check Docker memory allocation
+DOCKER_MEM=$(docker info 2>/dev/null | grep "Total Memory" | awk '{print $3}' || echo "0")
+DOCKER_MEM_NUM=$(echo $DOCKER_MEM | sed 's/GiB//')
+if (( $(echo "$DOCKER_MEM_NUM < 7" | bc -l 2>/dev/null || echo 0) )); then
+    echo
+    echo -e "${RED}⚠️  Warning: Docker has only ${DOCKER_MEM} of memory allocated${NC}"
+    echo -e "${YELLOW}   A 3-node cluster requires at least 8 GB${NC}"
+    echo -e "${YELLOW}   Increase memory: Docker Desktop → Settings → Resources → Memory${NC}"
+    echo
+    read -p "Continue anyway? (y/N) " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        exit 1
+    fi
+fi
+
 echo
 
 # Create kind cluster
@@ -64,7 +85,7 @@ nodes:
   - containerPort: 30080
     hostPort: 8080
     protocol: TCP
-  # Individual pod access (when using StatefulSet or specific pod services)
+  # Individual pod access
   - containerPort: 30081
     hostPort: 8081
     protocol: TCP
@@ -78,6 +99,10 @@ nodes:
   image: kindest/node:v1.27.3
 EOF
     echo -e "${GREEN}✓ Cluster created${NC}"
+
+    echo -e "${YELLOW}Waiting for all nodes to be ready...${NC}"
+    kubectl wait --for=condition=ready node --all --timeout=180s
+    echo -e "${GREEN}✓ All nodes ready${NC}"
 fi
 
 echo
