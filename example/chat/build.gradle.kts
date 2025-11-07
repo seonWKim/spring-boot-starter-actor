@@ -23,6 +23,11 @@ dependencies {
 	implementation(project(":core"))
 	implementation(project(":metrics"))
 
+	// Kubernetes clustering support (optional in core)
+	implementation("org.apache.pekko:pekko-management-cluster-bootstrap_3:1.1.1")
+	implementation("org.apache.pekko:pekko-management-cluster-http_3:1.1.1")
+	implementation("org.apache.pekko:pekko-discovery-kubernetes-api_3:1.1.1")
+
 	implementation("org.springframework.boot:spring-boot-starter")
 	implementation("org.springframework.boot:spring-boot-starter-webflux")
 	// Removed spring-boot-starter-websocket (blocking WebSocket, uses Tomcat)

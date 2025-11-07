@@ -1,0 +1,193 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spring-actor
+  labels:
+    app: spring-actor
+    version: v1
+spec:
+  replicas: 3
+
+  # Rolling update strategy for zero-downtime deployments
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0    # Never reduce cluster size below replicas
+      maxSurge: 1          # Create one new pod before terminating old ones
+
+  selector:
+    matchLabels:
+      app: spring-actor
+
+  template:
+    metadata:
+      labels:
+        app: spring-actor
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/actuator/prometheus"
+
+    spec:
+      serviceAccountName: spring-actor-sa
+      terminationGracePeriodSeconds: 30
+
+      # Anti-affinity: Spread pods across different nodes
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - spring-actor
+              topologyKey: kubernetes.io/hostname
+
+      # Optional: Node affinity to run on specific node types
+      # nodeSelector:
+      #   workload: actor-system
+
+      containers:
+      - name: spring-actor
+        image: your-registry/spring-actor-app:latest
+        imagePullPolicy: Always
+
+        env:
+        # Kubernetes metadata
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+
+        # Application config
+        - name: SPRING_PROFILES_ACTIVE
+          value: "kubernetes"
+        - name: ENVIRONMENT
+          value: "production"
+
+        # JVM options
+        - name: JAVA_OPTS
+          value: >-
+            -XX:+UseContainerSupport
+            -XX:MaxRAMPercentage=75
+            -XX:InitialRAMPercentage=50
+            -XX:+UseG1GC
+            -XX:MaxGCPauseMillis=200
+            -XX:+UseStringDeduplication
+            -XX:+ParallelRefProcEnabled
+            -XX:+UnlockExperimentalVMOptions
+            -XX:+UnlockDiagnosticVMOptions
+            -XX:+HeapDumpOnOutOfMemoryError
+            -XX:HeapDumpPath=/tmp/heapdump.hprof
+            -XX:+ExitOnOutOfMemoryError
+            -Djava.net.preferIPv4Stack=true
+            -Dpekko.management.cluster.bootstrap.contact-point-discovery.required-contact-point-nr=2
+
+        # Ports
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        - name: remoting
+          containerPort: 2551
+          protocol: TCP
+        - name: management
+          containerPort: 8558
+          protocol: TCP
+
+        # Liveness probe: Is the application alive?
+        livenessProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 3
+
+        # Readiness probe: Can the application receive traffic?
+        readinessProbe:
+          httpGet:
+            path: /actuator/health/readiness
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 5
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 3
+
+        # Startup probe: Give extra time for initial startup
+        startupProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 12  # 12 * 5s = 60s total startup time
+
+        # Resource limits
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            # DO NOT set CPU limits - causes throttling with Pekko!
+
+        # Volume mounts
+        volumeMounts:
+        - name: config
+          mountPath: /app/config
+          readOnly: true
+        - name: tmp
+          mountPath: /tmp
+
+        # Security context
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1001
+          runAsGroup: 1001
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+
+        # Graceful shutdown
+        lifecycle:
+          preStop:
+            exec:
+              # Wait 10s before shutdown to allow:
+              # - Readiness probe to fail
+              # - Load balancer to stop routing traffic
+              # - In-flight requests to complete
+              command: ["/bin/sh", "-c", "sleep 10"]
+
+      # Volumes
+      volumes:
+      - name: config
+        configMap:
+          name: spring-actor-config
+      - name: tmp
+        emptyDir: {}
+
+      # Security context for pod
+      securityContext:
+        fsGroup: 1001
+        seccompProfile:
+          type: RuntimeDefault
