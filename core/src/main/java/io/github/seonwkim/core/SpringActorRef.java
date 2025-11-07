@@ -99,60 +99,8 @@ public class SpringActorRef<T> {
      */
     @SuppressWarnings("unchecked")
     public <RES> AskBuilder<T, RES> ask(AskCommand<RES> command) {
-        return new AskBuilder<>(replyTo -> (T) command.withReplyTo(replyTo), (ActorRef<T>) actorRef, scheduler, defaultTimeout);
+        return new AskBuilder<>(replyTo -> (T) command.withReplyTo(replyTo), actorRef, scheduler, defaultTimeout);
     }
-
-    /**
-     * Asks the actor a question and expects a response, using the default timeout. This method sends
-     * a message to the actor and returns a CompletionStage that will be completed with the response.
-     *
-     * @param messageFactory A function that creates a message given a reply-to actor reference
-     * @param <REQ> The type of the request message
-     * @param <RES> The type of the response message
-     * @return A CompletionStage that will be completed with the response
-     */
-    public <REQ extends T, RES> CompletionStage<RES> ask(Function<ActorRef<RES>, REQ> messageFactory) {
-        return ask(messageFactory, defaultTimeout);
-    }
-
-    /**
-     * Asks the actor a question and expects a response. This method sends a message to the actor and
-     * returns a CompletionStage that will be completed with the response.
-     *
-     * @param messageFactory A function that creates a message given a reply-to actor reference
-     * @param timeout The maximum time to wait for a response
-     * @param <REQ> The type of the request message
-     * @param <RES> The type of the response message
-     * @return A CompletionStage that will be completed with the response
-     */
-    public <REQ extends T, RES> CompletionStage<RES> ask(
-            Function<ActorRef<RES>, REQ> messageFactory, Duration timeout) {
-        return AskPattern.ask(actorRef, messageFactory::apply, timeout, scheduler);
-    }
-
-    /**
-     * Creates a fluent builder for asking the actor a question with advanced options.
-     * This builder allows setting timeout, timeout handlers, and error handlers.
-     *
-     * <p>Example usage:
-     * <pre>
-     * CompletionStage&lt;String&gt; result = actor
-     *     .askBuilder(GetValue::new)
-     *     .withTimeout(Duration.ofSeconds(5))
-     *     .onTimeout(() -&gt; "default-value")
-     *     .execute();
-     * </pre>
-     *
-     * @param messageFactory A function that creates a message given a reply-to actor reference
-     * @param <REQ> The type of the request message
-     * @param <RES> The type of the response message
-     * @return A new AskBuilder for fluent configuration
-     */
-    @SuppressWarnings("unchecked")
-    public <REQ extends T, RES> AskBuilder<REQ, RES> askBuilder(Function<ActorRef<RES>, REQ> messageFactory) {
-        return new AskBuilder<>(messageFactory, (ActorRef<REQ>) actorRef, scheduler, defaultTimeout);
-    }
-
 
     /**
      * Sends a message to the actor without expecting a response.
