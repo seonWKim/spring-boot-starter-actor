@@ -51,17 +51,13 @@ public class ClusterSingletonController {
      * @return A confirmation message
      */
     @PostMapping("/metrics")
-    public Mono<String> recordMetric(
-            @RequestParam("name") String metricName,
-            @RequestParam("value") long value) {
+    public Mono<String> recordMetric(@RequestParam("name") String metricName, @RequestParam("value") long value) {
 
-        return singletonService.recordMetric(metricName, value)
+        return singletonService
+                .recordMetric(metricName, value)
                 .thenReturn(String.format(
                         "Metric [%s=%d] recorded from node [%s]",
-                        metricName,
-                        value,
-                        singletonService.getCurrentNodeAddress()
-                ));
+                        metricName, value, singletonService.getCurrentNodeAddress()));
     }
 
     /**
@@ -97,8 +93,7 @@ public class ClusterSingletonController {
      * @return A Mono containing the metrics for that node
      */
     @GetMapping("/metrics/node")
-    public Mono<ClusterMetricsAggregator.MetricsResponse> getNodeMetrics(
-            @RequestParam("address") String nodeAddress) {
+    public Mono<ClusterMetricsAggregator.MetricsResponse> getNodeMetrics(@RequestParam("address") String nodeAddress) {
         return singletonService.getNodeMetrics(nodeAddress);
     }
 
@@ -134,8 +129,7 @@ public class ClusterSingletonController {
     public Mono<NodeInfo> getInfo() {
         return Mono.just(new NodeInfo(
                 singletonService.getCurrentNodeAddress(),
-                "This node can interact with the cluster singleton running anywhere in the cluster"
-        ));
+                "This node can interact with the cluster singleton running anywhere in the cluster"));
     }
 
     /**

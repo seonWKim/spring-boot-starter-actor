@@ -36,8 +36,7 @@ public class EnvelopeSentEventInterceptorImpl
         }
     }
 
-    @Nullable
-    public EnvelopeMetrics getEnvelopeMetrics(String messageType) {
+    @Nullable public EnvelopeMetrics getEnvelopeMetrics(String messageType) {
         return envelopeMetrics.get(messageType);
     }
 

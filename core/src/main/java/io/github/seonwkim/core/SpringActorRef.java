@@ -4,12 +4,12 @@ import java.time.Duration;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
+import javax.annotation.Nullable;
 import org.apache.pekko.actor.PoisonPill;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Scheduler;
 import org.apache.pekko.actor.typed.javadsl.AskPattern;
 import org.apache.pekko.japi.function.Function;
-import javax.annotation.Nullable;
 
 /**
  * A wrapper around Pekko's ActorRef that provides methods for asking and telling messages to an
@@ -228,7 +228,9 @@ public class SpringActorRef<T> {
         private final ActorRef<REQ> actorRef;
         private final Scheduler scheduler;
         private Duration timeout;
-        @Nullable private Supplier<RES> timeoutHandler;
+
+        @Nullable
+        private Supplier<RES> timeoutHandler;
 
         /**
          * Creates a new AskBuilder.

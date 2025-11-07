@@ -114,8 +114,7 @@ public class SupervisionController {
             }
 
             return supervisor
-                    .askBuilder((org.apache.pekko.actor.typed.ActorRef<ActorHierarchy.SpawnResult> replyTo) ->
-                            new HierarchicalActor.SpawnChild(childId, strategy, replyTo))
+                    .ask(new HierarchicalActor.SpawnChild(childId, strategy))
                     .withTimeout(Duration.ofSeconds(5))
                     .execute()
                     .toCompletableFuture()
@@ -146,8 +145,7 @@ public class SupervisionController {
             }
 
             return rootSupervisor
-                    .askBuilder((org.apache.pekko.actor.typed.ActorRef<ActorHierarchy.SpawnResult> replyTo) ->
-                            new HierarchicalActor.RouteSpawnChild(parentId, childId, strategy, replyTo))
+                    .ask(new HierarchicalActor.RouteSpawnChild(parentId, childId, strategy))
                     .withTimeout(Duration.ofSeconds(5))
                     .execute()
                     .toCompletableFuture()
@@ -195,8 +193,7 @@ public class SupervisionController {
         }
 
         return supervisor
-                .askBuilder((org.apache.pekko.actor.typed.ActorRef<ActorHierarchy.SpawnResult> replyTo) ->
-                        new HierarchicalActor.SpawnChild(workerId, strategy, replyTo))
+                .ask(new HierarchicalActor.SpawnChild(workerId, strategy))
                 .withTimeout(Duration.ofSeconds(5))
                 .execute()
                 .toCompletableFuture()
@@ -236,8 +233,7 @@ public class SupervisionController {
         }
 
         return supervisor
-                .askBuilder((org.apache.pekko.actor.typed.ActorRef<HierarchicalActor.WorkResult> replyTo) ->
-                        new HierarchicalActor.RouteToChild(workerId, taskName, replyTo))
+                .ask(new HierarchicalActor.RouteToChild(workerId, taskName))
                 .withTimeout(Duration.ofSeconds(5))
                 .execute()
                 .toCompletableFuture()
@@ -272,8 +268,7 @@ public class SupervisionController {
         }
 
         return supervisor
-                .askBuilder((org.apache.pekko.actor.typed.ActorRef<String> replyTo) ->
-                        new HierarchicalActor.TriggerChildFailure(workerId, replyTo))
+                .ask(new HierarchicalActor.TriggerChildFailure(workerId))
                 .withTimeout(Duration.ofSeconds(5))
                 .execute()
                 .toCompletableFuture()
@@ -297,8 +292,7 @@ public class SupervisionController {
         }
 
         return supervisor
-                .askBuilder((org.apache.pekko.actor.typed.ActorRef<String> replyTo) ->
-                        new HierarchicalActor.StopChild(workerId, replyTo))
+                .ask(new HierarchicalActor.StopChild(workerId))
                 .withTimeout(Duration.ofSeconds(5))
                 .execute()
                 .toCompletableFuture()
@@ -339,7 +333,7 @@ public class SupervisionController {
         }
 
         return supervisor
-                .askBuilder(HierarchicalActor.GetHierarchy::new)
+                .ask(new HierarchicalActor.GetHierarchy())
                 .withTimeout(Duration.ofSeconds(5))
                 .execute()
                 .toCompletableFuture()

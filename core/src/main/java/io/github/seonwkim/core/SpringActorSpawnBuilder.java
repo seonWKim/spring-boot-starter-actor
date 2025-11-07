@@ -3,12 +3,9 @@ package io.github.seonwkim.core;
 import io.github.seonwkim.core.impl.DefaultSpringActorContext;
 import java.time.Duration;
 import java.util.concurrent.CompletionStage;
-import org.apache.pekko.actor.typed.MailboxSelector;
+import javax.annotation.Nullable;
 import org.apache.pekko.actor.typed.SupervisorStrategy;
 import org.springframework.util.ObjectUtils;
-import org.springframework.util.StringUtils;
-
-import javax.annotation.Nullable;
 
 /**
  * A fluent builder for spawning actors with a simplified API. This builder provides a more
@@ -276,7 +273,13 @@ public class SpringActorSpawnBuilder<A extends SpringActorWithContext<C, ?>, C> 
         actorContext.setMdcConfig(mdcConfig);
 
         return actorSystem.spawn(
-                actorClass, actorContext, mailboxConfig, dispatcherConfig, tagsConfig, isClusterSingleton, supervisorStrategy, timeout);
+                actorClass,
+                actorContext,
+                mailboxConfig,
+                dispatcherConfig,
+                isClusterSingleton,
+                supervisorStrategy,
+                timeout);
     }
 
     /**

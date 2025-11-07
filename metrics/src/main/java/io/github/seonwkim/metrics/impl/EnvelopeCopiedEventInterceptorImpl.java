@@ -43,13 +43,11 @@ public class EnvelopeCopiedEventInterceptorImpl
         return oldMessageType + "->" + newMessageType;
     }
 
-    @Nullable
-    public EnvelopeMetrics getEnvelopeMetrics(String copyKey) {
+    @Nullable public EnvelopeMetrics getEnvelopeMetrics(String copyKey) {
         return envelopeMetrics.get(copyKey);
     }
 
-    @Nullable
-    public EnvelopeMetrics getEnvelopeMetrics(String oldMessageType, String newMessageType) {
+    @Nullable public EnvelopeMetrics getEnvelopeMetrics(String oldMessageType, String newMessageType) {
         return getEnvelopeMetrics(getCopyKey(oldMessageType, newMessageType));
     }
 

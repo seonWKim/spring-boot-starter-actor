@@ -1,8 +1,8 @@
 package io.github.seonwkim.core;
 
+import javax.annotation.Nullable;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.SupervisorStrategy;
-import javax.annotation.Nullable;
 
 /**
  * Framework-provided commands that actors can use when their Command interface
@@ -77,7 +77,9 @@ public final class FrameworkCommands {
     public static final class SpawnChild<C> implements FrameworkCommand {
         public final Class<? extends SpringActorWithContext<C, ?>> actorClass;
         public final SpringActorContext childContext;
+
         @Nullable public final SupervisorStrategy strategy;
+
         public final MailboxConfig mailboxConfig;
         public final DispatcherConfig dispatcherConfig;
         public final TagsConfig tagsConfig;
@@ -111,6 +113,7 @@ public final class FrameworkCommands {
      */
     public static final class SpawnChildResponse<C> {
         @Nullable public final ActorRef<C> childRef;
+
         public final boolean success;
         public final String message;
 
@@ -162,6 +165,7 @@ public final class FrameworkCommands {
      */
     public static final class GetChildResponse<C> {
         @Nullable public final ActorRef<C> childRef;
+
         public final boolean found;
 
         private GetChildResponse(@Nullable ActorRef<C> childRef, boolean found) {

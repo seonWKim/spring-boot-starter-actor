@@ -1,13 +1,13 @@
 package io.github.seonwkim.core;
 
 import com.typesafe.config.Config;
-import org.apache.pekko.actor.ActorSystem;
-import org.apache.pekko.dispatch.*;
-import scala.concurrent.duration.Duration;
 import java.util.Comparator;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.pekko.actor.ActorSystem;
+import org.apache.pekko.dispatch.*;
+import scala.concurrent.duration.Duration;
 
 /**
  * Custom priority mailbox implementations for testing.
@@ -26,7 +26,9 @@ public class TestPriorityMailboxes {
         private static final ConcurrentHashMap<String, Integer> lastCapacity = new ConcurrentHashMap<>();
 
         public static void recordConstruction(String mailboxType) {
-            constructionCounts.computeIfAbsent(mailboxType, k -> new AtomicInteger(0)).incrementAndGet();
+            constructionCounts
+                    .computeIfAbsent(mailboxType, k -> new AtomicInteger(0))
+                    .incrementAndGet();
         }
 
         public static void recordConstruction(String mailboxType, int capacity) {

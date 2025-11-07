@@ -1,8 +1,8 @@
 package io.github.seonwkim.core;
 
 import io.github.seonwkim.core.impl.DefaultSpringActorSystemBuilder;
-import io.github.seonwkim.core.shard.SpringShardedActor;
 import io.github.seonwkim.core.shard.ShardedActorRegistry;
+import io.github.seonwkim.core.shard.SpringShardedActor;
 import java.util.Map;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.ApplicationContext;

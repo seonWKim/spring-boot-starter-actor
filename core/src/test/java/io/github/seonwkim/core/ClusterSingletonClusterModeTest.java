@@ -31,8 +31,8 @@ public class ClusterSingletonClusterModeTest extends AbstractClusterTest {
         SpringActorSystem system1 = context1.getBean(SpringActorSystem.class);
 
         // When: Spawning a cluster singleton
-        SpringActorRef<ClusterSingletonTest.SingletonTestActor.Command> singleton = system1
-                .actor(ClusterSingletonTest.SingletonTestActor.class)
+        SpringActorRef<ClusterSingletonTest.SingletonTestActor.Command> singleton = system1.actor(
+                        ClusterSingletonTest.SingletonTestActor.class)
                 .withId("test-singleton")
                 .asClusterSingleton()
                 .spawn()
@@ -56,24 +56,24 @@ public class ClusterSingletonClusterModeTest extends AbstractClusterTest {
         SpringActorSystem system3 = context3.getBean(SpringActorSystem.class);
 
         // Given: Get singleton proxy from each node
-        SpringActorRef<ClusterSingletonTest.SingletonTestActor.Command> singleton1 = system1
-                .actor(ClusterSingletonTest.SingletonTestActor.class)
+        SpringActorRef<ClusterSingletonTest.SingletonTestActor.Command> singleton1 = system1.actor(
+                        ClusterSingletonTest.SingletonTestActor.class)
                 .withId("shared-singleton")
                 .asClusterSingleton()
                 .spawn()
                 .toCompletableFuture()
                 .get();
 
-        SpringActorRef<ClusterSingletonTest.SingletonTestActor.Command> singleton2 = system2
-                .actor(ClusterSingletonTest.SingletonTestActor.class)
+        SpringActorRef<ClusterSingletonTest.SingletonTestActor.Command> singleton2 = system2.actor(
+                        ClusterSingletonTest.SingletonTestActor.class)
                 .withId("shared-singleton")
                 .asClusterSingleton()
                 .spawn()
                 .toCompletableFuture()
                 .get();
 
-        SpringActorRef<ClusterSingletonTest.SingletonTestActor.Command> singleton3 = system3
-                .actor(ClusterSingletonTest.SingletonTestActor.class)
+        SpringActorRef<ClusterSingletonTest.SingletonTestActor.Command> singleton3 = system3.actor(
+                        ClusterSingletonTest.SingletonTestActor.class)
                 .withId("shared-singleton")
                 .asClusterSingleton()
                 .spawn()
@@ -94,9 +94,9 @@ public class ClusterSingletonClusterModeTest extends AbstractClusterTest {
         // Then: All messages should be handled by the same instance
         // Query from any node should return the same count
         ClusterSingletonTest.SingletonTestActor.CountResponse response = singleton1
-                .ask(
-                        ClusterSingletonTest.SingletonTestActor.GetCount::new,
-                        Duration.ofSeconds(5))
+                .ask(new ClusterSingletonTest.SingletonTestActor.GetCount())
+                .withTimeout(Duration.ofSeconds(5))
+                .execute()
                 .toCompletableFuture()
                 .get();
 
@@ -113,8 +113,8 @@ public class ClusterSingletonClusterModeTest extends AbstractClusterTest {
         SpringActorSystem system1 = context1.getBean(SpringActorSystem.class);
 
         // Given: A cluster singleton spawned from node 1
-        SpringActorRef<ClusterSingletonTest.SingletonTestActor.Command> singleton = system1
-                .actor(ClusterSingletonTest.SingletonTestActor.class)
+        SpringActorRef<ClusterSingletonTest.SingletonTestActor.Command> singleton = system1.actor(
+                        ClusterSingletonTest.SingletonTestActor.class)
                 .withId("accessible-singleton")
                 .asClusterSingleton()
                 .spawn()
@@ -134,9 +134,9 @@ public class ClusterSingletonClusterModeTest extends AbstractClusterTest {
 
         // Then: Query from any node should return the same count
         ClusterSingletonTest.SingletonTestActor.CountResponse response = singleton
-                .ask(
-                        ClusterSingletonTest.SingletonTestActor.GetCount::new,
-                        Duration.ofSeconds(5))
+                .ask(new ClusterSingletonTest.SingletonTestActor.GetCount())
+                .withTimeout(Duration.ofSeconds(5))
+                .execute()
                 .toCompletableFuture()
                 .get();
 
@@ -154,8 +154,8 @@ public class ClusterSingletonClusterModeTest extends AbstractClusterTest {
         SpringActorSystem system2 = context2.getBean(SpringActorSystem.class);
 
         // Given: A cluster singleton spawned from node 1
-        SpringActorRef<ClusterSingletonTest.SingletonTestActor.Command> singleton1 = system1
-                .actor(ClusterSingletonTest.SingletonTestActor.class)
+        SpringActorRef<ClusterSingletonTest.SingletonTestActor.Command> singleton1 = system1.actor(
+                        ClusterSingletonTest.SingletonTestActor.class)
                 .withId("idempotent-singleton")
                 .asClusterSingleton()
                 .spawn()
@@ -163,8 +163,8 @@ public class ClusterSingletonClusterModeTest extends AbstractClusterTest {
                 .get();
 
         // When: Attempting to spawn the same singleton from node 2
-        SpringActorRef<ClusterSingletonTest.SingletonTestActor.Command> singleton2 = system2
-                .actor(ClusterSingletonTest.SingletonTestActor.class)
+        SpringActorRef<ClusterSingletonTest.SingletonTestActor.Command> singleton2 = system2.actor(
+                        ClusterSingletonTest.SingletonTestActor.class)
                 .withId("idempotent-singleton")
                 .asClusterSingleton()
                 .spawn()
@@ -184,9 +184,9 @@ public class ClusterSingletonClusterModeTest extends AbstractClusterTest {
 
         // Query should show 2 increments (same instance)
         ClusterSingletonTest.SingletonTestActor.CountResponse response = singleton1
-                .ask(
-                        ClusterSingletonTest.SingletonTestActor.GetCount::new,
-                        Duration.ofSeconds(5))
+                .ask(new ClusterSingletonTest.SingletonTestActor.GetCount())
+                .withTimeout(Duration.ofSeconds(5))
+                .execute()
                 .toCompletableFuture()
                 .get();
 

@@ -20,7 +20,7 @@ import reactor.core.publisher.Mono;
  * <p>Best practices demonstrated:
  * - Use sharded actors for distributed state management
  * - Use tell() for fire-and-forget operations (increment)
- * - Use askBuilder() with timeout handling for request-response (getValue)
+ * - Use ask() with timeout handling for request-response (getValue)
  */
 @Service
 public class ActorCounterService implements CounterService {
@@ -70,8 +70,8 @@ public class ActorCounterService implements CounterService {
         var actorRef =
                 springActorSystem.sharded(CounterActor.class).withId(counterId).get();
 
-        // Send a get value message to the actor using the askBuilder() method with error handling
-        CompletionStage<Long> response = actorRef.askBuilder(CounterActor.GetValue::new)
+        // Send a get value message to the actor using the ask() method with error handling
+        CompletionStage<Long> response = actorRef.ask(new CounterActor.GetValue())
                 .withTimeout(Duration.ofSeconds(3))
                 .onTimeout(() -> {
                     logger.warn("Timeout getting value for counter: {}", counterId);

@@ -38,8 +38,7 @@ public abstract class SpringActorContext {
      */
     public abstract String actorId();
 
-    @Nullable
-    public ActorTypeRegistry registry() {
+    @Nullable public ActorTypeRegistry registry() {
         return registry;
     }
 

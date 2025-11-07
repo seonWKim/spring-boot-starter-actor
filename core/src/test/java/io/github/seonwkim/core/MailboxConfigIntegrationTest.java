@@ -1,7 +1,8 @@
 package io.github.seonwkim.core;
 
-import java.util.concurrent.CompletionStage;
+import static org.junit.jupiter.api.Assertions.*;
 
+import java.util.concurrent.CompletionStage;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,16 +11,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.test.annotation.DirtiesContext;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 /**
  * Integration test for MailboxConfig functionality.
  */
 @SpringBootTest(
-        classes = {
-            ActorConfiguration.class,
-            MailboxConfigIntegrationTest.TestConfig.class
-        },
+        classes = {ActorConfiguration.class, MailboxConfigIntegrationTest.TestConfig.class},
         properties = {
             // Basic mailbox type for fromConfig test
             "spring.actor.my-test-mailbox.mailbox-type=org.apache.pekko.dispatch.UnboundedMailbox",
@@ -102,10 +98,10 @@ public class MailboxConfigIntegrationTest {
         }
     }
 
-
     @Test
     void testDefaultMailbox() {
-        SpringActorRef<TestCommand> actor = actorSystem.actor(TestActor.class)
+        SpringActorRef<TestCommand> actor = actorSystem
+                .actor(TestActor.class)
                 .withId("default-mailbox-actor")
                 .withMailbox(MailboxConfig.defaultMailbox())
                 .spawnAndWait();
@@ -116,7 +112,8 @@ public class MailboxConfigIntegrationTest {
 
     @Test
     void testBoundedMailbox() {
-        SpringActorRef<TestCommand> actor = actorSystem.actor(TestActor.class)
+        SpringActorRef<TestCommand> actor = actorSystem
+                .actor(TestActor.class)
                 .withId("bounded-mailbox-actor")
                 .withMailbox(MailboxConfig.bounded(100))
                 .spawnAndWait();
@@ -127,7 +124,8 @@ public class MailboxConfigIntegrationTest {
 
     @Test
     void testFromConfigMailbox() {
-        SpringActorRef<TestCommand> actor = actorSystem.actor(TestActor.class)
+        SpringActorRef<TestCommand> actor = actorSystem
+                .actor(TestActor.class)
                 .withId("config-mailbox-actor")
                 .withMailbox(MailboxConfig.fromConfig("my-test-mailbox"))
                 .spawnAndWait();
@@ -138,7 +136,8 @@ public class MailboxConfigIntegrationTest {
 
     @Test
     void testCombinedWithDispatcher() {
-        SpringActorRef<TestCommand> actor = actorSystem.actor(TestActor.class)
+        SpringActorRef<TestCommand> actor = actorSystem
+                .actor(TestActor.class)
                 .withId("combined-actor")
                 .withMailbox(MailboxConfig.bounded(50))
                 .withBlockingDispatcher()
@@ -151,7 +150,8 @@ public class MailboxConfigIntegrationTest {
     @Test
     void testChildActorWithMailbox() throws Exception {
         // Spawn parent actor
-        SpringActorRef<TestCommand> parent = actorSystem.actor(TestParentActor.class)
+        SpringActorRef<TestCommand> parent = actorSystem
+                .actor(TestParentActor.class)
                 .withId("parent-with-child")
                 .spawnAndWait();
 
@@ -173,7 +173,8 @@ public class MailboxConfigIntegrationTest {
     void testUnboundedPriorityMailbox() {
         TestPriorityMailboxes.ConstructionTracker.reset();
 
-        SpringActorRef<TestCommand> actor = actorSystem.actor(TestActor.class)
+        SpringActorRef<TestCommand> actor = actorSystem
+                .actor(TestActor.class)
                 .withId("unbounded-priority-mailbox-actor")
                 .withMailbox(MailboxConfig.fromConfig("unbounded-priority-mailbox"))
                 .spawnAndWait();
@@ -181,7 +182,9 @@ public class MailboxConfigIntegrationTest {
         assertNotNull(actor);
 
         // Verify the custom mailbox constructor was called
-        assertEquals(1, TestPriorityMailboxes.ConstructionTracker.getConstructionCount("UnboundedPriorityMailbox"),
+        assertEquals(
+                1,
+                TestPriorityMailboxes.ConstructionTracker.getConstructionCount("UnboundedPriorityMailbox"),
                 "UnboundedPriorityMailbox constructor should have been called exactly once");
 
         actor.tell(new Ping("Hello with UnboundedPriorityMailbox"));
@@ -191,7 +194,8 @@ public class MailboxConfigIntegrationTest {
     void testUnboundedStablePriorityMailbox() {
         TestPriorityMailboxes.ConstructionTracker.reset();
 
-        SpringActorRef<TestCommand> actor = actorSystem.actor(TestActor.class)
+        SpringActorRef<TestCommand> actor = actorSystem
+                .actor(TestActor.class)
                 .withId("unbounded-stable-priority-mailbox-actor")
                 .withMailbox(MailboxConfig.fromConfig("unbounded-stable-priority-mailbox"))
                 .spawnAndWait();
@@ -199,7 +203,9 @@ public class MailboxConfigIntegrationTest {
         assertNotNull(actor);
 
         // Verify the custom mailbox constructor was called
-        assertEquals(1, TestPriorityMailboxes.ConstructionTracker.getConstructionCount("UnboundedStablePriorityMailbox"),
+        assertEquals(
+                1,
+                TestPriorityMailboxes.ConstructionTracker.getConstructionCount("UnboundedStablePriorityMailbox"),
                 "UnboundedStablePriorityMailbox constructor should have been called exactly once");
 
         actor.tell(new Ping("Hello with UnboundedStablePriorityMailbox"));
@@ -209,7 +215,8 @@ public class MailboxConfigIntegrationTest {
     void testBoundedPriorityMailbox() {
         TestPriorityMailboxes.ConstructionTracker.reset();
 
-        SpringActorRef<TestCommand> actor = actorSystem.actor(TestActor.class)
+        SpringActorRef<TestCommand> actor = actorSystem
+                .actor(TestActor.class)
                 .withId("bounded-priority-mailbox-actor")
                 .withMailbox(MailboxConfig.fromConfig("bounded-priority-mailbox"))
                 .spawnAndWait();
@@ -217,9 +224,13 @@ public class MailboxConfigIntegrationTest {
         assertNotNull(actor);
 
         // Verify the custom mailbox constructor was called with correct capacity
-        assertEquals(1, TestPriorityMailboxes.ConstructionTracker.getConstructionCount("BoundedPriorityMailbox"),
+        assertEquals(
+                1,
+                TestPriorityMailboxes.ConstructionTracker.getConstructionCount("BoundedPriorityMailbox"),
                 "BoundedPriorityMailbox constructor should have been called exactly once");
-        assertEquals(100, TestPriorityMailboxes.ConstructionTracker.getLastCapacity("BoundedPriorityMailbox"),
+        assertEquals(
+                100,
+                TestPriorityMailboxes.ConstructionTracker.getLastCapacity("BoundedPriorityMailbox"),
                 "BoundedPriorityMailbox should have been constructed with capacity 100");
 
         actor.tell(new Ping("Hello with BoundedPriorityMailbox"));
@@ -229,7 +240,8 @@ public class MailboxConfigIntegrationTest {
     void testBoundedStablePriorityMailbox() {
         TestPriorityMailboxes.ConstructionTracker.reset();
 
-        SpringActorRef<TestCommand> actor = actorSystem.actor(TestActor.class)
+        SpringActorRef<TestCommand> actor = actorSystem
+                .actor(TestActor.class)
                 .withId("bounded-stable-priority-mailbox-actor")
                 .withMailbox(MailboxConfig.fromConfig("bounded-stable-priority-mailbox"))
                 .spawnAndWait();
@@ -237,9 +249,13 @@ public class MailboxConfigIntegrationTest {
         assertNotNull(actor);
 
         // Verify the custom mailbox constructor was called with correct capacity
-        assertEquals(1, TestPriorityMailboxes.ConstructionTracker.getConstructionCount("BoundedStablePriorityMailbox"),
+        assertEquals(
+                1,
+                TestPriorityMailboxes.ConstructionTracker.getConstructionCount("BoundedStablePriorityMailbox"),
                 "BoundedStablePriorityMailbox constructor should have been called exactly once");
-        assertEquals(100, TestPriorityMailboxes.ConstructionTracker.getLastCapacity("BoundedStablePriorityMailbox"),
+        assertEquals(
+                100,
+                TestPriorityMailboxes.ConstructionTracker.getLastCapacity("BoundedStablePriorityMailbox"),
                 "BoundedStablePriorityMailbox should have been constructed with capacity 100");
 
         actor.tell(new Ping("Hello with BoundedStablePriorityMailbox"));
@@ -264,7 +280,8 @@ public class MailboxConfigIntegrationTest {
     @Test
     void testChildActorWithDispatcher() throws Exception {
         // Spawn parent actor
-        SpringActorRef<TestCommand> parent = actorSystem.actor(TestParentActor.class)
+        SpringActorRef<TestCommand> parent = actorSystem
+                .actor(TestParentActor.class)
                 .withId("parent-with-dispatcher-child")
                 .spawnAndWait();
 
@@ -286,7 +303,8 @@ public class MailboxConfigIntegrationTest {
     @Test
     void testChildActorWithMailboxAndDispatcher() throws Exception {
         // Spawn parent actor
-        SpringActorRef<TestCommand> parent = actorSystem.actor(TestParentActor.class)
+        SpringActorRef<TestCommand> parent = actorSystem
+                .actor(TestParentActor.class)
                 .withId("parent-with-configured-child")
                 .spawnAndWait();
 

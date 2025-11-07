@@ -1,10 +1,10 @@
 package io.github.seonwkim.core;
 
-import io.github.seonwkim.core.shard.SpringShardedActor;
 import io.github.seonwkim.core.shard.ShardedActorRegistry;
+import io.github.seonwkim.core.shard.SpringShardedActor;
+import javax.annotation.Nullable;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityRef;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
-import javax.annotation.Nullable;
 
 /**
  * A fluent builder for creating references to sharded actors. This builder simplifies the process
@@ -23,7 +23,9 @@ import javax.annotation.Nullable;
 public class SpringShardedActorBuilder<T> {
 
     private final SpringActorSystem actorSystem;
+
     @Nullable private String entityId;
+
     private EntityTypeKey<T> typeKey;
 
     /**

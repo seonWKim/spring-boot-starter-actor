@@ -94,7 +94,8 @@ public class SpringActorRefTest {
                 new SpringActorRef<>(testKit.system().scheduler(), actorRef);
 
         // New cleaner pattern using AskCommand - no explicit generics needed!
-        String result = springRef.ask(new Ping("hello")).execute().toCompletableFuture().get();
+        String result =
+                springRef.ask(new Ping("hello")).execute().toCompletableFuture().get();
 
         assertEquals("pong:" + id, result);
     }

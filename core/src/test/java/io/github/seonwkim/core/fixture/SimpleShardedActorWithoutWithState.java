@@ -2,12 +2,12 @@ package io.github.seonwkim.core.fixture;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.github.seonwkim.core.AskCommand;
 import io.github.seonwkim.core.serialization.JsonSerializable;
 import io.github.seonwkim.core.shard.DefaultShardingMessageExtractor;
 import io.github.seonwkim.core.shard.ShardEnvelope;
 import io.github.seonwkim.core.shard.SpringShardedActor;
 import io.github.seonwkim.core.shard.SpringShardedActorBehavior;
-import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.apache.pekko.cluster.sharding.typed.ShardingMessageExtractor;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityContext;
@@ -17,31 +17,26 @@ import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
  * Test sharded actor that demonstrates building a sharded actor WITHOUT using withState().
  * This uses the default state type (ActorContext) and handles messages directly with closures.
  */
-public class SimpleShardedActorWithoutwithState implements SpringShardedActor<SimpleShardedActorWithoutwithState.Command> {
+public class SimpleShardedActorWithoutWithState
+        implements SpringShardedActor<SimpleShardedActorWithoutWithState.Command> {
 
     public static final EntityTypeKey<Command> TYPE_KEY =
-            EntityTypeKey.create(Command.class, "SimpleShardedActorWithoutwithState");
+            EntityTypeKey.create(Command.class, "SimpleShardedActorWithoutWithState");
 
     public interface Command extends JsonSerializable {}
 
-    public static class Echo implements Command {
+    public static class Echo extends AskCommand<String> implements Command {
         public final String message;
-        public final ActorRef<String> replyTo;
 
         @JsonCreator
-        public Echo(@JsonProperty("message") String message, @JsonProperty("replyTo") ActorRef<String> replyTo) {
+        public Echo(@JsonProperty("message") String message) {
             this.message = message;
-            this.replyTo = replyTo;
         }
     }
 
-    public static class GetEntityId implements Command {
-        private final ActorRef<Object> replyTo;
-
+    public static class GetEntityId extends AskCommand<Object> implements Command {
         @JsonCreator
-        public GetEntityId(@JsonProperty("replyTo") ActorRef<Object> replyTo) {
-            this.replyTo = replyTo;
-        }
+        public GetEntityId() {}
     }
 
     @Override
@@ -57,11 +52,11 @@ public class SimpleShardedActorWithoutwithState implements SpringShardedActor<Si
                 // No withState() - message handlers work directly with ActorContext
                 .onMessage(Echo.class, (actorCtx, msg) -> {
                     actorCtx.getLog().info("Entity {} received echo: {}", entityId, msg.message);
-                    msg.replyTo.tell("Echo from entity [" + entityId + "]: " + msg.message);
+                    msg.reply("Echo from entity [" + entityId + "]: " + msg.message);
                     return Behaviors.same();
                 })
                 .onMessage(GetEntityId.class, (actorCtx, msg) -> {
-                    msg.replyTo.tell(entityId);
+                    msg.reply(entityId);
                     return Behaviors.same();
                 })
                 .build();

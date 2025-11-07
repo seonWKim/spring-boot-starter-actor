@@ -5,9 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.github.seonwkim.core.impl.DefaultSpringActorContext;
 import java.time.Duration;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.SupervisorStrategy;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
@@ -30,22 +28,12 @@ class SpringChildActorBuilderTest {
 
         public interface Command {}
 
-        public static class Ping implements Command {
-            public final ActorRef<String> replyTo;
-
-            @SuppressWarnings("unchecked")
-            public Ping(ActorRef<String> replyTo) {
-                this.replyTo = replyTo;
-            }
+        public static class Ping extends AskCommand<String> implements Command {
+            public Ping() {}
         }
 
-        public static class GetId implements Command {
-            public final ActorRef<String> replyTo;
-
-            @SuppressWarnings("unchecked")
-            public GetId(ActorRef<String> replyTo) {
-                this.replyTo = replyTo;
-            }
+        public static class GetId extends AskCommand<String> implements Command {
+            public GetId() {}
         }
 
         @Override
@@ -67,12 +55,12 @@ class SpringChildActorBuilderTest {
             }
 
             private Behavior<Command> onPing(Ping msg) {
-                msg.replyTo.tell("pong");
+                msg.reply("pong");
                 return Behaviors.same();
             }
 
             private Behavior<Command> onGetId(GetId msg) {
-                msg.replyTo.tell(actorContext.actorId());
+                msg.reply(actorContext.actorId());
                 return Behaviors.same();
             }
         }
@@ -129,15 +117,12 @@ class SpringChildActorBuilderTest {
                     .spawnAndWait();
 
             // When: Using the builder with withId()
-            SpringActorRef<SimpleChildActor.Command> child = parent
-                    .child(SimpleChildActor.class)
-                    .withId("test-child-1")
-                    .spawnAndWait();
+            SpringActorRef<SimpleChildActor.Command> child =
+                    parent.child(SimpleChildActor.class).withId("test-child-1").spawnAndWait();
 
             // Then: Child should be spawned with the correct ID
             assertThat(child).isNotNull();
-            String childId = child
-                    .askBuilder(SimpleChildActor.GetId::new)
+            String childId = child.ask(new SimpleChildActor.GetId())
                     .withTimeout(Duration.ofSeconds(5))
                     .execute()
                     .toCompletableFuture()
@@ -156,15 +141,13 @@ class SpringChildActorBuilderTest {
 
             // When: Using the builder with withContext()
             SpringActorContext customContext = new DefaultSpringActorContext("custom-child-1");
-            SpringActorRef<SimpleChildActor.Command> child = parent
-                    .child(SimpleChildActor.class)
+            SpringActorRef<SimpleChildActor.Command> child = parent.child(SimpleChildActor.class)
                     .withContext(customContext)
                     .spawnAndWait();
 
             // Then: Child should be spawned with the custom context
             assertThat(child).isNotNull();
-            String childId = child
-                    .askBuilder(SimpleChildActor.GetId::new)
+            String childId = child.ask(new SimpleChildActor.GetId())
                     .withTimeout(Duration.ofSeconds(5))
                     .execute()
                     .toCompletableFuture()
@@ -182,16 +165,14 @@ class SpringChildActorBuilderTest {
                     .spawnAndWait();
 
             // When: Using the builder with withSupervisionStrategy()
-            SpringActorRef<SimpleChildActor.Command> child = parent
-                    .child(SimpleChildActor.class)
+            SpringActorRef<SimpleChildActor.Command> child = parent.child(SimpleChildActor.class)
                     .withId("supervised-child")
                     .withSupervisionStrategy(SupervisorStrategy.restart())
                     .spawnAndWait();
 
             // Then: Child should be spawned (strategy is applied internally)
             assertThat(child).isNotNull();
-            String response = child
-                    .askBuilder(SimpleChildActor.Ping::new)
+            String response = child.ask(new SimpleChildActor.Ping())
                     .withTimeout(Duration.ofSeconds(5))
                     .execute()
                     .toCompletableFuture()
@@ -209,8 +190,7 @@ class SpringChildActorBuilderTest {
                     .spawnAndWait();
 
             // When: Using the builder with withTimeout()
-            SpringActorRef<SimpleChildActor.Command> child = parent
-                    .child(SimpleChildActor.class)
+            SpringActorRef<SimpleChildActor.Command> child = parent.child(SimpleChildActor.class)
                     .withId("timeout-child")
                     .withTimeout(Duration.ofSeconds(10))
                     .spawnAndWait();
@@ -223,14 +203,11 @@ class SpringChildActorBuilderTest {
         void testFluentChaining(ApplicationContext springContext) throws Exception {
             // Given: A parent actor
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
-            SpringActorRef<ParentActor.Command> parent = actorSystem
-                    .actor(ParentActor.class)
-                    .withId("parent-fluent")
-                    .spawnAndWait();
+            SpringActorRef<ParentActor.Command> parent =
+                    actorSystem.actor(ParentActor.class).withId("parent-fluent").spawnAndWait();
 
             // When: Chaining multiple builder methods
-            SpringActorRef<SimpleChildActor.Command> child = parent
-                    .child(SimpleChildActor.class)
+            SpringActorRef<SimpleChildActor.Command> child = parent.child(SimpleChildActor.class)
                     .withId("fluent-child")
                     .withSupervisionStrategy(SupervisorStrategy.restart())
                     .withTimeout(Duration.ofSeconds(5))
@@ -238,8 +215,7 @@ class SpringChildActorBuilderTest {
 
             // Then: All configurations should be applied
             assertThat(child).isNotNull();
-            String response = child
-                    .askBuilder(SimpleChildActor.Ping::new)
+            String response = child.ask(new SimpleChildActor.Ping())
                     .withTimeout(Duration.ofSeconds(5))
                     .execute()
                     .toCompletableFuture()
@@ -263,9 +239,7 @@ class SpringChildActorBuilderTest {
                     .spawnAndWait();
 
             // When/Then: Calling withTimeout with null should throw
-            assertThatThrownBy(() -> parent
-                            .child(SimpleChildActor.class)
-                            .withTimeout(null))
+            assertThatThrownBy(() -> parent.child(SimpleChildActor.class).withTimeout(null))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessage("timeout must not be null");
         }
@@ -274,10 +248,8 @@ class SpringChildActorBuilderTest {
         void testSpawnThrowsWhenNoIdOrContext(ApplicationContext springContext) {
             // Given: A parent actor
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
-            SpringActorRef<ParentActor.Command> parent = actorSystem
-                    .actor(ParentActor.class)
-                    .withId("parent-no-id")
-                    .spawnAndWait();
+            SpringActorRef<ParentActor.Command> parent =
+                    actorSystem.actor(ParentActor.class).withId("parent-no-id").spawnAndWait();
 
             // When/Then: Calling spawn without setting ID or context should throw
             assertThatThrownBy(() -> parent.child(SimpleChildActor.class).spawn())
@@ -346,8 +318,7 @@ class SpringChildActorBuilderTest {
                     .spawnAndWait();
 
             // When: Using spawn() to get a CompletionStage
-            SpringActorRef<SimpleChildActor.Command> child = parent
-                    .child(SimpleChildActor.class)
+            SpringActorRef<SimpleChildActor.Command> child = parent.child(SimpleChildActor.class)
                     .withId("async-child")
                     .spawn()
                     .toCompletableFuture()
@@ -355,8 +326,7 @@ class SpringChildActorBuilderTest {
 
             // Then: Child should be spawned and functional
             assertThat(child).isNotNull();
-            String response = child
-                    .askBuilder(SimpleChildActor.Ping::new)
+            String response = child.ask(new SimpleChildActor.Ping())
                     .withTimeout(Duration.ofSeconds(5))
                     .execute()
                     .toCompletableFuture()
@@ -374,15 +344,12 @@ class SpringChildActorBuilderTest {
                     .spawnAndWait();
 
             // When: Using spawnAndWait() to spawn synchronously
-            SpringActorRef<SimpleChildActor.Command> child = parent
-                    .child(SimpleChildActor.class)
-                    .withId("sync-child")
-                    .spawnAndWait();
+            SpringActorRef<SimpleChildActor.Command> child =
+                    parent.child(SimpleChildActor.class).withId("sync-child").spawnAndWait();
 
             // Then: Child should be spawned and functional
             assertThat(child).isNotNull();
-            String response = child
-                    .askBuilder(SimpleChildActor.Ping::new)
+            String response = child.ask(new SimpleChildActor.Ping())
                     .withTimeout(Duration.ofSeconds(5))
                     .execute()
                     .toCompletableFuture()
@@ -399,14 +366,12 @@ class SpringChildActorBuilderTest {
                     .withId("parent-duplicate")
                     .spawnAndWait();
 
-            SpringActorRef<SimpleChildActor.Command> child1 = parent
-                    .child(SimpleChildActor.class)
+            SpringActorRef<SimpleChildActor.Command> child1 = parent.child(SimpleChildActor.class)
                     .withId("duplicate-child")
                     .spawnAndWait();
 
             // When: Spawning a child with the same ID again
-            SpringActorRef<SimpleChildActor.Command> child2 = parent
-                    .child(SimpleChildActor.class)
+            SpringActorRef<SimpleChildActor.Command> child2 = parent.child(SimpleChildActor.class)
                     .withId("duplicate-child")
                     .spawnAndWait();
 
@@ -431,14 +396,12 @@ class SpringChildActorBuilderTest {
                     .withId("parent-get-existing")
                     .spawnAndWait();
 
-            SpringActorRef<SimpleChildActor.Command> spawnedChild = parent
-                    .child(SimpleChildActor.class)
+            SpringActorRef<SimpleChildActor.Command> spawnedChild = parent.child(SimpleChildActor.class)
                     .withId("existing-child")
                     .spawnAndWait();
 
             // When: Getting the child using the builder
-            SpringActorRef<SimpleChildActor.Command> retrievedChild = parent
-                    .child(SimpleChildActor.class)
+            SpringActorRef<SimpleChildActor.Command> retrievedChild = parent.child(SimpleChildActor.class)
                     .withId("existing-child")
                     .get()
                     .toCompletableFuture()
@@ -450,8 +413,7 @@ class SpringChildActorBuilderTest {
         }
 
         @Test
-        void testGetReturnsNullForNonExistent(ApplicationContext springContext)
-                throws Exception {
+        void testGetReturnsNullForNonExistent(ApplicationContext springContext) throws Exception {
             // Given: A parent actor without children
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
             SpringActorRef<ParentActor.Command> parent = actorSystem
@@ -460,8 +422,7 @@ class SpringChildActorBuilderTest {
                     .spawnAndWait();
 
             // When: Getting a non-existent child
-            SpringActorRef<SimpleChildActor.Command> child = parent
-                    .child(SimpleChildActor.class)
+            SpringActorRef<SimpleChildActor.Command> child = parent.child(SimpleChildActor.class)
                     .withId("non-existent-child")
                     .get()
                     .toCompletableFuture()
@@ -478,8 +439,7 @@ class SpringChildActorBuilderTest {
     class ExistsOperationTests {
 
         @Test
-        void testExistsReturnsTrueForExistingChild(ApplicationContext springContext)
-                throws Exception {
+        void testExistsReturnsTrueForExistingChild(ApplicationContext springContext) throws Exception {
             // Given: A parent actor with an existing child
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
             SpringActorRef<ParentActor.Command> parent = actorSystem
@@ -487,13 +447,10 @@ class SpringChildActorBuilderTest {
                     .withId("parent-exists-true")
                     .spawnAndWait();
 
-            parent.child(SimpleChildActor.class)
-                    .withId("existing-child-check")
-                    .spawnAndWait();
+            parent.child(SimpleChildActor.class).withId("existing-child-check").spawnAndWait();
 
             // When: Checking if the child exists
-            Boolean exists = parent
-                    .child(SimpleChildActor.class)
+            Boolean exists = parent.child(SimpleChildActor.class)
                     .withId("existing-child-check")
                     .exists()
                     .toCompletableFuture()
@@ -504,8 +461,7 @@ class SpringChildActorBuilderTest {
         }
 
         @Test
-        void testExistsReturnsFalseForNonExistent(ApplicationContext springContext)
-                throws Exception {
+        void testExistsReturnsFalseForNonExistent(ApplicationContext springContext) throws Exception {
             // Given: A parent actor without children
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
             SpringActorRef<ParentActor.Command> parent = actorSystem
@@ -514,8 +470,7 @@ class SpringChildActorBuilderTest {
                     .spawnAndWait();
 
             // When: Checking if a non-existent child exists
-            Boolean exists = parent
-                    .child(SimpleChildActor.class)
+            Boolean exists = parent.child(SimpleChildActor.class)
                     .withId("non-existent-check")
                     .exists()
                     .toCompletableFuture()
@@ -532,8 +487,7 @@ class SpringChildActorBuilderTest {
     class GetOrSpawnOperationTests {
 
         @Test
-        void testGetOrSpawnReturnsExistingChild(ApplicationContext springContext)
-                throws Exception {
+        void testGetOrSpawnReturnsExistingChild(ApplicationContext springContext) throws Exception {
             // Given: A parent actor with an existing child
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
             SpringActorRef<ParentActor.Command> parent = actorSystem
@@ -541,14 +495,12 @@ class SpringChildActorBuilderTest {
                     .withId("parent-getorspawn-existing")
                     .spawnAndWait();
 
-            SpringActorRef<SimpleChildActor.Command> spawnedChild = parent
-                    .child(SimpleChildActor.class)
+            SpringActorRef<SimpleChildActor.Command> spawnedChild = parent.child(SimpleChildActor.class)
                     .withId("getorspawn-existing")
                     .spawnAndWait();
 
             // When: Using getOrSpawn on an existing child
-            SpringActorRef<SimpleChildActor.Command> retrievedChild = parent
-                    .child(SimpleChildActor.class)
+            SpringActorRef<SimpleChildActor.Command> retrievedChild = parent.child(SimpleChildActor.class)
                     .withId("getorspawn-existing")
                     .getOrSpawn()
                     .toCompletableFuture()
@@ -560,8 +512,7 @@ class SpringChildActorBuilderTest {
         }
 
         @Test
-        void testGetOrSpawnCreatesNewChild(ApplicationContext springContext)
-                throws Exception {
+        void testGetOrSpawnCreatesNewChild(ApplicationContext springContext) throws Exception {
             // Given: A parent actor without children
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
             SpringActorRef<ParentActor.Command> parent = actorSystem
@@ -570,8 +521,7 @@ class SpringChildActorBuilderTest {
                     .spawnAndWait();
 
             // When: Using getOrSpawn on a non-existent child
-            SpringActorRef<SimpleChildActor.Command> child = parent
-                    .child(SimpleChildActor.class)
+            SpringActorRef<SimpleChildActor.Command> child = parent.child(SimpleChildActor.class)
                     .withId("getorspawn-new")
                     .getOrSpawn()
                     .toCompletableFuture()
@@ -579,8 +529,7 @@ class SpringChildActorBuilderTest {
 
             // Then: Should create and return a new child
             assertThat(child).isNotNull();
-            String response = child
-                    .askBuilder(SimpleChildActor.Ping::new)
+            String response = child.ask(new SimpleChildActor.Ping())
                     .withTimeout(Duration.ofSeconds(5))
                     .execute()
                     .toCompletableFuture()
@@ -598,15 +547,13 @@ class SpringChildActorBuilderTest {
                     .spawnAndWait();
 
             // When: Calling getOrSpawn multiple times
-            SpringActorRef<SimpleChildActor.Command> child1 = parent
-                    .child(SimpleChildActor.class)
+            SpringActorRef<SimpleChildActor.Command> child1 = parent.child(SimpleChildActor.class)
                     .withId("idempotent-child")
                     .getOrSpawn()
                     .toCompletableFuture()
                     .get(5, TimeUnit.SECONDS);
 
-            SpringActorRef<SimpleChildActor.Command> child2 = parent
-                    .child(SimpleChildActor.class)
+            SpringActorRef<SimpleChildActor.Command> child2 = parent.child(SimpleChildActor.class)
                     .withId("idempotent-child")
                     .getOrSpawn()
                     .toCompletableFuture()
@@ -625,8 +572,7 @@ class SpringChildActorBuilderTest {
     class EdgeCaseTests {
 
         @Test
-        void testMultipleChildrenWithDifferentIds(ApplicationContext springContext)
-                throws Exception {
+        void testMultipleChildrenWithDifferentIds(ApplicationContext springContext) throws Exception {
             // Given: A parent actor
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
             SpringActorRef<ParentActor.Command> parent = actorSystem
@@ -635,20 +581,14 @@ class SpringChildActorBuilderTest {
                     .spawnAndWait();
 
             // When: Spawning multiple children with different IDs
-            SpringActorRef<SimpleChildActor.Command> child1 = parent
-                    .child(SimpleChildActor.class)
-                    .withId("child-1")
-                    .spawnAndWait();
+            SpringActorRef<SimpleChildActor.Command> child1 =
+                    parent.child(SimpleChildActor.class).withId("child-1").spawnAndWait();
 
-            SpringActorRef<SimpleChildActor.Command> child2 = parent
-                    .child(SimpleChildActor.class)
-                    .withId("child-2")
-                    .spawnAndWait();
+            SpringActorRef<SimpleChildActor.Command> child2 =
+                    parent.child(SimpleChildActor.class).withId("child-2").spawnAndWait();
 
-            SpringActorRef<SimpleChildActor.Command> child3 = parent
-                    .child(SimpleChildActor.class)
-                    .withId("child-3")
-                    .spawnAndWait();
+            SpringActorRef<SimpleChildActor.Command> child3 =
+                    parent.child(SimpleChildActor.class).withId("child-3").spawnAndWait();
 
             // Then: All children should be distinct and functional
             assertThat(child1.getUnderlying()).isNotEqualTo(child2.getUnderlying());
@@ -656,20 +596,17 @@ class SpringChildActorBuilderTest {
             assertThat(child1.getUnderlying()).isNotEqualTo(child3.getUnderlying());
 
             // Verify all can respond
-            String response1 = child1
-                    .askBuilder(SimpleChildActor.Ping::new)
+            String response1 = child1.ask(new SimpleChildActor.Ping())
                     .withTimeout(Duration.ofSeconds(5))
                     .execute()
                     .toCompletableFuture()
                     .get();
-            String response2 = child2
-                    .askBuilder(SimpleChildActor.Ping::new)
+            String response2 = child2.ask(new SimpleChildActor.Ping())
                     .withTimeout(Duration.ofSeconds(5))
                     .execute()
                     .toCompletableFuture()
                     .get();
-            String response3 = child3
-                    .askBuilder(SimpleChildActor.Ping::new)
+            String response3 = child3.ask(new SimpleChildActor.Ping())
                     .withTimeout(Duration.ofSeconds(5))
                     .execute()
                     .toCompletableFuture()
@@ -681,8 +618,7 @@ class SpringChildActorBuilderTest {
         }
 
         @Test
-        void testBuilderReuseCreatesIndependentOperations(
-                ApplicationContext springContext) throws Exception {
+        void testBuilderReuseCreatesIndependentOperations(ApplicationContext springContext) throws Exception {
             // Given: A parent actor
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
             SpringActorRef<ParentActor.Command> parent = actorSystem
@@ -693,23 +629,17 @@ class SpringChildActorBuilderTest {
             // When: Creating a builder and using it for different children
             // (Note: In practice, each builder instance should be used for one child,
             // but this tests that multiple calls with different IDs work correctly)
-            parent.child(SimpleChildActor.class)
-                    .withId("reuse-child-1")
-                    .spawnAndWait();
+            parent.child(SimpleChildActor.class).withId("reuse-child-1").spawnAndWait();
 
-            parent.child(SimpleChildActor.class)
-                    .withId("reuse-child-2")
-                    .spawnAndWait();
+            parent.child(SimpleChildActor.class).withId("reuse-child-2").spawnAndWait();
 
             // Then: Both children should exist independently
-            Boolean exists1 = parent
-                    .child(SimpleChildActor.class)
+            Boolean exists1 = parent.child(SimpleChildActor.class)
                     .withId("reuse-child-1")
                     .exists()
                     .toCompletableFuture()
                     .get(5, TimeUnit.SECONDS);
-            Boolean exists2 = parent
-                    .child(SimpleChildActor.class)
+            Boolean exists2 = parent.child(SimpleChildActor.class)
                     .withId("reuse-child-2")
                     .exists()
                     .toCompletableFuture()
@@ -720,8 +650,7 @@ class SpringChildActorBuilderTest {
         }
 
         @Test
-        void testCustomContextTakesPrecedenceOverId(ApplicationContext springContext)
-                throws Exception {
+        void testCustomContextTakesPrecedenceOverId(ApplicationContext springContext) throws Exception {
             // Given: A parent actor
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
             SpringActorRef<ParentActor.Command> parent = actorSystem
@@ -731,16 +660,14 @@ class SpringChildActorBuilderTest {
 
             // When: Setting both ID and custom context (context should be used)
             SpringActorContext customContext = new DefaultSpringActorContext("custom-context-child");
-            SpringActorRef<SimpleChildActor.Command> child = parent
-                    .child(SimpleChildActor.class)
+            SpringActorRef<SimpleChildActor.Command> child = parent.child(SimpleChildActor.class)
                     .withId("this-id-should-be-ignored")
                     .withContext(customContext)
                     .spawnAndWait();
 
             // Then: Child should use the custom context ID
             assertThat(child).isNotNull();
-            String childId = child
-                    .askBuilder(SimpleChildActor.GetId::new)
+            String childId = child.ask(new SimpleChildActor.GetId())
                     .withTimeout(Duration.ofSeconds(5))
                     .execute()
                     .toCompletableFuture()
@@ -755,8 +682,7 @@ class SpringChildActorBuilderTest {
     class IntegrationWithSpringActorRefTests {
 
         @Test
-        void testBuilderMethodVsUnifiedReferenceAPI(ApplicationContext springContext)
-                throws Exception {
+        void testBuilderMethodVsUnifiedReferenceAPI(ApplicationContext springContext) throws Exception {
             // Given: A parent actor
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
             SpringActorRef<ParentActor.Command> parent = actorSystem
@@ -765,8 +691,7 @@ class SpringChildActorBuilderTest {
                     .spawnAndWait();
 
             // When: Spawning children using both the builder API and unified reference API
-            SpringActorRef<SimpleChildActor.Command> childViaBuilder = parent
-                    .child(SimpleChildActor.class)
+            SpringActorRef<SimpleChildActor.Command> childViaBuilder = parent.child(SimpleChildActor.class)
                     .withId("builder-child")
                     .withSupervisionStrategy(SupervisorStrategy.restart())
                     .spawnAndWait();
@@ -784,13 +709,13 @@ class SpringChildActorBuilderTest {
             assertThat(childViaUnifiedAPI).isNotNull();
 
             String response1 = childViaBuilder
-                    .askBuilder(SimpleChildActor.Ping::new)
+                    .ask(new SimpleChildActor.Ping())
                     .withTimeout(Duration.ofSeconds(5))
                     .execute()
                     .toCompletableFuture()
                     .get();
             String response2 = childViaUnifiedAPI
-                    .askBuilder(SimpleChildActor.Ping::new)
+                    .ask(new SimpleChildActor.Ping())
                     .withTimeout(Duration.ofSeconds(5))
                     .execute()
                     .toCompletableFuture()
@@ -801,8 +726,7 @@ class SpringChildActorBuilderTest {
         }
 
         @Test
-        void testUnifiedAPIGetMethod(ApplicationContext springContext)
-                throws Exception {
+        void testUnifiedAPIGetMethod(ApplicationContext springContext) throws Exception {
             // Given: A parent actor with a child
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
             SpringActorRef<ParentActor.Command> parent = actorSystem
@@ -810,14 +734,13 @@ class SpringChildActorBuilderTest {
                     .withId("parent-get-unified")
                     .spawnAndWait();
 
-            SpringActorRef<SimpleChildActor.Command> spawnedChild = parent
-                    .child(SimpleChildActor.class)
+            SpringActorRef<SimpleChildActor.Command> spawnedChild = parent.child(SimpleChildActor.class)
                     .withId("comparison-child")
                     .spawnAndWait();
 
             // When: Getting the child using the unified API
-            SpringActorRef<SimpleChildActor.Command> retrievedChild = parent
-                    .child(SimpleChildActor.class, "comparison-child")
+            SpringActorRef<SimpleChildActor.Command> retrievedChild = parent.child(
+                            SimpleChildActor.class, "comparison-child")
                     .get()
                     .toCompletableFuture()
                     .get(5, TimeUnit.SECONDS)
@@ -829,8 +752,7 @@ class SpringChildActorBuilderTest {
         }
 
         @Test
-        void testUnifiedAPIExistsMethod(ApplicationContext springContext)
-                throws Exception {
+        void testUnifiedAPIExistsMethod(ApplicationContext springContext) throws Exception {
             // Given: A parent actor with a child
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
             SpringActorRef<ParentActor.Command> parent = actorSystem
@@ -843,8 +765,7 @@ class SpringChildActorBuilderTest {
                     .spawnAndWait();
 
             // When: Checking existence using the unified API
-            Boolean exists = parent
-                    .child(SimpleChildActor.class, "exists-comparison-child")
+            Boolean exists = parent.child(SimpleChildActor.class, "exists-comparison-child")
                     .exists()
                     .toCompletableFuture()
                     .get(5, TimeUnit.SECONDS);
@@ -853,8 +774,7 @@ class SpringChildActorBuilderTest {
             assertThat(exists).isTrue();
 
             // And: Should return false for non-existent child
-            Boolean notExists = parent
-                    .child(SimpleChildActor.class, "non-existent")
+            Boolean notExists = parent.child(SimpleChildActor.class, "non-existent")
                     .exists()
                     .toCompletableFuture()
                     .get(5, TimeUnit.SECONDS);

@@ -6,7 +6,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
@@ -34,22 +33,39 @@ class SpringChildActorReferenceTest {
 
         public interface Command {}
 
-        public static class Ping implements Command {
-            public final ActorRef<String> replyTo;
+        public static class Ping extends AskCommand<String> implements Command {
+            public Ping() {}
+        }
 
-            public Ping(ActorRef<String> replyTo) {
-                this.replyTo = replyTo;
-            }
+        public static class GetId extends AskCommand<String> implements Command {
+            public GetId() {}
         }
 
         @Override
         public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
             return SpringActorBehavior.builder(Command.class, actorContext)
-                    .onMessage(Ping.class, (ctx, msg) -> {
-                        msg.replyTo.tell("pong");
-                        return Behaviors.same();
-                    })
+                    .withState(ctx -> new SimpleChildBehavior(ctx, actorContext))
+                    .onMessage(Ping.class, SimpleChildBehavior::onPing)
+                    .onMessage(GetId.class, SimpleChildBehavior::onGetId)
                     .build();
+        }
+
+        private static class SimpleChildBehavior {
+            private final SpringActorContext actorContext;
+
+            SimpleChildBehavior(ActorContext<Command> ctx, SpringActorContext actorContext) {
+                this.actorContext = actorContext;
+            }
+
+            private Behavior<Command> onPing(Ping msg) {
+                msg.reply("pong");
+                return Behaviors.same();
+            }
+
+            private Behavior<Command> onGetId(GetId msg) {
+                msg.reply(actorContext.actorId());
+                return Behaviors.same();
+            }
         }
     }
 
@@ -109,8 +125,7 @@ class SpringChildActorReferenceTest {
         }
 
         @Test
-        void testGetReturnsEmptyOptionalForNonExistent(ApplicationContext springContext)
-                throws Exception {
+        void testGetReturnsEmptyOptionalForNonExistent(ApplicationContext springContext) throws Exception {
             // Given: A parent actor without children
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
             SpringActorRef<ReferenceTestParentActor.Command> parent = actorSystem

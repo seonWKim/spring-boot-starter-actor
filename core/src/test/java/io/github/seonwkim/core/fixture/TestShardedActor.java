@@ -2,13 +2,13 @@ package io.github.seonwkim.core.fixture;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.github.seonwkim.core.AskCommand;
 import io.github.seonwkim.core.serialization.JsonSerializable;
 import io.github.seonwkim.core.shard.DefaultShardingMessageExtractor;
 import io.github.seonwkim.core.shard.ShardEnvelope;
 import io.github.seonwkim.core.shard.SpringShardedActor;
 import io.github.seonwkim.core.shard.SpringShardedActorBehavior;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.apache.pekko.cluster.sharding.typed.ShardingMessageExtractor;
@@ -29,13 +29,9 @@ public class TestShardedActor implements SpringShardedActor<TestShardedActor.Com
         }
     }
 
-    public static class GetState implements Command {
-        private final ActorRef<State> replyTo;
-
+    public static class GetState extends AskCommand<State> implements Command {
         @JsonCreator
-        public GetState(@JsonProperty("replyTo") ActorRef<State> replyTo) {
-            this.replyTo = replyTo;
-        }
+        public GetState() {}
     }
 
     public static class State implements JsonSerializable {
@@ -66,7 +62,7 @@ public class TestShardedActor implements SpringShardedActor<TestShardedActor.Com
                     return Behaviors.same();
                 })
                 .onMessage(GetState.class, (state, cmd) -> {
-                    cmd.replyTo.tell(new State(state.counter.get()));
+                    cmd.reply(new State(state.counter.get()));
                     return Behaviors.same();
                 })
                 .build();

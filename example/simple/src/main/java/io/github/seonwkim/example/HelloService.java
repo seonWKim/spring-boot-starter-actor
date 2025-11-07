@@ -10,7 +10,7 @@ import reactor.core.publisher.Mono;
  * <p>Key patterns shown:
  * <ul>
  *   <li>Use getOrSpawn() for simplified actor lifecycle - automatically gets existing or creates new
- *   <li>Use askBuilder() for request-response with timeout handling
+ *   <li>Use ask() for request-response with timeout handling
  *   <li>Use SpringActorSystem as a Spring bean via dependency injection
  *   <li>Integrate actors with reactive programming (returns Mono)
  * </ul>
@@ -32,8 +32,8 @@ public class HelloService {
      */
     public Mono<String> hello() {
         return Mono.fromCompletionStage(
-                actorSystem.getOrSpawn(HelloActor.class, "hello-actor").thenCompose(actor -> actor.askBuilder(
-                                HelloActor.SayHello::new)
+                actorSystem.getOrSpawn(HelloActor.class, "hello-actor").thenCompose(actor -> actor.ask(
+                                new HelloActor.SayHello())
                         .withTimeout(java.time.Duration.ofSeconds(3))
                         .execute()));
     }
@@ -44,8 +44,8 @@ public class HelloService {
      */
     public Mono<String> triggerRestart() {
         return Mono.fromCompletionStage(
-                actorSystem.getOrSpawn(HelloActor.class, "hello-actor").thenCompose(actor -> actor.askBuilder(
-                                HelloActor.TriggerFailure::new)
+                actorSystem.getOrSpawn(HelloActor.class, "hello-actor").thenCompose(actor -> actor.ask(
+                                new HelloActor.TriggerFailure())
                         .withTimeout(java.time.Duration.ofSeconds(3))
                         .execute()));
     }

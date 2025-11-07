@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import javax.annotation.Nullable;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.Signal;
@@ -13,7 +14,6 @@ import org.apache.pekko.actor.typed.SupervisorStrategy;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.BehaviorBuilder;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
-import javax.annotation.Nullable;
 
 /**
  * A behavior wrapper that provides framework-level features for Spring actors.
