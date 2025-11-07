@@ -3,8 +3,8 @@ package io.github.seonwkim.core.shard;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
 import javax.annotation.Nullable;
+import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
 
 /**
  * Registry for sharded actors. This class maintains a mapping between entity type keys and their
@@ -39,8 +39,7 @@ public class ShardedActorRegistry {
      * @param <T> The type of messages that the actor can handle
      * @return The sharded actor with the given entity type key, or null if not found
      */
-    @Nullable
-    public <T> SpringShardedActor<T> get(EntityTypeKey<T> typeKey) {
+    @Nullable public <T> SpringShardedActor<T> get(EntityTypeKey<T> typeKey) {
         // Safe cast: registry maintains T type consistency between key and value
         @SuppressWarnings("unchecked")
         SpringShardedActor<T> actor = (SpringShardedActor<T>) registry.get(typeKey);
@@ -54,8 +53,7 @@ public class ShardedActorRegistry {
      * @param <T> The type of messages that the actor can handle
      * @return The sharded actor with the given class, or null if not found
      */
-    @Nullable
-    @SuppressWarnings("unchecked")
+    @Nullable @SuppressWarnings("unchecked")
     public <T> SpringShardedActor<T> getByClass(Class<? extends SpringShardedActor<T>> actorClass) {
         return (SpringShardedActor<T>) classIndex.get(actorClass);
     }

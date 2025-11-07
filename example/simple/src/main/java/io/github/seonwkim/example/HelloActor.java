@@ -1,10 +1,10 @@
 package io.github.seonwkim.example;
 
+import io.github.seonwkim.core.AskCommand;
 import io.github.seonwkim.core.SpringActor;
 import io.github.seonwkim.core.SpringActorBehavior;
 import io.github.seonwkim.core.SpringActorContext;
 import java.time.Duration;
-import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.PostStop;
 import org.apache.pekko.actor.typed.PreRestart;
@@ -35,21 +35,13 @@ public class HelloActor implements SpringActor<HelloActor.Command> {
     public interface Command {}
 
     /** Command to say hello and get a response. */
-    public static class SayHello implements Command {
-        public final ActorRef<String> replyTo;
-
-        public SayHello(ActorRef<String> replyTo) {
-            this.replyTo = replyTo;
-        }
+    public static class SayHello extends AskCommand<String> implements Command {
+        public SayHello() {}
     }
 
     /** Command to trigger an exception and cause the actor to restart (tests PreRestart signal). */
-    public static class TriggerFailure implements Command {
-        public final ActorRef<String> replyTo;
-
-        public TriggerFailure(ActorRef<String> replyTo) {
-            this.replyTo = replyTo;
-        }
+    public static class TriggerFailure extends AskCommand<String> implements Command {
+        public TriggerFailure() {}
     }
 
     /**
@@ -103,7 +95,7 @@ public class HelloActor implements SpringActor<HelloActor.Command> {
             ctx.getLog().info("Received SayHello for id={}", actorContext.actorId());
 
             // Send a response back to the caller
-            msg.replyTo.tell("Hello from actor " + actorContext.actorId());
+            msg.reply("Hello from actor " + actorContext.actorId());
 
             return Behaviors.same();
         }
@@ -118,7 +110,7 @@ public class HelloActor implements SpringActor<HelloActor.Command> {
         private Behavior<Command> onTriggerFailure(TriggerFailure msg) {
             ctx.getLog().warn("Triggering failure for actor {}", actorContext.actorId());
             // Reply before throwing to confirm the command was received
-            msg.replyTo.tell("Triggering failure - actor will restart");
+            msg.reply("Triggering failure - actor will restart");
             // Throw exception to trigger restart
             throw new RuntimeException("Intentional failure to demonstrate PreRestart signal");
         }

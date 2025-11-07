@@ -21,11 +21,11 @@ public class SpringActorRefTest {
 
     interface Command {}
 
-    public static class Ping implements Command {
-        public final ActorRef<String> replyTo;
+    public static class Ping extends AskCommand<String> implements Command {
+        public final String message;
 
-        public Ping(ActorRef<String> replyTo) {
-            this.replyTo = replyTo;
+        public Ping(String message) {
+            this.message = message;
         }
     }
 
@@ -50,7 +50,7 @@ public class SpringActorRefTest {
     public static Behavior<Command> create(String id, CompletableFuture<String> signal) {
         return Behaviors.receive(Command.class)
                 .onMessage(Ping.class, msg -> {
-                    msg.replyTo.tell("pong:" + id);
+                    msg.reply("pong:" + id);
                     return Behaviors.same();
                 })
                 .onMessage(SimpleMessage.class, msg -> {
@@ -85,17 +85,34 @@ public class SpringActorRefTest {
     }
 
     @Test
-    void testAskMethod() throws ExecutionException, InterruptedException {
+    void testAskWithAskCommand() throws ExecutionException, InterruptedException {
         String id = UUID.randomUUID().toString();
         Behavior<Command> behavior = create(id, new CompletableFuture<>());
 
-        ActorRef<Command> actorRef = testKit.spawn(behavior, "ask-" + id);
+        ActorRef<Command> actorRef = testKit.spawn(behavior, "ask-command-" + id);
         SpringActorRef<Command> springRef =
                 new SpringActorRef<>(testKit.system().scheduler(), actorRef);
 
+        // New cleaner pattern using AskCommand - no explicit generics needed!
+        String result =
+                springRef.ask(new Ping("hello")).execute().toCompletableFuture().get();
+
+        assertEquals("pong:" + id, result);
+    }
+
+    @Test
+    void testAskWithTimeout() throws ExecutionException, InterruptedException {
+        String id = UUID.randomUUID().toString();
+        Behavior<Command> behavior = create(id, new CompletableFuture<>());
+
+        ActorRef<Command> actorRef = testKit.spawn(behavior, "ask-timeout-" + id);
+        SpringActorRef<Command> springRef =
+                new SpringActorRef<>(testKit.system().scheduler(), actorRef);
+
+        // With custom timeout
         String result = springRef
-                .askBuilder(Ping::new)
-                .withTimeout(Duration.ofSeconds(3))
+                .ask(new Ping("hello"))
+                .withTimeout(Duration.ofSeconds(5))
                 .execute()
                 .toCompletableFuture()
                 .get();
@@ -120,41 +137,7 @@ public class SpringActorRefTest {
     }
 
     @Test
-    void testAskBuilderBasic() throws ExecutionException, InterruptedException {
-        String id = UUID.randomUUID().toString();
-        Behavior<Command> behavior = create(id, new CompletableFuture<>());
-
-        ActorRef<Command> actorRef = testKit.spawn(behavior, "builder-basic-" + id);
-        SpringActorRef<Command> springRef =
-                new SpringActorRef<>(testKit.system().scheduler(), actorRef);
-
-        String result =
-                springRef.askBuilder(Ping::new).execute().toCompletableFuture().get();
-
-        assertEquals("pong:" + id, result);
-    }
-
-    @Test
-    void testAskBuilderWithCustomTimeout() throws ExecutionException, InterruptedException {
-        String id = UUID.randomUUID().toString();
-        Behavior<Command> behavior = create(id, new CompletableFuture<>());
-
-        ActorRef<Command> actorRef = testKit.spawn(behavior, "builder-timeout-" + id);
-        SpringActorRef<Command> springRef =
-                new SpringActorRef<>(testKit.system().scheduler(), actorRef);
-
-        String result = springRef
-                .askBuilder(Ping::new)
-                .withTimeout(Duration.ofSeconds(5))
-                .execute()
-                .toCompletableFuture()
-                .get();
-
-        assertEquals("pong:" + id, result);
-    }
-
-    @Test
-    void testAskBuilderOnTimeoutHandler() throws ExecutionException, InterruptedException {
+    void testAskWithTimeoutHandler() throws ExecutionException, InterruptedException {
         String id = UUID.randomUUID().toString();
         Behavior<Command> behavior = Behaviors.receive(Command.class)
                 .onMessage(Ping.class, msg -> {
@@ -163,12 +146,12 @@ public class SpringActorRefTest {
                 })
                 .build();
 
-        ActorRef<Command> actorRef = testKit.spawn(behavior, "builder-on-timeout-" + id);
+        ActorRef<Command> actorRef = testKit.spawn(behavior, "ask-on-timeout-" + id);
         SpringActorRef<Command> springRef =
                 new SpringActorRef<>(testKit.system().scheduler(), actorRef);
 
         String result = springRef
-                .askBuilder(Ping::new)
+                .ask(new Ping("hello"))
                 .withTimeout(Duration.ofMillis(100))
                 .onTimeout(() -> "default-value")
                 .execute()
@@ -179,16 +162,16 @@ public class SpringActorRefTest {
     }
 
     @Test
-    void testAskBuilderOnTimeoutHandlerNotTriggered() throws ExecutionException, InterruptedException {
+    void testAskWithTimeoutHandlerNotTriggered() throws ExecutionException, InterruptedException {
         String id = UUID.randomUUID().toString();
         Behavior<Command> behavior = create(id, new CompletableFuture<>());
 
-        ActorRef<Command> actorRef = testKit.spawn(behavior, "builder-no-timeout-" + id);
+        ActorRef<Command> actorRef = testKit.spawn(behavior, "ask-no-timeout-" + id);
         SpringActorRef<Command> springRef =
                 new SpringActorRef<>(testKit.system().scheduler(), actorRef);
 
         String result = springRef
-                .askBuilder(Ping::new)
+                .ask(new Ping("hello"))
                 .withTimeout(Duration.ofSeconds(3))
                 .onTimeout(() -> "default-value")
                 .execute()
@@ -200,7 +183,7 @@ public class SpringActorRefTest {
     }
 
     @Test
-    void testAskBuilderWithoutTimeoutHandlerThrows() {
+    void testAskWithoutTimeoutHandlerThrows() {
         String id = UUID.randomUUID().toString();
         Behavior<Command> behavior = Behaviors.receive(Command.class)
                 .onMessage(Ping.class, msg -> {
@@ -209,13 +192,13 @@ public class SpringActorRefTest {
                 })
                 .build();
 
-        ActorRef<Command> actorRef = testKit.spawn(behavior, "builder-throws-" + id);
+        ActorRef<Command> actorRef = testKit.spawn(behavior, "ask-throws-" + id);
         SpringActorRef<Command> springRef =
                 new SpringActorRef<>(testKit.system().scheduler(), actorRef);
 
         ExecutionException exception = assertThrows(ExecutionException.class, () -> {
             springRef
-                    .askBuilder(Ping::new)
+                    .ask(new Ping("hello"))
                     .withTimeout(Duration.ofMillis(100))
                     .execute()
                     .toCompletableFuture()
@@ -227,7 +210,7 @@ public class SpringActorRefTest {
     }
 
     @Test
-    void testAskBuilderFluentChaining() throws ExecutionException, InterruptedException {
+    void testAskFluentChaining() throws ExecutionException, InterruptedException {
         String id = UUID.randomUUID().toString();
         Behavior<Command> behavior = Behaviors.receive(Command.class)
                 .onMessage(Ping.class, msg -> {
@@ -236,13 +219,13 @@ public class SpringActorRefTest {
                 })
                 .build();
 
-        ActorRef<Command> actorRef = testKit.spawn(behavior, "builder-fluent-" + id);
+        ActorRef<Command> actorRef = testKit.spawn(behavior, "ask-fluent-" + id);
         SpringActorRef<Command> springRef =
                 new SpringActorRef<>(testKit.system().scheduler(), actorRef);
 
         // Test that all methods can be chained fluently
         String result = springRef
-                .askBuilder(Ping::new)
+                .ask(new Ping("hello"))
                 .withTimeout(Duration.ofMillis(100))
                 .onTimeout(() -> "timeout-occurred")
                 .execute()

@@ -58,8 +58,7 @@ public abstract class MdcConfig {
     public static MdcConfig of(Map<String, String> mdc) {
         if (mdc == null || mdc.isEmpty()) {
             throw new IllegalArgumentException(
-                "MDC map must not be null or empty. Use MdcConfig.empty() for no MDC values."
-            );
+                    "MDC map must not be null or empty. Use MdcConfig.empty() for no MDC values.");
         }
         return new WithMdc(mdc);
     }

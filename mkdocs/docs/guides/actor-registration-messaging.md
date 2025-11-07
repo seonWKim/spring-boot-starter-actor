@@ -31,12 +31,8 @@ public class HelloActor implements SpringActor<HelloActor.Command> {
     public static class SayHi implements Command {}
 
     // Define a message type
-    public static class SayHello implements Command {
-        public final ActorRef<String> replyTo;
-
-        public SayHello(ActorRef<String> replyTo) {
-            this.replyTo = replyTo;
-        }
+    public static class SayHello extends AskCommand<String> implements Command {
+        public SayHello() {}
     }
 
     // Create the behavior for this actor
@@ -66,7 +62,7 @@ public class HelloActor implements SpringActor<HelloActor.Command> {
 
         private Behavior<Command> onSayHello(SayHello msg) {
             ctx.getLog().info("Received SayHello for id={}", actorContext.actorId());
-            msg.replyTo.tell("Hello from actor " + actorContext.actorId());
+            msg.reply("Hello from actor " + actorContext.actorId());
             return Behaviors.same();
         }
     }
@@ -130,7 +126,7 @@ public class HelloService {
     public Mono<String> hello() {
         return Mono.fromCompletionStage(
             helloActor.thenCompose(actor ->
-                actor.askBuilder(HelloActor.SayHello::new)
+                actor.ask(new HelloActor.SayHello())
                     .withTimeout(Duration.ofSeconds(3))
                     .execute()
             )
@@ -179,7 +175,7 @@ The ask pattern is used when you expect a response from the actor:
 ```java
 public Mono<String> hello() {
     return Mono.fromCompletionStage(
-            helloActor.askBuilder(HelloActor.SayHello::new)
+            helloActor.ask(new HelloActor.SayHello())
                 .withTimeout(Duration.ofSeconds(3))
                 .execute());
 }
@@ -278,7 +274,7 @@ public class HelloService {
         return Mono.fromCompletionStage(
                 actorSystem.getOrSpawn(HelloActor.class, "hello-actor")
                         .thenCompose(actor ->
-                            actor.askBuilder(HelloActor.SayHello::new)
+                            actor.ask(new HelloActor.SayHello())
                                 .withTimeout(Duration.ofSeconds(3))
                                 .execute()));
     }
@@ -313,7 +309,7 @@ public class HelloService {
     public Mono<String> hello() {
         return Mono.fromCompletionStage(
                 getActor().thenCompose(actor ->
-                    actor.askBuilder(HelloActor.SayHello::new)
+                    actor.ask(new HelloActor.SayHello())
                         .withTimeout(Duration.ofSeconds(3))
                         .execute()));
     }
@@ -457,7 +453,7 @@ self.child(LoggerActor.class)
 4. **Choose Appropriate Supervision**: Select supervision strategies based on the child actor's role and failure characteristics.
 5. **Use Framework Commands**: Make your Command interface extend `FrameworkCommand` when building parent actors that need to spawn children. Framework command handling is automatically enabled.
 6. **Message Immutability**: Ensure that messages sent to actors are immutable to prevent concurrency issues.
-7. **Timeout Handling**: Always specify reasonable timeouts for ask operations and handle timeout exceptions using `askBuilder().onTimeout()`.
+7. **Timeout Handling**: Always specify reasonable timeouts for ask operations and handle timeout exceptions using `ask().onTimeout()`.
 8. **Non-Blocking Operations**: Avoid blocking operations inside actors, as they can lead to thread starvation.
 9. **Actor Naming**: Use meaningful and unique names for actors to make debugging easier.
 10. **Prefer Fluent API**: Use the fluent builder API for spawning actors as it provides better readability and type safety.

@@ -4,13 +4,12 @@ import io.github.seonwkim.core.impl.DefaultSpringActorContext;
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import javax.annotation.Nullable;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Scheduler;
 import org.apache.pekko.actor.typed.SupervisorStrategy;
 import org.apache.pekko.actor.typed.javadsl.AskPattern;
 import org.springframework.util.ObjectUtils;
-
-import javax.annotation.Nullable;
 
 /**
  * A fluent builder for spawning child actors with a consistent API.
@@ -39,11 +38,17 @@ public class SpringChildActorBuilder<P, C> {
     private final Duration defaultTimeout;
 
     @Nullable private String childId;
+
     @Nullable private SpringActorContext childContext;
+
     @Nullable private SupervisorStrategy supervisionStrategy;
+
     @Nullable private MailboxConfig mailboxConfig;
+
     @Nullable private DispatcherConfig dispatcherConfig;
+
     @Nullable private TagsConfig tagsConfig;
+
     private MdcConfig mdcConfig = MdcConfig.empty();
     private Duration timeout;
 
@@ -266,7 +271,8 @@ public class SpringChildActorBuilder<P, C> {
                         timeout,
                         scheduler)
                 .thenApply(response -> {
-                    if ((response.success || "Child already exists".equals(response.message)) && response.childRef != null) {
+                    if ((response.success || "Child already exists".equals(response.message))
+                            && response.childRef != null) {
                         return new SpringActorRef<>(scheduler, response.childRef, defaultTimeout);
                     } else {
                         throw new RuntimeException("Failed to spawn child: " + response.message);
@@ -379,8 +385,7 @@ public class SpringChildActorBuilder<P, C> {
         return AskPattern.ask(
                         parentAsObject,
                         (ActorRef<FrameworkCommands.ExistsChildResponse> replyTo) ->
-                                new FrameworkCommands.ExistsChild<>(
-                                        childActorClass, context.actorId(), replyTo),
+                                new FrameworkCommands.ExistsChild<>(childActorClass, context.actorId(), replyTo),
                         timeout,
                         scheduler)
                 .thenApply(response -> response.exists);

@@ -98,12 +98,13 @@ actor.
 ```java
 public class SpringActorRef<T> {
     /**
-     * Creates a fluent builder for sending a message to the actor and expecting a response.
+     * Asks the actor a question using an AskCommand and returns a builder for configuring
+     * the ask operation. This method automatically injects the reply-to reference into the command.
      *
-     * @param messageFactory A function that creates the message, given a reply-to actor reference
-     * @return An AskBuilder for configuring the ask operation
+     * @param command The command that implements AskCommand
+     * @return An AskBuilder for configuring and executing the ask operation
      */
-    public <R> AskBuilder<R> askBuilder(Function<ActorRef<R>, T> messageFactory);
+    public <RES> AskBuilder<T, RES> ask(AskCommand<RES> command);
 
     /**
      * Sends a message to the actor without expecting a response.
@@ -122,12 +123,13 @@ sending messages to the entity.
 ```java
 public class SpringShardedActorRef<T> {
     /**
-     * Creates a fluent builder for sending a message to the entity and expecting a response.
+     * Asks the sharded actor a question using an AskCommand and returns a builder for configuring
+     * the ask operation. This method automatically injects the reply-to reference into the command.
      *
-     * @param messageFactory A function that creates the message, given a reply-to actor reference
-     * @return An AskBuilder for configuring the ask operation
+     * @param command The command that implements AskCommand
+     * @return An AskBuilder for configuring and executing the ask operation
      */
-    public <R> AskBuilder<R> askBuilder(Function<ActorRef<R>, T> messageFactory);
+    public <RES> AskBuilder<T, RES> ask(AskCommand<RES> command);
 
     /**
      * Sends a message to the entity without expecting a response.

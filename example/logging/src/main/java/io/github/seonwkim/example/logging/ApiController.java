@@ -15,9 +15,8 @@ public class ApiController {
     private final PaymentService paymentService;
     private final NotificationService notificationService;
 
-    public ApiController(OrderService orderService,
-                        PaymentService paymentService,
-                        NotificationService notificationService) {
+    public ApiController(
+            OrderService orderService, PaymentService paymentService, NotificationService notificationService) {
         this.orderService = orderService;
         this.paymentService = paymentService;
         this.notificationService = notificationService;
@@ -25,51 +24,30 @@ public class ApiController {
 
     @PostMapping("/orders")
     public Mono<OrderResponse> createOrder(@RequestBody OrderRequest request) {
-        log.info("Received order request for user: {}, amount: {}",
-            request.userId, request.amount);
+        log.info("Received order request for user: {}, amount: {}", request.userId, request.amount);
 
-        return orderService.processOrder(request.userId, request.amount)
-            .map(result -> new OrderResponse(
-                result.orderId,
-                result.status,
-                result.message
-            ));
+        return orderService
+                .processOrder(request.userId, request.amount)
+                .map(result -> new OrderResponse(result.orderId, result.status, result.message));
     }
 
     @PostMapping("/payments")
     public Mono<PaymentResponse> processPayment(@RequestBody PaymentRequest request) {
-        log.info("Received payment request for order: {}, amount: {}",
-            request.orderId, request.amount);
+        log.info("Received payment request for order: {}, amount: {}", request.orderId, request.amount);
 
-        return paymentService.processPayment(
-                request.orderId,
-                request.userId,
-                request.amount,
-                request.paymentMethod
-            )
-            .map(result -> new PaymentResponse(
-                result.paymentId,
-                result.status,
-                result.transactionId,
-                result.message
-            ));
+        return paymentService
+                .processPayment(request.orderId, request.userId, request.amount, request.paymentMethod)
+                .map(result ->
+                        new PaymentResponse(result.paymentId, result.status, result.transactionId, result.message));
     }
 
     @PostMapping("/notifications")
     public Mono<NotificationResponse> sendNotification(@RequestBody NotificationRequest request) {
-        log.info("Received notification request for user: {}, type: {}",
-            request.userId, request.type);
+        log.info("Received notification request for user: {}, type: {}", request.userId, request.type);
 
-        return notificationService.sendNotification(
-                request.userId,
-                request.type,
-                request.message
-            )
-            .map(result -> new NotificationResponse(
-                result.notificationId,
-                result.status,
-                result.message
-            ));
+        return notificationService
+                .sendNotification(request.userId, request.type, request.message)
+                .map(result -> new NotificationResponse(result.notificationId, result.status, result.message));
     }
 
     @PostMapping("/checkout")
@@ -79,44 +57,41 @@ public class ApiController {
 
         log.info("Starting checkout for user: {}, amount: {}", userId, request.amount);
 
-        return orderService.processOrder(userId, request.amount, requestId)
-            .flatMap(orderResult -> {
-                if ("SUCCESS".equals(orderResult.status)) {
-                    return paymentService.processPayment(
-                        orderResult.orderId,
-                        userId,
-                        request.amount,
-                        request.paymentMethod,
-                        requestId
-                    ).map(paymentResult -> new Object[]{ orderResult, paymentResult });
-                } else {
-                    return Mono.error(new RuntimeException("Order processing failed: " + orderResult.message));
-                }
-            })
-            .flatMap(results -> {
-                OrderProcessorActor.OrderProcessed orderResult =
-                    (OrderProcessorActor.OrderProcessed) results[0];
-                PaymentProcessorActor.PaymentProcessed paymentResult =
-                    (PaymentProcessorActor.PaymentProcessed) results[1];
+        return orderService
+                .processOrder(userId, request.amount, requestId)
+                .flatMap(orderResult -> {
+                    if ("SUCCESS".equals(orderResult.status)) {
+                        return paymentService
+                                .processPayment(
+                                        orderResult.orderId, userId, request.amount, request.paymentMethod, requestId)
+                                .map(paymentResult -> new Object[] {orderResult, paymentResult});
+                    } else {
+                        return Mono.error(new RuntimeException("Order processing failed: " + orderResult.message));
+                    }
+                })
+                .flatMap(results -> {
+                    OrderProcessorActor.OrderProcessed orderResult = (OrderProcessorActor.OrderProcessed) results[0];
+                    PaymentProcessorActor.PaymentProcessed paymentResult =
+                            (PaymentProcessorActor.PaymentProcessed) results[1];
 
-                if ("SUCCESS".equals(paymentResult.status)) {
-                    return notificationService.sendNotification(
-                        userId,
-                        "email",
-                        "Your order " + orderResult.orderId + " has been processed successfully",
-                        requestId
-                    ).map(notifResult -> new CheckoutResponse(
-                        "SUCCESS",
-                        orderResult.orderId,
-                        paymentResult.transactionId,
-                        "Checkout completed successfully"
-                    ));
-                } else {
-                    return Mono.error(new RuntimeException("Payment failed: " + paymentResult.message));
-                }
-            })
-            .doOnSuccess(result -> log.info("Checkout completed successfully for order: {}", result.orderId))
-            .doOnError(error -> log.error("Checkout failed", error));
+                    if ("SUCCESS".equals(paymentResult.status)) {
+                        return notificationService
+                                .sendNotification(
+                                        userId,
+                                        "email",
+                                        "Your order " + orderResult.orderId + " has been processed successfully",
+                                        requestId)
+                                .map(notifResult -> new CheckoutResponse(
+                                        "SUCCESS",
+                                        orderResult.orderId,
+                                        paymentResult.transactionId,
+                                        "Checkout completed successfully"));
+                    } else {
+                        return Mono.error(new RuntimeException("Payment failed: " + paymentResult.message));
+                    }
+                })
+                .doOnSuccess(result -> log.info("Checkout completed successfully for order: {}", result.orderId))
+                .doOnError(error -> log.error("Checkout failed", error));
     }
 
     // Request/Response DTOs

@@ -50,8 +50,7 @@ public class InvokeAdviceEventInterceptorImpl
         }
     }
 
-    @Nullable
-    public TimerMetric getProcessingTimeMetric(String messageType) {
+    @Nullable public TimerMetric getProcessingTimeMetric(String messageType) {
         return processingTimeMetrics.get(messageType);
     }
 

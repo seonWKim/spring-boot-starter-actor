@@ -4,12 +4,12 @@ import io.github.seonwkim.core.ActorSpawner;
 import io.github.seonwkim.core.ActorTypeRegistry;
 import io.github.seonwkim.core.RootGuardian;
 import io.github.seonwkim.core.SpringActorContext;
+import javax.annotation.Nullable;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.apache.pekko.cluster.typed.ClusterSingleton;
-import javax.annotation.Nullable;
 
 /**
  * Default implementation of the {@code RootGuardian} interface. This class manages the lifecycle of
@@ -41,8 +41,7 @@ public class DefaultRootGuardian implements RootGuardian {
     /** The actor type registry */
     private final ActorTypeRegistry registry;
     /** The cluster singleton (null in local mode) */
-    @Nullable
-    private final ClusterSingleton clusterSingleton;
+    @Nullable private final ClusterSingleton clusterSingleton;
 
     /**
      * Creates a new DefaultRootGuardian with the given actor context and actor type registry.
@@ -51,7 +50,8 @@ public class DefaultRootGuardian implements RootGuardian {
      * @param registry The actor type registry
      * @param clusterSingleton The cluster singleton (null in local mode)
      */
-    public DefaultRootGuardian(ActorContext<Command> ctx, ActorTypeRegistry registry, @Nullable ClusterSingleton clusterSingleton) {
+    public DefaultRootGuardian(
+            ActorContext<Command> ctx, ActorTypeRegistry registry, @Nullable ClusterSingleton clusterSingleton) {
         this.ctx = ctx;
         this.registry = registry;
         this.clusterSingleton = clusterSingleton;

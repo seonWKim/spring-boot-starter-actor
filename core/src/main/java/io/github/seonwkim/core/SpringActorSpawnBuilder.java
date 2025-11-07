@@ -3,12 +3,9 @@ package io.github.seonwkim.core;
 import io.github.seonwkim.core.impl.DefaultSpringActorContext;
 import java.time.Duration;
 import java.util.concurrent.CompletionStage;
-import org.apache.pekko.actor.typed.MailboxSelector;
+import javax.annotation.Nullable;
 import org.apache.pekko.actor.typed.SupervisorStrategy;
 import org.springframework.util.ObjectUtils;
-import org.springframework.util.StringUtils;
-
-import javax.annotation.Nullable;
 
 /**
  * A fluent builder for spawning actors with a simplified API. This builder provides a more
@@ -20,14 +17,18 @@ import javax.annotation.Nullable;
 public class SpringActorSpawnBuilder<A extends SpringActorWithContext<C, ?>, C> {
     private final SpringActorSystem actorSystem;
     private final Class<A> actorClass;
+
     @Nullable private String actorId;
+
     @Nullable private SpringActorContext actorContext;
+
     private Duration timeout = Duration.ofSeconds(3);
     private MailboxConfig mailboxConfig = MailboxConfig.defaultMailbox();
     private DispatcherConfig dispatcherConfig = DispatcherConfig.defaultDispatcher();
     private TagsConfig tagsConfig = TagsConfig.empty();
     private MdcConfig mdcConfig = MdcConfig.empty();
     private boolean isClusterSingleton = false;
+
     @Nullable private SupervisorStrategy supervisorStrategy = null;
 
     /**
@@ -276,7 +277,14 @@ public class SpringActorSpawnBuilder<A extends SpringActorWithContext<C, ?>, C> 
         actorContext.setMdcConfig(mdcConfig);
 
         return actorSystem.spawn(
-                actorClass, actorContext, mailboxConfig, dispatcherConfig, tagsConfig, isClusterSingleton, supervisorStrategy, timeout);
+                actorClass,
+                actorContext,
+                mailboxConfig,
+                dispatcherConfig,
+                tagsConfig,
+                isClusterSingleton,
+                supervisorStrategy,
+                timeout);
     }
 
     /**

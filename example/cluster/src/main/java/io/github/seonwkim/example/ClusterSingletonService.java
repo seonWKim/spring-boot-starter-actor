@@ -2,10 +2,10 @@ package io.github.seonwkim.example;
 
 import io.github.seonwkim.core.SpringActorRef;
 import io.github.seonwkim.core.SpringActorSystem;
-import javax.annotation.PostConstruct;
 import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
+import javax.annotation.PostConstruct;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
@@ -60,7 +60,7 @@ public class ClusterSingletonService {
             metricsAggregator = springActorSystem
                     .actor(ClusterMetricsAggregator.class)
                     .withId("metrics-aggregator")
-                    .asClusterSingleton()  // Make it a cluster singleton
+                    .asClusterSingleton() // Make it a cluster singleton
                     .spawn()
                     .toCompletableFuture()
                     .get();
@@ -86,9 +86,8 @@ public class ClusterSingletonService {
         String nodeAddress = springActorSystem.getRaw().address().toString();
         long timestamp = System.currentTimeMillis();
 
-        ClusterMetricsAggregator.RecordMetric message = new ClusterMetricsAggregator.RecordMetric(
-                nodeAddress, metricName, value, timestamp
-        );
+        ClusterMetricsAggregator.RecordMetric message =
+                new ClusterMetricsAggregator.RecordMetric(nodeAddress, metricName, value, timestamp);
 
         // Fire and forget - just tell the singleton about the metric
         metricsAggregator.tell(message);
@@ -106,14 +105,11 @@ public class ClusterSingletonService {
      */
     public Mono<ClusterMetricsAggregator.MetricsResponse> getAllMetrics() {
         CompletionStage<ClusterMetricsAggregator.MetricsResponse> response = metricsAggregator
-                .askBuilder(ClusterMetricsAggregator.GetMetrics::new)
+                .ask(new ClusterMetricsAggregator.GetMetrics())
                 .withTimeout(Duration.ofSeconds(3))
                 .onTimeout(() -> {
                     // Return empty metrics on timeout
-                    return new ClusterMetricsAggregator.MetricsResponse(
-                            Map.of(),
-                            "timeout"
-                    );
+                    return new ClusterMetricsAggregator.MetricsResponse(Map.of(), "timeout");
                 })
                 .execute();
 
@@ -128,8 +124,7 @@ public class ClusterSingletonService {
      */
     public Mono<ClusterMetricsAggregator.MetricsResponse> getNodeMetrics(String nodeAddress) {
         CompletionStage<ClusterMetricsAggregator.MetricsResponse> response = metricsAggregator
-                .<ClusterMetricsAggregator.GetNodeMetrics, ClusterMetricsAggregator.MetricsResponse>askBuilder(
-                        replyTo -> new ClusterMetricsAggregator.GetNodeMetrics(nodeAddress, replyTo))
+                .ask(new ClusterMetricsAggregator.GetNodeMetrics(nodeAddress))
                 .withTimeout(Duration.ofSeconds(3))
                 .onTimeout(() -> new ClusterMetricsAggregator.MetricsResponse(Map.of(), "timeout"))
                 .execute();
@@ -144,7 +139,7 @@ public class ClusterSingletonService {
      */
     public Mono<String> resetMetrics() {
         CompletionStage<String> response = metricsAggregator
-                .askBuilder(ClusterMetricsAggregator.ResetMetrics::new)
+                .ask(new ClusterMetricsAggregator.ResetMetrics())
                 .withTimeout(Duration.ofSeconds(3))
                 .onTimeout(() -> "Reset request timed out")
                 .execute();

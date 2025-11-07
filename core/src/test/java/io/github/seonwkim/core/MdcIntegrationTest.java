@@ -1,9 +1,12 @@
 package io.github.seonwkim.core;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.AppenderBase;
-import org.apache.pekko.actor.typed.ActorRef;
+import java.util.*;
+import java.util.concurrent.CompletionStage;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,20 +18,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.test.annotation.DirtiesContext;
 
-import java.util.*;
-import java.util.concurrent.CompletionStage;
-
-import static org.junit.jupiter.api.Assertions.*;
-
 /**
  * Integration test for MDC (Mapped Diagnostic Context) functionality.
  * Tests that static and dynamic MDC values are correctly passed to actors and appear in logs.
  */
-@SpringBootTest(
-        classes = {
-            ActorConfiguration.class,
-            MdcIntegrationTest.TestConfig.class
-        })
+@SpringBootTest(classes = {ActorConfiguration.class, MdcIntegrationTest.TestConfig.class})
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 public class MdcIntegrationTest {
 
@@ -106,15 +100,13 @@ public class MdcIntegrationTest {
     // Test message types
     public interface TestCommand extends FrameworkCommand {}
 
-    public static class Ping implements TestCommand {
+    public static class Ping extends AskCommand<Pong> implements TestCommand {
         public final String message;
         public final String messageId;
-        public final ActorRef<Pong> replyTo;
 
-        public Ping(String message, String messageId, ActorRef<Pong> replyTo) {
+        public Ping(String message, String messageId) {
             this.message = message;
             this.messageId = messageId;
-            this.replyTo = replyTo;
         }
     }
 
@@ -134,7 +126,8 @@ public class MdcIntegrationTest {
             return SpringActorBehavior.builder(TestCommand.class, actorContext)
                     .onMessage(Ping.class, (ctx, msg) -> {
                         ctx.getLog().info("Static MDC actor received: {}", msg.message);
-                        msg.replyTo.tell(new Pong("Pong: " + msg.message, ctx.getSelf().path().toString()));
+                        msg.reply(new Pong(
+                                "Pong: " + msg.message, ctx.getSelf().path().toString()));
                         return Behaviors.same();
                     })
                     .build();
@@ -148,16 +141,14 @@ public class MdcIntegrationTest {
                     .withMdc(msg -> {
                         if (msg instanceof Ping) {
                             Ping ping = (Ping) msg;
-                            return Map.of(
-                                "messageId", ping.messageId,
-                                "messageType", "Ping"
-                            );
+                            return Map.of("messageId", ping.messageId, "messageType", "Ping");
                         }
                         return Map.of();
                     })
                     .onMessage(Ping.class, (ctx, msg) -> {
                         ctx.getLog().info("Dynamic MDC actor received: {}", msg.message);
-                        msg.replyTo.tell(new Pong("Pong: " + msg.message, ctx.getSelf().path().toString()));
+                        msg.reply(new Pong(
+                                "Pong: " + msg.message, ctx.getSelf().path().toString()));
                         return Behaviors.same();
                     })
                     .build();
@@ -172,15 +163,17 @@ public class MdcIntegrationTest {
                         if (msg instanceof Ping) {
                             Ping ping = (Ping) msg;
                             return Map.of(
-                                "messageId", ping.messageId,
-                                "timestamp", String.valueOf(System.currentTimeMillis())
-                            );
+                                    "messageId",
+                                    ping.messageId,
+                                    "timestamp",
+                                    String.valueOf(System.currentTimeMillis()));
                         }
                         return Map.of();
                     })
                     .onMessage(Ping.class, (ctx, msg) -> {
                         ctx.getLog().info("Combined MDC actor received: {}", msg.message);
-                        msg.replyTo.tell(new Pong("Pong: " + msg.message, ctx.getSelf().path().toString()));
+                        msg.reply(new Pong(
+                                "Pong: " + msg.message, ctx.getSelf().path().toString()));
                         return Behaviors.same();
                     })
                     .build();
@@ -193,7 +186,8 @@ public class MdcIntegrationTest {
             return SpringActorBehavior.builder(TestCommand.class, actorContext)
                     .onMessage(Ping.class, (ctx, msg) -> {
                         ctx.getLog().info("Parent received: {}", msg.message);
-                        msg.replyTo.tell(new Pong("Pong: " + msg.message, ctx.getSelf().path().toString()));
+                        msg.reply(new Pong(
+                                "Pong: " + msg.message, ctx.getSelf().path().toString()));
                         return Behaviors.same();
                     })
                     .build();
@@ -208,15 +202,17 @@ public class MdcIntegrationTest {
                         if (msg instanceof Ping) {
                             Ping ping = (Ping) msg;
                             return Map.of(
-                                "dynamicMessageId", ping.messageId,
-                                "dynamicTimestamp", String.valueOf(System.currentTimeMillis())
-                            );
+                                    "dynamicMessageId",
+                                    ping.messageId,
+                                    "dynamicTimestamp",
+                                    String.valueOf(System.currentTimeMillis()));
                         }
                         return Map.of();
                     })
                     .onMessage(Ping.class, (ctx, msg) -> {
                         ctx.getLog().info("Child received: {}", msg.message);
-                        msg.replyTo.tell(new Pong("Pong: " + msg.message, ctx.getSelf().path().toString()));
+                        msg.reply(new Pong(
+                                "Pong: " + msg.message, ctx.getSelf().path().toString()));
                         return Behaviors.same();
                     })
                     .build();
@@ -224,7 +220,8 @@ public class MdcIntegrationTest {
     }
 
     private Pong sendPingAndWait(SpringActorRef<TestCommand> actor, String message, String messageId) throws Exception {
-        return actor.<Ping, Pong>ask(replyTo -> new Ping(message, messageId, replyTo))
+        return actor.ask(new Ping(message, messageId))
+                .execute()
                 .toCompletableFuture()
                 .get();
     }
@@ -262,16 +259,19 @@ public class MdcIntegrationTest {
             }
         }
 
-        assertTrue(foundMatchingLog,
-            String.format("No log entry found with expected MDC values %s for actor %s. Total log events: %d",
-                expectedMdcValues, actorPath, events.size()));
+        assertTrue(
+                foundMatchingLog,
+                String.format(
+                        "No log entry found with expected MDC values %s for actor %s. Total log events: %d",
+                        expectedMdcValues, actorPath, events.size()));
     }
 
     @Test
     void testEmptyMdc() throws Exception {
         logAppender.clear();
 
-        SpringActorRef<TestCommand> actor = actorSystem.actor(StaticMdcActor.class)
+        SpringActorRef<TestCommand> actor = actorSystem
+                .actor(StaticMdcActor.class)
                 .withId("empty-mdc-actor")
                 .withMdc(MdcConfig.empty())
                 .spawnAndWait();
@@ -287,12 +287,12 @@ public class MdcIntegrationTest {
         logAppender.clear();
 
         Map<String, String> staticMdc = Map.of(
-            "userId", "user-123",
-            "requestId", "req-456",
-            "service", "order-service"
-        );
+                "userId", "user-123",
+                "requestId", "req-456",
+                "service", "order-service");
 
-        SpringActorRef<TestCommand> actor = actorSystem.actor(StaticMdcActor.class)
+        SpringActorRef<TestCommand> actor = actorSystem
+                .actor(StaticMdcActor.class)
                 .withId("static-mdc-actor")
                 .withMdc(MdcConfig.of(staticMdc))
                 .spawnAndWait();
@@ -310,7 +310,8 @@ public class MdcIntegrationTest {
     void testDynamicMdc() throws Exception {
         logAppender.clear();
 
-        SpringActorRef<TestCommand> actor = actorSystem.actor(DynamicMdcActor.class)
+        SpringActorRef<TestCommand> actor = actorSystem
+                .actor(DynamicMdcActor.class)
                 .withId("dynamic-mdc-actor")
                 .spawnAndWait();
 
@@ -320,10 +321,11 @@ public class MdcIntegrationTest {
         assertTrue(response.actorPath.contains("dynamic-mdc-actor"));
 
         // Verify dynamic MDC values appear in logs
-        verifyMdcInLogs("dynamic-mdc-actor", Map.of(
-            "messageId", "msg-dynamic-123",
-            "messageType", "Ping"
-        ));
+        verifyMdcInLogs(
+                "dynamic-mdc-actor",
+                Map.of(
+                        "messageId", "msg-dynamic-123",
+                        "messageType", "Ping"));
     }
 
     @Test
@@ -331,11 +333,11 @@ public class MdcIntegrationTest {
         logAppender.clear();
 
         Map<String, String> staticMdc = Map.of(
-            "userId", "user-789",
-            "service", "payment-service"
-        );
+                "userId", "user-789",
+                "service", "payment-service");
 
-        SpringActorRef<TestCommand> actor = actorSystem.actor(CombinedMdcActor.class)
+        SpringActorRef<TestCommand> actor = actorSystem
+                .actor(CombinedMdcActor.class)
                 .withId("combined-mdc-actor")
                 .withMdc(MdcConfig.of(staticMdc))
                 .spawnAndWait();
@@ -358,10 +360,10 @@ public class MdcIntegrationTest {
 
             if (pekkoSource != null && pekkoSource.contains("combined-mdc-actor")) {
                 // Check for both static and dynamic values
-                if ("user-789".equals(mdc.get("userId")) &&
-                    "payment-service".equals(mdc.get("service")) &&
-                    "msg-combined-456".equals(mdc.get("messageId")) &&
-                    mdc.get("timestamp") != null) {
+                if ("user-789".equals(mdc.get("userId"))
+                        && "payment-service".equals(mdc.get("service"))
+                        && "msg-combined-456".equals(mdc.get("messageId"))
+                        && mdc.get("timestamp") != null) {
                     foundWithBoth = true;
                     break;
                 }
@@ -376,12 +378,12 @@ public class MdcIntegrationTest {
         logAppender.clear();
 
         Map<String, String> parentMdc = Map.of(
-            "parentId", "parent-1",
-            "sessionId", "session-abc"
-        );
+                "parentId", "parent-1",
+                "sessionId", "session-abc");
 
         // Spawn parent actor with MDC
-        SpringActorRef<TestCommand> parent = actorSystem.actor(TestParentActor.class)
+        SpringActorRef<TestCommand> parent = actorSystem
+                .actor(TestParentActor.class)
                 .withId("parent-with-mdc")
                 .withMdc(MdcConfig.of(parentMdc))
                 .spawnAndWait();
@@ -395,9 +397,8 @@ public class MdcIntegrationTest {
 
         // Define child's static MDC
         Map<String, String> childMdc = Map.of(
-            "childId", "child-1",
-            "role", "worker"
-        );
+                "childId", "child-1",
+                "role", "worker");
 
         // Spawn child actor with its own MDC (static)
         CompletionStage<SpringActorRef<TestCommand>> childFuture = parent.child(TestChildActor.class)
@@ -426,8 +427,7 @@ public class MdcIntegrationTest {
 
             if (pekkoSource != null && pekkoSource.contains("parent-with-mdc")) {
                 // Parent should have its own static MDC
-                if ("parent-1".equals(mdc.get("parentId")) &&
-                    "session-abc".equals(mdc.get("sessionId"))) {
+                if ("parent-1".equals(mdc.get("parentId")) && "session-abc".equals(mdc.get("sessionId"))) {
                     // Ensure child's MDC does NOT leak into parent
                     assertNull(mdc.get("childId"), "Parent should not have child's MDC");
                     assertNull(mdc.get("role"), "Parent should not have child's MDC");
@@ -447,13 +447,11 @@ public class MdcIntegrationTest {
 
             if (pekkoSource != null && pekkoSource.contains("child-with-mdc")) {
                 // Child should have its own static MDC
-                if ("child-1".equals(mdc.get("childId")) &&
-                    "worker".equals(mdc.get("role"))) {
+                if ("child-1".equals(mdc.get("childId")) && "worker".equals(mdc.get("role"))) {
                     // Child should also have dynamic MDC
-                    assertEquals("msg-child-1", mdc.get("dynamicMessageId"),
-                        "Child should have dynamic MDC from message");
-                    assertNotNull(mdc.get("dynamicTimestamp"),
-                        "Child should have dynamic timestamp");
+                    assertEquals(
+                            "msg-child-1", mdc.get("dynamicMessageId"), "Child should have dynamic MDC from message");
+                    assertNotNull(mdc.get("dynamicTimestamp"), "Child should have dynamic timestamp");
 
                     // Ensure parent's MDC does NOT leak into child
                     assertNull(mdc.get("parentId"), "Child should not inherit parent's MDC");
@@ -479,11 +477,10 @@ public class MdcIntegrationTest {
 
     @Test
     void testWithMdcNull() {
-        assertThrows(IllegalArgumentException.class, () ->
-            actorSystem.actor(StaticMdcActor.class)
-                    .withId("null-mdc-actor")
-                    .withMdc(null)
-        );
+        assertThrows(IllegalArgumentException.class, () -> actorSystem
+                .actor(StaticMdcActor.class)
+                .withId("null-mdc-actor")
+                .withMdc(null));
     }
 
     @Test
@@ -491,17 +488,20 @@ public class MdcIntegrationTest {
         logAppender.clear();
 
         // Spawn multiple actors with different MDC to ensure they don't interfere
-        SpringActorRef<TestCommand> actor1 = actorSystem.actor(StaticMdcActor.class)
+        SpringActorRef<TestCommand> actor1 = actorSystem
+                .actor(StaticMdcActor.class)
                 .withId("mdc-actor-1")
                 .withMdc(MdcConfig.of(Map.of("actorId", "1", "environment", "prod")))
                 .spawnAndWait();
 
-        SpringActorRef<TestCommand> actor2 = actorSystem.actor(StaticMdcActor.class)
+        SpringActorRef<TestCommand> actor2 = actorSystem
+                .actor(StaticMdcActor.class)
                 .withId("mdc-actor-2")
                 .withMdc(MdcConfig.of(Map.of("actorId", "2", "environment", "staging")))
                 .spawnAndWait();
 
-        SpringActorRef<TestCommand> actor3 = actorSystem.actor(StaticMdcActor.class)
+        SpringActorRef<TestCommand> actor3 = actorSystem
+                .actor(StaticMdcActor.class)
                 .withId("mdc-actor-3")
                 .withMdc(MdcConfig.of(Map.of("actorId", "3", "environment", "dev")))
                 .spawnAndWait();
@@ -526,12 +526,12 @@ public class MdcIntegrationTest {
         logAppender.clear();
 
         Map<String, String> mdcWithSpecialChars = Map.of(
-            "trace-id", "trace-123-abc",
-            "user.email", "user@example.com",
-            "request_path", "/api/v1/orders"
-        );
+                "trace-id", "trace-123-abc",
+                "user.email", "user@example.com",
+                "request_path", "/api/v1/orders");
 
-        SpringActorRef<TestCommand> actor = actorSystem.actor(StaticMdcActor.class)
+        SpringActorRef<TestCommand> actor = actorSystem
+                .actor(StaticMdcActor.class)
                 .withId("special-chars-mdc-actor")
                 .withMdc(MdcConfig.of(mdcWithSpecialChars))
                 .spawnAndWait();

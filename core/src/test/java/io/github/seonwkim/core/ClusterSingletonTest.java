@@ -7,7 +7,6 @@ import io.github.seonwkim.core.serialization.JsonSerializable;
 import java.time.Duration;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -35,10 +34,11 @@ import org.springframework.test.context.TestPropertySource;
  * tests in the example/cluster module.
  */
 @SpringBootTest(classes = ClusterSingletonTest.TestApp.class)
-@TestPropertySource(properties = {
-    "spring.actor.pekko.loglevel=INFO",
-    "spring.actor.pekko.actor.provider=local"  // Local mode - cluster singleton should fail
-})
+@TestPropertySource(
+        properties = {
+            "spring.actor.pekko.loglevel=INFO",
+            "spring.actor.pekko.actor.provider=local" // Local mode - cluster singleton should fail
+        })
 public class ClusterSingletonTest {
 
     @Autowired
@@ -51,19 +51,17 @@ public class ClusterSingletonTest {
      * Simple test actor for cluster singleton tests.
      */
     @Component
-    public static class SingletonTestActor implements SpringActorWithContext<SingletonTestActor.Command, SpringActorContext> {
+    public static class SingletonTestActor
+            implements SpringActorWithContext<SingletonTestActor.Command, SpringActorContext> {
 
         public interface Command extends JsonSerializable {}
 
-        public static class GetCount implements Command {
-            public final ActorRef<CountResponse> replyTo;
-
-            public GetCount(ActorRef<CountResponse> replyTo) {
-                this.replyTo = replyTo;
-            }
+        public static class GetCount extends AskCommand<CountResponse> implements Command {
+            public GetCount() {}
         }
 
         public static class Increment implements Command {}
+
         public static class CountResponse implements JsonSerializable {
             public final int count;
 
@@ -83,7 +81,7 @@ public class ClusterSingletonTest {
                         return Behaviors.same();
                     })
                     .onMessage(GetCount.class, (ctx, msg) -> {
-                        msg.replyTo.tell(new CountResponse(count.get()));
+                        msg.reply(new CountResponse(count.get()));
                         return Behaviors.same();
                     })
                     .build();
@@ -92,10 +90,7 @@ public class ClusterSingletonTest {
 
     @Nested
     @SpringBootTest(classes = TestApp.class)
-    @TestPropertySource(properties = {
-        "spring.actor.pekko.loglevel=INFO",
-        "spring.actor.pekko.actor.provider=local"
-    })
+    @TestPropertySource(properties = {"spring.actor.pekko.loglevel=INFO", "spring.actor.pekko.actor.provider=local"})
     class LocalModeTests {
 
         @Autowired
@@ -138,10 +133,9 @@ public class ClusterSingletonTest {
             actor.tell(new SingletonTestActor.Increment());
             actor.tell(new SingletonTestActor.Increment());
 
-            SingletonTestActor.CountResponse response = actor
-                    .<SingletonTestActor.GetCount, SingletonTestActor.CountResponse>ask(
-                            SingletonTestActor.GetCount::new,
-                            Duration.ofSeconds(3))
+            SingletonTestActor.CountResponse response = actor.ask(new SingletonTestActor.GetCount())
+                    .withTimeout(Duration.ofSeconds(3))
+                    .execute()
                     .toCompletableFuture()
                     .get();
 
@@ -149,7 +143,6 @@ public class ClusterSingletonTest {
             assertThat(response.count).isEqualTo(3);
         }
     }
-
 
     /**
      * Test configuration.

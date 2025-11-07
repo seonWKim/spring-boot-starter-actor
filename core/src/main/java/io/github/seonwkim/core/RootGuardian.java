@@ -1,10 +1,10 @@
 package io.github.seonwkim.core;
 
 import io.github.seonwkim.core.impl.DefaultRootGuardian;
+import javax.annotation.Nullable;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.SupervisorStrategy;
-import javax.annotation.Nullable;
 
 /**
  * Root guardian interface for the actor system. The root guardian is the top-level actor that

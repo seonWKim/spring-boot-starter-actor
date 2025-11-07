@@ -4,14 +4,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.seonwkim.core.behavior.ClusterEventBehavior.ClusterDomainWrappedEvent;
-import io.github.seonwkim.core.fixture.SimpleShardedActorWithoutwithState;
+import io.github.seonwkim.core.fixture.SimpleShardedActorWithoutWithState;
 import io.github.seonwkim.core.fixture.TestShardedActor;
 import io.github.seonwkim.core.fixture.TestShardedActor.GetState;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
-
-import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.cluster.ClusterEvent.MemberLeft;
 import org.apache.pekko.cluster.ClusterEvent.MemberUp;
 import org.junit.jupiter.api.Test;
@@ -36,8 +34,8 @@ public class ClusterTest extends AbstractClusterTest {
         }
 
         @Bean
-        public SimpleShardedActorWithoutwithState simpleShardedActorWithoutwithState() {
-            return new SimpleShardedActorWithoutwithState();
+        public SimpleShardedActorWithoutWithState simpleShardedActorWithoutwithState() {
+            return new SimpleShardedActorWithoutWithState();
         }
     }
 
@@ -94,7 +92,7 @@ public class ClusterTest extends AbstractClusterTest {
 
         Thread.sleep(2000); // wait for messages to be processed (increased for cluster message propagation)
         TestShardedActor.State state = sharedActor1
-                .askBuilder(GetState::new)
+                .ask(new GetState())
                 .withTimeout(Duration.ofSeconds(10)) // takes long on the CI/CD
                 .execute()
                 .toCompletableFuture()
@@ -127,7 +125,7 @@ public class ClusterTest extends AbstractClusterTest {
         Thread.sleep(500); // wait for messages to be processed
         assertEquals(
                 1,
-                actor1.askBuilder(GetState::new)
+                actor1.ask(new GetState())
                         .withTimeout(Duration.ofSeconds(3))
                         .execute()
                         .toCompletableFuture()
@@ -135,7 +133,7 @@ public class ClusterTest extends AbstractClusterTest {
                         .getMessageCount());
         assertEquals(
                 1,
-                actor2.askBuilder(GetState::new)
+                actor2.ask(new GetState())
                         .withTimeout(Duration.ofSeconds(3))
                         .execute()
                         .toCompletableFuture()
@@ -143,7 +141,7 @@ public class ClusterTest extends AbstractClusterTest {
                         .getMessageCount());
         assertEquals(
                 1,
-                actor3.askBuilder(GetState::new)
+                actor3.ask(new GetState())
                         .withTimeout(Duration.ofSeconds(3))
                         .execute()
                         .toCompletableFuture()
@@ -157,14 +155,13 @@ public class ClusterTest extends AbstractClusterTest {
         waitUntilClusterInitialized();
 
         final String entityId = "test-entity";
-        SpringShardedActorRef<SimpleShardedActorWithoutwithState.Command> actor = system1.sharded(
-                        SimpleShardedActorWithoutwithState.class)
+        SpringShardedActorRef<SimpleShardedActorWithoutWithState.Command> actor = system1.sharded(
+                        SimpleShardedActorWithoutWithState.class)
                 .withId(entityId)
                 .get();
 
         // Test Echo message
-        String echoResponse = actor.askBuilder(
-                        (ActorRef<String> replyTo) -> new SimpleShardedActorWithoutwithState.Echo("hello", replyTo))
+        String echoResponse = actor.ask(new SimpleShardedActorWithoutWithState.Echo("hello"))
                 .withTimeout(Duration.ofSeconds(3))
                 .execute()
                 .toCompletableFuture()
@@ -172,12 +169,11 @@ public class ClusterTest extends AbstractClusterTest {
         assertEquals("Echo from entity [" + entityId + "]: hello", echoResponse);
 
         // Test GetEntityId message
-        String entityIdResponse = (String) actor.askBuilder(SimpleShardedActorWithoutwithState.GetEntityId::new)
+        String entityIdResponse = (String) actor.ask(new SimpleShardedActorWithoutWithState.GetEntityId())
                 .withTimeout(Duration.ofSeconds(3))
                 .execute()
                 .toCompletableFuture()
                 .get();
         assertEquals(entityId, entityIdResponse);
     }
-
 }

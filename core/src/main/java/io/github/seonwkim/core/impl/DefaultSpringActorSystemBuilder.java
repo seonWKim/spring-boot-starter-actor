@@ -8,19 +8,19 @@ import io.github.seonwkim.core.RootGuardianSupplierWrapper;
 import io.github.seonwkim.core.SpringActorSystem;
 import io.github.seonwkim.core.SpringActorSystemBuilder;
 import io.github.seonwkim.core.shard.ShardEnvelope;
-import io.github.seonwkim.core.shard.SpringShardedActor;
 import io.github.seonwkim.core.shard.ShardedActorRegistry;
+import io.github.seonwkim.core.shard.SpringShardedActor;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import javax.annotation.Nullable;
 import org.apache.pekko.actor.typed.ActorSystem;
 import org.apache.pekko.cluster.sharding.typed.javadsl.ClusterSharding;
 import org.apache.pekko.cluster.sharding.typed.javadsl.Entity;
 import org.apache.pekko.cluster.typed.Cluster;
 import org.apache.pekko.cluster.typed.ClusterSingleton;
 import org.springframework.context.ApplicationEventPublisher;
-import javax.annotation.Nullable;
 
 /**
  * Default implementation of the SpringActorSystemBuilder interface. This class builds
@@ -102,7 +102,8 @@ public class DefaultSpringActorSystemBuilder implements SpringActorSystemBuilder
     @Override
     public SpringActorSystem build() {
         if (supplier == null) {
-            throw new IllegalStateException("RootGuardianSupplierWrapper is not set. Call withRootGuardianSupplier() before build().");
+            throw new IllegalStateException(
+                    "RootGuardianSupplierWrapper is not set. Call withRootGuardianSupplier() before build().");
         }
 
         final Config config = ConfigFactory.parseMap(ConfigValueFactory.fromMap(applyDefaultSerializers(configMap)))
@@ -128,7 +129,12 @@ public class DefaultSpringActorSystemBuilder implements SpringActorSystemBuilder
         }
 
         return new SpringActorSystem(
-                actorSystem, cluster, clusterSharding, clusterSingleton, applicationEventPublisher, shardedActorRegistry);
+                actorSystem,
+                cluster,
+                clusterSharding,
+                clusterSingleton,
+                applicationEventPublisher,
+                shardedActorRegistry);
     }
 
     /**

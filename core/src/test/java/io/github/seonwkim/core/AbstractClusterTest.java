@@ -103,9 +103,12 @@ public abstract class AbstractClusterTest {
 
         String seedNodes = String.format(
                 "pekko://%s@127.0.0.1:%d,pekko://%s@127.0.0.1:%d,pekko://%s@127.0.0.1:%d",
-                getActorSystemName(), arteryPorts[0],
-                getActorSystemName(), arteryPorts[1],
-                getActorSystemName(), arteryPorts[2]);
+                getActorSystemName(),
+                arteryPorts[0],
+                getActorSystemName(),
+                arteryPorts[1],
+                getActorSystemName(),
+                arteryPorts[2]);
 
         context1 = startContext(httpPorts[0], arteryPorts[0], seedNodes);
         context2 = startContext(httpPorts[1], arteryPorts[1], seedNodes);
@@ -177,16 +180,14 @@ public abstract class AbstractClusterTest {
     protected void waitUntilClusterInitialized() {
         Cluster cluster = context1.getBean(SpringActorSystem.class).getCluster();
         // Wait until all 3 cluster nodes are UP
-        await().atMost(10, SECONDS)
-                .pollInterval(200, TimeUnit.MILLISECONDS)
-                .until(() -> {
-                    Assertions.assertNotNull(cluster);
-                    return cluster.state()
-                                    .members()
-                                    .filter(it -> it.status() == MemberStatus.up())
-                                    .size()
-                            == 3;
-                });
+        await().atMost(10, SECONDS).pollInterval(200, TimeUnit.MILLISECONDS).until(() -> {
+            Assertions.assertNotNull(cluster);
+            return cluster.state()
+                            .members()
+                            .filter(it -> it.status() == MemberStatus.up())
+                            .size()
+                    == 3;
+        });
     }
 
     /**
@@ -197,16 +198,14 @@ public abstract class AbstractClusterTest {
      */
     protected void waitUntilClusterHasMembers(int expectedNodeCount) {
         Cluster cluster = context1.getBean(SpringActorSystem.class).getCluster();
-        await().atMost(10, SECONDS)
-                .pollInterval(200, TimeUnit.MILLISECONDS)
-                .until(() -> {
-                    Assertions.assertNotNull(cluster);
-                    return cluster.state()
-                                    .members()
-                                    .filter(it -> it.status() == MemberStatus.up())
-                                    .size()
-                            == expectedNodeCount;
-                });
+        await().atMost(10, SECONDS).pollInterval(200, TimeUnit.MILLISECONDS).until(() -> {
+            Assertions.assertNotNull(cluster);
+            return cluster.state()
+                            .members()
+                            .filter(it -> it.status() == MemberStatus.up())
+                            .size()
+                    == expectedNodeCount;
+        });
     }
 
     /**

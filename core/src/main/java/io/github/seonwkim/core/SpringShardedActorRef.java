@@ -4,12 +4,12 @@ import java.time.Duration;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
+import javax.annotation.Nullable;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Scheduler;
 import org.apache.pekko.actor.typed.javadsl.AskPattern;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityRef;
 import org.apache.pekko.japi.function.Function;
-import javax.annotation.Nullable;
 
 /**
  * A wrapper around Pekko's EntityRef that provides methods for asking and telling messages to a
@@ -74,55 +74,34 @@ public class SpringShardedActorRef<T> {
     }
 
     /**
-     * Asks the sharded actor a question and expects a response, using the default timeout. This
-     * method sends a message to the actor and returns a CompletionStage that will be completed with
-     * the response.
-     *
-     * @param messageFactory A function that creates a message given a reply-to actor reference
-     * @param <REQ> The type of the request message
-     * @param <RES> The type of the response message
-     * @return A CompletionStage that will be completed with the response
-     */
-    public <REQ extends T, RES> CompletionStage<RES> ask(Function<ActorRef<RES>, REQ> messageFactory) {
-        return ask(messageFactory, defaultTimeout);
-    }
-
-    /**
-     * Asks the sharded actor a question and expects a response. This method sends a message to the
-     * actor and returns a CompletionStage that will be completed with the response.
-     *
-     * @param messageFactory A function that creates a message given a reply-to actor reference
-     * @param timeout The maximum time to wait for a response
-     * @param <REQ> The type of the request message
-     * @param <RES> The type of the response message
-     * @return A CompletionStage that will be completed with the response
-     */
-    public <REQ extends T, RES> CompletionStage<RES> ask(
-            Function<ActorRef<RES>, REQ> messageFactory, Duration timeout) {
-        return AskPattern.ask(entityRef, messageFactory::apply, timeout, scheduler);
-    }
-
-    /**
-     * Creates a fluent builder for asking the sharded actor a question with advanced options.
-     * This builder allows setting timeout, timeout handlers, and error handlers.
+     * Asks the sharded actor a question using an AskCommand and returns a builder for configuring
+     * the ask operation. This method automatically injects the reply-to reference into the command.
      *
      * <p>Example usage:
      * <pre>
-     * CompletionStage&lt;String&gt; result = shardedActor
-     *     .askBuilder(GetValue::new)
-     *     .withTimeout(Duration.ofSeconds(5))
-     *     .onTimeout(() -&gt; "default-value")
-     *     .execute();
-     * </pre>
+     * {@code
+     * // Simple ask
+     * CompletionStage<String> result = shardedActorRef.ask(new GetUserName("user123")).execute();
      *
-     * @param messageFactory A function that creates a message given a reply-to actor reference
-     * @param <REQ> The type of the request message
+     * // With timeout
+     * CompletionStage<String> result = shardedActorRef.ask(new GetUserName("user123"))
+     *     .withTimeout(Duration.ofSeconds(5))
+     *     .execute();
+     *
+     * // With timeout handler
+     * CompletionStage<String> result = shardedActorRef.ask(new GetUserName("user123"))
+     *     .withTimeout(Duration.ofSeconds(5))
+     *     .onTimeout(() -> "default-value")
+     *     .execute();
+     * }</pre>
+     *
+     * @param command The command that implements AskCommand (must also be assignable to T)
      * @param <RES> The type of the response message
-     * @return A new AskBuilder for fluent configuration
+     * @return An AskBuilder for configuring and executing the ask operation
      */
     @SuppressWarnings("unchecked")
-    public <REQ extends T, RES> AskBuilder<REQ, RES> askBuilder(Function<ActorRef<RES>, REQ> messageFactory) {
-        return new AskBuilder<>(messageFactory, (EntityRef<REQ>) entityRef, scheduler, defaultTimeout);
+    public <RES> AskBuilder<T, RES> ask(AskCommand<RES> command) {
+        return new AskBuilder<>(replyTo -> (T) command.withReplyTo(replyTo), entityRef, scheduler, defaultTimeout);
     }
 
     /**
@@ -156,6 +135,7 @@ public class SpringShardedActorRef<T> {
         private final EntityRef<REQ> entityRef;
         private final Scheduler scheduler;
         private Duration timeout;
+
         @Nullable private Supplier<RES> timeoutHandler;
 
         /**

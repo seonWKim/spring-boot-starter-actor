@@ -1,7 +1,6 @@
 package io.github.seonwkim.core;
 
 import java.util.Objects;
-import javax.annotation.Nullable;
 import org.apache.pekko.actor.typed.MailboxSelector;
 import org.apache.pekko.actor.typed.Props;
 
@@ -161,10 +160,8 @@ public abstract class MailboxConfig {
 
         BoundedMailbox(int capacity) {
             if (capacity <= 0) {
-                throw new IllegalArgumentException(
-                    "Mailbox capacity must be positive, got: " + capacity +
-                    ". Use MailboxConfig.defaultMailbox() for unbounded capacity."
-                );
+                throw new IllegalArgumentException("Mailbox capacity must be positive, got: " + capacity
+                        + ". Use MailboxConfig.defaultMailbox() for unbounded capacity.");
             }
             this.capacity = capacity;
         }

@@ -1,5 +1,6 @@
 package io.github.seonwkim.example.supervision;
 
+import io.github.seonwkim.core.AskCommand;
 import org.apache.pekko.actor.typed.ActorRef;
 
 /**
@@ -29,72 +30,57 @@ public class HierarchicalActor {
     }
 
     // Child management commands
-    public static class SpawnChild implements Command {
+    public static class SpawnChild extends AskCommand<ActorHierarchy.SpawnResult> implements Command {
         public final String childId;
         public final String strategy;
-        public final ActorRef<ActorHierarchy.SpawnResult> replyTo;
 
-        public SpawnChild(String childId, String strategy, ActorRef<ActorHierarchy.SpawnResult> replyTo) {
+        public SpawnChild(String childId, String strategy) {
             this.childId = childId;
             this.strategy = strategy;
-            this.replyTo = replyTo;
         }
     }
 
     // Routing commands
-    public static class RouteToChild implements Command {
+    public static class RouteToChild extends AskCommand<WorkResult> implements Command {
         public final String childId;
         public final String taskName;
-        public final ActorRef<WorkResult> replyTo;
 
-        public RouteToChild(String childId, String taskName, ActorRef<WorkResult> replyTo) {
+        public RouteToChild(String childId, String taskName) {
             this.childId = childId;
             this.taskName = taskName;
-            this.replyTo = replyTo;
         }
     }
 
-    public static class TriggerChildFailure implements Command {
+    public static class TriggerChildFailure extends AskCommand<String> implements Command {
         public final String childId;
-        public final ActorRef<String> replyTo;
 
-        public TriggerChildFailure(String childId, ActorRef<String> replyTo) {
+        public TriggerChildFailure(String childId) {
             this.childId = childId;
-            this.replyTo = replyTo;
         }
     }
 
-    public static class StopChild implements Command {
+    public static class StopChild extends AskCommand<String> implements Command {
         public final String childId;
-        public final ActorRef<String> replyTo;
 
-        public StopChild(String childId, ActorRef<String> replyTo) {
+        public StopChild(String childId) {
             this.childId = childId;
-            this.replyTo = replyTo;
         }
     }
 
-    public static class RouteSpawnChild implements Command {
+    public static class RouteSpawnChild extends AskCommand<ActorHierarchy.SpawnResult> implements Command {
         public final String parentId;
         public final String childId;
         public final String strategy;
-        public final ActorRef<ActorHierarchy.SpawnResult> replyTo;
 
-        public RouteSpawnChild(
-                String parentId, String childId, String strategy, ActorRef<ActorHierarchy.SpawnResult> replyTo) {
+        public RouteSpawnChild(String parentId, String childId, String strategy) {
             this.parentId = parentId;
             this.childId = childId;
             this.strategy = strategy;
-            this.replyTo = replyTo;
         }
     }
 
-    public static class GetHierarchy implements Command {
-        public final ActorRef<ActorHierarchy.ActorNode> replyTo;
-
-        public GetHierarchy(ActorRef<ActorHierarchy.ActorNode> replyTo) {
-            this.replyTo = replyTo;
-        }
+    public static class GetHierarchy extends AskCommand<ActorHierarchy.ActorNode> implements Command {
+        public GetHierarchy() {}
     }
 
     // Response types

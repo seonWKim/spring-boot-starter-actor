@@ -38,15 +38,11 @@ public class HelloActor implements SpringShardedActor<HelloActor.Command> {
     // Command interface and message types
     public interface Command extends JsonSerializable {}
 
-    public static class SayHello implements Command {
-        public final ActorRef<String> replyTo;
+    public static class SayHello extends AskCommand<String> implements Command {
         public final String message;
 
         @JsonCreator
-        public SayHello(
-                @JsonProperty("replyTo") ActorRef<String> replyTo,
-                @JsonProperty("message") String message) {
-            this.replyTo = replyTo;
+        public SayHello(@JsonProperty("message") String message) {
             this.message = message;
         }
     }
@@ -89,7 +85,7 @@ public class HelloActor implements SpringShardedActor<HelloActor.Command> {
             final String message = "Received from entity [" + entityId + "] on node [" + nodeAddress + "]";
 
             // Send the response back to the caller
-            msg.replyTo.tell(message);
+            msg.reply(message);
 
             return Behaviors.same();
         }
@@ -126,7 +122,7 @@ public class HelloService {
 
         // Send the message to the actor and get the response
         CompletionStage<String> response = actorRef
-                .askBuilder(replyTo -> new HelloActor.SayHello(replyTo, message))
+                .ask(new HelloActor.SayHello(message))
                 .withTimeout(Duration.ofSeconds(3))
                 .execute();
 

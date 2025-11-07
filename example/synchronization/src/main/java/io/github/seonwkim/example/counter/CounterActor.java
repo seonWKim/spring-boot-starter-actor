@@ -1,11 +1,10 @@
 package io.github.seonwkim.example.counter;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import io.github.seonwkim.core.AskCommand;
 import io.github.seonwkim.core.serialization.JsonSerializable;
 import io.github.seonwkim.core.shard.SpringShardedActor;
 import io.github.seonwkim.core.shard.SpringShardedActorBehavior;
-import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
@@ -49,13 +48,9 @@ public class CounterActor implements SpringShardedActor<CounterActor.Command> {
     }
 
     /** Command to get the current value of the counter. */
-    public static class GetValue implements Command {
-        public final ActorRef<Long> replyTo;
-
+    public static class GetValue extends AskCommand<Long> implements Command {
         @JsonCreator
-        public GetValue(@JsonProperty("replyTo") ActorRef<Long> replyTo) {
-            this.replyTo = replyTo;
-        }
+        public GetValue() {}
     }
 
     @Override
@@ -114,7 +109,7 @@ public class CounterActor implements SpringShardedActor<CounterActor.Command> {
          */
         private Behavior<Command> onGetValue(GetValue msg) {
             logger.debug("Getting value for counter with ID: {}", counterId);
-            msg.replyTo.tell(value);
+            msg.reply(value);
             return Behaviors.same();
         }
     }

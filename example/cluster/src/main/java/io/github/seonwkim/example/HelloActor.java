@@ -2,10 +2,10 @@ package io.github.seonwkim.example;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.github.seonwkim.core.AskCommand;
 import io.github.seonwkim.core.serialization.JsonSerializable;
 import io.github.seonwkim.core.shard.SpringShardedActor;
 import io.github.seonwkim.core.shard.SpringShardedActorBehavior;
-import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
@@ -37,13 +37,11 @@ public class HelloActor implements SpringShardedActor<HelloActor.Command> {
     public interface Command extends JsonSerializable {}
 
     /** Command to say hello and get a response. */
-    public static class SayHello implements Command {
-        public final ActorRef<String> replyTo;
+    public static class SayHello extends AskCommand<String> implements Command {
         public final String message;
 
         @JsonCreator
-        public SayHello(@JsonProperty("replyTo") ActorRef<String> replyTo, @JsonProperty("message") String message) {
-            this.replyTo = replyTo;
+        public SayHello(@JsonProperty("message") String message) {
             this.message = message;
         }
     }
@@ -95,7 +93,7 @@ public class HelloActor implements SpringShardedActor<HelloActor.Command> {
             final String message = "Received from entity [" + entityId + "] on node [" + nodeAddress + "]";
 
             // Send the response back to the caller
-            msg.replyTo.tell(message);
+            msg.reply(message);
 
             // Log the message for debugging
             ctx.getLog().info(message);

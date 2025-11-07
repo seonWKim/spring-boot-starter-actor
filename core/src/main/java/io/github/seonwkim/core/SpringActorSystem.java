@@ -3,11 +3,12 @@ package io.github.seonwkim.core;
 import io.github.seonwkim.core.RootGuardian.Spawned;
 import io.github.seonwkim.core.behavior.ClusterEventBehavior;
 import io.github.seonwkim.core.impl.DefaultSpringActorContext;
-import io.github.seonwkim.core.shard.SpringShardedActor;
 import io.github.seonwkim.core.shard.ShardedActorRegistry;
+import io.github.seonwkim.core.shard.SpringShardedActor;
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import javax.annotation.Nullable;
 import org.apache.pekko.actor.typed.*;
 import org.apache.pekko.actor.typed.javadsl.AskPattern;
 import org.apache.pekko.cluster.ClusterEvent;
@@ -17,7 +18,6 @@ import org.apache.pekko.cluster.typed.ClusterSingleton;
 import org.apache.pekko.cluster.typed.Subscribe;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.context.ApplicationEventPublisher;
-import javax.annotation.Nullable;
 
 /**
  * A wrapper around Pekko's ActorSystem that provides methods for spawning actors and getting
@@ -324,9 +324,8 @@ public class SpringActorSystem implements DisposableBean {
         // If cluster singleton is requested, validate cluster mode
         if (isClusterSingleton && clusterSingleton == null) {
             return CompletableFuture.failedFuture(
-                new IllegalStateException("Cluster singleton requested but cluster mode is not enabled. " +
-                    "Ensure your application is running in cluster mode.")
-            );
+                    new IllegalStateException("Cluster singleton requested but cluster mode is not enabled. "
+                            + "Ensure your application is running in cluster mode."));
         }
 
         return AskPattern.ask(

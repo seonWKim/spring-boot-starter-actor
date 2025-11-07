@@ -38,10 +38,9 @@ public class MdcWebFilter implements WebFilter {
 
         exchange.getResponse().getHeaders().add(REQUEST_ID_HEADER, requestId);
 
-        return chain.filter(exchange)
-                .doFinally(signalType -> {
-                    MDC.remove(REQUEST_ID_KEY);
-                    MDC.remove(USER_ID_KEY);
-                });
+        return chain.filter(exchange).doFinally(signalType -> {
+            MDC.remove(REQUEST_ID_KEY);
+            MDC.remove(USER_ID_KEY);
+        });
     }
 }

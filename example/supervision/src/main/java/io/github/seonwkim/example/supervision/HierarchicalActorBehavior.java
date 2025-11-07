@@ -81,7 +81,7 @@ public class HierarchicalActorBehavior<C> {
         if (existing.isPresent()) {
             ctx.getLog().warn("Child {} already exists under {}", msg.childId, actorId);
             logPublisher.publish(String.format("[%s] ⚠️ Child '%s' already exists", actorId, msg.childId));
-            msg.replyTo.tell(new ActorHierarchy.SpawnResult(msg.childId, false, "Child already exists"));
+            msg.reply(new ActorHierarchy.SpawnResult(msg.childId, false, "Child already exists"));
             return Behaviors.same();
         }
 
@@ -122,7 +122,7 @@ public class HierarchicalActorBehavior<C> {
         // Get the registry and create the child behavior
         ActorTypeRegistry registry = actorContext.registry();
         if (registry == null) {
-            msg.replyTo.tell(new ActorHierarchy.SpawnResult(msg.childId, false, "Registry not available"));
+            msg.reply(new ActorHierarchy.SpawnResult(msg.childId, false, "Registry not available"));
             return Behaviors.same();
         }
 
@@ -145,7 +145,7 @@ public class HierarchicalActorBehavior<C> {
         // Track the child strategy
         childStrategies.put(msg.childId, strategyDescription);
 
-        msg.replyTo.tell(new ActorHierarchy.SpawnResult(msg.childId, true, "Child spawned successfully"));
+        msg.reply(new ActorHierarchy.SpawnResult(msg.childId, true, "Child spawned successfully"));
         return Behaviors.same();
     }
 
@@ -157,7 +157,7 @@ public class HierarchicalActorBehavior<C> {
         // Check if this is me
         if (actorId.equals(msg.childId)) {
             ctx.getLog().info("{} {} processing work '{}'", actorTypeName, actorId, msg.taskName);
-            return onProcessWork(new HierarchicalActor.ProcessWork(msg.taskName, msg.replyTo));
+            return onProcessWork(new HierarchicalActor.ProcessWork(msg.taskName, msg.getReplyTo()));
         }
 
         // Check if it's a direct child
@@ -168,7 +168,7 @@ public class HierarchicalActorBehavior<C> {
             logPublisher.publish(
                     String.format("[%s] 📬 Routing task '%s' to child '%s'", actorId, msg.taskName, msg.childId));
 
-            child.tell((C) new HierarchicalActor.ProcessWork(msg.taskName, msg.replyTo));
+            child.tell((C) new HierarchicalActor.ProcessWork(msg.taskName, msg.getReplyTo()));
             return Behaviors.same();
         }
 
@@ -176,8 +176,8 @@ public class HierarchicalActorBehavior<C> {
         ctx.getLog().info("{} {} forwarding work to children to find {}", actorTypeName, actorId, msg.childId);
 
         for (ActorRef<Void> childRef : (Iterable<ActorRef<Void>>) ctx.getChildren()::iterator) {
-            ActorRef<C> child = (ActorRef<C>) (ActorRef<?>) childRef;
-            child.tell((C) new HierarchicalActor.RouteToChild(msg.childId, msg.taskName, msg.replyTo));
+            ActorRef<C> child = (ActorRef<C>) childRef;
+            child.tell((C) new HierarchicalActor.RouteToChild(msg.childId, msg.taskName));
         }
 
         return Behaviors.same();
@@ -190,7 +190,7 @@ public class HierarchicalActorBehavior<C> {
         // Check if this is me
         if (actorId.equals(msg.childId)) {
             ctx.getLog().info("{} {} triggering failure on self", actorTypeName, actorId);
-            return onTriggerFailure(new HierarchicalActor.TriggerFailure(msg.replyTo));
+            return onTriggerFailure(new HierarchicalActor.TriggerFailure(msg.getReplyTo()));
         }
 
         // Check if it's a direct child
@@ -200,7 +200,7 @@ public class HierarchicalActorBehavior<C> {
             ctx.getLog().info("{} {} triggering failure in child {}", actorTypeName, actorId, msg.childId);
             logPublisher.publish(String.format("[%s] 💥 Triggering failure in child '%s'", actorId, msg.childId));
 
-            child.tell((C) new HierarchicalActor.TriggerFailure(msg.replyTo));
+            child.tell((C) new HierarchicalActor.TriggerFailure(msg.getReplyTo()));
             return Behaviors.same();
         }
 
@@ -209,8 +209,8 @@ public class HierarchicalActorBehavior<C> {
                 .info("{} {} forwarding failure trigger to children to find {}", actorTypeName, actorId, msg.childId);
 
         for (ActorRef<Void> childRef : (Iterable<ActorRef<Void>>) ctx.getChildren()::iterator) {
-            ActorRef<C> child = (ActorRef<C>) (ActorRef<?>) childRef;
-            child.tell((C) new HierarchicalActor.TriggerChildFailure(msg.childId, msg.replyTo));
+            ActorRef<C> child = (ActorRef<C>) childRef;
+            child.tell((C) new HierarchicalActor.TriggerChildFailure(msg.childId));
         }
 
         return Behaviors.same();
@@ -229,7 +229,7 @@ public class HierarchicalActorBehavior<C> {
             ctx.stop(childOpt.get());
             childStrategies.remove(msg.childId);
 
-            msg.replyTo.tell("Child stopped");
+            msg.reply("Child stopped");
             return Behaviors.same();
         }
 
@@ -237,8 +237,10 @@ public class HierarchicalActorBehavior<C> {
         ctx.getLog().info("{} {} forwarding stop request to children to find {}", actorTypeName, actorId, msg.childId);
 
         for (ActorRef<Void> childRef : (Iterable<ActorRef<Void>>) ctx.getChildren()::iterator) {
-            ActorRef<C> child = (ActorRef<C>) (ActorRef<?>) childRef;
-            child.tell((C) new HierarchicalActor.StopChild(msg.childId, msg.replyTo));
+            ActorRef<C> child = (ActorRef<C>) childRef;
+            HierarchicalActor.StopChild stopCmd = new HierarchicalActor.StopChild(msg.childId);
+            stopCmd.withReplyTo(msg.getReplyTo());
+            child.tell((C) stopCmd);
         }
 
         return Behaviors.same();
@@ -251,14 +253,18 @@ public class HierarchicalActorBehavior<C> {
         // Check if this actor is the parent
         if (actorId.equals(msg.parentId)) {
             ctx.getLog().info("{} {} is the parent, spawning child {}", actorTypeName, actorId, msg.childId);
-            return onSpawnChild(new HierarchicalActor.SpawnChild(msg.childId, msg.strategy, msg.replyTo));
+            HierarchicalActor.SpawnChild spawnCmd = new HierarchicalActor.SpawnChild(msg.childId, msg.strategy);
+            spawnCmd.withReplyTo(msg.getReplyTo());
+            return onSpawnChild(spawnCmd);
         }
 
         // Check if the parent is a direct child
         Optional<ActorRef<Void>> directChildOpt = ctx.getChild(msg.parentId);
         if (directChildOpt.isPresent()) {
             ActorRef<C> child = (ActorRef<C>) (ActorRef<?>) directChildOpt.get();
-            child.tell((C) new HierarchicalActor.SpawnChild(msg.childId, msg.strategy, msg.replyTo));
+            HierarchicalActor.SpawnChild spawnCmd = new HierarchicalActor.SpawnChild(msg.childId, msg.strategy);
+            spawnCmd.withReplyTo(msg.getReplyTo());
+            child.tell((C) spawnCmd);
 
             ctx.getLog()
                     .info(
@@ -285,14 +291,16 @@ public class HierarchicalActorBehavior<C> {
         for (ActorRef<Void> childRef : (Iterable<ActorRef<Void>>) ctx.getChildren()::iterator) {
             hasChildren = true;
             ActorRef<C> child = (ActorRef<C>) (ActorRef<?>) childRef;
-            child.tell((C) new HierarchicalActor.RouteSpawnChild(msg.parentId, msg.childId, msg.strategy, msg.replyTo));
+            HierarchicalActor.RouteSpawnChild routeCmd =
+                    new HierarchicalActor.RouteSpawnChild(msg.parentId, msg.childId, msg.strategy);
+            routeCmd.withReplyTo(msg.getReplyTo());
+            child.tell((C) routeCmd);
         }
 
         // If leaf node, send error
         if (!hasChildren) {
             ctx.getLog().warn("{} {} (leaf node) could not find parent {}", actorTypeName, actorId, msg.parentId);
-            msg.replyTo.tell(
-                    new ActorHierarchy.SpawnResult(msg.childId, false, "Parent '" + msg.parentId + "' not found"));
+            msg.reply(new ActorHierarchy.SpawnResult(msg.childId, false, "Parent '" + msg.parentId + "' not found"));
         }
 
         return Behaviors.same();
@@ -306,13 +314,15 @@ public class HierarchicalActorBehavior<C> {
         List<CompletableFuture<ActorHierarchy.ActorNode>> childFutures = new ArrayList<>();
 
         ctx.getChildren().forEach(childRef -> {
-            String childName = childRef.path().name();
-
             // Ask each child for its hierarchy (recursive)
-            ActorRef<C> typedChild = (ActorRef<C>) (ActorRef<?>) childRef;
+            ActorRef<C> typedChild = (ActorRef<C>) childRef;
             CompletableFuture<ActorHierarchy.ActorNode> future = AskPattern.<C, ActorHierarchy.ActorNode>ask(
                             typedChild,
-                            replyTo -> (C) new HierarchicalActor.GetHierarchy(replyTo),
+                            replyTo -> {
+                                HierarchicalActor.GetHierarchy cmd = new HierarchicalActor.GetHierarchy();
+                                cmd.withReplyTo(replyTo);
+                                return (C) cmd;
+                            },
                             Duration.ofSeconds(3),
                             ctx.getSystem().scheduler())
                     .toCompletableFuture();
@@ -349,7 +359,7 @@ public class HierarchicalActorBehavior<C> {
                             ctx.getSelf().path().toString(),
                             failureCount,
                             children);
-                    msg.replyTo.tell(node);
+                    msg.reply(node);
                 })
                 .exceptionally(ex -> {
                     ctx.getLog().error("Failed to get hierarchy for {} {}", actorTypeName, actorId, ex);
@@ -360,7 +370,7 @@ public class HierarchicalActorBehavior<C> {
                             ctx.getSelf().path().toString(),
                             failureCount,
                             List.of());
-                    msg.replyTo.tell(node);
+                    msg.reply(node);
                     return null;
                 });
 

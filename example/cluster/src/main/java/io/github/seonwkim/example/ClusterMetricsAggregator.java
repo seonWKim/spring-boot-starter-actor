@@ -2,13 +2,13 @@ package io.github.seonwkim.example;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.github.seonwkim.core.AskCommand;
 import io.github.seonwkim.core.SpringActorBehavior;
 import io.github.seonwkim.core.SpringActorContext;
 import io.github.seonwkim.core.SpringActorWithContext;
 import io.github.seonwkim.core.serialization.JsonSerializable;
 import java.util.HashMap;
 import java.util.Map;
-import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.springframework.stereotype.Component;
@@ -34,7 +34,8 @@ import org.springframework.stereotype.Component;
  * </ul>
  */
 @Component
-public class ClusterMetricsAggregator implements SpringActorWithContext<ClusterMetricsAggregator.Command, SpringActorContext> {
+public class ClusterMetricsAggregator
+        implements SpringActorWithContext<ClusterMetricsAggregator.Command, SpringActorContext> {
 
     /** Base interface for all commands that can be sent to the metrics aggregator. */
     public interface Command extends JsonSerializable {}
@@ -60,37 +61,23 @@ public class ClusterMetricsAggregator implements SpringActorWithContext<ClusterM
     }
 
     /** Command to get all aggregated metrics. */
-    public static class GetMetrics implements Command {
-        public final ActorRef<MetricsResponse> replyTo;
-
-        @JsonCreator
-        public GetMetrics(@JsonProperty("replyTo") ActorRef<MetricsResponse> replyTo) {
-            this.replyTo = replyTo;
-        }
+    public static class GetMetrics extends AskCommand<MetricsResponse> implements Command {
+        public GetMetrics() {}
     }
 
     /** Command to get metrics for a specific node. */
-    public static class GetNodeMetrics implements Command {
+    public static class GetNodeMetrics extends AskCommand<MetricsResponse> implements Command {
         public final String nodeAddress;
-        public final ActorRef<MetricsResponse> replyTo;
 
         @JsonCreator
-        public GetNodeMetrics(
-                @JsonProperty("nodeAddress") String nodeAddress,
-                @JsonProperty("replyTo") ActorRef<MetricsResponse> replyTo) {
+        public GetNodeMetrics(@JsonProperty("nodeAddress") String nodeAddress) {
             this.nodeAddress = nodeAddress;
-            this.replyTo = replyTo;
         }
     }
 
     /** Command to reset all metrics. */
-    public static class ResetMetrics implements Command {
-        public final ActorRef<String> replyTo;
-
-        @JsonCreator
-        public ResetMetrics(@JsonProperty("replyTo") ActorRef<String> replyTo) {
-            this.replyTo = replyTo;
-        }
+    public static class ResetMetrics extends AskCommand<String> implements Command {
+        public ResetMetrics() {}
     }
 
     /** Response containing aggregated metrics. */
@@ -113,9 +100,7 @@ public class ClusterMetricsAggregator implements SpringActorWithContext<ClusterM
         public final long timestamp;
 
         @JsonCreator
-        public MetricData(
-                @JsonProperty("value") long value,
-                @JsonProperty("timestamp") long timestamp) {
+        public MetricData(@JsonProperty("value") long value, @JsonProperty("timestamp") long timestamp) {
             this.value = value;
             this.timestamp = timestamp;
         }
@@ -145,20 +130,20 @@ public class ClusterMetricsAggregator implements SpringActorWithContext<ClusterM
             this.ctx = ctx;
             this.metrics = new HashMap<>();
 
-            ctx.getLog().info("Cluster Metrics Aggregator singleton started on node: {}",
-                    ctx.getSystem().address());
+            ctx.getLog()
+                    .info(
+                            "Cluster Metrics Aggregator singleton started on node: {}",
+                            ctx.getSystem().address());
         }
 
         /**
          * Handles recording a metric from a node.
          */
         private org.apache.pekko.actor.typed.Behavior<Command> onRecordMetric(RecordMetric msg) {
-            ctx.getLog().debug("Recording metric [{}={}] from node [{}]",
-                    msg.metricName, msg.value, msg.nodeAddress);
+            ctx.getLog().debug("Recording metric [{}={}] from node [{}]", msg.metricName, msg.value, msg.nodeAddress);
 
             // Get or create the metrics map for this node
-            Map<String, MetricData> nodeMetrics = metrics.computeIfAbsent(
-                    msg.nodeAddress, k -> new HashMap<>());
+            Map<String, MetricData> nodeMetrics = metrics.computeIfAbsent(msg.nodeAddress, k -> new HashMap<>());
 
             // Store the metric
             nodeMetrics.put(msg.metricName, new MetricData(msg.value, msg.timestamp));
@@ -173,12 +158,9 @@ public class ClusterMetricsAggregator implements SpringActorWithContext<ClusterM
             ctx.getLog().debug("Getting all metrics (nodes: {})", metrics.size());
 
             String nodeAddress = ctx.getSystem().address().toString();
-            MetricsResponse response = new MetricsResponse(
-                    new HashMap<>(metrics),
-                    nodeAddress
-            );
+            MetricsResponse response = new MetricsResponse(new HashMap<>(metrics), nodeAddress);
 
-            msg.replyTo.tell(response);
+            msg.reply(response);
             return Behaviors.same();
         }
 
@@ -198,7 +180,7 @@ public class ClusterMetricsAggregator implements SpringActorWithContext<ClusterM
             String nodeAddress = ctx.getSystem().address().toString();
             MetricsResponse response = new MetricsResponse(result, nodeAddress);
 
-            msg.replyTo.tell(response);
+            msg.reply(response);
             return Behaviors.same();
         }
 
@@ -209,18 +191,14 @@ public class ClusterMetricsAggregator implements SpringActorWithContext<ClusterM
             ctx.getLog().info("Resetting all metrics");
 
             int nodeCount = metrics.size();
-            int totalMetrics = metrics.values().stream()
-                    .mapToInt(Map::size)
-                    .sum();
+            int totalMetrics = metrics.values().stream().mapToInt(Map::size).sum();
 
             metrics.clear();
 
-            String responseMessage = String.format(
-                    "Reset complete. Cleared %d metrics from %d nodes.",
-                    totalMetrics, nodeCount
-            );
+            String responseMessage =
+                    String.format("Reset complete. Cleared %d metrics from %d nodes.", totalMetrics, nodeCount);
 
-            msg.replyTo.tell(responseMessage);
+            msg.reply(responseMessage);
             return Behaviors.same();
         }
     }

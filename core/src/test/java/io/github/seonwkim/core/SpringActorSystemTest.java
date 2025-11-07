@@ -5,10 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.seonwkim.core.SpringActorSystemTest.TestHelloActor.SayHello;
-
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
-import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -25,19 +23,15 @@ class SpringActorSystemTest {
 
         public interface Command {}
 
-        public static class SayHello implements TestHelloActor.Command {
-            private final ActorRef<Object> replyTo;
-
-            public SayHello(ActorRef<Object> replyTo) {
-                this.replyTo = replyTo;
-            }
+        public static class SayHello extends AskCommand<Object> implements TestHelloActor.Command {
+            public SayHello() {}
         }
 
         @Override
         public SpringActorBehavior<Command> create(SpringActorContext id) {
             return SpringActorBehavior.builder(Command.class, id)
                     .onMessage(SayHello.class, (ctx, msg) -> {
-                        msg.replyTo.tell("hello world!!");
+                        msg.reply("hello world!!");
                         return Behaviors.same();
                     })
                     .build();
@@ -49,12 +43,8 @@ class SpringActorSystemTest {
 
         public interface Command {}
 
-        public static class GetDispatcherName implements Command {
-            private final ActorRef<String> replyTo;
-
-            public GetDispatcherName(ActorRef<String> replyTo) {
-                this.replyTo = replyTo;
-            }
+        public static class GetDispatcherName extends AskCommand<String> implements Command {
+            public GetDispatcherName() {}
         }
 
         @Override
@@ -63,7 +53,7 @@ class SpringActorSystemTest {
                     .onMessage(GetDispatcherName.class, (ctx, msg) -> {
                         // Get the dispatcher name from the execution context
                         String dispatcherName = ctx.getExecutionContext().toString();
-                        msg.replyTo.tell(dispatcherName);
+                        msg.reply(dispatcherName);
                         return Behaviors.same();
                     })
                     .build();
@@ -76,19 +66,15 @@ class SpringActorSystemTest {
 
         public interface Command {}
 
-        public static class SayHello implements CustomActorContextActor.Command {
-            private final ActorRef<Object> replyTo;
-
-            public SayHello(ActorRef<Object> replyTo) {
-                this.replyTo = replyTo;
-            }
+        public static class SayHello extends AskCommand<Object> implements CustomActorContextActor.Command {
+            public SayHello() {}
         }
 
         @Override
         public SpringActorBehavior<Command> create(CustomActorContext context) {
             return SpringActorBehavior.builder(Command.class, context)
                     .onMessage(SayHello.class, (ctx, msg) -> {
-                        msg.replyTo.tell(context.actorId());
+                        msg.reply(context.actorId());
                         return Behaviors.same();
                     })
                     .build();
@@ -104,12 +90,8 @@ class SpringActorSystemTest {
 
         public interface Command {}
 
-        public static class Increment implements Command {
-            private final ActorRef<Integer> replyTo;
-
-            public Increment(ActorRef<Integer> replyTo) {
-                this.replyTo = replyTo;
-            }
+        public static class Increment extends AskCommand<Integer> implements Command {
+            public Increment() {}
         }
 
         @Override
@@ -122,7 +104,7 @@ class SpringActorSystemTest {
                     .onMessage(Increment.class, (ctx, msg) -> {
                         counter[0]++;
                         ctx.getLog().info("Counter for {} incremented to {}", actorContext.actorId(), counter[0]);
-                        msg.replyTo.tell(counter[0]);
+                        msg.reply(counter[0]);
                         return Behaviors.same();
                     })
                     .build();
@@ -148,17 +130,18 @@ class SpringActorSystemTest {
 
     @Nested
     @SpringBootTest(classes = TestApp.class)
-    @TestPropertySource(properties = {
-            "spring.actor.pekko.loglevel=INFO",
-            "spring.actor.pekko.actor.provider=local",
-            // Custom dispatcher configuration for testing
-            "spring.actor.my-custom-dispatcher.type=Dispatcher",
-            "spring.actor.my-custom-dispatcher.executor=fork-join-executor",
-            "spring.actor.my-custom-dispatcher.fork-join-executor.parallelism-min=2",
-            "spring.actor.my-custom-dispatcher.fork-join-executor.parallelism-factor=2.0",
-            "spring.actor.my-custom-dispatcher.fork-join-executor.parallelism-max=4",
-            "spring.actor.my-custom-dispatcher.throughput=100"
-    })
+    @TestPropertySource(
+            properties = {
+                "spring.actor.pekko.loglevel=INFO",
+                "spring.actor.pekko.actor.provider=local",
+                // Custom dispatcher configuration for testing
+                "spring.actor.my-custom-dispatcher.type=Dispatcher",
+                "spring.actor.my-custom-dispatcher.executor=fork-join-executor",
+                "spring.actor.my-custom-dispatcher.fork-join-executor.parallelism-min=2",
+                "spring.actor.my-custom-dispatcher.fork-join-executor.parallelism-factor=2.0",
+                "spring.actor.my-custom-dispatcher.fork-join-executor.parallelism-max=4",
+                "spring.actor.my-custom-dispatcher.throughput=100"
+            })
     class SimpleTest {
 
         @Test
@@ -174,7 +157,7 @@ class SpringActorSystemTest {
 
             assertEquals(
                     "hello world!!",
-                    actorRef.askBuilder(SayHello::new)
+                    actorRef.ask(new SayHello())
                             .withTimeout(Duration.ofSeconds(5))
                             .execute()
                             .toCompletableFuture()
@@ -197,7 +180,7 @@ class SpringActorSystemTest {
                     .spawnAndWait();
             assertThat(actorRef).isNotNull();
             assertEquals(
-                    actorRef.askBuilder(CustomActorContextActor.SayHello::new)
+                    actorRef.ask(new CustomActorContextActor.SayHello())
                             .withTimeout(Duration.ofSeconds(5))
                             .execute()
                             .toCompletableFuture()
@@ -276,7 +259,7 @@ class SpringActorSystemTest {
 
             // Verify we can use the retrieved ref to send messages
             Object response = retrievedRef
-                    .askBuilder(SayHello::new)
+                    .ask(new SayHello())
                     .withTimeout(Duration.ofSeconds(5))
                     .execute()
                     .toCompletableFuture()
@@ -371,21 +354,21 @@ class SpringActorSystemTest {
             assertThat(actorRef).isNotNull();
 
             // Send increment messages and verify counter increases
-            Integer count1 = actorRef.askBuilder(SimpleActorWithoutwithState.Increment::new)
+            Integer count1 = actorRef.ask(new SimpleActorWithoutwithState.Increment())
                     .withTimeout(Duration.ofSeconds(5))
                     .execute()
                     .toCompletableFuture()
                     .get();
             assertEquals(1, count1);
 
-            Integer count2 = actorRef.askBuilder(SimpleActorWithoutwithState.Increment::new)
+            Integer count2 = actorRef.ask(new SimpleActorWithoutwithState.Increment())
                     .withTimeout(Duration.ofSeconds(5))
                     .execute()
                     .toCompletableFuture()
                     .get();
             assertEquals(2, count2);
 
-            Integer count3 = actorRef.askBuilder(SimpleActorWithoutwithState.Increment::new)
+            Integer count3 = actorRef.ask(new SimpleActorWithoutwithState.Increment())
                     .withTimeout(Duration.ofSeconds(5))
                     .execute()
                     .toCompletableFuture()
@@ -406,7 +389,7 @@ class SpringActorSystemTest {
 
             assertThat(actorRef).isNotNull();
 
-            String dispatcherName = actorRef.askBuilder(DispatcherTestActor.GetDispatcherName::new)
+            String dispatcherName = actorRef.ask(new DispatcherTestActor.GetDispatcherName())
                     .withTimeout(Duration.ofSeconds(5))
                     .execute()
                     .toCompletableFuture()
@@ -429,7 +412,7 @@ class SpringActorSystemTest {
 
             assertThat(actorRef).isNotNull();
 
-            String dispatcherName = actorRef.askBuilder(DispatcherTestActor.GetDispatcherName::new)
+            String dispatcherName = actorRef.ask(new DispatcherTestActor.GetDispatcherName())
                     .withTimeout(Duration.ofSeconds(5))
                     .execute()
                     .toCompletableFuture()
@@ -452,7 +435,7 @@ class SpringActorSystemTest {
 
             assertThat(actorRef).isNotNull();
 
-            String dispatcherName = actorRef.askBuilder(DispatcherTestActor.GetDispatcherName::new)
+            String dispatcherName = actorRef.ask(new DispatcherTestActor.GetDispatcherName())
                     .withTimeout(Duration.ofSeconds(5))
                     .execute()
                     .toCompletableFuture()
@@ -475,7 +458,7 @@ class SpringActorSystemTest {
 
             assertThat(actorRef).isNotNull();
 
-            String dispatcherName = actorRef.askBuilder(DispatcherTestActor.GetDispatcherName::new)
+            String dispatcherName = actorRef.ask(new DispatcherTestActor.GetDispatcherName())
                     .withTimeout(Duration.ofSeconds(5))
                     .execute()
                     .toCompletableFuture()
