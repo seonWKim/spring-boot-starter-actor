@@ -77,16 +77,43 @@ public class ActorConfiguration {
         Map<String, SpringActorWithContext> actorBeans = context.getBeansOfType(SpringActorWithContext.class);
 
         for (SpringActorWithContext actorBean : actorBeans.values()) {
-            registry.registerInternal(actorBean.getClass(), actorContext -> {
-                try {
-                    return actorBean.create(actorContext);
-                } catch (Exception e) {
-                    throw new RuntimeException(
-                            "Failed to invoke create(id) on "
-                                    + actorBean.getClass().getName(),
-                            e);
-                }
-            });
+            // Check if this is a router actor
+            if (actorBean instanceof io.github.seonwkim.core.router.SpringRouterActor) {
+                io.github.seonwkim.core.router.SpringRouterActor routerBean =
+                        (io.github.seonwkim.core.router.SpringRouterActor) actorBean;
+                registry.registerInternal(actorBean.getClass(), actorContext -> {
+                    try {
+                        // Create router behavior
+                        io.github.seonwkim.core.router.SpringRouterBehavior routerBehavior =
+                                routerBean.create(actorContext);
+
+                        // Convert to SpringActorBehavior with worker factory
+                        return routerBehavior.toSpringActorBehavior(actorContext, (SpringActorContext workerContext) -> {
+                            // Create worker behavior through registry
+                            SpringActorBehavior workerSpringBehavior =
+                                    registry.createTypedBehavior(routerBehavior.getWorkerClass(), workerContext);
+                            return workerSpringBehavior.asBehavior();
+                        });
+                    } catch (Exception e) {
+                        throw new RuntimeException(
+                                "Failed to create router behavior for "
+                                        + actorBean.getClass().getName(),
+                                e);
+                    }
+                });
+            } else {
+                // Regular actor
+                registry.registerInternal(actorBean.getClass(), actorContext -> {
+                    try {
+                        return actorBean.create(actorContext);
+                    } catch (Exception e) {
+                        throw new RuntimeException(
+                                "Failed to invoke create(id) on "
+                                        + actorBean.getClass().getName(),
+                                e);
+                    }
+                });
+            }
         }
 
         return registry;

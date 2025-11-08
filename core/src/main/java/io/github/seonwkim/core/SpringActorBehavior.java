@@ -79,6 +79,21 @@ public final class SpringActorBehavior<C> {
     }
 
     /**
+     * Wraps a Pekko Behavior in a SpringActorBehavior. This is a package-private method used
+     * internally by the framework (e.g., for router support).
+     *
+     * <p>This method should only be used by framework components like routers that need to
+     * integrate existing Pekko behaviors into the Spring actor system.
+     *
+     * @param behavior the Pekko behavior to wrap
+     * @param <C>      the command type
+     * @return a SpringActorBehavior wrapping the given behavior
+     */
+    public static <C> SpringActorBehavior<C> wrap(Behavior<C> behavior) {
+        return new SpringActorBehavior<>(behavior);
+    }
+
+    /**
      * Creates a new builder for constructing a SpringActorBehavior.
      *
      * <p>The builder starts with ActorContext as the default state type. Use {@link Builder#withState(Function)}
