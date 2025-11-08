@@ -1,55 +1,8 @@
 # Kubernetes Deployment Example
 
-This example demonstrates how to deploy a Spring Boot Starter Actor application (the chat example) to Kubernetes with clustering support and rolling updates.
+Deploy a Spring Boot Starter Actor application to Kubernetes with Pekko clustering, zero-downtime rolling updates, and Grafana monitoring.
 
-## What This Example Shows
-
-✨ **Zero-downtime rolling updates** with Pekko Cluster
-🔄 **Automatic cluster formation** using Kubernetes service discovery
-📊 **Production-ready configuration** with health checks and monitoring
-🎯 **Easy local testing** with kind (Kubernetes in Docker)
-
-## Architecture
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    Kubernetes Cluster                        │
-│                                                              │
-│  ┌────────────────────────────────────────────────────────┐ │
-│  │  Namespace: spring-actor                                │ │
-│  │                                                          │ │
-│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │ │
-│  │  │   Pod 1      │  │   Pod 2      │  │   Pod 3      │  │ │
-│  │  │              │  │              │  │              │  │ │
-│  │  │ Chat Actor   │◄─┼─►Chat Actor  │◄─┼─►Chat Actor  │  │ │
-│  │  │ :8080        │  │ :8080        │  │ :8080        │  │ │
-│  │  │ Remoting     │  │ Remoting     │  │ Remoting     │  │ │
-│  │  │ :2551        │  │ :2551        │  │ :2551        │  │ │
-│  │  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘  │ │
-│  │         │                  │                  │          │ │
-│  │         └──────────────────┴──────────────────┘          │ │
-│  │                            │                             │ │
-│  │                   ┌────────▼─────────┐                   │ │
-│  │                   │  Pekko Cluster   │                   │ │
-│  │                   │  (Single Logical │                   │ │
-│  │                   │   Cluster)       │                   │ │
-│  │                   └──────────────────┘                   │ │
-│  │                                                          │ │
-│  │  ┌────────────────────────────────────────────────────┐ │ │
-│  │  │  Service: spring-actor (Headless)                  │ │ │
-│  │  │  • Used for pod discovery                          │ │ │
-│  │  │  • Cluster Bootstrap via Kubernetes API            │ │ │
-│  │  └────────────────────────────────────────────────────┘ │ │
-│  │                                                          │ │
-│  │  ┌────────────────────────────────────────────────────┐ │ │
-│  │  │  Service: spring-actor-http (LoadBalancer)         │ │ │
-│  │  │  • Exposes chat UI on port 80                      │ │ │
-│  │  └────────────────────────────────────────────────────┘ │ │
-│  └──────────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────┘
-```
-
-## Quick Start (5 minutes!)
+## Quick Start (5 minutes)
 
 ### Prerequisites
 
@@ -59,9 +12,9 @@ Install these tools (one-time setup):
 - **kind** - [Install kind](https://kind.sigs.k8s.io/docs/user/quick-start/#installation)
 - **kubectl** - [Install kubectl](https://kubernetes.io/docs/tasks/tools/)
 
-### Run the Example
+**Important**: Docker Desktop needs **at least 8 GB of memory** allocated (Settings → Resources → Memory)
 
-1. **Run the setup script:**
+### Setup
 
 ```bash
 cd example/kubernetes
@@ -69,389 +22,42 @@ cd example/kubernetes
 ```
 
 That's it! The script will:
-- ✅ Create a local Kubernetes cluster
-- ✅ Build the chat application
-- ✅ Build and load Docker image
-- ✅ Deploy to Kubernetes
-- ✅ Wait for pods to be ready
+- Create a local Kubernetes cluster (3 nodes)
+- Build the Spring Boot application
+- Build and load Docker image
+- Deploy to Kubernetes (3 pods)
+- Wait for pods to be ready
 
-2. **Access the application:**
+Access the application: **http://localhost:8080**
 
-Open your browser: **http://localhost:8080**
+## Commands
 
-You'll see the chat UI connected to a 3-node Pekko cluster!
-
-3. **Use the built-in commands:**
-
-The setup script provides several useful commands:
-
-```bash
-# Show cluster status
-./setup-local.sh status
-
-# View application logs
-./setup-local.sh logs
-
-# Access individual pods on different ports (8080, 8081, 8082)
-./setup-local.sh port-forward
-
-# Rebuild application and restart deployment
-./setup-local.sh rebuild
-
-# Clean up all resources
-./setup-local.sh cleanup
-```
-
-4. **Deploy monitoring (optional but recommended):**
-
-```bash
-# Deploy Prometheus & Grafana
-./setup-local.sh monitoring
-
-# Access Grafana at http://localhost:30300
-# Login: admin/admin
-```
-
-5. **Get help:**
-
-```bash
-./setup-local.sh help
-```
-
-## Monitoring with Grafana
-
-Monitor your Pekko cluster and rolling updates with the included Grafana dashboards:
-
-### Quick Start
-
-```bash
-# Deploy the monitoring stack
-./setup-local.sh monitoring
-```
-
-This deploys:
-- **Prometheus** - Scrapes metrics from Spring Boot Actuator and Pekko Management
-- **Grafana** - Visualizes metrics with pre-configured dashboards
-
-### Access Monitoring
-
-- **Grafana**: http://localhost:30300 (admin/admin)
-- **Prometheus**: http://localhost:30090
-
-### Pre-configured Dashboards
-
-#### 1. Pekko Cluster Health Dashboard
-
-Monitors your distributed actor system:
-- **Cluster Members** - Number of Up/Unreachable members
-- **Cluster Events** - Join/Leave events over time
-- **Shards Distribution** - How shards are distributed across nodes
-- **Active Entities** - Number of active actors per node
-- **HTTP Metrics** - Request rate and latency
-
-#### 2. Rolling Update Monitor Dashboard
-
-Essential for monitoring zero-downtime deployments:
-- **Pod Status** - Running/Pending/Failed pods over time
-- **Ready Replicas** - Track deployment progress
-- **Cluster Size During Update** - Ensure cluster stays healthy
-- **Pod Restarts** - Detect issues during rollout
-- **Resource Usage** - CPU and memory during updates
-
-### Monitoring a Rolling Update
-
-Try this to see monitoring in action:
-
-```bash
-# 1. Deploy monitoring
-./setup-local.sh monitoring
-
-# 2. Open Grafana and navigate to "Rolling Update Monitor" dashboard
-open http://localhost:30300
-
-# 3. In another terminal, trigger a rolling update
-./setup-local.sh rebuild
-
-# 4. Watch the dashboard:
-#    - Pod count temporarily increases (maxSurge: 1)
-#    - Old pods gracefully shutdown
-#    - New pods join the cluster
-#    - Cluster size never drops below 3
-```
-
-### Available Metrics
-
-The application exposes metrics at multiple endpoints:
-
-- **/actuator/prometheus** (port 8080) - Spring Boot metrics
-- **/metrics** (port 8558) - Pekko Management metrics
-
-Key metrics include:
-- `pekko_cluster_members` - Cluster member status
-- `pekko_cluster_sharding_shards` - Shard distribution
-- `pekko_cluster_sharding_entities` - Active actor entities
-- `http_server_requests_seconds_count` - HTTP request rate
-- `http_server_requests_seconds_bucket` - Request latency histogram
-- `kube_pod_status_phase` - Pod lifecycle states
-- `kube_deployment_status_replicas_ready` - Ready replica count
-
-## What's Happening Under the Hood?
-
-### Cluster Formation
-
-```
-Time    Action                          Cluster State
-────────────────────────────────────────────────────────────
-T+0s    Kind cluster created            Empty
-T+10s   Pod 1 starts                    Discovering peers...
-T+15s   Pod 1 discovers itself          Forms new cluster (size: 1)
-T+20s   Pod 2 starts                    Discovering peers...
-T+25s   Pod 2 finds Pod 1               Joins cluster (size: 2)
-T+30s   Pod 3 starts                    Discovering peers...
-T+35s   Pod 3 finds Pod 1 & 2           Joins cluster (size: 3)
-T+40s   All pods ready                  ✓ Cluster fully formed!
-```
-
-### How Pods Discover Each Other
-
-1. **Pod starts** and queries Kubernetes API:
-   ```
-   GET /api/v1/namespaces/spring-actor/pods?labelSelector=app=spring-actor
-   ```
-
-2. **Kubernetes returns** all pods with that label:
-   ```json
-   {
-     "items": [
-       {"name": "spring-actor-abc123", "ip": "10.244.0.5"},
-       {"name": "spring-actor-def456", "ip": "10.244.0.6"},
-       {"name": "spring-actor-ghi789", "ip": "10.244.0.7"}
-     ]
-   }
-   ```
-
-3. **Pod contacts peers** on management port (8558):
-   ```
-   HTTP GET http://10.244.0.5:8558/bootstrap/seed-nodes
-   HTTP GET http://10.244.0.6:8558/bootstrap/seed-nodes
-   HTTP GET http://10.244.0.7:8558/bootstrap/seed-nodes
-   ```
-
-4. **Cluster Bootstrap logic:**
-   - If cluster exists → Join it
-   - If no cluster exists → Node with lowest address forms cluster
-
-No hardcoded seed nodes needed! 🎉
-
-## Rolling Updates Example
-
-Let's see zero-downtime rolling updates in action:
-
-### 1. Check Current State
-
-```bash
-kubectl get pods -n spring-actor
-# NAME                            READY   STATUS    AGE
-# spring-actor-abc123             1/1     Running   2m
-# spring-actor-def456             1/1     Running   2m
-# spring-actor-ghi789             1/1     Running   2m
-```
-
-### 2. Modify the Application
-
-Edit `example/chat/src/main/java/io/github/seonwkim/example/HelloController.java`:
-
-```java
-@GetMapping("/api/hello")
-public String hello() {
-    return "Hello from v2!";  // Changed from v1
-}
-```
-
-### 3. Build New Version
-
-```bash
-cd example/chat
-../../gradlew clean build -x test
-
-# Build new Docker image
-docker build -t spring-actor-chat:v2 .
-
-# Load into kind
-kind load docker-image spring-actor-chat:v2 --name spring-actor-demo
-```
-
-### 4. Perform Rolling Update
-
-```bash
-cd ../kubernetes
-
-# Update image
-kubectl set image deployment/spring-actor spring-actor=spring-actor-chat:v2 -n spring-actor
-
-# Watch the rollout
-kubectl rollout status deployment/spring-actor -n spring-actor
-
-# In another terminal, watch pods
-watch -n 1 'kubectl get pods -n spring-actor'
-```
-
-### What You'll See
-
-```
-Minute 0:00 - Starting rollout
-  spring-actor-abc123    Running  (v1)
-  spring-actor-def456    Running  (v1)
-  spring-actor-ghi789    Running  (v1)
-
-Minute 0:15 - New pod created
-  spring-actor-abc123    Running  (v1)
-  spring-actor-def456    Running  (v1)
-  spring-actor-ghi789    Running  (v1)
-  spring-actor-new123    Running  (v2)  ← New pod joins cluster!
-
-Minute 0:30 - First old pod terminated
-  spring-actor-def456    Running  (v1)
-  spring-actor-ghi789    Running  (v1)
-  spring-actor-new123    Running  (v2)
-
-... continues until all pods are v2 ...
-
-Minute 2:00 - Rollout complete
-  spring-actor-new123    Running  (v2)
-  spring-actor-new456    Running  (v2)
-  spring-actor-new789    Running  (v2)
-```
-
-**Key Point:** At no time does the cluster size drop below 3! This is controlled by:
-```yaml
-strategy:
-  rollingUpdate:
-    maxUnavailable: 0    # Never reduce below 3
-    maxSurge: 1          # Add 1 new pod before removing old
-```
-
-### 5. Verify v2 is Running
-
-```bash
-kubectl port-forward -n spring-actor svc/spring-actor-http 8080:80
-
-# In another terminal
-curl http://localhost:8080/api/hello
-# Output: Hello from v2!
-```
-
-## Testing Cluster Resilience
-
-### Simulate Pod Failure
-
-```bash
-# Delete a pod
-kubectl delete pod <pod-name> -n spring-actor
-
-# Watch it restart and rejoin
-kubectl get pods -n spring-actor -w
-```
-
-The cluster automatically:
-1. Detects the failure
-2. Kubernetes restarts the pod
-3. New pod rejoins the cluster
-4. Cluster rebalances sharded entities
-
-### Simulate Network Partition
-
-```bash
-# Block network to a pod
-kubectl exec -n spring-actor <pod-name> -- iptables -A INPUT -j DROP
-
-# Wait 20 seconds for Split Brain Resolver to activate
-# The pod will be downed and removed from the cluster
-
-# Restore network
-kubectl delete pod <pod-name> -n spring-actor
-
-# New pod will rejoin cleanly
-```
-
-## Directory Structure
-
-```
-example/kubernetes/
-├── README.md                   # This file
-├── setup-local.sh              # ⭐ All-in-one script for local development
-├── cleanup-local.sh            # Cleanup script (or use: ./setup-local.sh cleanup)
-│
-├── base/                       # Base Kubernetes manifests
-│   ├── namespace.yaml
-│   ├── rbac.yaml
-│   ├── configmap.yaml
-│   ├── service.yaml
-│   ├── deployment.yaml
-│   ├── servicemonitor.yaml
-│   ├── podmonitor.yaml
-│   ├── networkpolicy.yaml
-│   └── kustomization.yaml
-│
-├── overlays/                   # Environment-specific configs
-│   ├── local/                  # ⭐ Used by setup-local.sh
-│   ├── dev/
-│   └── prod/
-│
-├── monitoring/                 # Prometheus & Grafana monitoring stack
-│   ├── namespace.yaml
-│   ├── prometheus-config.yaml
-│   ├── prometheus.yaml
-│   ├── grafana.yaml
-│   ├── dashboards.yaml         # Pre-configured Grafana dashboards
-│   └── kustomization.yaml
-│
-└── scripts/                    # Internal helper scripts (used by setup-local.sh)
-    ├── kind-config.yaml
-    ├── check-prerequisites.sh
-    ├── build-local.sh
-    ├── port-forward-pods.sh
-    ├── deploy.sh
-    ├── rollout.sh
-    └── debug.sh
-```
-
-## setup-local.sh Commands
-
-The `setup-local.sh` script is your main entry point for local Kubernetes development. It provides the following commands:
-
-```bash
-./setup-local.sh [command]
-```
-
-**Available Commands:**
+The `./setup-local.sh` script provides everything you need:
 
 | Command | Description |
 |---------|-------------|
-| `setup` | Set up the local Kubernetes cluster (default) |
-| `monitoring` | Deploy Prometheus & Grafana monitoring stack |
-| `status` | Show cluster and pod status with Pekko cluster info |
-| `logs` | Stream logs from all pods |
-| `port-forward` | Set up port forwarding to individual pods (8080, 8081, 8082) |
-| `rebuild` | Rebuild application and restart deployment |
-| `cleanup` | Clean up all resources |
-| `help` | Show help message |
+| `./setup-local.sh` | Set up cluster (default command) |
+| `./setup-local.sh monitoring` | Deploy Grafana monitoring |
+| `./setup-local.sh status` | Show cluster status |
+| `./setup-local.sh logs` | View application logs |
+| `./setup-local.sh port-forward` | Access individual pods (8080, 8081, 8082) |
+| `./setup-local.sh rebuild` | Rebuild app and restart deployment |
+| `./setup-local.sh cleanup` | Remove everything |
+| `./setup-local.sh help` | Show help |
 
-**Examples:**
+### Examples
 
 ```bash
-# Initial setup (default command)
+# Initial setup
 ./setup-local.sh
-# or explicitly
-./setup-local.sh setup
 
-# Deploy monitoring stack
+# Deploy monitoring to visualize rolling updates
 ./setup-local.sh monitoring
 
-# Check status anytime
+# Check cluster status
 ./setup-local.sh status
 
-# View real-time logs
+# View logs from all pods
 ./setup-local.sh logs
 
 # Access individual pods for testing
@@ -465,12 +71,95 @@ The `setup-local.sh` script is your main entry point for local Kubernetes develo
 ./setup-local.sh cleanup
 ```
 
+## Monitoring with Grafana
+
+Monitor your Pekko cluster and rolling updates in real-time:
+
+```bash
+# Deploy monitoring stack
+./setup-local.sh monitoring
+
+# Access Grafana
+open http://localhost:30300
+# Login: admin/admin
+```
+
+### Pre-configured Dashboards
+
+**1. Pekko Cluster Health**
+- Cluster members (Up/Unreachable)
+- Shard distribution
+- Active entities
+- HTTP request metrics
+
+**2. Rolling Update Monitor**
+- Pod lifecycle tracking
+- Cluster size during updates
+- Resource usage
+- Deployment events
+
+### Watch a Rolling Update
+
+```bash
+# 1. Deploy monitoring
+./setup-local.sh monitoring
+
+# 2. Open Grafana "Rolling Update Monitor" dashboard
+open http://localhost:30300
+
+# 3. Trigger a rolling update
+./setup-local.sh rebuild
+
+# 4. Watch the dashboard show:
+#    - Pod count increases (maxSurge: 1)
+#    - Old pods gracefully shutdown
+#    - New pods join cluster
+#    - Cluster size stays ≥ 3 (zero downtime!)
+```
+
+**Access Points:**
+- **Grafana**: http://localhost:30300 (admin/admin)
+- **Prometheus**: http://localhost:30090
+- **Application**: http://localhost:8080
+
+## Testing Rolling Updates
+
+### Modify the Application
+
+Edit `example/chat/src/main/java/io/github/seonwkim/example/HelloController.java`:
+
+```java
+@GetMapping("/api/hello")
+public String hello() {
+    return "Hello from v2!";  // Change this
+}
+```
+
+### Deploy the Update
+
+```bash
+./setup-local.sh rebuild
+```
+
+Watch in Grafana or terminal as:
+1. New pod starts and joins cluster (4 pods total)
+2. First old pod leaves and terminates (back to 3 pods)
+3. Process repeats until all pods are updated
+4. **Cluster size never drops below 3** = zero downtime!
+
+### Verify the Update
+
+```bash
+curl http://localhost:8080/api/hello
+# Output: Hello from v2!
+```
+
 ## Troubleshooting
 
 ### Pods Not Starting
 
 ```bash
-# Check pod events
+# Check pod status
 kubectl describe pod <pod-name> -n spring-actor
 
 # Check logs
@@ -478,22 +167,19 @@ kubectl logs <pod-name> -n spring-actor
 ```
 
 **Common issues:**
-- Image not loaded into kind: `kind load docker-image spring-actor-chat:local --name spring-actor-demo`
-- Insufficient resources: Increase Docker memory/CPU limits
+- Image not loaded: `kind load docker-image spring-actor-chat:local --name spring-actor-demo`
+- Not enough memory: Increase Docker memory to 8 GB
 
 ### Cluster Not Forming
 
 ```bash
-# Check RBAC permissions
-kubectl auth can-i list pods --as=system:serviceaccount:spring-actor:spring-actor-sa -n spring-actor
-
-# Check service discovery
-kubectl exec -n spring-actor <pod-name> -- curl localhost:8558/bootstrap/seed-nodes
+# Check cluster members
+kubectl exec -n spring-actor <pod-name> -- curl localhost:8558/cluster/members | jq
 ```
 
 **Common issues:**
-- RBAC not configured: Run `kubectl apply -k overlays/local` again
-- Pods not ready: Wait 60 seconds for startup
+- Wait 30-60 seconds for cluster to form
+- Check RBAC: `kubectl get serviceaccount -n spring-actor`
 
 ### Can't Access Application
 
@@ -501,118 +187,92 @@ kubectl exec -n spring-actor <pod-name> -- curl localhost:8558/bootstrap/seed-no
 # Check services
 kubectl get svc -n spring-actor
 
-# Check endpoints
-kubectl get endpoints -n spring-actor
-
 # Manual port forward
 kubectl port-forward -n spring-actor svc/spring-actor-http 8080:80
 ```
 
-## Advanced: Deploy to Real Cluster
-
-To deploy to a real Kubernetes cluster:
-
-### 1. Build and Push to Registry
-
-```bash
-# Build application
-./gradlew clean build
-
-# Build and push Docker image
-docker build -t your-registry.com/spring-actor-chat:v1.0.0 -f example/chat/Dockerfile .
-docker push your-registry.com/spring-actor-chat:v1.0.0
-```
-
-### 2. Update Image Reference
-
-Edit `base/kustomization.yaml`:
-
-```yaml
-images:
-- name: your-registry/spring-actor-app
-  newName: your-registry.com/spring-actor-chat
-  newTag: v1.0.0
-```
-
-### 3. Deploy
-
-```bash
-# For development
-./scripts/deploy.sh dev v1.0.0
-
-# For production
-./scripts/deploy.sh prod v1.0.0
-```
-
-See [KUBERNETES_PREPARE.md](../../KUBERNETES_PREPARE.md) for comprehensive production deployment guide.
-
-## What You Learned
-
-✅ **How to deploy Pekko Cluster to Kubernetes**
-✅ **Automatic cluster formation with Kubernetes service discovery**
-✅ **Zero-downtime rolling updates**
-✅ **Health checks and monitoring**
-✅ **Cluster resilience and self-healing**
-
-## Next Steps
-
-1. **Customize the example** - Modify the chat application
-2. **Try rolling updates** - Follow the guide above
-3. **Add monitoring** - Set up Prometheus/Grafana
-4. **Production deployment** - Use `overlays/prod` configuration
-5. **Read the deep dive** - Check [KUBERNETES_PREPARE.md](../../KUBERNETES_PREPARE.md)
-
-## Useful Commands Reference
+## Useful Commands
 
 ```bash
 # View pods
 kubectl get pods -n spring-actor
 
-# View detailed pod info
+# View pod details
 kubectl describe pod <pod-name> -n spring-actor
 
 # View logs
 kubectl logs -f <pod-name> -n spring-actor
 
-# View all pod logs
-kubectl logs -f -l app=spring-actor -n spring-actor
-
 # Check cluster members
-kubectl exec -n spring-actor <pod-name> -- curl -s localhost:8558/cluster/members | jq
-
-# Check cluster shards
-kubectl exec -n spring-actor <pod-name> -- curl -s localhost:8558/cluster/shards | jq
-
-# Port forward to pod
-kubectl port-forward -n spring-actor <pod-name> 8080:8080
-
-# Port forward to service
-kubectl port-forward -n spring-actor svc/spring-actor-http 8080:80
-
-# Execute command in pod
-kubectl exec -it -n spring-actor <pod-name> -- /bin/sh
+kubectl exec -n spring-actor <pod-name> -- curl localhost:8558/cluster/members | jq
 
 # Scale deployment
 kubectl scale deployment spring-actor -n spring-actor --replicas=5
 
-# Rolling update
-kubectl set image deployment/spring-actor spring-actor=spring-actor-chat:v2 -n spring-actor
-
-# Rollback
-kubectl rollout undo deployment/spring-actor -n spring-actor
-
 # Restart deployment
 kubectl rollout restart deployment/spring-actor -n spring-actor
 
-# Debug deployment
-./scripts/debug.sh spring-actor
+# Rollback
+kubectl rollout undo deployment/spring-actor -n spring-actor
 ```
+
+## Directory Structure
+
+```
+example/kubernetes/
+├── setup-local.sh              # ⭐ Main script - run this!
+├── cleanup-local.sh            # Cleanup script
+│
+├── base/                       # Base Kubernetes manifests
+│   ├── namespace.yaml
+│   ├── rbac.yaml
+│   ├── configmap.yaml
+│   ├── service.yaml
+│   ├── deployment.yaml
+│   └── ...
+│
+├── overlays/                   # Environment-specific configs
+│   ├── local/                  # ⭐ Local development config
+│   ├── dev/
+│   └── prod/
+│
+├── monitoring/                 # Grafana monitoring stack
+│   ├── prometheus.yaml
+│   ├── grafana.yaml
+│   ├── dashboards.yaml
+│   └── ...
+│
+└── scripts/                    # Internal helper scripts
+    ├── kind-config.yaml
+    ├── check-prerequisites.sh
+    ├── build-local.sh
+    └── ...
+```
+
+## What You Get
+
+✅ **3-node Kubernetes cluster** running locally with kind
+✅ **3 Spring Boot pods** forming a Pekko cluster
+✅ **Zero-downtime rolling updates** with maxSurge strategy
+✅ **Automatic cluster formation** using Kubernetes service discovery
+✅ **Health checks** and readiness probes
+✅ **Grafana dashboards** for monitoring
+✅ **Prometheus metrics** from Spring Boot Actuator and Pekko Management
+
+## Production Deployment
+
+For deploying to a real Kubernetes cluster, see the comprehensive guide in [KUBERNETES_PREPARE.md](../../KUBERNETES_PREPARE.md).
+
+Quick steps:
+1. Build and push image to your registry
+2. Update `base/kustomization.yaml` with your image
+3. Use `overlays/dev` or `overlays/prod` for environment-specific config
+4. Deploy with `kubectl apply -k overlays/prod`
 
 ## Support
 
-- **Issues**: Report bugs or ask questions in GitHub Issues
+- **Issues**: Report bugs at [GitHub Issues](https://github.com/seonwkim/spring-boot-starter-actor/issues)
 - **Documentation**: See [KUBERNETES_PREPARE.md](../../KUBERNETES_PREPARE.md) for detailed guide
-- **Community**: Join discussions in GitHub Discussions
 
 ---
 
