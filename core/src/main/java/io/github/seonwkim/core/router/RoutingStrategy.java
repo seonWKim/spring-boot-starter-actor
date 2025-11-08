@@ -2,7 +2,7 @@ package io.github.seonwkim.core.router;
 
 import io.github.seonwkim.core.router.strategy.RandomRoutingStrategy;
 import io.github.seonwkim.core.router.strategy.RoundRobinRoutingStrategy;
-import org.apache.pekko.routing.RouterConfig;
+import org.apache.pekko.actor.typed.javadsl.PoolRouter;
 
 /**
  * Defines the routing strategy for distributing messages across worker actors. Routing strategies
@@ -30,13 +30,14 @@ public interface RoutingStrategy {
     String getName();
 
     /**
-     * Convert this strategy to Pekko's router configuration. This method is called internally when
+     * Apply this routing strategy to a Pekko pool router. This method is called internally when
      * creating the router actor.
      *
-     * @param poolSize The number of worker actors in the pool
-     * @return Pekko RouterConfig for this strategy
+     * @param poolRouter The pool router to configure
+     * @param <T> The message type
+     * @return The configured pool router with this routing strategy applied
      */
-    RouterConfig toPekkoRouter(int poolSize);
+    <T> PoolRouter<T> applyToPool(PoolRouter<T> poolRouter);
 
     /**
      * Round Robin routing strategy distributes messages evenly across all workers in a circular

@@ -26,7 +26,7 @@ import org.apache.pekko.actor.typed.javadsl.Routers;
  *
  *     &#64;Override
  *     public SpringActorBehavior&lt;Command&gt; create(SpringActorContext ctx) {
- *         return SpringRouterBehavior.&lt;Command&gt;builder()
+ *         return SpringRouterBehavior.builder(Command.class)
  *             .withRoutingStrategy(RoutingStrategy.roundRobin())
  *             .withPoolSize(10)
  *             .withWorkerBehavior(workerContext -&gt; {
@@ -66,11 +66,12 @@ public final class SpringRouterBehavior<C> {
     /**
      * Creates a new builder for constructing a router behavior.
      *
+     * @param commandClass The command class that worker actors handle
      * @param <C> The command type that worker actors handle
      * @return A new builder instance
      */
-    public static <C> Builder<C> builder() {
-        return new Builder<>();
+    public static <C> Builder<C> builder(Class<C> commandClass) {
+        return new Builder<>(commandClass);
     }
 
     /**
@@ -91,8 +92,10 @@ public final class SpringRouterBehavior<C> {
                 workerBehavior = Behaviors.supervise(workerBehavior).onFailure(supervisionStrategy);
             }
 
-            // Create pool router - Pekko will handle the routing logic based on the strategy
+            // Create pool router with the configured routing strategy
             PoolRouter<C> poolRouter = Routers.pool(poolSize, workerBehavior);
+            // Apply the routing strategy configuration
+            poolRouter = routingStrategy.applyToPool(poolRouter);
 
             return poolRouter.narrow();
         });
@@ -107,12 +110,15 @@ public final class SpringRouterBehavior<C> {
      * @param <C> The command type that worker actors handle
      */
     public static final class Builder<C> {
+        private final Class<C> commandClass;
         @Nullable private RoutingStrategy routingStrategy;
         private int poolSize = 5;
         @Nullable private java.util.function.Function<SpringActorContext, Behavior<C>> workerBehaviorFactory;
         @Nullable private SupervisorStrategy supervisionStrategy;
 
-        private Builder() {}
+        private Builder(Class<C> commandClass) {
+            this.commandClass = Objects.requireNonNull(commandClass, "Command class cannot be null");
+        }
 
         /**
          * Set the routing strategy for message distribution.

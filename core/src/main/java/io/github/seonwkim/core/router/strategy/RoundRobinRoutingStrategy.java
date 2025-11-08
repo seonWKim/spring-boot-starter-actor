@@ -1,8 +1,7 @@
 package io.github.seonwkim.core.router.strategy;
 
 import io.github.seonwkim.core.router.RoutingStrategy;
-import org.apache.pekko.routing.RoundRobinPool;
-import org.apache.pekko.routing.RouterConfig;
+import org.apache.pekko.actor.typed.javadsl.PoolRouter;
 
 /**
  * Round Robin routing strategy distributes messages evenly across all workers in a circular
@@ -28,8 +27,8 @@ public final class RoundRobinRoutingStrategy implements RoutingStrategy {
     }
 
     @Override
-    public RouterConfig toPekkoRouter(int poolSize) {
-        return new RoundRobinPool(poolSize);
+    public <T> PoolRouter<T> applyToPool(PoolRouter<T> poolRouter) {
+        return poolRouter.withRoundRobinRouting();
     }
 
     @Override

@@ -1,8 +1,7 @@
 package io.github.seonwkim.core.router.strategy;
 
 import io.github.seonwkim.core.router.RoutingStrategy;
-import org.apache.pekko.routing.RandomPool;
-import org.apache.pekko.routing.RouterConfig;
+import org.apache.pekko.actor.typed.javadsl.PoolRouter;
 
 /**
  * Random routing strategy distributes messages randomly across all workers. No state tracking is
@@ -28,8 +27,8 @@ public final class RandomRoutingStrategy implements RoutingStrategy {
     }
 
     @Override
-    public RouterConfig toPekkoRouter(int poolSize) {
-        return new RandomPool(poolSize);
+    public <T> PoolRouter<T> applyToPool(PoolRouter<T> poolRouter) {
+        return poolRouter.withRandomRouting();
     }
 
     @Override
