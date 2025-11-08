@@ -53,6 +53,8 @@ public class SpringActorSystem implements DisposableBean {
 
     private final Duration defaultActorRefTimeout = Duration.ofSeconds(3);
 
+    @Nullable private ApplicationEventPublisher defaultEventPublisher;
+
     /**
      * Creates a new SpringActorSystem in local mode.
      *
@@ -380,5 +382,26 @@ public class SpringActorSystem implements DisposableBean {
     public void destroy() {
         actorSystem.terminate();
         actorSystem.getWhenTerminated().toCompletableFuture().join();
+    }
+
+    /**
+     * Sets the default ApplicationEventPublisher to be injected into actor contexts.
+     *
+     * <p>This method is typically called by the event bridge auto-configuration to
+     * enable actors to publish Spring application events.
+     *
+     * @param eventPublisher the event publisher
+     */
+    public void setDefaultEventPublisher(ApplicationEventPublisher eventPublisher) {
+        this.defaultEventPublisher = eventPublisher;
+    }
+
+    /**
+     * Returns the default ApplicationEventPublisher.
+     *
+     * @return the event publisher, or null if not configured
+     */
+    @Nullable public ApplicationEventPublisher getDefaultEventPublisher() {
+        return defaultEventPublisher;
     }
 }

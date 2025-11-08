@@ -276,6 +276,11 @@ public class SpringActorSpawnBuilder<A extends SpringActorWithContext<C, ?>, C> 
         // Apply MDC configuration to the context
         actorContext.setMdcConfig(mdcConfig);
 
+        // Inject default event publisher if available
+        if (actorSystem.getDefaultEventPublisher() != null) {
+            actorContext.setEventPublisher(actorSystem.getDefaultEventPublisher());
+        }
+
         return actorSystem.spawn(
                 actorClass,
                 actorContext,
