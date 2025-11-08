@@ -38,6 +38,15 @@ nav:
     - Dispatchers: guides/dispatchers.md
     - Logging with MDC and Tags: guides/logging.md
     - Sharded Actors: guides/sharded-actors.md
+  - Persistence:
+    - Overview: persistence/README.md
+    - Best Practices: persistence/best-practices.md
+    - JPA Integration: persistence/jpa-integration.md
+    - MongoDB Integration: persistence/mongodb-integration.md
+    - R2DBC Integration: persistence/r2dbc-integration.md
+    - Event Sourcing: persistence/event-sourcing.md
+    - Snapshots: persistence/snapshots.md
+    - Production Configuration: persistence/production-config.md
   - Examples:
     - Overview: examples/index.md
     - Simple: examples/simple.md
