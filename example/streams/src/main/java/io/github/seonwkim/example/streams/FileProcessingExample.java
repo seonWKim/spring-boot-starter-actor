@@ -104,15 +104,13 @@ public class FileProcessingExample {
                         .map(ByteString::utf8String)
                         .filter(line -> !line.trim().isEmpty())
                         // Process with custom parallelism and timeout
-                        .mapAsync(
-                                parallelism,
-                                line -> processor
-                                        .ask(new DataProcessorActor.ProcessData(line))
-                                        .withTimeout(timeout)
-                                        .execute()
-                                        // Recover from failures
-                                        .exceptionally(ex -> new DataProcessorActor.ProcessedResult(
-                                                line, "ERROR: " + ex.getMessage(), System.currentTimeMillis())))
+                        .mapAsync(parallelism, line -> processor
+                                .ask(new DataProcessorActor.ProcessData(line))
+                                .withTimeout(timeout)
+                                .execute()
+                                // Recover from failures
+                                .exceptionally(ex -> new DataProcessorActor.ProcessedResult(
+                                        line, "ERROR: " + ex.getMessage(), System.currentTimeMillis())))
                         .map(result -> result.getProcessed() + "\n")
                         .map(ByteString::fromString)
                         .runWith(FileIO.toPath(Paths.get(outputPath)), actorSystem.getRaw())

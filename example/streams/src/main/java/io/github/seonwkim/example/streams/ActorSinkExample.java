@@ -48,14 +48,12 @@ public class ActorSinkExample {
      * @return CompletionStage that completes when all messages are sent
      */
     public CompletionStage<Done> streamToActorWithTell(List<String> data) {
-        return actorSystem
-                .getOrSpawn(MessageConsumerActor.class, "consumer")
-                .thenCompose(consumer -> Source.from(data)
-                        .map(item -> {
-                            consumer.tell(new MessageConsumerActor.ProcessMessage(item));
-                            return item;
-                        })
-                        .runWith(Sink.ignore(), actorSystem.getRaw()));
+        return actorSystem.getOrSpawn(MessageConsumerActor.class, "consumer").thenCompose(consumer -> Source.from(data)
+                .map(item -> {
+                    consumer.tell(new MessageConsumerActor.ProcessMessage(item));
+                    return item;
+                })
+                .runWith(Sink.ignore(), actorSystem.getRaw()));
     }
 
     /**
@@ -73,8 +71,7 @@ public class ActorSinkExample {
                 .thenCompose(consumer -> Source.from(data)
                         .mapAsync(
                                 5, // parallelism
-                                item -> consumer
-                                        .ask(new MessageConsumerActor.ProcessAndAck(item))
+                                item -> consumer.ask(new MessageConsumerActor.ProcessAndAck(item))
                                         .withTimeout(Duration.ofSeconds(5))
                                         .execute())
                         .runWith(Sink.ignore(), actorSystem.getRaw()));
@@ -90,25 +87,19 @@ public class ActorSinkExample {
      * @return CompletionStage with accumulated results
      */
     public CompletionStage<List<String>> accumulateInActor(List<String> data) {
-        return actorSystem
-                .getOrSpawn(MessageConsumerActor.class, "accumulator")
-                .thenCompose(consumer -> {
-                    // Send all items to the actor
-                    CompletionStage<Done> processing = Source.from(data)
-                            .mapAsync(
-                                    5,
-                                    item -> consumer
-                                            .ask(new MessageConsumerActor.ProcessAndAck(item))
-                                            .withTimeout(Duration.ofSeconds(5))
-                                            .execute())
-                            .runWith(Sink.ignore(), actorSystem.getRaw());
-
-                    // After processing, get accumulated results
-                    return processing.thenCompose(done -> consumer
-                            .ask(new MessageConsumerActor.GetAccumulated())
+        return actorSystem.getOrSpawn(MessageConsumerActor.class, "accumulator").thenCompose(consumer -> {
+            // Send all items to the actor
+            CompletionStage<Done> processing = Source.from(data)
+                    .mapAsync(5, item -> consumer.ask(new MessageConsumerActor.ProcessAndAck(item))
                             .withTimeout(Duration.ofSeconds(5))
-                            .execute());
-                });
+                            .execute())
+                    .runWith(Sink.ignore(), actorSystem.getRaw());
+
+            // After processing, get accumulated results
+            return processing.thenCompose(done -> consumer.ask(new MessageConsumerActor.GetAccumulated())
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute());
+        });
     }
 
     /**
@@ -125,12 +116,9 @@ public class ActorSinkExample {
                 .getOrSpawn(MessageConsumerActor.class, "batch-consumer")
                 .thenCompose(consumer -> Source.from(data)
                         .grouped(batchSize)
-                        .mapAsync(
-                                3,
-                                batch -> consumer
-                                        .ask(new MessageConsumerActor.ProcessBatch(batch))
-                                        .withTimeout(Duration.ofSeconds(10))
-                                        .execute())
+                        .mapAsync(3, batch -> consumer.ask(new MessageConsumerActor.ProcessBatch(batch))
+                                .withTimeout(Duration.ofSeconds(10))
+                                .execute())
                         .runWith(Sink.ignore(), actorSystem.getRaw()));
     }
 
@@ -230,7 +218,8 @@ public class ActorSinkExample {
             }
 
             private Behavior<Command> onProcessBatch(ProcessBatch msg) {
-                ctx.getLog().info("Processing batch of {} items", msg.getMessages().size());
+                ctx.getLog()
+                        .info("Processing batch of {} items", msg.getMessages().size());
 
                 // Process all items in the batch
                 for (String item : msg.getMessages()) {

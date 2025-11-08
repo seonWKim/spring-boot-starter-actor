@@ -52,12 +52,9 @@ public class ActorSourceExample {
                         // Create a stream that polls the actor every 100ms
                         Source.tick(Duration.ZERO, Duration.ofMillis(100), "tick")
                                 .take(20) // Take 20 items
-                                .mapAsync(
-                                        5,
-                                        tick -> producer
-                                                .ask(new MessageProducerActor.GetMessage())
-                                                .withTimeout(Duration.ofSeconds(1))
-                                                .execute())
+                                .mapAsync(5, tick -> producer.ask(new MessageProducerActor.GetMessage())
+                                        .withTimeout(Duration.ofSeconds(1))
+                                        .execute())
                                 .runWith(Sink.seq(), actorSystem.getRaw()));
     }
 
@@ -105,15 +102,13 @@ public class ActorSourceExample {
                 .run(actorSystem.getRaw());
 
         // Create an actor that will push messages to the queue
-        return actorSystem
-                .getOrSpawn(QueuePusherActor.class, "pusher")
-                .thenCompose(pusher -> {
-                    // Tell the actor to start pushing messages
-                    pusher.tell(new QueuePusherActor.StartPushing(queue, 10));
+        return actorSystem.getOrSpawn(QueuePusherActor.class, "pusher").thenCompose(pusher -> {
+            // Tell the actor to start pushing messages
+            pusher.tell(new QueuePusherActor.StartPushing(queue, 10));
 
-                    // The actor will push messages, and we wait for completion
-                    return queue.watchCompletion().thenApply(done -> List.of("Completed"));
-                });
+            // The actor will push messages, and we wait for completion
+            return queue.watchCompletion().thenApply(done -> List.of("Completed"));
+        });
     }
 
     /**
@@ -173,8 +168,7 @@ public class ActorSourceExample {
             }
 
             private Behavior<Command> onGetAllMessages(GetAllMessages msg) {
-                List<String> messages =
-                        List.of("Message-A", "Message-B", "Message-C", "Message-D", "Message-E");
+                List<String> messages = List.of("Message-A", "Message-B", "Message-C", "Message-D", "Message-E");
                 ctx.getLog().debug("Producing all messages: {}", messages.size());
                 msg.reply(messages);
                 return Behaviors.same();

@@ -56,12 +56,10 @@ public class DataPipelineExample {
                         // Transform stage
                         .map(String::toLowerCase)
                         // Actor processing stage
-                        .mapAsync(
-                                5,
-                                item -> processor
-                                        .ask(new DataProcessorActor.ProcessData(item))
-                                        .withTimeout(Duration.ofSeconds(5))
-                                        .execute())
+                        .mapAsync(5, item -> processor
+                                .ask(new DataProcessorActor.ProcessData(item))
+                                .withTimeout(Duration.ofSeconds(5))
+                                .execute())
                         // Collect results
                         .runWith(Sink.seq(), actorSystem.getRaw()));
     }
@@ -85,19 +83,16 @@ public class DataPipelineExample {
                 .getOrSpawn(DataProcessorActor.class, "advanced-processor")
                 .thenCompose(processor -> {
                     // Define a reusable flow for actor processing
-                    Flow<String, DataProcessorActor.ProcessedResult, NotUsed> actorFlow =
-                            Flow.<String>create()
-                                    .mapAsync(
-                                            10,
-                                            item -> processor
-                                                    .ask(new DataProcessorActor.ProcessData(item))
-                                                    .withTimeout(Duration.ofSeconds(5))
-                                                    .execute()
-                                                    .exceptionally(ex -> {
-                                                        // Handle errors by returning a failure result
-                                                        return new DataProcessorActor.ProcessedResult(
-                                                                item, "FAILED", System.currentTimeMillis());
-                                                    }));
+                    Flow<String, DataProcessorActor.ProcessedResult, NotUsed> actorFlow = Flow.<String>create()
+                            .mapAsync(10, item -> processor
+                                    .ask(new DataProcessorActor.ProcessData(item))
+                                    .withTimeout(Duration.ofSeconds(5))
+                                    .execute()
+                                    .exceptionally(ex -> {
+                                        // Handle errors by returning a failure result
+                                        return new DataProcessorActor.ProcessedResult(
+                                                item, "FAILED", System.currentTimeMillis());
+                                    }));
 
                     return Source.from(data)
                             // Stage 1: Initial validation and transformation
@@ -139,16 +134,13 @@ public class DataPipelineExample {
                 .getOrSpawn(DataProcessorActor.class, "monitored-processor")
                 .thenCompose(processor -> Source.from(data)
                         .filter(item -> item != null && !item.trim().isEmpty())
-                        .mapAsync(
-                                5,
-                                item -> processor
-                                        .ask(new DataProcessorActor.ProcessData(item))
-                                        .withTimeout(Duration.ofSeconds(5))
-                                        .execute())
+                        .mapAsync(5, item -> processor
+                                .ask(new DataProcessorActor.ProcessData(item))
+                                .withTimeout(Duration.ofSeconds(5))
+                                .execute())
                         .map(result -> {
                             // Log each processed item
-                            System.out.println(
-                                    "Processed: " + result.getOriginal() + " -> " + result.getProcessed());
+                            System.out.println("Processed: " + result.getOriginal() + " -> " + result.getProcessed());
                             return result;
                         })
                         .toMat(Sink.fold(0L, (count, result) -> count + 1), Keep.right())
@@ -183,12 +175,10 @@ public class DataPipelineExample {
                 .thenCompose(processor -> Source.from(data)
                         .filter(item -> item != null && !item.trim().isEmpty())
                         // Process with high parallelism
-                        .mapAsync(
-                                parallelism,
-                                item -> processor
-                                        .ask(new DataProcessorActor.ProcessData(item))
-                                        .withTimeout(Duration.ofSeconds(5))
-                                        .execute())
+                        .mapAsync(parallelism, item -> processor
+                                .ask(new DataProcessorActor.ProcessData(item))
+                                .withTimeout(Duration.ofSeconds(5))
+                                .execute())
                         .runWith(Sink.seq(), actorSystem.getRaw()));
     }
 }

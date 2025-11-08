@@ -63,8 +63,8 @@ public class DataProcessorActor implements SpringActor<DataProcessorActor.Comman
 
         @Override
         public String toString() {
-            return "ProcessedResult{original='" + original + "', processed='" + processed + "', timestamp="
-                    + timestamp + '}';
+            return "ProcessedResult{original='" + original + "', processed='" + processed + "', timestamp=" + timestamp
+                    + '}';
         }
     }
 
@@ -92,11 +92,7 @@ public class DataProcessorActor implements SpringActor<DataProcessorActor.Comman
             long timestamp = System.currentTimeMillis();
 
             ctx.getLog()
-                    .debug(
-                            "Processing data in actor {}: {} -> {}",
-                            actorContext.actorId(),
-                            msg.getData(),
-                            processed);
+                    .debug("Processing data in actor {}: {} -> {}", actorContext.actorId(), msg.getData(), processed);
 
             // Reply with the processed result
             msg.reply(new ProcessedResult(msg.getData(), processed, timestamp));

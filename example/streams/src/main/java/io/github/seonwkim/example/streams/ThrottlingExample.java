@@ -51,12 +51,10 @@ public class ThrottlingExample {
                 .thenCompose(processor -> Source.from(data)
                         // Throttle to specified rate (shaping mode)
                         .throttle(elementsPerSecond, Duration.ofSeconds(1))
-                        .mapAsync(
-                                5,
-                                item -> processor
-                                        .ask(new DataProcessorActor.ProcessData(item))
-                                        .withTimeout(Duration.ofSeconds(5))
-                                        .execute())
+                        .mapAsync(5, item -> processor
+                                .ask(new DataProcessorActor.ProcessData(item))
+                                .withTimeout(Duration.ofSeconds(5))
+                                .execute())
                         .runWith(Sink.ignore(), actorSystem.getRaw())
                         .thenApply(done -> {
                             long duration = System.currentTimeMillis() - startTime;
@@ -87,12 +85,10 @@ public class ThrottlingExample {
                 .thenCompose(processor -> Source.from(data)
                         // Throttle with burst allowance
                         .throttle(maxRate, Duration.ofSeconds(1), maxBurst, ThrottleMode.shaping())
-                        .mapAsync(
-                                5,
-                                item -> processor
-                                        .ask(new DataProcessorActor.ProcessData(item))
-                                        .withTimeout(Duration.ofSeconds(5))
-                                        .execute())
+                        .mapAsync(5, item -> processor
+                                .ask(new DataProcessorActor.ProcessData(item))
+                                .withTimeout(Duration.ofSeconds(5))
+                                .execute())
                         .runWith(Sink.ignore(), actorSystem.getRaw())
                         .thenApply(done -> {
                             long duration = System.currentTimeMillis() - startTime;
@@ -119,12 +115,10 @@ public class ThrottlingExample {
                 .thenCompose(processor -> Source.from(data)
                         // Enforcing mode: fail if rate is exceeded
                         .throttle(maxRate, Duration.ofSeconds(1), 0, ThrottleMode.enforcing())
-                        .mapAsync(
-                                5,
-                                item -> processor
-                                        .ask(new DataProcessorActor.ProcessData(item))
-                                        .withTimeout(Duration.ofSeconds(5))
-                                        .execute())
+                        .mapAsync(5, item -> processor
+                                .ask(new DataProcessorActor.ProcessData(item))
+                                .withTimeout(Duration.ofSeconds(5))
+                                .execute())
                         .map(result -> 1L)
                         .runWith(Sink.fold(0L, Long::sum), actorSystem.getRaw())
                         .exceptionally(ex -> {
@@ -156,27 +150,24 @@ public class ThrottlingExample {
 
         long startTime = System.currentTimeMillis();
 
-        return actorSystem
-                .getOrSpawn(DataProcessorActor.class, "api-processor")
-                .thenCompose(processor -> Source.from(data)
-                        // Throttle to API rate limit
-                        .throttle(callsPerSecond, Duration.ofSeconds(1), burst, ThrottleMode.shaping())
-                        // Simulate API calls through actor
-                        .mapAsync(
-                                3,
-                                item -> processor
-                                        .ask(new DataProcessorActor.ProcessData(item))
-                                        .withTimeout(Duration.ofSeconds(10))
-                                        .execute())
-                        .runWith(Sink.ignore(), actorSystem.getRaw())
-                        .thenApply(done -> {
-                            long duration = System.currentTimeMillis() - startTime;
-                            double actualRate = (data.size() * 60000.0) / duration;
-                            System.out.println(String.format(
-                                    "API calls completed: %d items in %dms (rate: %.2f calls/min, limit: %d calls/min)",
-                                    data.size(), duration, actualRate, maxCallsPerMinute));
-                            return duration;
-                        }));
+        return actorSystem.getOrSpawn(DataProcessorActor.class, "api-processor").thenCompose(processor -> Source.from(
+                        data)
+                // Throttle to API rate limit
+                .throttle(callsPerSecond, Duration.ofSeconds(1), burst, ThrottleMode.shaping())
+                // Simulate API calls through actor
+                .mapAsync(3, item -> processor
+                        .ask(new DataProcessorActor.ProcessData(item))
+                        .withTimeout(Duration.ofSeconds(10))
+                        .execute())
+                .runWith(Sink.ignore(), actorSystem.getRaw())
+                .thenApply(done -> {
+                    long duration = System.currentTimeMillis() - startTime;
+                    double actualRate = (data.size() * 60000.0) / duration;
+                    System.out.println(String.format(
+                            "API calls completed: %d items in %dms (rate: %.2f calls/min, limit: %d calls/min)",
+                            data.size(), duration, actualRate, maxCallsPerMinute));
+                    return duration;
+                }));
     }
 
     /**
@@ -199,12 +190,10 @@ public class ThrottlingExample {
                             System.out.println("Processing window with " + batch.size() + " elements");
                             return batch;
                         })
-                        .mapAsync(
-                                5,
-                                item -> processor
-                                        .ask(new DataProcessorActor.ProcessData(item))
-                                        .withTimeout(Duration.ofSeconds(5))
-                                        .execute())
+                        .mapAsync(5, item -> processor
+                                .ask(new DataProcessorActor.ProcessData(item))
+                                .withTimeout(Duration.ofSeconds(5))
+                                .execute())
                         .map(result -> 1L)
                         .runWith(Sink.fold(0L, Long::sum), actorSystem.getRaw()));
     }
@@ -226,12 +215,10 @@ public class ThrottlingExample {
                         .map(String::trim)
                         .throttle(100, Duration.ofSeconds(1)) // 100/sec for preprocessing
                         // Stage 2: Actor processing (more expensive)
-                        .mapAsync(
-                                5,
-                                item -> processor
-                                        .ask(new DataProcessorActor.ProcessData(item))
-                                        .withTimeout(Duration.ofSeconds(5))
-                                        .execute())
+                        .mapAsync(5, item -> processor
+                                .ask(new DataProcessorActor.ProcessData(item))
+                                .withTimeout(Duration.ofSeconds(5))
+                                .execute())
                         .throttle(20, Duration.ofSeconds(1)) // 20/sec for actor processing
                         // Stage 3: Final aggregation
                         .map(result -> 1L)
@@ -254,12 +241,10 @@ public class ThrottlingExample {
         CompletionStage<Long> time1 = actorSystem
                 .getOrSpawn(DataProcessorActor.class, "no-throttle")
                 .thenCompose(processor -> Source.from(data)
-                        .mapAsync(
-                                10,
-                                item -> processor
-                                        .ask(new DataProcessorActor.ProcessData(item))
-                                        .withTimeout(Duration.ofSeconds(5))
-                                        .execute())
+                        .mapAsync(10, item -> processor
+                                .ask(new DataProcessorActor.ProcessData(item))
+                                .withTimeout(Duration.ofSeconds(5))
+                                .execute())
                         .runWith(Sink.ignore(), actorSystem.getRaw())
                         .thenApply(done -> System.currentTimeMillis() - start1));
 
@@ -272,11 +257,7 @@ public class ThrottlingExample {
                             + "  Without throttling: %dms (%.2f items/sec)\n"
                             + "  With throttling:    %dms (%.2f items/sec)\n"
                             + "  Throttling adds %dms overhead but provides controlled rate",
-                    t1,
-                    (data.size() * 1000.0) / t1,
-                    t2,
-                    (data.size() * 1000.0) / t2,
-                    t2 - t1);
+                    t1, (data.size() * 1000.0) / t1, t2, (data.size() * 1000.0) / t2, t2 - t1);
         });
     }
 }

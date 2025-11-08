@@ -68,8 +68,8 @@ public class BackpressureExample {
                         .runWith(Sink.fold(0L, Long::sum), actorSystem.getRaw())
                         .thenApply(count -> {
                             long duration = System.currentTimeMillis() - startTime;
-                            System.out.println("Processed " + count
-                                    + " items with automatic backpressure in " + duration + "ms");
+                            System.out.println(
+                                    "Processed " + count + " items with automatic backpressure in " + duration + "ms");
                             return count;
                         }));
     }
@@ -90,12 +90,10 @@ public class BackpressureExample {
                 .thenCompose(processor -> Source.from(data)
                         // Add a buffer to handle bursts
                         .buffer(bufferSize, OverflowStrategy.backpressure())
-                        .mapAsync(
-                                5,
-                                item -> processor
-                                        .ask(new DataProcessorActor.ProcessData(item))
-                                        .withTimeout(Duration.ofSeconds(5))
-                                        .execute())
+                        .mapAsync(5, item -> processor
+                                .ask(new DataProcessorActor.ProcessData(item))
+                                .withTimeout(Duration.ofSeconds(5))
+                                .execute())
                         .map(result -> 1L)
                         .runWith(Sink.fold(0L, Long::sum), actorSystem.getRaw())
                         .thenApply(count -> {
@@ -120,17 +118,15 @@ public class BackpressureExample {
                 .thenCompose(processor -> Source.from(data)
                         // Drop oldest elements when buffer is full
                         .buffer(bufferSize, OverflowStrategy.dropHead())
-                        .mapAsync(
-                                5,
-                                item -> processor
-                                        .ask(new DataProcessorActor.ProcessData(item))
-                                        .withTimeout(Duration.ofSeconds(5))
-                                        .execute())
+                        .mapAsync(5, item -> processor
+                                .ask(new DataProcessorActor.ProcessData(item))
+                                .withTimeout(Duration.ofSeconds(5))
+                                .execute())
                         .map(result -> 1L)
                         .runWith(Sink.fold(0L, Long::sum), actorSystem.getRaw())
                         .thenApply(count -> {
-                            System.out.println("Processed " + count
-                                    + " items (may be less than input if buffer overflowed)");
+                            System.out.println(
+                                    "Processed " + count + " items (may be less than input if buffer overflowed)");
                             return count;
                         }));
     }
@@ -151,17 +147,15 @@ public class BackpressureExample {
                 .thenCompose(processor -> Source.from(data)
                         // Drop newest elements when buffer is full
                         .buffer(bufferSize, OverflowStrategy.dropTail())
-                        .mapAsync(
-                                5,
-                                item -> processor
-                                        .ask(new DataProcessorActor.ProcessData(item))
-                                        .withTimeout(Duration.ofSeconds(5))
-                                        .execute())
+                        .mapAsync(5, item -> processor
+                                .ask(new DataProcessorActor.ProcessData(item))
+                                .withTimeout(Duration.ofSeconds(5))
+                                .execute())
                         .map(result -> 1L)
                         .runWith(Sink.fold(0L, Long::sum), actorSystem.getRaw())
                         .thenApply(count -> {
-                            System.out.println("Processed " + count
-                                    + " items (may be less than input if buffer overflowed)");
+                            System.out.println(
+                                    "Processed " + count + " items (may be less than input if buffer overflowed)");
                             return count;
                         }));
     }
@@ -183,18 +177,16 @@ public class BackpressureExample {
                 .getOrSpawn(DataProcessorActor.class, "parallel-processor-" + parallelism)
                 .thenCompose(processor -> Source.from(data)
                         // Parallelism controls how many concurrent actor calls
-                        .mapAsync(
-                                parallelism,
-                                item -> processor
-                                        .ask(new DataProcessorActor.ProcessData(item))
-                                        .withTimeout(Duration.ofSeconds(5))
-                                        .execute())
+                        .mapAsync(parallelism, item -> processor
+                                .ask(new DataProcessorActor.ProcessData(item))
+                                .withTimeout(Duration.ofSeconds(5))
+                                .execute())
                         .map(result -> 1L)
                         .runWith(Sink.fold(0L, Long::sum), actorSystem.getRaw())
                         .thenApply(count -> {
                             long duration = System.currentTimeMillis() - startTime;
-                            System.out.println("Processed " + count + " items with parallelism=" + parallelism
-                                    + " in " + duration + "ms");
+                            System.out.println("Processed " + count + " items with parallelism=" + parallelism + " in "
+                                    + duration + "ms");
                             return duration;
                         }));
     }
@@ -210,19 +202,14 @@ public class BackpressureExample {
         CompletionStage<Long> time5 = controlledParallelism(data, 5);
         CompletionStage<Long> time10 = controlledParallelism(data, 10);
 
-        return time1.thenCombine(time5, (t1, t5) -> new long[] {t1, t5})
-                .thenCombine(time10, (times, t10) -> {
-                    return String.format(
-                            "Parallelism comparison:\n"
-                                    + "  Parallelism=1:  %dms\n"
-                                    + "  Parallelism=5:  %dms (%.1fx faster)\n"
-                                    + "  Parallelism=10: %dms (%.1fx faster)",
-                            times[0],
-                            times[1],
-                            (double) times[0] / times[1],
-                            t10,
-                            (double) times[0] / t10);
-                });
+        return time1.thenCombine(time5, (t1, t5) -> new long[] {t1, t5}).thenCombine(time10, (times, t10) -> {
+            return String.format(
+                    "Parallelism comparison:\n"
+                            + "  Parallelism=1:  %dms\n"
+                            + "  Parallelism=5:  %dms (%.1fx faster)\n"
+                            + "  Parallelism=10: %dms (%.1fx faster)",
+                    times[0], times[1], (double) times[0] / times[1], t10, (double) times[0] / t10);
+        });
     }
 
     /**
@@ -242,12 +229,10 @@ public class BackpressureExample {
                         .filter(item -> !item.isEmpty())
                         .async() // Async boundary
                         // Stage 2: Actor processing (runs on its own thread)
-                        .mapAsync(
-                                5,
-                                item -> processor
-                                        .ask(new DataProcessorActor.ProcessData(item))
-                                        .withTimeout(Duration.ofSeconds(5))
-                                        .execute())
+                        .mapAsync(5, item -> processor
+                                .ask(new DataProcessorActor.ProcessData(item))
+                                .withTimeout(Duration.ofSeconds(5))
+                                .execute())
                         .async() // Async boundary
                         // Stage 3: Collection (runs on its own thread)
                         .map(result -> 1L)
