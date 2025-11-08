@@ -175,7 +175,7 @@ Enterprise security features for production deployments.
 
 ## Development Phases
 
-See [TODO.md](TODO.md) for detailed development tracking and timeline.
+See [DEVELOPMENT_TODO.md](DEVELOPMENT_TODO.md) for detailed development tracking and timeline.
 
 ### Quick Summary
 
@@ -277,7 +277,7 @@ After implementation, users should be able to:
 
 ## Contributing
 
-See [TODO.md](TODO.md) for tracking development progress.
+See [DEVELOPMENT_TODO.md](DEVELOPMENT_TODO.md) for tracking development progress.
 
 When implementing a feature:
 1. Review the detailed spec in the corresponding category file

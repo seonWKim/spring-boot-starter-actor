@@ -5,7 +5,7 @@ This directory contains the comprehensive feature roadmap for spring-boot-starte
 ## Files
 
 - **[FEATURES_ROADMAP.md](FEATURES_ROADMAP.md)** - Main index with overview and design decisions
-- **[TODO.md](TODO.md)** - Development tracking and timeline
+- **[DEVELOPMENT_TODO.md](DEVELOPMENT_TODO.md)** - Development tracking and timeline
 - **[FEATURES_SUMMARY.md](FEATURES_SUMMARY.md)** - Quick summary (in parent directory)
 
 ## Category Files
@@ -26,7 +26,7 @@ Each category has a dedicated markdown file with detailed specifications:
 ## Quick Start
 
 1. **For Overview**: Read [FEATURES_ROADMAP.md](FEATURES_ROADMAP.md)
-2. **For Implementation Status**: Check [TODO.md](TODO.md)
+2. **For Implementation Status**: Check [DEVELOPMENT_TODO.md](DEVELOPMENT_TODO.md)
 3. **For Detailed Specs**: Read individual category files
 4. **For Quick Reference**: See [FEATURES_SUMMARY.md](FEATURES_SUMMARY.md) in parent directory
 
@@ -42,4 +42,4 @@ All features follow these principles:
 
 ## Contributing
 
-See [CONTRIBUTION.md](../CONTRIBUTION.md) and [TODO.md](TODO.md) for how to contribute.
+See [CONTRIBUTION.md](../CONTRIBUTION.md) and [DEVELOPMENT_TODO.md](DEVELOPMENT_TODO.md) for how to contribute.
