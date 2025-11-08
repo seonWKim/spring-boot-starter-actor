@@ -296,14 +296,26 @@ deploy_monitoring() {
     echo -e "${YELLOW}Deploying Prometheus & Grafana monitoring stack...${NC}"
     echo
 
-    echo -e "${CYAN}[1/2] Deploying monitoring components...${NC}"
+    echo -e "${CYAN}[1/3] Pulling monitoring images...${NC}"
+    docker pull prom/prometheus:v2.47.0
+    docker pull grafana/grafana:10.1.0
+    echo -e "${GREEN}✓ Images pulled${NC}"
+    echo
+
+    echo -e "${CYAN}[2/3] Loading images into kind cluster...${NC}"
+    kind load docker-image prom/prometheus:v2.47.0 --name $CLUSTER_NAME
+    kind load docker-image grafana/grafana:10.1.0 --name $CLUSTER_NAME
+    echo -e "${GREEN}✓ Images loaded into cluster${NC}"
+    echo
+
+    echo -e "${CYAN}[3/3] Deploying monitoring components...${NC}"
     kubectl apply -k "$SCRIPT_DIR/monitoring"
     echo -e "${GREEN}✓ Monitoring stack deployed${NC}"
     echo
 
-    echo -e "${CYAN}[2/2] Waiting for pods to be ready...${NC}"
-    kubectl wait --for=condition=ready pod -l app=prometheus -n monitoring --timeout=120s 2>/dev/null || echo -e "${YELLOW}   Prometheus still starting...${NC}"
-    kubectl wait --for=condition=ready pod -l app=grafana -n monitoring --timeout=120s 2>/dev/null || echo -e "${YELLOW}   Grafana still starting...${NC}"
+    echo -e "${YELLOW}Waiting for pods to be ready...${NC}"
+    kubectl wait --for=condition=ready pod -l app=prometheus -n monitoring --timeout=180s 2>/dev/null || echo -e "${YELLOW}   Prometheus still starting...${NC}"
+    kubectl wait --for=condition=ready pod -l app=grafana -n monitoring --timeout=180s 2>/dev/null || echo -e "${YELLOW}   Grafana still starting...${NC}"
     echo
 
     echo -e "${GREEN}═══════════════════════════════════════════════════════════${NC}"
