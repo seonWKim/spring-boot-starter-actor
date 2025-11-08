@@ -1,201 +1,158 @@
 package io.github.seonwkim.example.metrics;
 
-import io.github.seonwkim.metrics.interceptor.ActorLifeCycleEventInterceptorsHolder;
+import io.github.seonwkim.metrics.ActorMetricsRegistry;
+import io.github.seonwkim.metrics.ActorMetricsRegistry.ProcessingTimeStats;
+import io.github.seonwkim.metrics.ActorMetricsRegistry.TimeInMailboxStats;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
-import java.util.concurrent.atomic.AtomicLong;
 import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 /**
- * Custom SystemMetricsListener implementation that exports actor system metrics to
- * Prometheus/Grafana via Micrometer.
+ * Enhanced metrics exporter that integrates ActorMetricsRegistry with Micrometer.
+ * 
+ * This replaces the previous custom implementation with the centralized ActorMetricsRegistry
+ * providing comprehensive observability for the actor system.
  */
 @Component
-public class GrafanaMetricsListener implements ActorLifeCycleEventInterceptorsHolder.ActorLifecycleEventInterceptor {
+public class GrafanaMetricsListener {
     private static final Logger logger = LoggerFactory.getLogger(GrafanaMetricsListener.class);
 
     private final MeterRegistry meterRegistry;
-
-    // Metrics counters and gauges
-    private final AtomicLong activeActors = new AtomicLong(0);
-    private final AtomicLong totalActorsCreated = new AtomicLong(0);
-    private final AtomicLong totalActorsTerminated = new AtomicLong(0);
-    private final AtomicLong totalCellReplacements = new AtomicLong(0);
-
-    // Micrometer counters
-    private Counter actorCreatedCounter;
-    private Counter actorTerminatedCounter;
-    private Counter cellReplacementCounter;
+    private final ActorMetricsRegistry actorMetrics;
 
     public GrafanaMetricsListener(MeterRegistry meterRegistry) {
         this.meterRegistry = meterRegistry;
-        initializeMetrics();
+        this.actorMetrics = ActorMetricsRegistry.getInstance();
     }
 
     @PostConstruct
     public void register() {
-        ActorLifeCycleEventInterceptorsHolder.register(this);
-        logger.info("GrafanaMetricsListener registered for actor system events");
+        logger.info("Registering actor system metrics with Micrometer");
+        registerStaticMetrics();
     }
 
-    @PreDestroy
-    public void unregister() {
-        ActorLifeCycleEventInterceptorsHolder.unregister(this);
-        logger.info("GrafanaMetricsListener unregistered from actor system events");
+    private void registerStaticMetrics() {
+        // Lifecycle Metrics
+        Gauge.builder("actor.system.active", actorMetrics, ActorMetricsRegistry::getActiveActors)
+                .description("Number of currently active actors")
+                .register(meterRegistry);
+
+        Gauge.builder("actor.system.created.total", actorMetrics, ActorMetricsRegistry::getActorsCreated)
+                .description("Total actors created")
+                .register(meterRegistry);
+
+        Gauge.builder("actor.system.terminated.total", actorMetrics, ActorMetricsRegistry::getActorsTerminated)
+                .description("Total actors terminated")
+                .register(meterRegistry);
+
+        Gauge.builder("actor.lifecycle.restarts.total", actorMetrics, ActorMetricsRegistry::getActorRestarts)
+                .description("Total actor restarts")
+                .register(meterRegistry);
+
+        Gauge.builder("actor.lifecycle.stops.total", actorMetrics, ActorMetricsRegistry::getActorStops)
+                .description("Total actor stops")
+                .register(meterRegistry);
+
+        // Message Processing Metrics
+        Gauge.builder("actor.messages.processed.total", actorMetrics, ActorMetricsRegistry::getMessagesProcessed)
+                .description("Total messages processed")
+                .register(meterRegistry);
+
+        // Error Metrics
+        Gauge.builder("actor.errors.total", actorMetrics, ActorMetricsRegistry::getProcessingErrors)
+                .description("Total processing errors")
+                .register(meterRegistry);
+
+        // System Metrics
+        Gauge.builder("actor.system.dead-letters.total", actorMetrics, ActorMetricsRegistry::getDeadLetters)
+                .description("Total dead letters")
+                .register(meterRegistry);
+
+        Gauge.builder(
+                        "actor.system.unhandled-messages.total",
+                        actorMetrics,
+                        ActorMetricsRegistry::getUnhandledMessages)
+                .description("Total unhandled messages")
+                .register(meterRegistry);
+
+        Gauge.builder("actor.mailbox.overflow.total", actorMetrics, ActorMetricsRegistry::getMailboxOverflows)
+                .description("Total mailbox overflow events")
+                .register(meterRegistry);
+
+        logger.info("Static actor metrics registered successfully");
     }
 
-    private void initializeMetrics() {
-        // Create gauge for active actors count
-        Gauge.builder("actor.system.active", activeActors, AtomicLong::get)
-                .description("Number of currently active actors in the system")
-                .tags("type", "user")
-                .register(meterRegistry);
-
-        // Create counter for total actors created
-        actorCreatedCounter = Counter.builder("actor.system.created.total")
-                .description("Total number of actors created")
-                .tags("type", "user")
-                .register(meterRegistry);
-
-        // Create counter for total actors terminated
-        actorTerminatedCounter = Counter.builder("actor.system.terminated.total")
-                .description("Total number of actors terminated")
-                .tags("type", "user")
-                .register(meterRegistry);
-
-        // Create counter for cell replacements
-        cellReplacementCounter = Counter.builder("actor.system.cell.replacements.total")
-                .description("Total number of unstarted cell replacements")
-                .register(meterRegistry);
-
-        // Create gauge for total actors created (for rate calculations)
-        Gauge.builder("actor.system.created.cumulative", totalActorsCreated, AtomicLong::get)
-                .description("Cumulative count of actors created")
-                .tags("type", "user")
-                .register(meterRegistry);
-
-        // Create gauge for total actors terminated (for rate calculations)
-        Gauge.builder("actor.system.terminated.cumulative", totalActorsTerminated, AtomicLong::get)
-                .description("Cumulative count of actors terminated")
-                .tags("type", "user")
-                .register(meterRegistry);
-
-        // Create gauge for cell replacement rate
-        Gauge.builder("actor.system.cell.replacements.cumulative", totalCellReplacements, AtomicLong::get)
-                .description("Cumulative count of cell replacements")
-                .register(meterRegistry);
-    }
-
-    @Override
-    public void onActorCreated(Object actorCell) {
+    @Scheduled(fixedRate = 5000) // Update every 5 seconds
+    public void updateDynamicMetrics() {
         try {
-            if (!isTemporaryActor(actorCell)) {
-                String actorPath = getActorPath(actorCell);
-                long current = activeActors.incrementAndGet();
-                totalActorsCreated.incrementAndGet();
-                actorCreatedCounter.increment();
+            // Update per-message-type counters
+            actorMetrics.getAllMessagesByType().forEach((messageType, counter) -> {
+                Gauge.builder("actor.messages.processed", counter, c -> c.sum())
+                        .tag("message_type", messageType)
+                        .description("Messages processed by type")
+                        .register(meterRegistry);
+            });
 
-                logger.debug("Actor created: {}, active actors: {}", actorPath, current);
+            // Update per-error-type counters
+            actorMetrics.getAllErrorsByType().forEach((errorType, counter) -> {
+                Gauge.builder("actor.errors", counter, c -> c.sum())
+                        .tag("error_type", errorType)
+                        .description("Errors by type")
+                        .register(meterRegistry);
+            });
 
-                // Log specific actor types for monitoring
-                if (actorPath.contains("/user/")) {
-                    logActorTypeMetric(actorPath, "created");
-                }
-            }
+            // Update processing time stats
+            actorMetrics.getAllProcessingTimeStats().forEach((messageType, stats) -> {
+                Gauge.builder(
+                                "actor.processing.time.avg",
+                                stats,
+                                s -> s.getAverageTimeNanos() / 1_000_000.0) // Convert to ms
+                        .tag("message_type", messageType)
+                        .description("Average processing time in milliseconds")
+                        .register(meterRegistry);
+
+                Gauge.builder("actor.processing.time.max", stats, s -> s.getMaxTimeNanos() / 1_000_000.0)
+                        .tag("message_type", messageType)
+                        .description("Maximum processing time in milliseconds")
+                        .register(meterRegistry);
+
+                Gauge.builder("actor.processing.time.min", stats, s -> s.getMinTimeNanos() / 1_000_000.0)
+                        .tag("message_type", messageType)
+                        .description("Minimum processing time in milliseconds")
+                        .register(meterRegistry);
+            });
+
+            // Update time-in-mailbox stats
+            actorMetrics.getAllTimeInMailboxStats().forEach((actorPath, stats) -> {
+                String sanitizedPath = sanitizeActorPath(actorPath);
+                Gauge.builder("actor.time.in.mailbox.avg", stats, s -> s.getAverageTimeNanos() / 1_000_000.0)
+                        .tag("actor_path", sanitizedPath)
+                        .description("Average time in mailbox in milliseconds")
+                        .register(meterRegistry);
+            });
+
+            // Update mailbox sizes
+            actorMetrics.getAllMailboxSizes().forEach((actorPath, size) -> {
+                String sanitizedPath = sanitizeActorPath(actorPath);
+                Gauge.builder("actor.mailbox.size.current", size, s -> s.get())
+                        .tag("actor_path", sanitizedPath)
+                        .description("Current mailbox size")
+                        .register(meterRegistry);
+            });
+
+            logger.debug("Dynamic metrics updated successfully");
         } catch (Exception e) {
-            logger.error("Error in onActorCreated", e);
+            logger.error("Error updating dynamic metrics", e);
         }
     }
 
-    @Override
-    public void onActorTerminated(Object actorCell) {
-        try {
-            if (!isTemporaryActor(actorCell)) {
-                String actorPath = getActorPath(actorCell);
-                long current = activeActors.decrementAndGet();
-                totalActorsTerminated.incrementAndGet();
-                actorTerminatedCounter.increment();
-
-                logger.debug("Actor terminated: {}, active actors: {}", actorPath, current);
-
-                // Log specific actor types for monitoring
-                if (actorPath.contains("/user/")) {
-                    logActorTypeMetric(actorPath, "terminated");
-                }
-            }
-        } catch (Exception e) {
-            logger.error("Error in onActorTerminated", e);
-        }
-    }
-
-    @Override
-    public void onUnstartedCellReplaced(Object unstartedCell, Object newCell) {
-        try {
-            totalCellReplacements.incrementAndGet();
-            cellReplacementCounter.increment();
-
-            if (!isTemporaryActor(newCell)) {
-                String actorPath = getActorPath(newCell);
-                logger.debug("UnstartedCell replaced for actor: {}", actorPath);
-            }
-        } catch (Exception e) {
-            logger.error("Error in onUnstartedCellReplaced", e);
-        }
-    }
-
-    private boolean isTemporaryActor(Object cell) {
-        try {
-            String pathString = getActorPath(cell);
-
-            // Filter out system and temporary actors
-            boolean isTemp = pathString.contains("/system/")
-                    || pathString.contains("/temp/")
-                    || pathString.contains("/stream")
-                    || pathString.contains("$");
-
-            return isTemp;
-        } catch (Exception e) {
-            logger.error("Error checking if actor is temporary", e);
-            return false;
-        }
-    }
-
-    private String getActorPath(Object cell) throws Exception {
-        Object self = cell.getClass().getMethod("self").invoke(cell);
-        Object path = self.getClass().getMethod("path").invoke(self);
-        return path.toString();
-    }
-
-    private void logActorTypeMetric(String actorPath, String event) {
-        try {
-            // Extract actor type from path
-            String actorType = extractActorType(actorPath);
-
-            // Create dynamic metric for specific actor types
-            Counter.builder("actor.system." + event + ".by.type")
-                    .description("Actor " + event + " by type")
-                    .tags("actor_type", actorType)
-                    .register(meterRegistry)
-                    .increment();
-        } catch (Exception e) {
-            logger.debug("Could not log actor type metric for path: {}", actorPath);
-        }
-    }
-
-    private String extractActorType(String actorPath) {
-        // Extract the actor type from the path
-        // Example: "pekko://application/user/HelloActor-123" -> "HelloActor"
-        String[] parts = actorPath.split("/");
-        if (parts.length > 0) {
-            String lastPart = parts[parts.length - 1];
-            // Remove any instance identifiers (numbers, UUIDs, etc.)
-            return lastPart.replaceAll("-.*", "").replaceAll("\\d+$", "");
-        }
-        return "unknown";
+    private String sanitizeActorPath(String path) {
+        // Remove actor system prefix and sanitize for Prometheus
+        return path.replaceAll("pekko://[^/]+/", "").replaceAll("[^a-zA-Z0-9_/-]", "_");
     }
 }
