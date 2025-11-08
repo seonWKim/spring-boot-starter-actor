@@ -81,29 +81,31 @@ Open your browser: **http://localhost:8080**
 
 You'll see the chat UI connected to a 3-node Pekko cluster!
 
-3. **Verify cluster is working:**
+3. **Use the built-in commands:**
+
+The setup script provides several useful commands:
 
 ```bash
-# Get pod names
-kubectl get pods -n spring-actor
+# Show cluster status
+./setup-local.sh status
 
-# Check cluster members
-POD=$(kubectl get pods -n spring-actor -o jsonpath='{.items[0].metadata.name}')
-kubectl exec -n spring-actor $POD -- curl -s localhost:8558/cluster/members | jq
+# View application logs
+./setup-local.sh logs
+
+# Access individual pods on different ports (8080, 8081, 8082)
+./setup-local.sh port-forward
+
+# Rebuild application and restart deployment
+./setup-local.sh rebuild
+
+# Clean up all resources
+./setup-local.sh cleanup
 ```
 
-You should see 3 cluster members with status "Up".
-
-4. **Watch logs:**
+4. **Get help:**
 
 ```bash
-kubectl logs -f -n spring-actor -l app=spring-actor
-```
-
-5. **Cleanup when done:**
-
-```bash
-./cleanup-local.sh
+./setup-local.sh help
 ```
 
 ## What's Happening Under the Hood?
@@ -290,8 +292,8 @@ kubectl delete pod <pod-name> -n spring-actor
 ```
 example/kubernetes/
 ├── README.md                   # This file
-├── setup-local.sh              # ⭐ Run this to start!
-├── cleanup-local.sh            # Cleanup everything
+├── setup-local.sh              # ⭐ All-in-one script for local development
+├── cleanup-local.sh            # Cleanup script (or use: ./setup-local.sh cleanup)
 │
 ├── base/                       # Base Kubernetes manifests
 │   ├── namespace.yaml
@@ -309,10 +311,59 @@ example/kubernetes/
 │   ├── dev/
 │   └── prod/
 │
-└── scripts/                    # Advanced deployment scripts
+└── scripts/                    # Internal helper scripts (used by setup-local.sh)
+    ├── kind-config.yaml
+    ├── check-prerequisites.sh
+    ├── build-local.sh
+    ├── port-forward-pods.sh
     ├── deploy.sh
     ├── rollout.sh
     └── debug.sh
+```
+
+## setup-local.sh Commands
+
+The `setup-local.sh` script is your main entry point for local Kubernetes development. It provides the following commands:
+
+```bash
+./setup-local.sh [command]
+```
+
+**Available Commands:**
+
+| Command | Description |
+|---------|-------------|
+| `setup` | Set up the local Kubernetes cluster (default) |
+| `status` | Show cluster and pod status with Pekko cluster info |
+| `logs` | Stream logs from all pods |
+| `port-forward` | Set up port forwarding to individual pods (8080, 8081, 8082) |
+| `rebuild` | Rebuild application and restart deployment |
+| `cleanup` | Clean up all resources |
+| `help` | Show help message |
+
+**Examples:**
+
+```bash
+# Initial setup (default command)
+./setup-local.sh
+# or explicitly
+./setup-local.sh setup
+
+# Check status anytime
+./setup-local.sh status
+
+# View real-time logs
+./setup-local.sh logs
+
+# Access individual pods for testing
+./setup-local.sh port-forward
+# Then open: http://localhost:8080, http://localhost:8081, http://localhost:8082
+
+# After making code changes
+./setup-local.sh rebuild
+
+# Clean up everything
+./setup-local.sh cleanup
 ```
 
 ## Troubleshooting
