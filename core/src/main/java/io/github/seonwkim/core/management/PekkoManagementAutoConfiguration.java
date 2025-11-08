@@ -41,10 +41,11 @@ import org.springframework.context.annotation.Configuration;
  * </pre>
  */
 @Configuration
-@ConditionalOnClass(name = {
-    "org.apache.pekko.management.javadsl.PekkoManagement",
-    "org.apache.pekko.management.cluster.bootstrap.ClusterBootstrap"
-})
+@ConditionalOnClass(
+        name = {
+            "org.apache.pekko.management.javadsl.PekkoManagement",
+            "org.apache.pekko.management.cluster.bootstrap.ClusterBootstrap"
+        })
 @ConditionalOnProperty(value = "spring.actor.pekko.management.enabled", matchIfMissing = true)
 public class PekkoManagementAutoConfiguration {
 
@@ -66,12 +67,14 @@ public class PekkoManagementAutoConfiguration {
 
         try {
             // Start Pekko Management HTTP server
-            PekkoManagement management = PekkoManagement.get(actorSystem.getRaw().classicSystem());
+            PekkoManagement management =
+                    PekkoManagement.get(actorSystem.getRaw().classicSystem());
             management.start();
             log.info("Pekko Management HTTP server started");
 
             // Start Cluster Bootstrap for dynamic cluster formation
-            ClusterBootstrap bootstrap = ClusterBootstrap.get(actorSystem.getRaw().classicSystem());
+            ClusterBootstrap bootstrap =
+                    ClusterBootstrap.get(actorSystem.getRaw().classicSystem());
             bootstrap.start();
             log.info("Pekko Cluster Bootstrap started - cluster will form dynamically");
 
