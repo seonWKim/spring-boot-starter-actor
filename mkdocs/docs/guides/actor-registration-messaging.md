@@ -71,11 +71,46 @@ public class HelloActor implements SpringActor<HelloActor.Command> {
 
 ## Spawning Actors
 
-Once you've registered your actor, you can spawn instances of it using the `SpringActorSystem`:
+Once you've registered your actor, you can spawn instances of it using the `SpringActorSystem`.
 
-### Simplified API
+### Recommended: Use getOrSpawn (Simplified API)
 
-The recommended way to spawn actors is using the fluent builder API:
+The **recommended way** to work with actors is using `getOrSpawn()`, which automatically handles the actor lifecycle:
+
+```java
+import io.github.seonwkim.core.SpringActorSystem;
+
+import org.springframework.stereotype.Service;
+
+import java.time.Duration;
+
+import reactor.core.publisher.Mono;
+
+@Service
+public class HelloService {
+    private final SpringActorSystem actorSystem;
+
+    public HelloService(SpringActorSystem actorSystem) {
+        this.actorSystem = actorSystem;
+    }
+
+    /**
+     * Best practice: Use getOrSpawn for simple cases where you don't need caching.
+     * It automatically handles the exists -> get -> spawn logic in a single call.
+     */
+    public Mono<String> hello() {
+        return Mono.fromCompletionStage(
+                actorSystem.getOrSpawn(HelloActor.class, "hello-actor")
+                        .thenCompose(actor -> actor.ask(new HelloActor.SayHello())
+                                .withTimeout(Duration.ofSeconds(3))
+                                .execute()));
+    }
+}
+```
+
+### Advanced: Explicit Spawning with Builder API
+
+For advanced scenarios requiring custom configuration (supervision strategies, dispatchers, mailboxes), use the fluent builder API:
 
 ```java
 import io.github.seonwkim.core.SpringActorRef;
@@ -105,9 +140,9 @@ public class HelloService {
 }
 ```
 
-### Async Spawning
+### Advanced: Async Spawning with Configuration
 
-For non-blocking actor creation:
+For non-blocking actor creation with custom configuration:
 
 ```java
 @Service
@@ -137,7 +172,7 @@ public class HelloService {
 
 ### Advanced Configuration
 
-The fluent API supports additional configuration options:
+The fluent API supports additional configuration options for advanced use cases:
 
 ```java
 SpringActorRef<HelloActor.Command> actor = springActorSystem
@@ -164,7 +199,8 @@ The tell pattern is used when you don't need a response from the actor:
 
 ```java
 public void hi() {
-    helloActor.tell(HelloActor.SayHi::new);
+    actorSystem.getOrSpawn(HelloActor.class, "hello-actor")
+            .thenAccept(actor -> actor.tell(new HelloActor.SayHi()));
 }
 ```
 
@@ -175,9 +211,10 @@ The ask pattern is used when you expect a response from the actor:
 ```java
 public Mono<String> hello() {
     return Mono.fromCompletionStage(
-            helloActor.ask(new HelloActor.SayHello())
-                .withTimeout(Duration.ofSeconds(3))
-                .execute());
+            actorSystem.getOrSpawn(HelloActor.class, "hello-actor")
+                    .thenCompose(actor -> actor.ask(new HelloActor.SayHello())
+                            .withTimeout(Duration.ofSeconds(3))
+                            .execute()));
 }
 ```
 
@@ -456,7 +493,7 @@ self.child(LoggerActor.class)
 7. **Timeout Handling**: Always specify reasonable timeouts for ask operations and handle timeout exceptions using `ask().onTimeout()`.
 8. **Non-Blocking Operations**: Avoid blocking operations inside actors, as they can lead to thread starvation.
 9. **Actor Naming**: Use meaningful and unique names for actors to make debugging easier.
-10. **Prefer Fluent API**: Use the fluent builder API for spawning actors as it provides better readability and type safety.
+10. **Use Fluent API for Advanced Cases**: For advanced scenarios requiring custom configuration (supervision, dispatchers, mailboxes), use the fluent builder API with `.actor()`. For simple cases, prefer `getOrSpawn()`.
 
 ## Next Steps
 

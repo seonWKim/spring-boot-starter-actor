@@ -108,23 +108,22 @@ public class HelloActor implements SpringActor<HelloActor.Command> {
 ```java
 @Service
 public class HelloService {
-    private final SpringActorRef<Command> helloActor;
+    private final SpringActorSystem actorSystem;
 
-    public HelloService(SpringActorSystem springActorSystem) {
-        // Spawn a single actor using the simplified fluent API
-        this.helloActor = springActorSystem
-                .actor(HelloActor.class)
-                .withId("default")
-                .withTimeout(Duration.ofSeconds(3))
-                .spawnAndWait();
+    public HelloService(SpringActorSystem actorSystem) {
+        this.actorSystem = actorSystem;
     }
 
+    /**
+     * Best practice: Use getOrSpawn for simple cases where you don't need caching.
+     * It automatically handles the exists -> get -> spawn logic in a single call.
+     */
     public Mono<String> hello() {
-        // Send a SayHello message to the actor and convert the response to a Mono
         return Mono.fromCompletionStage(
-                helloActor.ask(new HelloActor.SayHello())
-                        .withTimeout(Duration.ofSeconds(3))
-                        .execute());
+                actorSystem.getOrSpawn(HelloActor.class, "hello-actor")
+                        .thenCompose(actor -> actor.ask(new HelloActor.SayHello())
+                                .withTimeout(Duration.ofSeconds(3))
+                                .execute()));
     }
 }
 ```

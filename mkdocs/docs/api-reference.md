@@ -65,20 +65,23 @@ spawning actors and getting references to sharded actors.
 ```java
 public class SpringActorSystem {
     /**
-     * Spawns an actor with the given spawn context.
+     * Creates a fluent builder for spawning an actor.
      *
-     * @param spawnContext The context containing all parameters needed to spawn the actor
-     * @return A CompletionStage that resolves to a reference to the spawned actor
+     * @param actorClass The class of the actor to spawn
+     * @return A builder for configuring and spawning the actor
      */
-    public <A extends SpringActor<A, T>, T> CompletionStage<SpringActorRef<T>> spawn(SpringActorSpawnContext<A, T> spawnContext);
+    public <A extends SpringActorWithContext<C, ?>, C> SpringActorSpawnBuilder<A, C> actor(Class<A> actorClass);
 
     /**
-     * Asynchronously stops a previously spawned actor with the given stop context.
+     * Gets an existing actor or spawns a new one if it doesn't exist.
+     * This is the recommended approach for most use cases.
      *
-     * @param stopContext The context containing all parameters needed to stop the actor
-     * @return A CompletionStage that completes when the stop command has been processed
+     * @param actorClass The class of the actor
+     * @param actorId The ID of the actor
+     * @return A CompletionStage that resolves to a reference to the actor
      */
-    public <A extends SpringActor<A, C>, C> CompletionStage<StopResult> stop(SpringActorStopContext<A, C> stopContext);
+    public <A extends SpringActorWithContext<C, ?>, C> CompletionStage<SpringActorRef<C>> getOrSpawn(
+        Class<A> actorClass, String actorId);
 
     /**
      * Creates a fluent builder for getting a reference to a sharded actor.
