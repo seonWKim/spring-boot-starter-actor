@@ -37,7 +37,7 @@ show_usage() {
     echo -e "  ${GREEN}monitoring${NC}    Deploy Prometheus & Grafana monitoring stack"
     echo -e "  ${GREEN}status${NC}        Show cluster and pod status"
     echo -e "  ${GREEN}logs${NC}          View application logs"
-    echo -e "  ${GREEN}port-forward${NC}  Set up port forwarding to individual pods"
+    echo -e "  ${GREEN}port-forward${NC}  Set up port forwarding to pods and monitoring"
     echo -e "  ${GREEN}rebuild${NC}       Rebuild application and restart deployment"
     echo -e "  ${GREEN}cleanup${NC}       Clean up all resources"
     echo -e "  ${GREEN}help${NC}          Show this help message"
@@ -112,7 +112,7 @@ setup_cluster() {
     echo -e "   ${GREEN}./setup-local.sh monitoring${NC}     Deploy Grafana monitoring"
     echo -e "   ${GREEN}./setup-local.sh status${NC}         Show cluster status"
     echo -e "   ${GREEN}./setup-local.sh logs${NC}           View application logs"
-    echo -e "   ${GREEN}./setup-local.sh port-forward${NC}   Access individual pods (8080, 8081, 8082)"
+    echo -e "   ${GREEN}./setup-local.sh port-forward${NC}   Forward pods & monitoring"
     echo -e "   ${GREEN}./setup-local.sh rebuild${NC}        Rebuild and restart"
     echo -e "   ${GREEN}./setup-local.sh cleanup${NC}        Remove all resources"
 
@@ -176,7 +176,7 @@ port_forward() {
         return 1
     fi
 
-    echo -e "${CYAN}Setting up port forwarding to individual pods...${NC}"
+    echo -e "${CYAN}Setting up port forwarding...${NC}"
     echo
 
     # Get pod names
@@ -201,6 +201,7 @@ port_forward() {
 
     trap cleanup_port_forwards INT TERM
 
+    # Forward application pods
     if [ ${#PODS[@]} -ge 1 ]; then
         echo -e "${CYAN}➜${NC} Port forwarding ${PODS[0]} -> localhost:8080"
         kubectl port-forward -n $NAMESPACE ${PODS[0]} 8080:8080 &
@@ -216,12 +217,37 @@ port_forward() {
         kubectl port-forward -n $NAMESPACE ${PODS[2]} 8082:8080 &
     fi
 
+    # Forward monitoring services if they exist
+    if kubectl get namespace monitoring &> /dev/null; then
+        echo
+        echo -e "${CYAN}Forwarding monitoring services...${NC}"
+
+        if kubectl get svc grafana -n monitoring &> /dev/null; then
+            echo -e "${CYAN}➜${NC} Port forwarding Grafana -> localhost:30300"
+            kubectl port-forward -n monitoring svc/grafana 30300:3000 &
+        fi
+
+        if kubectl get svc prometheus -n monitoring &> /dev/null; then
+            echo -e "${CYAN}➜${NC} Port forwarding Prometheus -> localhost:30090"
+            kubectl port-forward -n monitoring svc/prometheus 30090:9090 &
+        fi
+    fi
+
     echo
     echo -e "${GREEN}✓ Port forwarding active${NC}"
-    echo -e "${CYAN}Access individual pods at:${NC}"
+    echo
+    echo -e "${CYAN}Application:${NC}"
     [ ${#PODS[@]} -ge 1 ] && echo -e "   ${GREEN}Pod 1:${NC} http://localhost:8080"
     [ ${#PODS[@]} -ge 2 ] && echo -e "   ${GREEN}Pod 2:${NC} http://localhost:8081"
     [ ${#PODS[@]} -ge 3 ] && echo -e "   ${GREEN}Pod 3:${NC} http://localhost:8082"
+
+    if kubectl get namespace monitoring &> /dev/null; then
+        echo
+        echo -e "${CYAN}Monitoring:${NC}"
+        kubectl get svc grafana -n monitoring &> /dev/null && echo -e "   ${GREEN}Grafana:${NC}    http://localhost:30300 (admin/admin)"
+        kubectl get svc prometheus -n monitoring &> /dev/null && echo -e "   ${GREEN}Prometheus:${NC} http://localhost:30090"
+    fi
+
     echo
     echo -e "${YELLOW}Press Ctrl+C to stop all port forwards${NC}"
     echo
