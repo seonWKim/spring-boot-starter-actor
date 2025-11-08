@@ -112,6 +112,8 @@ public SpringEventSourcedBehavior<Command, Event, State> create(EventSourcedCont
 }
 ```
 
+=> TODO: I don't want the persistence feature to be implicitly handled. Instead I want the users(mostly spring boot users) to manually save the state.
+
 ### 1.3 Persistence Query Support
 
 **Priority:** MEDIUM  
@@ -138,36 +140,7 @@ public class OrderQueryService {
 }
 ```
 
-### 1.4 Durable State Store Support
-
-**Priority:** MEDIUM  
-**Complexity:** Medium  
-**Pekko Module:** `pekko-persistence-typed`
-
-**Description:**  
-Alternative to event sourcing where entire state is persisted instead of events.
-
-```java
-@Component
-public class CacheActor implements SpringDurableStateActor<CacheActor.Command, CacheActor.State> {
-    
-    @Override
-    public SpringDurableStateBehavior<Command, State> create(DurableStateContext<Command> ctx) {
-        return SpringDurableStateBehavior.<Command, State>builder()
-            .withEmptyState(new State(new HashMap<>()))
-            .withCommandHandler((state, cmd) -> {
-                if (cmd instanceof Put put) {
-                    Map<String, String> newData = new HashMap<>(state.data());
-                    newData.put(put.key(), put.value());
-                    return Effect().persist(new State(newData));
-                }
-                return Effect().none();
-            })
-            .build();
-    }
-}
-```
-
+=> TODO: I don't want the persistence feature to be implicitly handled. Instead I want the users(mostly spring boot users) to manually save the state. Let's provide some kind of adapter patterns for it so that users can wire in their own databases easily. You should also consider non-blocking for blocking db operations 
 ---
 
 ## 2. Streams and Backpressure
@@ -235,6 +208,8 @@ public class StreamActorService {
 }
 ```
 
+=> TODO: we are using fluent builder patterns for public APIs for this library. Let's add support for streams using the fluent builder 
+
 ### 2.3 Throttling and Rate Limiting
 
 **Priority:** MEDIUM  
@@ -260,11 +235,14 @@ public class RateLimitedActor implements SpringActor<Command> {
 }
 ```
 
+=> TODO: this is great, but let's implement throttling directly not using the pekko's supported features. 
+
 ---
 
 ## 3. Routing Patterns
 
 Routing enables load balancing and parallel processing across multiple actor instances.
+=> TODO: I love this idea. I want you to check whether we could provide library native support for routers or should simply wrap pekko's built in router support
 
 ### 3.1 Router Support (`@SpringRouterActor`)
 
@@ -351,6 +329,7 @@ public SpringRouterBehavior<Command> create(SpringActorContext ctx) {
 ## 4. Testing Utilities
 
 Comprehensive testing support is essential for production-ready systems.
+=> I want you to scan through the tests so extract common patterns. Let's extract those behaviors and support using test utilities 
 
 ### 4.1 TestKit Integration (`@ActorTest`)
 
@@ -465,6 +444,7 @@ public void benchmarkActorThroughput() {
 ## 5. Advanced Clustering Features
 
 Enhanced clustering capabilities for production-grade distributed systems.
+=> TODO: We already support cluster singleton. 
 
 ### 5.1 Cluster Singleton Support
 
@@ -510,6 +490,7 @@ SpringActorRef<Command> singleton = actorSystem
 
 **Description:**  
 Share eventually consistent data across cluster nodes using CRDTs.
+=> TODO: can we support this feature using the simply ask methods provided by our libray? 
 
 ```java
 @Service
@@ -562,6 +543,7 @@ public class DistributedCacheService {
 
 **Description:**  
 Publish-subscribe messaging across cluster nodes.
+=> Provide wrappers just like other features from our library so that users can more easily use them, yet we can extend with other features if needed 
 
 ```java
 @Service
@@ -591,6 +573,7 @@ public class EventBusService {
 
 **Description:**  
 Automatic cluster partition recovery with configurable strategies.
+=> TODO: We need this support and also add explicit test so that it's working properly
 
 ```yaml
 spring:
@@ -679,35 +662,6 @@ spring:
         endpoint: http://localhost:9411/api/v2/spans
 ```
 
-### 6.2 Structured Logging with MDC
-
-**Priority:** MEDIUM  
-**Complexity:** Low
-
-**Description:**  
-Enhanced MDC (Mapped Diagnostic Context) support for actor logging.
-
-```java
-@Component
-public class OrderActor implements SpringActor<Command> {
-    
-    @Override
-    public SpringActorBehavior<Command> create(SpringActorContext ctx) {
-        return SpringActorBehavior.builder(Command.class, ctx)
-            .withMDC(Map.of(
-                "actorType", "OrderActor",
-                "environment", environment
-            ))
-            .onMessage(CreateOrder.class, (context, msg) -> {
-                // MDC automatically includes: actorPath, messageType, correlationId
-                log.info("Processing order: {}", msg.orderId());
-                return Behaviors.same();
-            })
-            .build();
-    }
-}
-```
-
 ### 6.3 Health Checks and Readiness Probes
 
 **Priority:** HIGH  
@@ -715,6 +669,7 @@ public class OrderActor implements SpringActor<Command> {
 
 **Description:**  
 Spring Boot Actuator integration for actor system health.
+=> TODO: this is wonderful 
 
 ```java
 @Component
@@ -779,6 +734,7 @@ Features to ensure high performance and reliability.
 
 **Description:**  
 Automatic circuit breaker for actor communication.
+=> TODO: should we support this as a library native feature or use pekko's provided lib? 
 
 ```java
 @Component
@@ -806,6 +762,7 @@ public class ResilientActor implements SpringActor<Command> {
 
 **Description:**  
 Isolate actor pools to prevent cascading failures.
+=> TODO: we already have dispatcher configuration support 
 
 ```java
 @Configuration
@@ -858,6 +815,7 @@ CompletionStage<Result> result = actor
 
 **Description:**  
 Automatic message deduplication based on message ID.
+=> TODO: we absolutely need this 
 
 ```java
 @Component
@@ -885,6 +843,7 @@ public class DeduplicatingActor implements SpringActor<Command> {
 
 **Description:**  
 Dynamically adjust actor concurrency based on system load.
+=> TODO: we will need a thorough testing for this  
 
 ```java
 @Override
@@ -907,24 +866,6 @@ public SpringActorBehavior<Command> create(SpringActorContext ctx) {
 
 Features that improve developer productivity.
 
-### 8.1 Hot Reload Support
-
-**Priority:** MEDIUM  
-**Complexity:** High
-
-**Description:**  
-Support for Spring Boot DevTools hot reload with actors.
-
-```yaml
-spring:
-  actor:
-    dev:
-      hot-reload:
-        enabled: true
-        preserve-state: true
-        restart-strategy: graceful
-```
-
 ### 8.2 Actor Visualization Tool
 
 **Priority:** LOW  
@@ -941,44 +882,6 @@ Web UI for visualizing actor hierarchy and message flow.
 - Interactive debugging
 
 **Access:** `http://localhost:8080/actuator/actors/ui`
-
-### 8.3 Code Generation from Definitions
-
-**Priority:** LOW  
-**Complexity:** Medium
-
-**Description:**  
-Generate actor boilerplate from YAML/JSON definitions.
-
-```yaml
-# actor-definitions.yaml
-actors:
-  - name: OrderActor
-    commands:
-      - name: CreateOrder
-        fields:
-          - name: orderId
-            type: String
-          - name: amount
-            type: Double
-        response: OrderCreated
-      - name: CancelOrder
-        fields:
-          - name: orderId
-            type: String
-        response: OrderCancelled
-    events:
-      - name: OrderCreated
-        fields:
-          - name: orderId
-            type: String
-          - name: amount
-            type: Double
-```
-
-```bash
-./gradlew generateActors
-```
 
 ### 8.4 Spring Boot Starter Templates
 
@@ -1035,6 +938,7 @@ Seamless integration with Spring ecosystem and external systems.
 
 **Description:**  
 Bridge between Spring Application Events and Actor messages.
+=> TODO: wonderful, we should support this but in a wrapped way 
 
 ```java
 @Component
@@ -1063,57 +967,6 @@ public class OrderActor implements SpringActor<Command> {
 }
 ```
 
-### 9.2 WebSocket Integration
-
-**Priority:** MEDIUM  
-**Complexity:** Medium
-
-**Description:**  
-Direct WebSocket-to-Actor message routing.
-
-```java
-@Configuration
-@EnableWebSocket
-public class WebSocketConfiguration {
-    
-    @Bean
-    public WebSocketHandler chatWebSocketHandler(SpringActorSystem actorSystem) {
-        return new ActorWebSocketHandler<ChatMessage>(
-            actorSystem,
-            ChatRoomActor.class,
-            session -> "chat-room-" + session.getUri().getQuery()
-        );
-    }
-}
-```
-
-### 9.3 Spring Integration Support
-
-**Priority:** LOW  
-**Complexity:** Medium
-
-**Description:**  
-Integration with Spring Integration channels and flows.
-
-```java
-@Configuration
-public class IntegrationConfiguration {
-    
-    @Bean
-    public IntegrationFlow actorIntegrationFlow(SpringActorSystem actorSystem) {
-        return IntegrationFlow
-            .from("inputChannel")
-            .handle(ActorHandlers.actorGateway(
-                actorSystem,
-                ProcessorActor.class,
-                "processor"
-            ))
-            .channel("outputChannel")
-            .get();
-    }
-}
-```
-
 ### 9.4 Kafka Integration
 
 **Priority:** MEDIUM  
@@ -1121,6 +974,7 @@ public class IntegrationConfiguration {
 
 **Description:**  
 Direct Kafka-to-Actor message routing with backpressure.
+=> TODO: adding an example module for kafka integration should be enough 
 
 ```java
 @Configuration
@@ -1147,6 +1001,7 @@ public class KafkaActorConfiguration {
 
 **Description:**  
 Expose actors as gRPC services.
+=> TODO: adding an example module for grpc integration should be enough
 
 ```java
 @GrpcService
@@ -1309,155 +1164,3 @@ public SpringActorBehavior<Command> create(SpringActorContext ctx) {
         .build();
 }
 ```
-
----
-
-## Implementation Priority Matrix
-
-| Feature | Priority | Complexity | Impact | Effort (weeks) |
-|---------|----------|------------|--------|----------------|
-| Event Sourcing Support | HIGH | High | High | 8-12 |
-| Router Support | HIGH | Medium | High | 4-6 |
-| TestKit Integration | HIGH | Medium | High | 3-4 |
-| Circuit Breaker | HIGH | Medium | High | 2-3 |
-| Retry Mechanisms | HIGH | Low | High | 1-2 |
-| Cluster Singleton | HIGH | Medium | High | 3-4 |
-| TLS/SSL Support | HIGH | Medium | High | 2-3 |
-| Authentication/Authorization | HIGH | High | High | 6-8 |
-| Enhanced Metrics | HIGH | Medium | Medium | 4-6 |
-| Distributed Tracing | HIGH | Medium | Medium | 3-4 |
-| Health Checks | HIGH | Low | Medium | 1-2 |
-| Pekko Streams Integration | HIGH | High | High | 8-10 |
-| Persistence Query | MEDIUM | Medium | Medium | 4-5 |
-| Durable State Store | MEDIUM | Medium | Medium | 3-4 |
-| Actor Source/Sink | MEDIUM | Medium | Medium | 2-3 |
-| Throttling | MEDIUM | Low | Medium | 1-2 |
-| Dynamic Router Resizing | MEDIUM | Medium | Medium | 2-3 |
-| Distributed Data (CRDTs) | MEDIUM | High | Medium | 6-8 |
-| Cluster Pub-Sub | MEDIUM | Medium | Medium | 3-4 |
-| Structured Logging | MEDIUM | Low | Low | 1 |
-| Grafana Dashboards | MEDIUM | Low | Medium | 2-3 |
-| Bulkhead Pattern | MEDIUM | Medium | Medium | 2-3 |
-| Message Deduplication | MEDIUM | Medium | Medium | 2-3 |
-| Spring Events Bridge | MEDIUM | Low | Medium | 1-2 |
-| WebSocket Integration | MEDIUM | Medium | Medium | 2-3 |
-| Kafka Integration | MEDIUM | Medium | High | 3-4 |
-| Audit Logging | MEDIUM | Low | Medium | 1-2 |
-| Message Encryption | MEDIUM | High | Medium | 4-5 |
-| Rate Limiting per User | MEDIUM | Medium | Medium | 2-3 |
-| Hot Reload Support | MEDIUM | High | Low | 4-5 |
-| Enhanced Error Messages | MEDIUM | Low | Low | 1 |
-| Snapshot Support | MEDIUM | Medium | Medium | 2-3 |
-| Cluster Sharding Rebalancing | MEDIUM | Medium | Medium | 3-4 |
-| Split Brain Resolver | HIGH | High | High | 4-6 |
-| Mock Actor Support | MEDIUM | Low | Medium | 1-2 |
-| Consistent Hashing Router | MEDIUM | Medium | Medium | 2-3 |
-| Performance Testing Utilities | LOW | Medium | Low | 2-3 |
-| Adaptive Concurrency | LOW | High | Low | 6-8 |
-| Actor Visualization Tool | LOW | Medium | Low | 4-6 |
-| Code Generation | LOW | Medium | Low | 3-4 |
-| Spring Boot Templates | LOW | Low | Low | 2-3 |
-| Spring Integration Support | LOW | Medium | Low | 2-3 |
-| gRPC Integration | LOW | High | Medium | 4-6 |
-
----
-
-## Recommended Implementation Phases
-
-### Phase 1: Core Resilience (3-4 months)
-Focus on making actors production-ready with resilience patterns.
-
-1. Circuit Breaker Pattern
-2. Retry Mechanisms with Backoff
-3. Enhanced Metrics (Complete TODO.md)
-4. Health Checks and Readiness Probes
-5. TLS/SSL for Remote Actors
-6. Split Brain Resolver
-
-### Phase 2: Advanced Features (4-5 months)
-Add powerful Pekko features for complex use cases.
-
-1. Event Sourcing Support
-2. Router Support (Round Robin, Smallest Mailbox, etc.)
-3. Cluster Singleton Support
-4. TestKit Integration
-5. Distributed Tracing Integration
-6. Authentication and Authorization
-
-### Phase 3: Streams and Integration (3-4 months)
-Enable stream processing and external integrations.
-
-1. Pekko Streams Integration
-2. Actor Source and Sink
-3. Kafka Integration
-4. WebSocket Integration
-5. Spring Events Bridge
-6. Throttling and Rate Limiting
-
-### Phase 4: Developer Experience (2-3 months)
-Improve productivity and debugging.
-
-1. Mock Actor Support
-2. Enhanced Error Messages
-3. Structured Logging with MDC
-4. Grafana Dashboard Templates
-5. Performance Testing Utilities
-6. Hot Reload Support
-
-### Phase 5: Advanced Clustering (3-4 months)
-Enterprise-grade distributed features.
-
-1. Distributed Data (CRDTs)
-2. Cluster Pub-Sub
-3. Dynamic Router Resizing
-4. Cluster Sharding Rebalancing
-5. Persistence Query Support
-6. Durable State Store
-
-### Phase 6: Security and Compliance (2-3 months)
-Security features for enterprise deployments.
-
-1. Audit Logging
-2. Message Encryption
-3. Rate Limiting per User
-4. Message Deduplication
-5. Bulkhead Pattern
-
-### Phase 7: Ecosystem Integration (2-3 months)
-Deep integration with Spring and other frameworks.
-
-1. Spring Integration Support
-2. gRPC Integration
-3. Spring Boot Starter Templates
-4. Code Generation from Definitions
-5. Actor Visualization Tool
-
----
-
-## Getting Started
-
-To contribute to implementing these features:
-
-1. **Review the Priority Matrix** - Start with HIGH priority features
-2. **Check Existing Issues** - See if feature is already being worked on
-3. **Create Design Document** - Propose API design before implementation
-4. **Write Tests First** - Follow TDD approach
-5. **Update Documentation** - Include examples and guides
-6. **Submit PR** - Follow contribution guidelines in CONTRIBUTION.md
-
-## Feedback and Suggestions
-
-This roadmap is a living document. Please:
-
-- Open issues for feature discussions
-- Propose alternative implementations
-- Share your production use cases
-- Contribute to feature prioritization
-
-Together, we can build the most comprehensive actor library for Spring Boot!
-
----
-
-**Last Updated:** 2025-11-08  
-**Version:** 1.0  
-**Contributors:** GitHub Copilot, Spring Boot Starter Actor Community
