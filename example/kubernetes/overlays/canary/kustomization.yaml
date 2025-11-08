@@ -25,10 +25,13 @@ replicas:
 - name: spring-actor
   count: 1
 
+# Additional canary resources
+resources:
+- service-patch.yaml
+
 # Canary-specific patches
 patchesStrategicMerge:
 - deployment-patch.yaml
-- service-patch.yaml
 
 configMapGenerator:
 - name: spring-actor-config

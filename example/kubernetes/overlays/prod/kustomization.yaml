@@ -16,15 +16,18 @@ images:
 - name: your-registry/spring-actor-app
   newTag: v1.0.0
 
-# Production replicas
+# Production replicas (will be managed by HPA)
 replicas:
 - name: spring-actor
   count: 5
 
+# Additional production resources
+resources:
+- hpa.yaml
+
 # Patches for production
 patchesStrategicMerge:
 - deployment-patch.yaml
-- hpa.yaml
 
 configMapGenerator:
 - name: spring-actor-config
