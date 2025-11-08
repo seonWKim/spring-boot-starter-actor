@@ -20,6 +20,52 @@ spring:
           - pekko://spring-pekko-example@127.0.0.1:2552
           - pekko://spring-pekko-example@127.0.0.1:2553
         downing-provider-class: org.apache.pekko.cluster.sbr.SplitBrainResolverProvider
+        
+        # Split Brain Resolver Configuration
+        # Handles network partitions to prevent split brain scenarios
+        split-brain-resolver:
+          # Strategy to use: keep-majority, keep-oldest, static-quorum, keep-referee, down-all
+          active-strategy: keep-majority
+          
+          # Time margin after which shards or singletons that belonged to a downed/removed partition are created in surviving partition
+          # Increase this if you want to give more time for the cluster to stabilize before taking action
+          stable-after: 20s
+          
+          # When the cluster is unstable (e.g., no majority can be determined), should all nodes be downed?
+          # "on" = down all nodes when unstable
+          # "off" = keep nodes up even when unstable (not recommended)
+          down-all-when-unstable: on
+          
+          # Keep-Majority Strategy Configuration
+          # Keeps the partition with the majority of nodes alive
+          # Best for most use cases with 3+ nodes
+          keep-majority:
+            # Optional: Only consider nodes with this role
+            # Empty string means consider all nodes
+            role: ""
+          
+          # Keep-Oldest Strategy Configuration
+          # Keeps the partition containing the oldest node alive
+          # Useful when you need deterministic behavior
+          keep-oldest:
+            # Should the oldest node be downed if it's completely alone?
+            # "on" = down the oldest if isolated
+            # "off" = keep oldest even if alone
+            down-if-alone: on
+            
+            # Optional: Only consider nodes with this role
+            role: ""
+          
+          # Static Quorum Strategy Configuration
+          # Requires a minimum number of nodes to keep partition alive
+          # Good for mission-critical systems needing guaranteed capacity
+          static-quorum:
+            # Minimum number of nodes required
+            # Any partition with fewer nodes will be downed
+            quorum-size: 0
+            
+            # Optional: Only consider nodes with this role
+            role: ""
 
 server:
   port: 8080
