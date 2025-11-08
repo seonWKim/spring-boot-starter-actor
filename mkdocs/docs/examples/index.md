@@ -85,6 +85,6 @@ To run these examples:
 
 ## Additional Resources
 
-- [Spring Boot Starter Actor Documentation](../docs/index.md)
-- [API Reference](../docs/api-reference.md)
+- [Spring Boot Starter Actor Documentation](../index.md)
+- [API Reference](../api-reference.md)
 - [GitHub Repository](https://github.com/seonwkim/spring-boot-starter-actor)

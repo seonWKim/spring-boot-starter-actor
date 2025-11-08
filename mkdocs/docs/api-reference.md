@@ -145,4 +145,36 @@ public class SpringShardedActorRef<T> {
 
 ## Serialization
 
-Refer to `JsonSerializable` or `CborSerializable`.
+For cluster communication, messages sent between actors must be serializable. Spring Boot Starter Actor provides two marker interfaces for serialization:
+
+### JsonSerializable
+
+Use `JsonSerializable` for JSON-based serialization (recommended):
+
+```java
+public static class MyCommand extends AskCommand<String> implements JsonSerializable {
+    public final String data;
+
+    @JsonCreator
+    public MyCommand(@JsonProperty("data") String data) {
+        this.data = data;
+    }
+}
+```
+
+### CborSerializable
+
+Use `CborSerializable` for more efficient binary serialization:
+
+```java
+public static class MyCommand implements CborSerializable {
+    public final String data;
+
+    @JsonCreator
+    public MyCommand(@JsonProperty("data") String data) {
+        this.data = data;
+    }
+}
+```
+
+**Important:** Do not use Java's default serialization (`implements Serializable`). Always use `JsonSerializable` or `CborSerializable` for cluster communication.
