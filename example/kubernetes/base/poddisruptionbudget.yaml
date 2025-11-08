@@ -1,0 +1,15 @@
+---
+# PodDisruptionBudget ensures minimum availability during voluntary disruptions
+# (e.g., node drains, cluster upgrades)
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: spring-actor-pdb
+  labels:
+    app: spring-actor
+spec:
+  minAvailable: 2  # Always keep at least 2 pods running
+  selector:
+    matchLabels:
+      app: spring-actor
+  unhealthyPodEvictionPolicy: IfHealthyBudget

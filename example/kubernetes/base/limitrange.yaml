@@ -1,0 +1,40 @@
+---
+# LimitRange enforces default resource limits and constraints for containers
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: spring-actor-limits
+spec:
+  limits:
+  # Container limits
+  - type: Container
+    max:
+      cpu: "4"
+      memory: "8Gi"
+    min:
+      cpu: "100m"
+      memory: "256Mi"
+    default:
+      cpu: "1"
+      memory: "2Gi"
+    defaultRequest:
+      cpu: "500m"
+      memory: "1Gi"
+    maxLimitRequestRatio:
+      memory: 2  # Limit can be max 2x the request
+  
+  # Pod limits
+  - type: Pod
+    max:
+      cpu: "8"
+      memory: "16Gi"
+    min:
+      cpu: "100m"
+      memory: "256Mi"
+  
+  # PVC limits
+  - type: PersistentVolumeClaim
+    max:
+      storage: "20Gi"
+    min:
+      storage: "1Gi"

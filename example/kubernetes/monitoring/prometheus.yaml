@@ -69,6 +69,8 @@ spec:
         volumeMounts:
         - name: config
           mountPath: /etc/prometheus
+        - name: alerts
+          mountPath: /etc/prometheus/alerts
         - name: storage
           mountPath: /prometheus
         resources:
@@ -82,6 +84,9 @@ spec:
       - name: config
         configMap:
           name: prometheus-config
+      - name: alerts
+        configMap:
+          name: prometheus-alerts
       - name: storage
         emptyDir: {}
 ---

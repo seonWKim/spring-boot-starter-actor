@@ -1,0 +1,28 @@
+---
+# ResourceQuota limits total resource consumption in the namespace
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: spring-actor-quota
+spec:
+  hard:
+    # Limit total pods
+    pods: "20"
+    
+    # Compute resources
+    requests.cpu: "20"
+    requests.memory: "40Gi"
+    limits.cpu: "40"
+    limits.memory: "80Gi"
+    
+    # Storage
+    persistentvolumeclaims: "10"
+    requests.storage: "100Gi"
+    
+    # Services
+    services.loadbalancers: "2"
+    services.nodeports: "5"
+    
+    # ConfigMaps and Secrets
+    configmaps: "20"
+    secrets: "20"

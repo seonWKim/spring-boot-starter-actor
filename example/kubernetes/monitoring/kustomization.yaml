@@ -9,3 +9,4 @@ resources:
 - prometheus.yaml
 - grafana.yaml
 - dashboards.yaml
+- alerts.yaml

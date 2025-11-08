@@ -9,6 +9,17 @@ data:
       scrape_interval: 15s
       evaluation_interval: 15s
 
+    # Load alerting rules
+    rule_files:
+    - '/etc/prometheus/alerts/*.yml'
+
+    # Alertmanager configuration (optional - configure if you deploy Alertmanager)
+    # alerting:
+    #   alertmanagers:
+    #   - static_configs:
+    #     - targets:
+    #       - alertmanager:9093
+
     scrape_configs:
     # Scrape Prometheus itself
     - job_name: 'prometheus'
