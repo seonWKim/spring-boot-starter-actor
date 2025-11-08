@@ -18,6 +18,10 @@ public class InvokeAdviceEventInterceptorsHolder {
         void onEnter(Object envelope);
 
         void onExit(Object envelope, long startTime);
+
+        default void onError(Object envelope, long startTime, Throwable throwable) {
+            // Default implementation for backward compatibility
+        }
     }
 
     public static void register(InvokeAdviceEventInterceptor interceptor) {
@@ -34,6 +38,10 @@ public class InvokeAdviceEventInterceptorsHolder {
 
     public static void invokeAdviceOnExit(Object envelope, long startTime) {
         holder.forEach(it -> it.onExit(envelope, startTime));
+    }
+
+    public static void invokeAdviceOnError(Object envelope, long startTime, Throwable throwable) {
+        holder.forEach(it -> it.onError(envelope, startTime, throwable));
     }
 
     public static void reset() {
