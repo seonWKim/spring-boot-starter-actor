@@ -1,45 +1,71 @@
 # Feature Roadmap
 
-This directory contains the comprehensive feature roadmap for spring-boot-starter-actor.
+This directory contains the comprehensive feature roadmap for spring-boot-starter-actor, organized for AI agent implementation.
 
-## Files
+## 🎯 Start Here
 
-- **[FEATURES_ROADMAP.md](FEATURES_ROADMAP.md)** - Main index with overview and design decisions
-- **[DEVELOPMENT_TODO.md](DEVELOPMENT_TODO.md)** - Development tracking and timeline
-- **[FEATURES_SUMMARY.md](FEATURES_SUMMARY.md)** - Quick summary (in parent directory)
+**👉 [ROADMAP.md](ROADMAP.md)** - Complete implementation roadmap (all-in-one)
 
-## Category Files
+## 📁 Implementation Directories
 
-Each category has a dedicated markdown file with detailed specifications:
+Each feature area has been organized into individual directories with AI-agent-ready tasks:
 
-1. **[1_PERSISTENCE_AND_EVENT_SOURCING.md](1_PERSISTENCE_AND_EVENT_SOURCING.md)** - Manual state management with adapter patterns
-2. **[2_STREAMS_AND_BACKPRESSURE.md](2_STREAMS_AND_BACKPRESSURE.md)** - Fluent builder API and library-native throttling
-3. **[3_ROUTING_PATTERNS.md](3_ROUTING_PATTERNS.md)** - Load balancing with hybrid Pekko wrapper approach
-4. **[4_TESTING_UTILITIES.md](4_TESTING_UTILITIES.md)** - Test utilities extracted from common patterns
-5. **[5_ADVANCED_CLUSTERING.md](5_ADVANCED_CLUSTERING.md)** - Enterprise clustering with explicit tests
-6. **[6_ENHANCED_OBSERVABILITY.md](6_ENHANCED_OBSERVABILITY.md)** - Metrics, health checks, and tracing
-7. **[7_PERFORMANCE_AND_RESILIENCE.md](7_PERFORMANCE_AND_RESILIENCE.md)** - Circuit breaker, retry, deduplication
-8. **[8_DEVELOPER_EXPERIENCE.md](8_DEVELOPER_EXPERIENCE.md)** - Error messages, hot reload, visualization
-9. **[9_INTEGRATION_FEATURES.md](9_INTEGRATION_FEATURES.md)** - Spring Events, WebSocket, Kafka/gRPC examples
-10. **[10_SECURITY_AND_COMPLIANCE.md](10_SECURITY_AND_COMPLIANCE.md)** - TLS/SSL, auth, audit logging, encryption
+### 🚨 Critical Priority
+- **[6-observability/](6-observability/)** - Metrics, health checks (CRITICAL - Only 1/50+ metrics done!)
+- **[7-resilience/](7-resilience/)** - Circuit breaker, deduplication, retry (HIGH)
 
-## Quick Start
+### ⚡ High Priority
+- **[3-routing/](3-routing/)** - Router patterns (Excellent design, proceed as-is)
+- **[4-testing/](4-testing/)** - Testing utilities (Wrap Pekko TestKit)
+- **[5-clustering/](5-clustering/)** - Advanced clustering (Split brain testing CRITICAL)
+- **[8-developer-experience/](8-developer-experience/)** - Error messages (HIGH DX impact)
+- **[10-security/](10-security/)** - TLS/SSL, auth, audit logging
 
-1. **For Overview**: Read [FEATURES_ROADMAP.md](FEATURES_ROADMAP.md)
-2. **For Implementation Status**: Check [DEVELOPMENT_TODO.md](DEVELOPMENT_TODO.md)
-3. **For Detailed Specs**: Read individual category files
-4. **For Quick Reference**: See [FEATURES_SUMMARY.md](FEATURES_SUMMARY.md) in parent directory
+### 📚 Medium Priority
+- **[1-persistence/](1-persistence/)** - Persistence patterns (Documentation focus, not library features)
+- **[9-integration/](9-integration/)** - Spring Events, Kafka/gRPC examples
 
-## Design Principles
+### 🔍 Low Priority / Reconsider
+- **[2-streams/](2-streams/)** - Streams & backpressure (Use Pekko Streams + examples)
 
-All features follow these principles:
+## 🚀 Quick Start
 
-- **Spring Boot Native**: Leverage Spring ecosystem
-- **Explicit over Implicit**: User control
-- **Production Ready**: Metrics, health checks, reliability
-- **Developer Friendly**: Fluent APIs, clear errors
-- **Pragmatic**: Library support where valuable, examples where flexible
+### For Implementers
+1. **Read:** [ROADMAP.md](ROADMAP.md) - Complete roadmap
+2. **Start:** Navigate to `6-observability/` (Phase 0 - CRITICAL)
+3. **Tasks:** Check `tasks/TASK_PRIORITY.md` in each directory
+4. **Implement:** Follow detailed task specifications
 
-## Contributing
+### For Quick Reference
+- **Timeline:** 14-16 months (optimized from 18-21)
+- **Phase 0:** Metrics completion (4-6 weeks) - DO THIS FIRST
+- **Current State:** Only 1/50+ metrics implemented
 
-See [CONTRIBUTION.md](../CONTRIBUTION.md) and [DEVELOPMENT_TODO.md](DEVELOPMENT_TODO.md) for how to contribute.
+## 📊 Task Organization
+
+Each feature directory contains:
+```
+feature-name/
+├── README.md              # Feature overview with review notes
+└── tasks/
+    ├── TASK_PRIORITY.md   # Priority order and time estimates
+    └── XX-task-name.md    # Detailed task specifications
+```
+
+## ⏱️ Implementation Phases
+
+1. **Phase 0 (CRITICAL):** Metrics completion - 4-6 weeks
+2. **Phase 1:** Core resilience - 8-10 weeks
+3. **Phase 2:** Advanced features - 10-12 weeks
+4. **Phase 3:** Integration & docs - 6-8 weeks
+5. **Phase 4:** Clustering & security - 8-10 weeks
+
+**Total:** 14-16 months (20% faster than original plan)
+
+## 📋 What's Inside
+
+Each feature directory (`1-persistence/` through `10-security/`) contains:
+- `README.md` - Feature overview with recommendations
+- `tasks/TASK_PRIORITY.md` - Task breakdown with estimates
+
+See [ROADMAP.md](ROADMAP.md) for complete details.

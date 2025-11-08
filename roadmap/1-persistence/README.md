@@ -2,25 +2,56 @@
 
 Spring Boot users need explicit, manual control over state persistence with familiar patterns and non-blocking support for production systems.
 
+> **⚠️ UPDATED RECOMMENDATION (2025-01-08):**
+> **Approach:** Documentation & Patterns (not library features)
+> **Priority:** MEDIUM → LOW (documentation focus)
+> **Rationale:** Spring Data already provides everything needed. Actors can directly inject repositories. No need for additional abstraction layers.
+
 ---
 
-## 1.1 Manual State Persistence with Adapter Pattern
+## 1.1 ~~Manual State Persistence with Adapter Pattern~~ → Direct Repository Usage
 
-**Priority:** HIGH  
-**Complexity:** Medium  
+**Priority:** ~~HIGH~~ **MEDIUM** (Documentation focus)
+**Complexity:** ~~Medium~~ **LOW**
 **Spring Boot Compatibility:** Excellent
+**Approach:** ~~Library feature~~ **Documentation & Examples**
 
 ### Overview
 
-Instead of implicit event sourcing, provide Spring Boot users with explicit, manual state persistence using familiar repository patterns. This approach gives developers full control over when and how state is persisted, integrating seamlessly with existing Spring Data infrastructure.
+~~Instead of implicit event sourcing, provide Spring Boot users with explicit, manual state persistence using familiar repository patterns.~~
+
+**SIMPLIFIED APPROACH:** Actors already support Spring DI. Users can directly inject Spring Data repositories into actors - no additional library features needed! Focus on documenting best practices and patterns.
 
 ### Design Philosophy
 
 - **Explicit over Implicit**: Users explicitly call `.save()` methods
-- **Spring Boot Native**: Leverages Spring Data repositories
-- **Database Agnostic**: Works with JPA, MongoDB, R2DBC, etc.
-- **Non-Blocking Ready**: Full support for reactive/async operations
-- **Production Ready**: Built-in connection pooling, retries, and health checks
+- **Spring Boot Native**: Leverages Spring Data repositories (already works!)
+- **Database Agnostic**: Works with JPA, MongoDB, R2DBC, etc. (via Spring Data)
+- **Non-Blocking Ready**: Full support for reactive/async operations (via Spring Data R2DBC/Reactive MongoDB)
+- **Production Ready**: ~~Built-in connection pooling, retries, and health checks~~ **Use Spring Data's existing features**
+
+### What Changed
+
+**❌ REMOVE from library:**
+- `ActorStateAdapter` interface and implementations (unnecessary abstraction)
+- Custom connection pooling (Spring Data handles this)
+- Custom retry logic (Spring Data/Spring Retry handles this)
+- Custom health checks (Spring Boot Actuator handles this)
+
+**✅ KEEP as documentation:**
+- Best practices for using repositories in actors
+- Patterns for async/non-blocking persistence
+- Examples for JPA, MongoDB, R2DBC
+- Event log patterns for audit trails
+- Snapshot strategies (users implement as needed)
+
+### Why This Simpler Approach is Better
+
+1. **Less code to maintain**: No custom adapter layer
+2. **Familiar patterns**: Spring Boot users already know Spring Data
+3. **Better ecosystem integration**: Use Spring's battle-tested infrastructure
+4. **Easier to debug**: Standard Spring Data behavior
+5. **Faster implementation**: Documentation vs. library features
 
 ### Implementation Example
 

@@ -6,12 +6,17 @@ Enhanced clustering capabilities for production-grade distributed systems, notin
 
 ## 5.1 Cluster Singleton Support
 
-**Priority:** HIGH  
-**Status:** ✅ ALREADY SUPPORTED
+**Priority:** HIGH
+**Status:** ⚠️ **VERIFY IF ALREADY SUPPORTED**
+**Action:** Check if cluster singleton exists in current codebase
 
 ### Note
 
-The library already supports cluster singleton! Document existing functionality and provide usage examples.
+The roadmap claims "The library already supports cluster singleton!" - **VERIFY THIS CLAIM** by checking:
+1. Search codebase for `ClusterSingleton` annotation/class
+2. Check if Pekko Cluster Singleton is wrapped
+3. If exists: Document it thoroughly with examples
+4. If doesn't exist: Implement wrapper around Pekko's cluster singleton
 
 ### Usage Example
 

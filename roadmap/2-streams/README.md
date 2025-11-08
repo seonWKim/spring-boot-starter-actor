@@ -1,26 +1,61 @@
 # 2. Streams and Backpressure
 
-Provide Spring Boot users with fluent builder patterns for stream processing that integrate seamlessly with actors, featuring automatic backpressure and library-native throttling.
+~~Provide Spring Boot users with fluent builder patterns for stream processing that integrate seamlessly with actors, featuring automatic backpressure and library-native throttling.~~
+
+> **🚨 CRITICAL RECOMMENDATION (2025-01-08):**
+> **RECONSIDER THIS ENTIRE FEATURE**
+> **Current Approach:** Reimplementing Pekko Streams with custom API
+> **Problem:** Massive development effort (6-8 weeks), ongoing maintenance burden, duplicates battle-tested functionality
+> **Alternative:** Examples showing how to use Pekko Streams with actors, optional thin wrapper if needed
+> **Priority:** HIGH → **LOW** (reconsider need)
 
 ---
 
-## 2.1 Fluent Builder Pattern for Actor Streams
+## 2.1 ~~Fluent Builder Pattern for Actor Streams~~ → Use Pekko Streams + Examples
 
-**Priority:** HIGH  
-**Complexity:** High  
-**Spring Boot Compatibility:** Excellent
+**Priority:** ~~HIGH~~ **LOW (reconsider entirely)**
+**Complexity:** ~~High~~ **HIGH (if implemented)**
+**Spring Boot Compatibility:** ~~Excellent~~ **Better as examples**
+**Recommendation:** ⚠️ **START WITH EXAMPLES, NOT LIBRARY FEATURES**
 
 ### Overview
 
-Integrate Pekko Streams with our fluent builder API, making stream processing intuitive for Spring Boot developers while maintaining automatic backpressure handling.
+~~Integrate Pekko Streams with our fluent builder API~~
 
-### Design Philosophy
+**CRITICAL ANALYSIS:**
 
-- **Fluent API**: Chain operations using familiar builder patterns
-- **Spring Boot Integration**: Works with Spring beans and DI
-- **Automatic Backpressure**: Handle slow consumers gracefully
-- **Error Recovery**: Built-in retry and fallback mechanisms
-- **Monitoring**: Metrics for stream health and throughput
+**Why This Approach is Problematic:**
+1. **Massive Reimplementation**: You're essentially rebuilding Pekko Streams with a different API
+2. **High Maintenance**: Stream processing engines are complex - ongoing maintenance burden
+3. **Duplicate Functionality**: Pekko Streams already has:
+   - Automatic backpressure handling
+   - Error recovery mechanisms
+   - Monitoring and instrumentation
+   - Battle-tested operators
+4. **Development Cost**: 6-8 weeks of effort that could go to higher-value features
+5. **Learning Curve**: Users still need to understand stream concepts, different API doesn't help
+
+**Better Alternative:**
+
+**Phase 1: Examples (2-3 weeks)**
+- Show how to use Pekko Streams with Spring actors
+- Document common patterns (consume from stream → process in actor → publish results)
+- Provide ready-to-use examples for common use cases
+
+**Phase 2: Thin Wrapper (ONLY if examples prove too complex) (2-3 weeks)**
+- Spring Boot YAML configuration for common stream scenarios
+- Helper methods for actor-stream integration
+- Don't reinvent stream operators
+
+**Effort Saved:** 6-8 weeks → 2-3 weeks (75% reduction)
+**Maintenance Saved:** Ongoing complexity avoided
+
+### Design Philosophy (IF implementing wrapper)
+
+- **Minimal Wrapper**: Don't hide Pekko Streams, enhance it
+- **Spring Boot Integration**: YAML configuration only
+- **Leverage Pekko**: Use Pekko's backpressure, operators, monitoring
+- **Focus on Integration**: Actor↔Stream connection points only
 
 ### Implementation Example
 
@@ -233,22 +268,40 @@ CompletionStage<Done> result = actorSystem.stream()
 
 ---
 
-## 2.2 Library-Native Throttling
+## 2.2 ~~Library-Native Throttling~~ → Wrap Pekko's Throttling
 
-**Priority:** HIGH  
-**Complexity:** Low
+**Priority:** ~~HIGH~~ **MEDIUM**
+**Complexity:** ~~Low~~ **LOW (if wrapping Pekko)**
+**Recommendation:** ⚠️ **WRAP PEKKO'S THROTTLING, DON'T REIMPLEMENT**
 
 ### Overview
 
-Implement throttling directly in the library (not using Pekko's built-in features) for better Spring Boot integration and monitoring.
+~~Implement throttling directly in the library (not using Pekko's built-in features)~~
 
-### Design Philosophy
+**WHY NOT TO REIMPLEMENT:**
+1. Pekko's throttling is battle-tested and production-proven
+2. Reinventing adds maintenance burden
+3. Risk of bugs in rate limiting algorithms
+4. Pekko's implementation is performant and correct
 
-- **Library Native**: Implemented within our codebase for full control
-- **Configuration-Driven**: Spring Boot properties for easy tuning
-- **Per-Actor Throttling**: Independent rate limits per actor type
-- **Dynamic Adjustment**: Runtime throttle adjustment
-- **Metrics Integration**: Built-in monitoring and alerts
+**BETTER APPROACH:**
+
+**Wrap Pekko's throttling with Spring Boot configuration:**
+```yaml
+spring:
+  actor:
+    throttling:
+      OrderActor:
+        max-throughput: 100
+        burst-size: 20
+```
+
+### Design Philosophy (Wrapper Approach)
+
+- **Leverage Pekko**: Use Pekko's proven throttling implementation
+- **Spring Boot Configuration**: YAML-based configuration only
+- **Metrics Integration**: Add Spring Boot-friendly metrics on top
+- **Don't Reinvent**: Wrap, don't reimplement rate limiting algorithms
 
 ### Implementation
 

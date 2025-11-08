@@ -130,8 +130,11 @@ spec:
 
 ## 6.2 Enhanced Metrics (Complete TODO.md)
 
-**Priority:** HIGH  
-**Status:** Complete metrics/TODO.md checklist
+**Priority:** 🚨 **CRITICAL - HIGHEST PRIORITY**
+**Status:** ⚠️ **Only 1 of 50+ metrics implemented** (see `metrics/TODO.md`)
+**Current State:** `actor.processing-time` ✅ | All other metrics ❌
+
+> **CRITICAL FINDING:** The metrics/TODO.md file shows extensive metrics planned but only 1 is currently implemented. This should be the HIGHEST PRIORITY before adding new features.
 
 ### All Required Metrics
 

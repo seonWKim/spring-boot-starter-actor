@@ -266,12 +266,22 @@ actor.ask(new ProcessRequest(data))
 
 ## 7.5 Adaptive Concurrency Control
 
-**Priority:** LOW  
-**Testing:** Need thorough testing for this
+**Priority:** ~~LOW~~ **DEFER (may not be needed)**
+**Testing:** ~~Need thorough testing for this~~ **Would require extensive testing if implemented**
+**Recommendation:** ⚠️ **DEFER UNTIL PROVEN NEED**
 
 ### Overview
 
-Dynamic concurrency adjustment based on system metrics. Requires extensive testing due to complexity.
+~~Dynamic concurrency adjustment based on system metrics.~~
+
+**WHY DEFER THIS FEATURE:**
+1. **Very High Complexity**: Adaptive algorithms are notoriously difficult to get right
+2. **Risk of Instability**: Can cause thrashing if not carefully tuned
+3. **Extensive Testing Required**: Needs testing under varied load patterns
+4. **Unclear Value**: Most users benefit more from fixed, well-tuned concurrency
+5. **Alternative**: Users can manually adjust based on metrics (simpler, safer)
+
+**Recommendation:** Defer until users explicitly request this and provide use cases where manual tuning isn't sufficient.
 
 ### Implementation
 

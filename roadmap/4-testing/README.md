@@ -2,11 +2,18 @@
 
 Extract common testing patterns from existing tests and provide Spring Boot-friendly test utilities for comprehensive actor testing.
 
+> **✅ GOOD APPROACH - Minor Adjustment**
+> **Recommendation:** Build thin wrapper over Pekko TestKit (don't reinvent)
+> **Priority:** HIGH
+> **Focus:** Spring Boot integration + Mock support
+
 ---
 
 ## Overview
 
 Based on analysis of existing test patterns in the codebase, provide reusable test utilities that make actor testing intuitive for Spring Boot developers.
+
+**KEY PRINCIPLE:** Don't reinvent Pekko TestKit - wrap it with Spring Boot-friendly API.
 
 ### Common Test Patterns Identified
 
