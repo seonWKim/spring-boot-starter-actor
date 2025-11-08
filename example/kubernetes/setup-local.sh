@@ -9,285 +9,286 @@ BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
-echo -e "${CYAN}"
-cat << "EOF"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+CLUSTER_NAME="spring-actor-demo"
+NAMESPACE="spring-actor"
+
+# Function to print banner
+print_banner() {
+    echo -e "${CYAN}"
+    cat << "EOF"
 ╔════════════════════════════════════════════════════════════════╗
 ║                                                                ║
-║   Spring Boot Starter Actor - Kubernetes Example Setup         ║
+║   Spring Boot Starter Actor - Kubernetes Example              ║
 ║                                                                ║
 ╚════════════════════════════════════════════════════════════════╝
 EOF
-echo -e "${NC}"
+    echo -e "${NC}"
+}
 
-echo -e "${YELLOW}⚠️  Prerequisites:${NC}"
-echo -e "   Docker Desktop must have ${GREEN}at least 8 GB${NC} of memory allocated"
-echo -e "   (Settings → Resources → Memory → 8 GB → Apply & Restart)"
-echo
+# Function to show usage
+show_usage() {
+    print_banner
+    echo -e "${CYAN}Usage:${NC}"
+    echo -e "  ./setup-local.sh [command]"
+    echo
+    echo -e "${CYAN}Commands:${NC}"
+    echo -e "  ${GREEN}setup${NC}         Set up the local Kubernetes cluster (default)"
+    echo -e "  ${GREEN}status${NC}        Show cluster and pod status"
+    echo -e "  ${GREEN}logs${NC}          View application logs"
+    echo -e "  ${GREEN}port-forward${NC}  Set up port forwarding to individual pods"
+    echo -e "  ${GREEN}rebuild${NC}       Rebuild application and restart deployment"
+    echo -e "  ${GREEN}cleanup${NC}       Clean up all resources"
+    echo -e "  ${GREEN}help${NC}          Show this help message"
+    echo
+}
 
-# Check prerequisites
-echo -e "${YELLOW}[1/6] Checking prerequisites...${NC}"
+# Function to check if cluster exists
+cluster_exists() {
+    kind get clusters 2>/dev/null | grep -q "$CLUSTER_NAME"
+}
 
-check_command() {
-    if ! command -v $1 &> /dev/null; then
-        echo -e "${RED}✗ $1 is not installed${NC}"
-        echo -e "${YELLOW}  Please install $1: $2${NC}"
-        return 1
+# Function to check if namespace exists
+namespace_exists() {
+    kubectl get namespace $NAMESPACE &> /dev/null
+}
+
+# Setup function
+setup_cluster() {
+    print_banner
+
+    echo -e "${YELLOW}⚠️  Prerequisites:${NC}"
+    echo -e "   Docker Desktop must have ${GREEN}at least 8 GB${NC} of memory allocated"
+    echo -e "   (Settings → Resources → Memory → 8 GB → Apply & Restart)"
+    echo
+
+    # Check prerequisites
+    echo -e "${YELLOW}[1/5] Checking prerequisites...${NC}"
+    "$SCRIPT_DIR/scripts/check-prerequisites.sh"
+    echo
+
+    # Create kind cluster
+    echo -e "${YELLOW}[2/5] Creating local Kubernetes cluster...${NC}"
+
+    if cluster_exists; then
+        echo -e "${GREEN}✓ Cluster '$CLUSTER_NAME' already exists${NC}"
     else
-        echo -e "${GREEN}✓ $1 is installed${NC}"
-        return 0
+        kind create cluster --name $CLUSTER_NAME --config="$SCRIPT_DIR/scripts/kind-config.yaml"
+        echo -e "${GREEN}✓ Cluster created${NC}"
+
+        echo -e "${YELLOW}Waiting for all nodes to be ready...${NC}"
+        kubectl wait --for=condition=ready node --all --timeout=180s
+        echo -e "${GREEN}✓ All nodes ready${NC}"
+    fi
+
+    echo
+
+    # Build and load image
+    echo -e "${YELLOW}[3/5] Building application and Docker image...${NC}"
+    CLUSTER_NAME=$CLUSTER_NAME "$SCRIPT_DIR/scripts/build-local.sh"
+    echo
+
+    # Deploy to Kubernetes
+    echo -e "${YELLOW}[4/5] Deploying to Kubernetes...${NC}"
+    kubectl apply -k "$SCRIPT_DIR/overlays/local"
+    echo -e "${GREEN}✓ Deployed to Kubernetes${NC}"
+    echo
+
+    # Wait for deployment
+    echo -e "${YELLOW}[5/5] Waiting for pods to be ready (this may take 1-2 minutes)...${NC}"
+    kubectl wait --for=condition=ready pod -l app=spring-actor -n $NAMESPACE --timeout=180s || true
+    echo
+
+    # Show status
+    show_status
+
+    echo
+    echo -e "${CYAN}🔗 Access the Application:${NC}"
+    echo -e "   ${GREEN}Main Service:${NC}      http://localhost:8080"
+    echo
+
+    echo -e "${CYAN}📝 Available Commands:${NC}"
+    echo -e "   ${GREEN}./setup-local.sh status${NC}        Show cluster status"
+    echo -e "   ${GREEN}./setup-local.sh logs${NC}          View application logs"
+    echo -e "   ${GREEN}./setup-local.sh port-forward${NC}  Access individual pods (8080, 8081, 8082)"
+    echo -e "   ${GREEN}./setup-local.sh rebuild${NC}       Rebuild and restart"
+    echo -e "   ${GREEN}./setup-local.sh cleanup${NC}       Remove all resources"
+
+    echo
+    echo -e "${YELLOW}💡 Tip: Wait 30-60 seconds for the cluster to fully form before testing!${NC}"
+    echo
+}
+
+# Status function
+show_status() {
+    if ! cluster_exists; then
+        echo -e "${RED}✗ Cluster '$CLUSTER_NAME' does not exist${NC}"
+        echo -e "${YELLOW}  Run './setup-local.sh setup' to create it${NC}"
+        return 1
+    fi
+
+    echo -e "${GREEN}═══════════════════════════════════════════════════════════${NC}"
+    echo -e "${GREEN}✓ Cluster Status${NC}"
+    echo -e "${GREEN}═══════════════════════════════════════════════════════════${NC}"
+    echo
+
+    echo -e "${CYAN}📊 Pods:${NC}"
+    kubectl get pods -n $NAMESPACE -o wide 2>/dev/null || echo -e "${YELLOW}  No pods found in namespace '$NAMESPACE'${NC}"
+
+    echo
+    echo -e "${CYAN}🌐 Services:${NC}"
+    kubectl get svc -n $NAMESPACE 2>/dev/null || echo -e "${YELLOW}  No services found in namespace '$NAMESPACE'${NC}"
+
+    # Get first running pod for cluster info
+    POD_NAME=$(kubectl get pods -n $NAMESPACE -l app=spring-actor --field-selector=status.phase=Running -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
+
+    if [ -n "$POD_NAME" ]; then
+        echo
+        echo -e "${CYAN}🎯 Pekko Cluster Members:${NC}"
+        kubectl exec -n $NAMESPACE $POD_NAME -- curl -s localhost:8558/cluster/members 2>/dev/null | \
+            jq -r '.members[] | "   \(.node) - \(.status)"' 2>/dev/null || \
+            echo -e "${YELLOW}   Cluster still forming... (check again in 30 seconds)${NC}"
     fi
 }
 
-MISSING_DEPS=0
-
-check_command "docker" "https://docs.docker.com/get-docker/" || MISSING_DEPS=1
-check_command "kind" "https://kind.sigs.k8s.io/docs/user/quick-start/#installation" || MISSING_DEPS=1
-check_command "kubectl" "https://kubernetes.io/docs/tasks/tools/" || MISSING_DEPS=1
-
-if [ $MISSING_DEPS -eq 1 ]; then
-    echo
-    echo -e "${RED}Missing required dependencies. Please install them and try again.${NC}"
-    exit 1
-fi
-
-# Check Docker memory allocation
-DOCKER_MEM=$(docker info 2>/dev/null | grep "Total Memory" | awk '{print $3}' || echo "0")
-DOCKER_MEM_NUM=$(echo $DOCKER_MEM | sed 's/GiB//')
-if (( $(echo "$DOCKER_MEM_NUM < 7" | bc -l 2>/dev/null || echo 0) )); then
-    echo
-    echo -e "${RED}⚠️  Warning: Docker has only ${DOCKER_MEM} of memory allocated${NC}"
-    echo -e "${YELLOW}   A 3-node cluster requires at least 8 GB${NC}"
-    echo -e "${YELLOW}   Increase memory: Docker Desktop → Settings → Resources → Memory${NC}"
-    echo
-    read -p "Continue anyway? (y/N) " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        exit 1
+# Logs function
+show_logs() {
+    if ! namespace_exists; then
+        echo -e "${RED}✗ Namespace '$NAMESPACE' does not exist${NC}"
+        echo -e "${YELLOW}  Run './setup-local.sh setup' first${NC}"
+        return 1
     fi
-fi
 
-echo
+    echo -e "${CYAN}Streaming logs from all pods...${NC}"
+    echo -e "${YELLOW}Press Ctrl+C to stop${NC}"
+    echo
+    kubectl logs -f -n $NAMESPACE -l app=spring-actor --all-containers=true --max-log-requests=10
+}
 
-# Create kind cluster
-echo -e "${YELLOW}[2/6] Creating local Kubernetes cluster (this may take a few minutes)...${NC}"
+# Port forward function
+port_forward() {
+    if ! namespace_exists; then
+        echo -e "${RED}✗ Namespace '$NAMESPACE' does not exist${NC}"
+        echo -e "${YELLOW}  Run './setup-local.sh setup' first${NC}"
+        return 1
+    fi
 
-if kind get clusters 2>/dev/null | grep -q "spring-actor-demo"; then
-    echo -e "${GREEN}✓ Cluster 'spring-actor-demo' already exists${NC}"
-else
-    cat <<EOF | kind create cluster --name spring-actor-demo --config=-
-kind: Cluster
-apiVersion: kind.x-k8s.io/v1alpha4
-nodes:
-- role: control-plane
-  image: kindest/node:v1.27.3
-  extraPortMappings:
-  # Main load-balanced service
-  - containerPort: 30080
-    hostPort: 8080
-    protocol: TCP
-  # Individual pod access
-  - containerPort: 30081
-    hostPort: 8081
-    protocol: TCP
-  - containerPort: 30082
-    hostPort: 8082
-    protocol: TCP
-# Add worker nodes for multi-node cluster testing
-- role: worker
-  image: kindest/node:v1.27.3
-- role: worker
-  image: kindest/node:v1.27.3
-EOF
-    echo -e "${GREEN}✓ Cluster created${NC}"
+    echo -e "${CYAN}Setting up port forwarding to individual pods...${NC}"
+    echo
 
-    echo -e "${YELLOW}Waiting for all nodes to be ready...${NC}"
-    kubectl wait --for=condition=ready node --all --timeout=180s
-    echo -e "${GREEN}✓ All nodes ready${NC}"
-fi
+    # Get pod names
+    PODS=($(kubectl get pods -n $NAMESPACE -l app=spring-actor --field-selector=status.phase=Running -o jsonpath='{.items[*].metadata.name}'))
 
-echo
+    if [ ${#PODS[@]} -eq 0 ]; then
+        echo -e "${RED}✗ No running pods found${NC}"
+        echo -e "${YELLOW}  Please ensure the application is deployed and pods are running${NC}"
+        return 1
+    fi
 
-# Build application
-echo -e "${YELLOW}[3/6] Building Spring Boot application...${NC}"
-cd "$(dirname "$0")/../chat"
+    echo -e "${GREEN}Found ${#PODS[@]} running pod(s)${NC}"
+    echo
 
-if [ -f "../../gradlew" ]; then
-    ../../gradlew clean build -x test
-    echo -e "${GREEN}✓ Application built${NC}"
-else
-    echo -e "${RED}✗ gradlew not found${NC}"
-    exit 1
-fi
+    # Cleanup function to kill background port-forwards
+    cleanup_port_forwards() {
+        echo
+        echo -e "${YELLOW}Stopping all port forwards...${NC}"
+        jobs -p | xargs kill 2>/dev/null || true
+        exit 0
+    }
 
-echo
+    trap cleanup_port_forwards INT TERM
 
-# Build Docker image
-echo -e "${YELLOW}[4/6] Building Docker image...${NC}"
+    if [ ${#PODS[@]} -ge 1 ]; then
+        echo -e "${CYAN}➜${NC} Port forwarding ${PODS[0]} -> localhost:8080"
+        kubectl port-forward -n $NAMESPACE ${PODS[0]} 8080:8080 &
+    fi
 
-if ls build/libs/*.jar 1> /dev/null 2>&1; then
-    docker build -f Dockerfile.kubernetes -t spring-actor-chat:local .
+    if [ ${#PODS[@]} -ge 2 ]; then
+        echo -e "${CYAN}➜${NC} Port forwarding ${PODS[1]} -> localhost:8081"
+        kubectl port-forward -n $NAMESPACE ${PODS[1]} 8081:8080 &
+    fi
 
-    # Load image into kind
-    kind load docker-image spring-actor-chat:local --name spring-actor-demo
+    if [ ${#PODS[@]} -ge 3 ]; then
+        echo -e "${CYAN}➜${NC} Port forwarding ${PODS[2]} -> localhost:8082"
+        kubectl port-forward -n $NAMESPACE ${PODS[2]} 8082:8080 &
+    fi
 
-    echo -e "${GREEN}✓ Docker image built and loaded into kind${NC}"
-else
-    echo -e "${RED}✗ JAR file not found${NC}"
-    exit 1
-fi
+    echo
+    echo -e "${GREEN}✓ Port forwarding active${NC}"
+    echo -e "${CYAN}Access individual pods at:${NC}"
+    [ ${#PODS[@]} -ge 1 ] && echo -e "   ${GREEN}Pod 1:${NC} http://localhost:8080"
+    [ ${#PODS[@]} -ge 2 ] && echo -e "   ${GREEN}Pod 2:${NC} http://localhost:8081"
+    [ ${#PODS[@]} -ge 3 ] && echo -e "   ${GREEN}Pod 3:${NC} http://localhost:8082"
+    echo
+    echo -e "${YELLOW}Press Ctrl+C to stop all port forwards${NC}"
+    echo
 
-echo
+    wait
+}
 
-# Deploy to Kubernetes
-echo -e "${YELLOW}[5/6] Deploying to Kubernetes...${NC}"
-cd ../kubernetes
+# Rebuild function
+rebuild() {
+    if ! cluster_exists; then
+        echo -e "${RED}✗ Cluster '$CLUSTER_NAME' does not exist${NC}"
+        echo -e "${YELLOW}  Run './setup-local.sh setup' first${NC}"
+        return 1
+    fi
 
-# Update image reference in manifests
-cat > base/kustomization.yaml << 'KUST_EOF'
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
+    print_banner
+    echo -e "${YELLOW}Rebuilding application and restarting deployment...${NC}"
+    echo
 
-namespace: spring-actor
+    echo -e "${CYAN}[1/2] Building application and Docker image...${NC}"
+    CLUSTER_NAME=$CLUSTER_NAME "$SCRIPT_DIR/scripts/build-local.sh"
+    echo
 
-resources:
-- namespace.yaml
-- rbac.yaml
-- configmap.yaml
-- service.yaml
-- deployment.yaml
+    echo -e "${CYAN}[2/2] Restarting deployment...${NC}"
+    kubectl rollout restart deployment/spring-actor -n $NAMESPACE
+    echo -e "${GREEN}✓ Deployment restarted${NC}"
 
-commonLabels:
-  app: spring-actor
-  managed-by: kustomize
+    echo
+    echo -e "${YELLOW}Waiting for pods to be ready...${NC}"
+    kubectl wait --for=condition=ready pod -l app=spring-actor -n $NAMESPACE --timeout=180s || true
 
-images:
-- name: your-registry/spring-actor-app
-  newName: spring-actor-chat
-  newTag: local
-KUST_EOF
+    echo
+    echo -e "${GREEN}✓ Rebuild complete!${NC}"
+    echo
+}
 
-# Create a local overlay
-mkdir -p overlays/local
+# Cleanup function
+cleanup() {
+    "$SCRIPT_DIR/cleanup-local.sh"
+}
 
-cat > overlays/local/kustomization.yaml << 'LOCAL_KUST_EOF'
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
+# Main execution
+COMMAND="${1:-setup}"
 
-namespace: spring-actor
-
-bases:
-- ../../base
-
-replicas:
-- name: spring-actor
-  count: 3
-
-patchesStrategicMerge:
-- service-patch.yaml
-- deployment-patch.yaml
-LOCAL_KUST_EOF
-
-cat > overlays/local/service-patch.yaml << 'SERVICE_PATCH_EOF'
-apiVersion: v1
-kind: Service
-metadata:
-  name: spring-actor-http
-spec:
-  type: NodePort
-  ports:
-  - name: http
-    port: 80
-    targetPort: 8080
-    nodePort: 30080
-    protocol: TCP
-SERVICE_PATCH_EOF
-
-cat > overlays/local/deployment-patch.yaml << 'DEPLOY_PATCH_EOF'
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: spring-actor
-spec:
-  template:
-    spec:
-      containers:
-      - name: spring-actor
-        imagePullPolicy: Never
-        resources:
-          requests:
-            memory: "512Mi"
-            cpu: "250m"
-          limits:
-            memory: "1Gi"
-        env:
-        - name: ENVIRONMENT
-          value: "local"
-        - name: SPRING_PROFILES_ACTIVE
-          value: "kubernetes"
-        - name: JAVA_OPTS
-          value: >-
-            -XX:+UseContainerSupport
-            -XX:MaxRAMPercentage=75
-            -XX:+UseG1GC
-            -Dpekko.management.cluster.bootstrap.contact-point-discovery.required-contact-point-nr=2
-DEPLOY_PATCH_EOF
-
-# Apply manifests
-kubectl apply -k overlays/local
-
-echo -e "${GREEN}✓ Deployed to Kubernetes${NC}"
-
-echo
-
-# Wait for deployment
-echo -e "${YELLOW}[6/6] Waiting for pods to be ready (this may take 1-2 minutes)...${NC}"
-
-kubectl wait --for=condition=ready pod -l app=spring-actor -n spring-actor --timeout=180s || true
-
-echo
-
-# Show status
-echo -e "${GREEN}═══════════════════════════════════════════════════════════${NC}"
-echo -e "${GREEN}✓ Setup Complete!${NC}"
-echo -e "${GREEN}═══════════════════════════════════════════════════════════${NC}"
-echo
-
-echo -e "${CYAN}📊 Cluster Status:${NC}"
-kubectl get pods -n spring-actor -o wide
-
-echo
-echo -e "${CYAN}🌐 Service Endpoints:${NC}"
-kubectl get svc -n spring-actor
-
-echo
-echo -e "${CYAN}🔗 Access the Application:${NC}"
-echo -e "   ${GREEN}Chat UI:${NC} http://localhost:8080"
-echo
-
-# Get first running pod
-POD_NAME=$(kubectl get pods -n spring-actor -l app=spring-actor --field-selector=status.phase=Running -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
-
-if [ -n "$POD_NAME" ]; then
-    echo -e "${CYAN}🎯 Cluster Status:${NC}"
-
-    # Wait a bit for management endpoint to be ready
-    sleep 5
-
-    echo -e "${YELLOW}Checking cluster members...${NC}"
-    kubectl exec -n spring-actor $POD_NAME -- curl -s localhost:8558/cluster/members 2>/dev/null | \
-        jq -r '.members[] | "\(.node) - \(.status)"' 2>/dev/null || \
-        echo "Cluster still forming... (this is normal, check again in 30 seconds)"
-fi
-
-echo
-echo -e "${CYAN}📝 Useful Commands:${NC}"
-echo -e "   ${GREEN}View pods:${NC}             kubectl get pods -n spring-actor"
-echo -e "   ${GREEN}View logs:${NC}             kubectl logs -f -n spring-actor -l app=spring-actor"
-echo -e "   ${GREEN}Check cluster:${NC}         kubectl exec -n spring-actor <pod-name> -- curl localhost:8558/cluster/members | jq"
-echo -e "   ${GREEN}Access all pods:${NC}       ./port-forward-pods.sh (ports 8080, 8081, 8082)"
-echo -e "   ${GREEN}Cleanup:${NC}               ./cleanup-local.sh"
-
-echo
-echo -e "${YELLOW}💡 Tip: Wait 30-60 seconds for the cluster to fully form before testing!${NC}"
-echo -e "${YELLOW}💡 To access individual pods, run: ./port-forward-pods.sh${NC}"
-echo
+case "$COMMAND" in
+    setup)
+        setup_cluster
+        ;;
+    status)
+        show_status
+        ;;
+    logs)
+        show_logs
+        ;;
+    port-forward)
+        port_forward
+        ;;
+    rebuild)
+        rebuild
+        ;;
+    cleanup)
+        cleanup
+        ;;
+    help|--help|-h)
+        show_usage
+        ;;
+    *)
+        echo -e "${RED}Unknown command: $COMMAND${NC}"
+        echo
+        show_usage
+        exit 1
+        ;;
+esac
