@@ -1,0 +1,130 @@
+# Error Message Hints and Troubleshooting Guide
+# This file contains troubleshooting hints for common error scenarios
+
+error-types:
+  bean-not-found:
+    hints:
+      - "Ensure {beanClass} is annotated with @Component, @Repository, or @Service"
+      - "Check if component scanning includes the package containing {beanClass}"
+      - "Verify that the Spring context is properly configured"
+      - "Check if required dependencies are in the classpath"
+    doc-link: "/troubleshooting#bean-not-found"
+
+  actor-spawn-failure:
+    hints:
+      - "Check that the actor class has a proper constructor"
+      - "Verify all constructor dependencies are available in the Spring context"
+      - "Ensure the actor class is not abstract or an interface"
+      - "Check for exceptions in the actor's constructor or initialization"
+    doc-link: "/troubleshooting#actor-spawn-failure"
+
+  timeout:
+    hints:
+      - "Increase timeout duration (current: {currentTimeout})"
+      - "Check if actor {actorPath} is processing messages"
+      - "Verify the actor hasn't stopped or terminated"
+      - "Check mailbox size - the actor may be backed up with messages"
+      - "Ensure the actor responds to the message type being sent"
+    doc-link: "/troubleshooting#timeout"
+
+  dead-letter:
+    hints:
+      - "The target actor {actorPath} has been stopped or terminated"
+      - "Verify actor lifecycle and ensure it's still running"
+      - "Check if the actor path is correct"
+      - "Consider using watch() to monitor actor termination"
+    doc-link: "/troubleshooting#dead-letter"
+
+  unhandled-message:
+    hints:
+      - "Add a handler for message type {messageType} in the actor"
+      - "Check if the message type matches the actor's expected command type"
+      - "Consider adding a default message handler"
+      - "Verify message type compatibility"
+    doc-link: "/troubleshooting#unhandled-message"
+
+  serialization-error:
+    hints:
+      - "Implement JsonSerializable interface for message type {messageType}"
+      - "Add Jackson annotations (@JsonCreator, @JsonProperty) to the message class"
+      - "Ensure all message fields are serializable"
+      - "Avoid lambda expressions and anonymous classes in messages"
+      - "Check that the message class has a default constructor or @JsonCreator"
+    doc-link: "/troubleshooting#serialization-error"
+
+  cluster-formation:
+    hints:
+      - "Check seed node configuration in application.yml"
+      - "Verify network connectivity between cluster nodes"
+      - "Ensure ports are open (default: 2551)"
+      - "Verify hostname resolution for cluster members"
+      - "Check that all nodes use the same cluster name"
+    doc-link: "/troubleshooting#cluster-formation"
+
+  cluster-unreachable:
+    hints:
+      - "Check network connectivity to the unreachable node"
+      - "Verify firewall settings and port configuration"
+      - "Check if the node has crashed or been terminated"
+      - "Review cluster configuration and failure detector settings"
+    doc-link: "/troubleshooting#cluster-unreachable"
+
+  cluster-split-brain:
+    hints:
+      - "Review cluster split-brain resolver configuration"
+      - "Check network partitioning or connectivity issues"
+      - "Verify that nodes can reach the seed nodes"
+      - "Consider configuring a split-brain resolver strategy"
+    doc-link: "/troubleshooting#cluster-split-brain"
+
+  sharding-not-started:
+    hints:
+      - "Ensure the sharding region is started before sending messages"
+      - "Check that cluster sharding is properly configured"
+      - "Verify the entity type name matches the configuration"
+      - "Check cluster formation status"
+    doc-link: "/troubleshooting#sharding-not-started"
+
+  configuration-error:
+    hints:
+      - "Validate YAML syntax in application.yml"
+      - "Check that all required properties are present"
+      - "Verify property types match expected values"
+      - "Review configuration reference documentation"
+      - "Check for typos in property names"
+    doc-link: "/troubleshooting#configuration-error"
+
+  invalid-actor-ref:
+    hints:
+      - "Verify the actor path format is correct (e.g., /user/myActor)"
+      - "Check that the actor exists before getting its reference"
+      - "Use proper actor selection methods"
+      - "Ensure the actor has been spawned"
+    doc-link: "/troubleshooting#invalid-actor-ref"
+
+  restart-loop:
+    hints:
+      - "Check actor logs for recurring exceptions"
+      - "Review supervision strategy configuration"
+      - "Add error handling in the actor's message handlers"
+      - "Consider implementing exponential backoff in supervisor strategy"
+      - "Check if the actor's dependencies are causing failures"
+    doc-link: "/troubleshooting#restart-loop"
+
+  supervision-error:
+    hints:
+      - "Review supervision strategy configuration"
+      - "Check parent actor's supervision directives"
+      - "Verify error handling in child actors"
+      - "Consider logging supervision decisions for debugging"
+    doc-link: "/troubleshooting#supervision-error"
+
+  unknown:
+    hints:
+      - "Check the full stack trace for more details"
+      - "Review recent code changes that might have caused the issue"
+      - "Enable debug logging for more information"
+      - "Consult the documentation for similar issues"
+    doc-link: "/troubleshooting"
+
+doc-base-url: "https://docs.spring-actor.io"
