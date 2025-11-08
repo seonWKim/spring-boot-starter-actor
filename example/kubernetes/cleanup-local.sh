@@ -24,6 +24,7 @@ echo -e "${NC}"
 
 echo -e "${YELLOW}This will delete:${NC}"
 echo "  • Kubernetes namespace '$NAMESPACE' and all resources"
+echo "  • Monitoring namespace and all monitoring resources"
 echo "  • Kind cluster '$CLUSTER_NAME'"
 echo "  • Docker image '$IMAGE_NAME'"
 echo
@@ -39,18 +40,29 @@ fi
 echo
 
 # Delete namespace
-echo -e "${YELLOW}[1/3] Deleting Kubernetes resources...${NC}"
+echo -e "${YELLOW}[1/4] Deleting application resources...${NC}"
 if kubectl get namespace $NAMESPACE &> /dev/null; then
     kubectl delete namespace $NAMESPACE --timeout=60s || true
-    echo -e "${GREEN}✓ Namespace deleted${NC}"
+    echo -e "${GREEN}✓ Application namespace deleted${NC}"
 else
-    echo -e "${YELLOW}✓ Namespace doesn't exist${NC}"
+    echo -e "${YELLOW}✓ Application namespace doesn't exist${NC}"
+fi
+
+echo
+
+# Delete monitoring namespace
+echo -e "${YELLOW}[2/4] Deleting monitoring resources...${NC}"
+if kubectl get namespace monitoring &> /dev/null; then
+    kubectl delete namespace monitoring --timeout=60s || true
+    echo -e "${GREEN}✓ Monitoring namespace deleted${NC}"
+else
+    echo -e "${YELLOW}✓ Monitoring namespace doesn't exist${NC}"
 fi
 
 echo
 
 # Delete kind cluster
-echo -e "${YELLOW}[2/3] Deleting kind cluster...${NC}"
+echo -e "${YELLOW}[3/4] Deleting kind cluster...${NC}"
 if kind get clusters 2>/dev/null | grep -q "$CLUSTER_NAME"; then
     kind delete cluster --name $CLUSTER_NAME
     echo -e "${GREEN}✓ Cluster deleted${NC}"
@@ -61,7 +73,7 @@ fi
 echo
 
 # Delete Docker image
-echo -e "${YELLOW}[3/3] Deleting Docker image...${NC}"
+echo -e "${YELLOW}[4/4] Deleting Docker image...${NC}"
 if docker images | grep -q "spring-actor-chat.*local"; then
     docker rmi $IMAGE_NAME 2>/dev/null || true
     echo -e "${GREEN}✓ Image deleted${NC}"

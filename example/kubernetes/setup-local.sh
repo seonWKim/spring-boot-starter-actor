@@ -34,6 +34,7 @@ show_usage() {
     echo
     echo -e "${CYAN}Commands:${NC}"
     echo -e "  ${GREEN}setup${NC}         Set up the local Kubernetes cluster (default)"
+    echo -e "  ${GREEN}monitoring${NC}    Deploy Prometheus & Grafana monitoring stack"
     echo -e "  ${GREEN}status${NC}        Show cluster and pod status"
     echo -e "  ${GREEN}logs${NC}          View application logs"
     echo -e "  ${GREEN}port-forward${NC}  Set up port forwarding to individual pods"
@@ -108,14 +109,16 @@ setup_cluster() {
     echo
 
     echo -e "${CYAN}📝 Available Commands:${NC}"
-    echo -e "   ${GREEN}./setup-local.sh status${NC}        Show cluster status"
-    echo -e "   ${GREEN}./setup-local.sh logs${NC}          View application logs"
-    echo -e "   ${GREEN}./setup-local.sh port-forward${NC}  Access individual pods (8080, 8081, 8082)"
-    echo -e "   ${GREEN}./setup-local.sh rebuild${NC}       Rebuild and restart"
-    echo -e "   ${GREEN}./setup-local.sh cleanup${NC}       Remove all resources"
+    echo -e "   ${GREEN}./setup-local.sh monitoring${NC}     Deploy Grafana monitoring"
+    echo -e "   ${GREEN}./setup-local.sh status${NC}         Show cluster status"
+    echo -e "   ${GREEN}./setup-local.sh logs${NC}           View application logs"
+    echo -e "   ${GREEN}./setup-local.sh port-forward${NC}   Access individual pods (8080, 8081, 8082)"
+    echo -e "   ${GREEN}./setup-local.sh rebuild${NC}        Rebuild and restart"
+    echo -e "   ${GREEN}./setup-local.sh cleanup${NC}        Remove all resources"
 
     echo
     echo -e "${YELLOW}💡 Tip: Wait 30-60 seconds for the cluster to fully form before testing!${NC}"
+    echo -e "${YELLOW}💡 To monitor during rolling updates, run: ./setup-local.sh monitoring${NC}"
     echo
 }
 
@@ -255,6 +258,53 @@ rebuild() {
     echo
 }
 
+# Monitoring function
+deploy_monitoring() {
+    if ! cluster_exists; then
+        echo -e "${RED}✗ Cluster '$CLUSTER_NAME' does not exist${NC}"
+        echo -e "${YELLOW}  Run './setup-local.sh setup' first${NC}"
+        return 1
+    fi
+
+    print_banner
+    echo -e "${YELLOW}Deploying Prometheus & Grafana monitoring stack...${NC}"
+    echo
+
+    echo -e "${CYAN}[1/2] Deploying monitoring components...${NC}"
+    kubectl apply -k "$SCRIPT_DIR/monitoring"
+    echo -e "${GREEN}✓ Monitoring stack deployed${NC}"
+    echo
+
+    echo -e "${CYAN}[2/2] Waiting for pods to be ready...${NC}"
+    kubectl wait --for=condition=ready pod -l app=prometheus -n monitoring --timeout=120s 2>/dev/null || echo -e "${YELLOW}   Prometheus still starting...${NC}"
+    kubectl wait --for=condition=ready pod -l app=grafana -n monitoring --timeout=120s 2>/dev/null || echo -e "${YELLOW}   Grafana still starting...${NC}"
+    echo
+
+    echo -e "${GREEN}═══════════════════════════════════════════════════════════${NC}"
+    echo -e "${GREEN}✓ Monitoring Stack Deployed!${NC}"
+    echo -e "${GREEN}═══════════════════════════════════════════════════════════${NC}"
+    echo
+
+    echo -e "${CYAN}📊 Access Monitoring:${NC}"
+    echo -e "   ${GREEN}Grafana:${NC}     http://localhost:30300"
+    echo -e "   ${GREEN}Username:${NC}    admin"
+    echo -e "   ${GREEN}Password:${NC}    admin"
+    echo -e "   ${GREEN}Prometheus:${NC}  http://localhost:30090"
+    echo
+
+    echo -e "${CYAN}📈 Pre-configured Dashboards:${NC}"
+    echo -e "   ${GREEN}•${NC} Pekko Cluster Health - Monitor cluster members, shards, entities"
+    echo -e "   ${GREEN}•${NC} Rolling Update Monitor - Track pod lifecycle during deployments"
+    echo
+
+    echo -e "${CYAN}💡 Usage Tips:${NC}"
+    echo -e "   1. Open Grafana at http://localhost:30300"
+    echo -e "   2. Login with admin/admin"
+    echo -e "   3. Navigate to Dashboards to view cluster metrics"
+    echo -e "   4. Run './setup-local.sh rebuild' and watch the rolling update!"
+    echo
+}
+
 # Cleanup function
 cleanup() {
     "$SCRIPT_DIR/cleanup-local.sh"
@@ -266,6 +316,9 @@ COMMAND="${1:-setup}"
 case "$COMMAND" in
     setup)
         setup_cluster
+        ;;
+    monitoring)
+        deploy_monitoring
         ;;
     status)
         show_status

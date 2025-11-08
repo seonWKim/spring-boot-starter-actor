@@ -102,11 +102,98 @@ The setup script provides several useful commands:
 ./setup-local.sh cleanup
 ```
 
-4. **Get help:**
+4. **Deploy monitoring (optional but recommended):**
+
+```bash
+# Deploy Prometheus & Grafana
+./setup-local.sh monitoring
+
+# Access Grafana at http://localhost:30300
+# Login: admin/admin
+```
+
+5. **Get help:**
 
 ```bash
 ./setup-local.sh help
 ```
+
+## Monitoring with Grafana
+
+Monitor your Pekko cluster and rolling updates with the included Grafana dashboards:
+
+### Quick Start
+
+```bash
+# Deploy the monitoring stack
+./setup-local.sh monitoring
+```
+
+This deploys:
+- **Prometheus** - Scrapes metrics from Spring Boot Actuator and Pekko Management
+- **Grafana** - Visualizes metrics with pre-configured dashboards
+
+### Access Monitoring
+
+- **Grafana**: http://localhost:30300 (admin/admin)
+- **Prometheus**: http://localhost:30090
+
+### Pre-configured Dashboards
+
+#### 1. Pekko Cluster Health Dashboard
+
+Monitors your distributed actor system:
+- **Cluster Members** - Number of Up/Unreachable members
+- **Cluster Events** - Join/Leave events over time
+- **Shards Distribution** - How shards are distributed across nodes
+- **Active Entities** - Number of active actors per node
+- **HTTP Metrics** - Request rate and latency
+
+#### 2. Rolling Update Monitor Dashboard
+
+Essential for monitoring zero-downtime deployments:
+- **Pod Status** - Running/Pending/Failed pods over time
+- **Ready Replicas** - Track deployment progress
+- **Cluster Size During Update** - Ensure cluster stays healthy
+- **Pod Restarts** - Detect issues during rollout
+- **Resource Usage** - CPU and memory during updates
+
+### Monitoring a Rolling Update
+
+Try this to see monitoring in action:
+
+```bash
+# 1. Deploy monitoring
+./setup-local.sh monitoring
+
+# 2. Open Grafana and navigate to "Rolling Update Monitor" dashboard
+open http://localhost:30300
+
+# 3. In another terminal, trigger a rolling update
+./setup-local.sh rebuild
+
+# 4. Watch the dashboard:
+#    - Pod count temporarily increases (maxSurge: 1)
+#    - Old pods gracefully shutdown
+#    - New pods join the cluster
+#    - Cluster size never drops below 3
+```
+
+### Available Metrics
+
+The application exposes metrics at multiple endpoints:
+
+- **/actuator/prometheus** (port 8080) - Spring Boot metrics
+- **/metrics** (port 8558) - Pekko Management metrics
+
+Key metrics include:
+- `pekko_cluster_members` - Cluster member status
+- `pekko_cluster_sharding_shards` - Shard distribution
+- `pekko_cluster_sharding_entities` - Active actor entities
+- `http_server_requests_seconds_count` - HTTP request rate
+- `http_server_requests_seconds_bucket` - Request latency histogram
+- `kube_pod_status_phase` - Pod lifecycle states
+- `kube_deployment_status_replicas_ready` - Ready replica count
 
 ## What's Happening Under the Hood?
 
@@ -311,6 +398,14 @@ example/kubernetes/
 │   ├── dev/
 │   └── prod/
 │
+├── monitoring/                 # Prometheus & Grafana monitoring stack
+│   ├── namespace.yaml
+│   ├── prometheus-config.yaml
+│   ├── prometheus.yaml
+│   ├── grafana.yaml
+│   ├── dashboards.yaml         # Pre-configured Grafana dashboards
+│   └── kustomization.yaml
+│
 └── scripts/                    # Internal helper scripts (used by setup-local.sh)
     ├── kind-config.yaml
     ├── check-prerequisites.sh
@@ -334,6 +429,7 @@ The `setup-local.sh` script is your main entry point for local Kubernetes develo
 | Command | Description |
 |---------|-------------|
 | `setup` | Set up the local Kubernetes cluster (default) |
+| `monitoring` | Deploy Prometheus & Grafana monitoring stack |
 | `status` | Show cluster and pod status with Pekko cluster info |
 | `logs` | Stream logs from all pods |
 | `port-forward` | Set up port forwarding to individual pods (8080, 8081, 8082) |
@@ -348,6 +444,9 @@ The `setup-local.sh` script is your main entry point for local Kubernetes develo
 ./setup-local.sh
 # or explicitly
 ./setup-local.sh setup
+
+# Deploy monitoring stack
+./setup-local.sh monitoring
 
 # Check status anytime
 ./setup-local.sh status
