@@ -485,6 +485,8 @@ Contributions welcome! Please:
 3. Run `./gradlew spotlessApply` for formatting
 4. Ensure tests pass
 
+See [CONTRIBUTION.md](CONTRIBUTION.md) for detailed guidelines and [roadmap/ROADMAP.md](roadmap/ROADMAP.md) for the implementation roadmap.
+
 ## License
 
 This project is licensed under the Apache License 2.0.

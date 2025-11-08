@@ -180,7 +180,7 @@ SpringActorRef<HelloActor.Command> actor = springActorSystem
         .actor(HelloActor.class)
         .withId("myActor")
         .withTimeout(Duration.ofSeconds(5))
-        .withMailbox("bounded")  // or "unbounded", "default"
+        .withMailbox(MailboxConfig.bounded(100)) // For mailbox customization 
         .withBlockingDispatcher()  // For blocking I/O operations
         .asClusterSingleton()     // For cluster singleton actors
         .withContext(customContext)  // Custom actor context
