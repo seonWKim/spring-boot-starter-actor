@@ -15,6 +15,13 @@ nodes:
   - containerPort: 30082
     hostPort: 8082
     protocol: TCP
+  # Monitoring
+  - containerPort: 30300
+    hostPort: 30300
+    protocol: TCP
+  - containerPort: 30090
+    hostPort: 30090
+    protocol: TCP
 # Add worker nodes for multi-node cluster testing
 - role: worker
   image: kindest/node:v1.27.3
