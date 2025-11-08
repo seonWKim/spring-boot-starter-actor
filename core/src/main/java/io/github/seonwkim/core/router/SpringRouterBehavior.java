@@ -3,7 +3,11 @@ package io.github.seonwkim.core.router;
 import io.github.seonwkim.core.SpringActorBehavior;
 import io.github.seonwkim.core.SpringActorContext;
 import java.util.Objects;
+import java.util.UUID;
+import java.util.function.Function;
 import javax.annotation.Nullable;
+
+import io.github.seonwkim.core.impl.DefaultSpringActorContext;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.SupervisorStrategy;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
@@ -45,7 +49,7 @@ public final class SpringRouterBehavior<C> {
 
     private final RoutingStrategy routingStrategy;
     private final int poolSize;
-    private final java.util.function.Function<SpringActorContext, Behavior<C>> workerBehaviorFactory;
+    private final Function<SpringActorContext, Behavior<C>> workerBehaviorFactory;
     @Nullable private final SupervisorStrategy supervisionStrategy;
 
     private SpringRouterBehavior(
@@ -79,7 +83,7 @@ public final class SpringRouterBehavior<C> {
         // Create the Pekko router behavior
         Behavior<C> routerBehavior = Behaviors.setup(ctx -> {
             // Create worker behavior
-            SpringActorContext workerContext = new io.github.seonwkim.core.impl.DefaultSpringActorContext("worker");
+            SpringActorContext workerContext = new DefaultSpringActorContext("worker-" + UUID.randomUUID());
             Behavior<C> workerBehavior = workerBehaviorFactory.apply(workerContext);
 
             // Apply supervision strategy if specified

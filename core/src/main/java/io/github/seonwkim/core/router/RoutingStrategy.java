@@ -2,6 +2,7 @@ package io.github.seonwkim.core.router;
 
 import io.github.seonwkim.core.router.strategy.RandomRoutingStrategy;
 import io.github.seonwkim.core.router.strategy.RoundRobinRoutingStrategy;
+import org.apache.pekko.routing.RouterConfig;
 
 /**
  * Defines the routing strategy for distributing messages across worker actors. Routing strategies
@@ -35,7 +36,7 @@ public interface RoutingStrategy {
      * @param poolSize The number of worker actors in the pool
      * @return Pekko RouterConfig for this strategy
      */
-    org.apache.pekko.routing.RouterConfig toPekkoRouter(int poolSize);
+    RouterConfig toPekkoRouter(int poolSize);
 
     /**
      * Round Robin routing strategy distributes messages evenly across all workers in a circular
