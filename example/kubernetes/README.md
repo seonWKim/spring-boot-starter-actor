@@ -262,13 +262,116 @@ example/kubernetes/
 
 ## Production Deployment
 
-For deploying to a real Kubernetes cluster, see the comprehensive guide in [KUBERNETES_PREPARE.md](../../KUBERNETES_PREPARE.md).
+For deploying to a real Kubernetes cluster, we provide comprehensive production guides:
 
-Quick steps:
-1. Build and push image to your registry
-2. Update `base/kustomization.yaml` with your image
-3. Use `overlays/dev` or `overlays/prod` for environment-specific config
-4. Deploy with `kubectl apply -k overlays/prod`
+### 📚 Documentation
+
+- **[Production Deployment Guide](PRODUCTION_GUIDE.md)** - Complete guide for production deployment
+  - Prerequisites and dependencies
+  - Build and deployment process
+  - Configuration management
+  - Deployment strategies (rolling, blue/green, canary)
+  - Monitoring and alerting setup
+  - High availability configuration
+  - Security best practices
+  - Disaster recovery procedures
+
+- **[Operations Runbook](OPERATIONS_RUNBOOK.md)** - Day-to-day operations guide
+  - Daily health checks
+  - Common operational tasks
+  - Incident response procedures
+  - Maintenance windows
+  - Performance tuning
+  - Capacity planning
+
+- **[CI/CD Pipeline Guide](CICD_GUIDE.md)** - Automated deployment pipelines
+  - GitHub Actions workflows
+  - GitLab CI/CD pipelines
+  - Jenkins pipelines
+  - ArgoCD GitOps setup
+  - Best practices and examples
+
+- **[Secrets Management](SECRETS_MANAGEMENT.md)** - Secure secrets handling
+  - Kubernetes secrets
+  - External Secrets Operator
+  - HashiCorp Vault integration
+  - Cloud provider secrets (AWS, GCP, Azure)
+  - Best practices and security
+
+- **[Cost Optimization](COST_OPTIMIZATION.md)** - Reduce infrastructure costs
+  - Resource right-sizing
+  - Autoscaling strategies
+  - Spot/preemptible instances
+  - Storage optimization
+  - Cost monitoring and budgets
+
+- **[Log Aggregation](LOG_AGGREGATION.md)** - Centralized logging
+  - ELK Stack (Elasticsearch, Logstash, Kibana)
+  - Loki with Grafana
+  - Fluent Bit configuration
+  - Cloud provider logging
+  - Best practices and troubleshooting
+
+### 🚀 Production Features
+
+The production configuration includes:
+
+✅ **High Availability**
+- Pod anti-affinity for node distribution
+- PodDisruptionBudget (minimum 2 pods always available)
+- Multi-zone deployment support
+- Graceful shutdown with 30s grace period
+
+✅ **Resource Management**
+- ResourceQuota for namespace limits
+- LimitRange for default resource constraints
+- Optimized JVM settings for containers
+- No CPU limits (prevents Pekko throttling)
+
+✅ **Security**
+- Network policies for traffic control
+- Non-root container execution
+- Read-only root filesystem
+- Security contexts and capabilities
+- TLS/SSL termination via Ingress
+
+✅ **Monitoring & Alerting**
+- Prometheus metrics collection
+- 15+ production-ready alert rules
+- Pre-configured Grafana dashboards
+- Health checks (startup, liveness, readiness)
+
+✅ **Scaling**
+- Horizontal Pod Autoscaling (HPA)
+- Cluster autoscaling ready
+- Schedule-based scaling examples
+- Custom metrics support
+
+✅ **Deployment Strategies**
+- Zero-downtime rolling updates (maxSurge: 1, maxUnavailable: 0)
+- Blue/green deployment guide
+- Canary deployment examples
+- Automated rollback capabilities
+
+### Quick Production Deploy
+
+```bash
+# 1. Build and push image
+docker build -t your-registry.io/spring-actor-app:v1.0.0 -f example/chat/Dockerfile.kubernetes example/chat
+docker push your-registry.io/spring-actor-app:v1.0.0
+
+# 2. Update image in prod overlay
+cd example/kubernetes/overlays/prod
+vim kustomization.yaml  # Update newTag
+
+# 3. Deploy
+kubectl apply -k example/kubernetes/overlays/prod
+
+# 4. Verify
+kubectl rollout status deployment/spring-actor-prod -n spring-actor
+```
+
+For detailed instructions, see [Production Deployment Guide](PRODUCTION_GUIDE.md).
 
 ## Support
 
