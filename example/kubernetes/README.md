@@ -1,6 +1,6 @@
 # Kubernetes Deployment Example
 
-Deploy a Spring Boot Starter Actor application to Kubernetes with Pekko clustering, zero-downtime rolling updates, and Grafana monitoring.
+Deploy the distributed chat application to Kubernetes with Pekko clustering and monitoring.
 
 ## Quick Start (5 minutes)
 
@@ -23,12 +23,12 @@ cd example/kubernetes
 
 That's it! The script will:
 - Create a local Kubernetes cluster (3 nodes)
-- Build the Spring Boot application
+- Build the Spring Boot chat application
 - Build and load Docker image
 - Deploy to Kubernetes (3 pods)
 - Wait for pods to be ready
 
-Access the application: **http://localhost:8080**
+Access the chat application: **http://localhost:8080**
 
 ## Commands
 
@@ -51,7 +51,7 @@ The `./setup-local.sh` script provides everything you need:
 # Initial setup
 ./setup-local.sh
 
-# Deploy monitoring to visualize rolling updates
+# Deploy monitoring to visualize the cluster
 ./setup-local.sh monitoring
 
 # Check cluster status
@@ -62,7 +62,7 @@ The `./setup-local.sh` script provides everything you need:
 
 # Access individual pods and monitoring
 ./setup-local.sh port-forward
-# Application: http://localhost:8080, 8081, 8082
+# Chat app: http://localhost:8080, 8081, 8082
 # Monitoring: http://localhost:30300 (Grafana), http://localhost:30090 (Prometheus)
 
 # After making code changes
@@ -74,7 +74,7 @@ The `./setup-local.sh` script provides everything you need:
 
 ## Monitoring with Grafana
 
-Monitor your Pekko cluster and rolling updates in real-time:
+Monitor your Pekko cluster in real-time:
 
 ```bash
 # Deploy monitoring stack
@@ -121,11 +121,11 @@ open http://localhost:30300
 **Access Points:**
 - **Grafana**: http://localhost:30300 (admin/admin)
 - **Prometheus**: http://localhost:30090
-- **Application**: http://localhost:8080
+- **Chat Application**: http://localhost:8080
 
-## Testing Rolling Updates
+## Testing the Distributed Chat
 
-### Modify the Application
+### Modify the Chat Application
 
 Edit `example/chat/src/main/java/io/github/seonwkim/example/HelloController.java`:
 
@@ -230,18 +230,18 @@ example/kubernetes/
 │   ├── configmap.yaml
 │   ├── service.yaml
 │   ├── deployment.yaml
-│   └── ...
+│   └── networkpolicy.yaml
 │
 ├── overlays/                   # Environment-specific configs
 │   ├── local/                  # ⭐ Local development config
-│   ├── dev/
-│   └── prod/
+│   ├── dev/                    # Development environment
+│   └── prod/                   # Production environment
 │
 ├── monitoring/                 # Grafana monitoring stack
 │   ├── prometheus.yaml
 │   ├── grafana.yaml
 │   ├── dashboards.yaml
-│   └── ...
+│   └── alerts.yaml
 │
 └── scripts/                    # Internal helper scripts
     ├── kind-config.yaml
@@ -252,131 +252,62 @@ example/kubernetes/
 
 ## What You Get
 
-✅ **3-node Kubernetes cluster** running locally with kind
-✅ **3 Spring Boot pods** forming a Pekko cluster
-✅ **Zero-downtime rolling updates** with maxSurge strategy
-✅ **Automatic cluster formation** using Kubernetes service discovery
-✅ **Health checks** and readiness probes
-✅ **Grafana dashboards** for monitoring
-✅ **Prometheus metrics** from Spring Boot Actuator and Pekko Management
+✅ **3-node Kubernetes cluster** running locally with kind  
+✅ **3 Spring Boot pods** forming a Pekko cluster  
+✅ **Zero-downtime rolling updates** with maxSurge strategy  
+✅ **Automatic cluster formation** using Kubernetes service discovery  
+✅ **Health checks** and readiness probes  
+✅ **Grafana dashboards** for monitoring cluster health  
+✅ **Prometheus metrics** from Spring Boot Actuator and Pekko Management  
 
-## Production Deployment
+## Deploying to Real Kubernetes
 
-For deploying to a real Kubernetes cluster, we provide comprehensive production guides:
+For deploying to a real Kubernetes cluster (EKS, GKE, AKS, etc.):
 
-### 📚 Documentation
+### Quick Steps
 
-- **[Production Deployment Guide](PRODUCTION_GUIDE.md)** - Complete guide for production deployment
-  - Prerequisites and dependencies
-  - Build and deployment process
-  - Configuration management
-  - Deployment strategies (rolling, blue/green, canary)
-  - Monitoring and alerting setup
-  - High availability configuration
-  - Security best practices
-  - Disaster recovery procedures
-
-- **[Operations Runbook](OPERATIONS_RUNBOOK.md)** - Day-to-day operations guide
-  - Daily health checks
-  - Common operational tasks
-  - Incident response procedures
-  - Maintenance windows
-  - Performance tuning
-  - Capacity planning
-
-- **[CI/CD Pipeline Guide](CICD_GUIDE.md)** - Automated deployment pipelines
-  - GitHub Actions workflows
-  - GitLab CI/CD pipelines
-  - Jenkins pipelines
-  - ArgoCD GitOps setup
-  - Best practices and examples
-
-- **[Secrets Management](SECRETS_MANAGEMENT.md)** - Secure secrets handling
-  - Kubernetes secrets
-  - External Secrets Operator
-  - HashiCorp Vault integration
-  - Cloud provider secrets (AWS, GCP, Azure)
-  - Best practices and security
-
-- **[Cost Optimization](COST_OPTIMIZATION.md)** - Reduce infrastructure costs
-  - Resource right-sizing
-  - Autoscaling strategies
-  - Spot/preemptible instances
-  - Storage optimization
-  - Cost monitoring and budgets
-
-- **[Log Aggregation](LOG_AGGREGATION.md)** - Centralized logging
-  - ELK Stack (Elasticsearch, Logstash, Kibana)
-  - Loki with Grafana
-  - Fluent Bit configuration
-  - Cloud provider logging
-  - Best practices and troubleshooting
-
-### 🚀 Production Features
-
-The production configuration includes:
-
-✅ **High Availability**
-- Pod anti-affinity for node distribution
-- PodDisruptionBudget (minimum 2 pods always available)
-- Multi-zone deployment support
-- Graceful shutdown with 30s grace period
-
-✅ **Resource Management**
-- ResourceQuota for namespace limits
-- LimitRange for default resource constraints
-- Optimized JVM settings for containers
-- No CPU limits (prevents Pekko throttling)
-
-✅ **Security**
-- Network policies for traffic control
-- Non-root container execution
-- Read-only root filesystem
-- Security contexts and capabilities
-- TLS/SSL termination via Ingress
-
-✅ **Monitoring & Alerting**
-- Prometheus metrics collection
-- 15+ production-ready alert rules
-- Pre-configured Grafana dashboards
-- Health checks (startup, liveness, readiness)
-
-✅ **Scaling**
-- Horizontal Pod Autoscaling (HPA)
-- Cluster autoscaling ready
-- Schedule-based scaling examples
-- Custom metrics support
-
-✅ **Deployment Strategies**
-- Zero-downtime rolling updates (maxSurge: 1, maxUnavailable: 0)
-- Blue/green deployment guide
-- Canary deployment examples
-- Automated rollback capabilities
-
-### Quick Production Deploy
-
+1. **Build and push image to your registry:**
 ```bash
-# 1. Build and push image
-docker build -t your-registry.io/spring-actor-app:v1.0.0 -f example/chat/Dockerfile.kubernetes example/chat
-docker push your-registry.io/spring-actor-app:v1.0.0
-
-# 2. Update image in prod overlay
-cd example/kubernetes/overlays/prod
-vim kustomization.yaml  # Update newTag
-
-# 3. Deploy
-kubectl apply -k example/kubernetes/overlays/prod
-
-# 4. Verify
-kubectl rollout status deployment/spring-actor-prod -n spring-actor
+cd example/chat
+./gradlew bootJar
+docker build -t your-registry.io/spring-actor-chat:v1.0.0 -f Dockerfile.kubernetes .
+docker push your-registry.io/spring-actor-chat:v1.0.0
 ```
 
-For detailed instructions, see [Production Deployment Guide](PRODUCTION_GUIDE.md).
+2. **Update image in overlay:**
+```bash
+cd example/kubernetes/overlays/prod
+# Edit kustomization.yaml to update image name and tag
+vim kustomization.yaml
+```
+
+3. **Deploy:**
+```bash
+kubectl apply -k overlays/prod
+```
+
+4. **Verify:**
+```bash
+kubectl rollout status deployment/spring-actor-prod -n spring-actor
+kubectl get pods -n spring-actor
+```
+
+### Environment Overlays
+
+- **local/** - For kind cluster (uses local image)
+- **dev/** - For development cluster
+- **prod/** - For production cluster (includes HPA)
+
+Each overlay customizes:
+- Image tag
+- Replica count
+- Resource limits
+- Environment variables
 
 ## Support
 
 - **Issues**: Report bugs at [GitHub Issues](https://github.com/seonwkim/spring-boot-starter-actor/issues)
-- **Documentation**: See [KUBERNETES_PREPARE.md](../../KUBERNETES_PREPARE.md) for detailed guide
+- **Documentation**: See main [README](../../README.md)
 
 ---
 

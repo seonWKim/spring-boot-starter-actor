@@ -1,5 +1,5 @@
 ---
-# Prometheus alerting rules for production monitoring
+# Basic alerting rules for Pekko cluster monitoring
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -14,16 +14,7 @@ data:
       interval: 30s
       rules:
       
-      # High-priority alerts
-      - alert: PodDown
-        expr: up{namespace="spring-actor", job="spring-actor"} == 0
-        for: 1m
-        labels:
-          severity: critical
-        annotations:
-          summary: "Pod {{ $labels.pod }} is down"
-          description: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} has been down for more than 1 minute."
-      
+      # Cluster health alerts
       - alert: ClusterUnreachableMembers
         expr: pekko_cluster_members{status="Unreachable"} > 0
         for: 2m
@@ -37,40 +28,10 @@ data:
         expr: pekko_cluster_members{status="Up"} < 2
         for: 2m
         labels:
-          severity: critical
-        annotations:
-          summary: "Cluster size critically low"
-          description: "Cluster has only {{ $value }} members (expected: 3+). Risk of service disruption."
-      
-      - alert: HighMemoryUsage
-        expr: |
-          (container_memory_working_set_bytes{namespace="spring-actor", pod=~"spring-actor.*"} / 
-           container_spec_memory_limit_bytes{namespace="spring-actor", pod=~"spring-actor.*"}) > 0.9
-        for: 5m
-        labels:
           severity: warning
         annotations:
-          summary: "High memory usage on {{ $labels.pod }}"
-          description: "Pod {{ $labels.pod }} is using {{ $value | humanizePercentage }} of memory limit."
-      
-      - alert: HighCPUUsage
-        expr: |
-          rate(container_cpu_usage_seconds_total{namespace="spring-actor", pod=~"spring-actor.*"}[5m]) > 0.8
-        for: 10m
-        labels:
-          severity: warning
-        annotations:
-          summary: "High CPU usage on {{ $labels.pod }}"
-          description: "Pod {{ $labels.pod }} CPU usage is {{ $value | humanizePercentage }} for 10 minutes."
-      
-      - alert: PodRestartingTooMuch
-        expr: rate(kube_pod_container_status_restarts_total{namespace="spring-actor"}[15m]) > 0
-        for: 5m
-        labels:
-          severity: warning
-        annotations:
-          summary: "Pod {{ $labels.pod }} restarting frequently"
-          description: "Pod {{ $labels.pod }} has restarted {{ $value }} times in 15 minutes."
+          summary: "Cluster size low"
+          description: "Cluster has only {{ $value }} members. Check pod status."
       
       - alert: PodCrashLooping
         expr: kube_pod_container_status_waiting_reason{namespace="spring-actor", reason="CrashLoopBackOff"} > 0
@@ -79,100 +40,4 @@ data:
           severity: critical
         annotations:
           summary: "Pod {{ $labels.pod }} in CrashLoopBackOff"
-          description: "Pod {{ $labels.pod }} is crash looping. Check logs immediately."
-      
-      # HTTP/API alerts
-      - alert: HighHTTPErrorRate
-        expr: |
-          (sum(rate(http_server_requests_seconds_count{namespace="spring-actor", status=~"5.."}[5m])) /
-           sum(rate(http_server_requests_seconds_count{namespace="spring-actor"}[5m]))) > 0.05
-        for: 5m
-        labels:
-          severity: warning
-        annotations:
-          summary: "High HTTP error rate"
-          description: "HTTP 5xx error rate is {{ $value | humanizePercentage }} (threshold: 5%)."
-      
-      - alert: HighHTTPLatency
-        expr: |
-          histogram_quantile(0.95, 
-            rate(http_server_requests_seconds_bucket{namespace="spring-actor"}[5m])
-          ) > 1
-        for: 5m
-        labels:
-          severity: warning
-        annotations:
-          summary: "High HTTP latency"
-          description: "P95 latency is {{ $value }}s (threshold: 1s)."
-      
-      - alert: LowHTTPThroughput
-        expr: |
-          sum(rate(http_server_requests_seconds_count{namespace="spring-actor"}[5m])) < 1
-        for: 10m
-        labels:
-          severity: info
-        annotations:
-          summary: "Low HTTP request rate"
-          description: "HTTP request rate is {{ $value }} req/s. Service might be idle or unavailable."
-      
-      # Resource alerts
-      - alert: PodNotReady
-        expr: kube_pod_status_ready{namespace="spring-actor", condition="false"} == 1
-        for: 5m
-        labels:
-          severity: warning
-        annotations:
-          summary: "Pod {{ $labels.pod }} not ready"
-          description: "Pod {{ $labels.pod }} has been not ready for 5 minutes."
-      
-      - alert: DeploymentReplicasMismatch
-        expr: |
-          kube_deployment_spec_replicas{namespace="spring-actor", deployment="spring-actor"} !=
-          kube_deployment_status_replicas_ready{namespace="spring-actor", deployment="spring-actor"}
-        for: 10m
-        labels:
-          severity: warning
-        annotations:
-          summary: "Deployment replica count mismatch"
-          description: "Deployment {{ $labels.deployment }} has {{ $value }} mismatched replicas for 10 minutes."
-      
-      - alert: PVCNearlyFull
-        expr: |
-          (kubelet_volume_stats_used_bytes{namespace="spring-actor"} /
-           kubelet_volume_stats_capacity_bytes{namespace="spring-actor"}) > 0.85
-        for: 10m
-        labels:
-          severity: warning
-        annotations:
-          summary: "PVC {{ $labels.persistentvolumeclaim }} nearly full"
-          description: "PVC is {{ $value | humanizePercentage }} full. Consider expanding storage."
-      
-      # Cluster sharding alerts
-      - alert: ShardAllocationImbalanced
-        expr: |
-          max(pekko_cluster_sharding_shards) - min(pekko_cluster_sharding_shards) > 10
-        for: 15m
-        labels:
-          severity: warning
-        annotations:
-          summary: "Shard allocation imbalanced"
-          description: "Shard distribution variance is high. Max: {{ $value }}, may cause uneven load."
-      
-      - alert: NoActiveShards
-        expr: sum(pekko_cluster_sharding_shards) == 0
-        for: 5m
-        labels:
-          severity: critical
-        annotations:
-          summary: "No active shards in cluster"
-          description: "Cluster has no active shards. Service is not processing entities."
-      
-      # Health check alerts
-      - alert: HealthCheckFailing
-        expr: up{namespace="spring-actor", job="spring-actor"} == 0
-        for: 2m
-        labels:
-          severity: critical
-        annotations:
-          summary: "Health check failing for {{ $labels.pod }}"
-          description: "Pod {{ $labels.pod }} health check has been failing for 2 minutes."
+          description: "Pod {{ $labels.pod }} is crash looping. Check logs."
