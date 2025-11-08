@@ -476,23 +476,6 @@ Access:
 
 Full documentation: [https://seonwkim.github.io/spring-boot-starter-actor/](https://seonwkim.github.io/spring-boot-starter-actor/)
 
-## Future Features Roadmap
-
-Looking to use this library in production? Check out our comprehensive feature recommendations:
-
-- **[Features Summary](FEATURES_SUMMARY.md)** - Quick overview of top 10 must-have features
-- **[Features Roadmap](FEATURES_ROADMAP.md)** - Detailed roadmap with 70+ features, code examples, and implementation phases
-
-These documents outline how we plan to bridge the full capabilities of Pekko with Spring Boot, including:
-- Event Sourcing & Persistence
-- Streams & Backpressure
-- Advanced Testing Utilities
-- Enhanced Observability
-- Security Features
-- And much more!
-
-**Community input welcome!** Share your production use cases and vote on features.
-
 ## Contributing
 
 Contributions welcome! Please:
