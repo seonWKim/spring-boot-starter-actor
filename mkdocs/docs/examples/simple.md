@@ -30,6 +30,21 @@ You can find the complete source code for this example on GitHub:
 - How to use lifecycle hooks: PreStart (called in `create()`), PreRestart and PostStop (using `onSignal`)
 
 ```java
+import io.github.seonwkim.core.AskCommand;
+import io.github.seonwkim.core.SpringActor;
+import io.github.seonwkim.core.SpringActorBehavior;
+import io.github.seonwkim.core.SpringActorContext;
+
+import org.apache.pekko.actor.typed.Behavior;
+import org.apache.pekko.actor.typed.PostStop;
+import org.apache.pekko.actor.typed.PreRestart;
+import org.apache.pekko.actor.typed.SupervisorStrategy;
+import org.apache.pekko.actor.typed.javadsl.ActorContext;
+import org.apache.pekko.actor.typed.javadsl.Behaviors;
+import org.springframework.stereotype.Component;
+
+import java.time.Duration;
+
 @Component
 public class HelloActor implements SpringActor<HelloActor.Command> {
     // Command interface and message types

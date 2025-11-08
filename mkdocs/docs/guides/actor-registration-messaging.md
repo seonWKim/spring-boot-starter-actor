@@ -12,10 +12,11 @@ discovered and managed by the Spring container.
 To create an actor, implement the `SpringActor` interface and annotate the class with `@Component`:
 
 ```java
+import io.github.seonwkim.core.AskCommand;
 import io.github.seonwkim.core.SpringActor;
+import io.github.seonwkim.core.SpringActorBehavior;
 import io.github.seonwkim.core.SpringActorContext;
 
-import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
