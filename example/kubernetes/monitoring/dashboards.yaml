@@ -1,0 +1,408 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards
+  namespace: monitoring
+data:
+  pekko-cluster.json: |
+    {
+      "dashboard": {
+        "title": "Pekko Cluster Health",
+        "tags": ["pekko", "cluster"],
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Cluster Members",
+            "type": "stat",
+            "gridPos": {"h": 8, "w": 6, "x": 0, "y": 0},
+            "targets": [
+              {
+                "expr": "pekko_cluster_members{status=\"Up\"}",
+                "legendFormat": "Up",
+                "refId": "A"
+              }
+            ],
+            "options": {
+              "graphMode": "area",
+              "colorMode": "value",
+              "orientation": "auto"
+            },
+            "fieldConfig": {
+              "defaults": {
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {"value": null, "color": "red"},
+                    {"value": 1, "color": "yellow"},
+                    {"value": 3, "color": "green"}
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": 2,
+            "title": "Cluster Member Status",
+            "type": "timeseries",
+            "gridPos": {"h": 8, "w": 18, "x": 6, "y": 0},
+            "targets": [
+              {
+                "expr": "pekko_cluster_members",
+                "legendFormat": "{{status}} - {{address}}",
+                "refId": "A"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "custom": {
+                  "drawStyle": "line",
+                  "lineInterpolation": "linear",
+                  "fillOpacity": 10
+                }
+              }
+            }
+          },
+          {
+            "id": 3,
+            "title": "Unreachable Members",
+            "type": "stat",
+            "gridPos": {"h": 4, "w": 6, "x": 0, "y": 8},
+            "targets": [
+              {
+                "expr": "pekko_cluster_members{status=\"Unreachable\"}",
+                "refId": "A"
+              }
+            ],
+            "options": {
+              "colorMode": "value"
+            },
+            "fieldConfig": {
+              "defaults": {
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {"value": null, "color": "green"},
+                    {"value": 1, "color": "red"}
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": 4,
+            "title": "Cluster Shards",
+            "type": "timeseries",
+            "gridPos": {"h": 8, "w": 12, "x": 6, "y": 8},
+            "targets": [
+              {
+                "expr": "pekko_cluster_sharding_shards",
+                "legendFormat": "{{type_name}} - {{pod}}",
+                "refId": "A"
+              }
+            ]
+          },
+          {
+            "id": 5,
+            "title": "Cluster Events (Join/Leave)",
+            "type": "timeseries",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+            "targets": [
+              {
+                "expr": "rate(pekko_cluster_members_joined_total[5m])",
+                "legendFormat": "Joined",
+                "refId": "A"
+              },
+              {
+                "expr": "rate(pekko_cluster_members_removed_total[5m])",
+                "legendFormat": "Removed",
+                "refId": "B"
+              }
+            ]
+          },
+          {
+            "id": 6,
+            "title": "Active Entities",
+            "type": "timeseries",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+            "targets": [
+              {
+                "expr": "pekko_cluster_sharding_entities",
+                "legendFormat": "{{type_name}} - {{pod}}",
+                "refId": "A"
+              }
+            ]
+          },
+          {
+            "id": 7,
+            "title": "HTTP Requests",
+            "type": "timeseries",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24},
+            "targets": [
+              {
+                "expr": "rate(http_server_requests_seconds_count{namespace=\"spring-actor\"}[1m])",
+                "legendFormat": "{{pod}} - {{method}} {{uri}}",
+                "refId": "A"
+              }
+            ]
+          },
+          {
+            "id": 8,
+            "title": "HTTP Request Duration (p95)",
+            "type": "timeseries",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24},
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, rate(http_server_requests_seconds_bucket{namespace=\"spring-actor\"}[5m]))",
+                "legendFormat": "{{pod}} - {{method}} {{uri}}",
+                "refId": "A"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "s"
+              }
+            }
+          }
+        ],
+        "refresh": "5s",
+        "time": {"from": "now-15m", "to": "now"}
+      }
+    }
+
+  rolling-update.json: |
+    {
+      "dashboard": {
+        "title": "Rolling Update Monitor",
+        "tags": ["kubernetes", "deployment", "rolling-update"],
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Pod Status",
+            "type": "timeseries",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+            "targets": [
+              {
+                "expr": "count(kube_pod_status_phase{namespace=\"spring-actor\", phase=\"Running\"})",
+                "legendFormat": "Running",
+                "refId": "A"
+              },
+              {
+                "expr": "count(kube_pod_status_phase{namespace=\"spring-actor\", phase=\"Pending\"})",
+                "legendFormat": "Pending",
+                "refId": "B"
+              },
+              {
+                "expr": "count(kube_pod_status_phase{namespace=\"spring-actor\", phase=\"Failed\"})",
+                "legendFormat": "Failed",
+                "refId": "C"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "custom": {
+                  "drawStyle": "line",
+                  "lineInterpolation": "smooth",
+                  "fillOpacity": 30,
+                  "stacking": {"mode": "normal"}
+                }
+              },
+              "overrides": [
+                {
+                  "matcher": {"id": "byName", "options": "Running"},
+                  "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "green"}}]
+                },
+                {
+                  "matcher": {"id": "byName", "options": "Pending"},
+                  "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "yellow"}}]
+                },
+                {
+                  "matcher": {"id": "byName", "options": "Failed"},
+                  "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "red"}}]
+                }
+              ]
+            }
+          },
+          {
+            "id": 2,
+            "title": "Ready Replicas",
+            "type": "stat",
+            "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+            "targets": [
+              {
+                "expr": "kube_deployment_status_replicas_ready{namespace=\"spring-actor\", deployment=\"spring-actor\"}",
+                "refId": "A"
+              }
+            ],
+            "options": {
+              "graphMode": "area",
+              "colorMode": "value"
+            },
+            "fieldConfig": {
+              "defaults": {
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {"value": null, "color": "red"},
+                    {"value": 1, "color": "yellow"},
+                    {"value": 3, "color": "green"}
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": 3,
+            "title": "Desired vs Available Replicas",
+            "type": "stat",
+            "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+            "targets": [
+              {
+                "expr": "kube_deployment_spec_replicas{namespace=\"spring-actor\", deployment=\"spring-actor\"}",
+                "legendFormat": "Desired",
+                "refId": "A"
+              }
+            ],
+            "options": {
+              "graphMode": "area"
+            }
+          },
+          {
+            "id": 4,
+            "title": "Pod Restarts",
+            "type": "timeseries",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+            "targets": [
+              {
+                "expr": "rate(kube_pod_container_status_restarts_total{namespace=\"spring-actor\"}[5m])",
+                "legendFormat": "{{pod}}",
+                "refId": "A"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "custom": {
+                  "drawStyle": "bars",
+                  "fillOpacity": 100
+                }
+              }
+            }
+          },
+          {
+            "id": 5,
+            "title": "Cluster Size During Update",
+            "type": "timeseries",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+            "targets": [
+              {
+                "expr": "pekko_cluster_members{status=\"Up\"}",
+                "legendFormat": "Cluster Members",
+                "refId": "A"
+              },
+              {
+                "expr": "kube_deployment_status_replicas_ready{namespace=\"spring-actor\", deployment=\"spring-actor\"}",
+                "legendFormat": "Ready Pods",
+                "refId": "B"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "custom": {
+                  "lineWidth": 2
+                }
+              },
+              "overrides": [
+                {
+                  "matcher": {"id": "byName", "options": "Cluster Members"},
+                  "properties": [
+                    {"id": "color", "value": {"mode": "fixed", "fixedColor": "blue"}},
+                    {"id": "custom.lineWidth", "value": 3}
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "id": 6,
+            "title": "Pod Ready Condition",
+            "type": "timeseries",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+            "targets": [
+              {
+                "expr": "kube_pod_status_ready{namespace=\"spring-actor\", condition=\"true\"}",
+                "legendFormat": "{{pod}}",
+                "refId": "A"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "custom": {
+                  "drawStyle": "line",
+                  "fillOpacity": 10,
+                  "stacking": {"mode": "normal"}
+                }
+              }
+            }
+          },
+          {
+            "id": 7,
+            "title": "CPU Usage by Pod",
+            "type": "timeseries",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+            "targets": [
+              {
+                "expr": "rate(container_cpu_usage_seconds_total{namespace=\"spring-actor\", pod=~\"spring-actor.*\"}[5m])",
+                "legendFormat": "{{pod}}",
+                "refId": "A"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "percentunit",
+                "custom": {
+                  "fillOpacity": 10
+                }
+              }
+            }
+          },
+          {
+            "id": 8,
+            "title": "Memory Usage by Pod",
+            "type": "timeseries",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+            "targets": [
+              {
+                "expr": "container_memory_working_set_bytes{namespace=\"spring-actor\", pod=~\"spring-actor.*\"}",
+                "legendFormat": "{{pod}}",
+                "refId": "A"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "bytes",
+                "custom": {
+                  "fillOpacity": 10
+                }
+              }
+            }
+          },
+          {
+            "id": 9,
+            "title": "Deployment Events",
+            "type": "table",
+            "gridPos": {"h": 8, "w": 24, "x": 0, "y": 24},
+            "targets": [
+              {
+                "expr": "changes(kube_deployment_status_observed_generation{namespace=\"spring-actor\"}[15m])",
+                "format": "table",
+                "instant": true,
+                "refId": "A"
+              }
+            ]
+          }
+        ],
+        "refresh": "5s",
+        "time": {"from": "now-15m", "to": "now"}
+      }
+    }
