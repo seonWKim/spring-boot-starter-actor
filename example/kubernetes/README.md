@@ -40,7 +40,7 @@ The `./setup-local.sh` script provides everything you need:
 | `./setup-local.sh monitoring` | Deploy Grafana monitoring |
 | `./setup-local.sh status` | Show cluster status |
 | `./setup-local.sh logs` | View application logs |
-| `./setup-local.sh port-forward` | Access individual pods (8080, 8081, 8082) |
+| `./setup-local.sh port-forward` | Forward pods & monitoring (8080-8082, 30300, 30090) |
 | `./setup-local.sh rebuild` | Rebuild app and restart deployment |
 | `./setup-local.sh cleanup` | Remove everything |
 | `./setup-local.sh help` | Show help |
@@ -60,9 +60,10 @@ The `./setup-local.sh` script provides everything you need:
 # View logs from all pods
 ./setup-local.sh logs
 
-# Access individual pods for testing
+# Access individual pods and monitoring
 ./setup-local.sh port-forward
-# Then open: http://localhost:8080, http://localhost:8081, http://localhost:8082
+# Application: http://localhost:8080, 8081, 8082
+# Monitoring: http://localhost:30300 (Grafana), http://localhost:30090 (Prometheus)
 
 # After making code changes
 ./setup-local.sh rebuild
