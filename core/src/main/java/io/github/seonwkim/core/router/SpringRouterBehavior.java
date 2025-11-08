@@ -1,13 +1,14 @@
 package io.github.seonwkim.core.router;
 
+import io.github.seonwkim.core.ActorTypeRegistry;
+import io.github.seonwkim.core.SpringActor;
 import io.github.seonwkim.core.SpringActorBehavior;
 import io.github.seonwkim.core.SpringActorContext;
+import io.github.seonwkim.core.SpringActorWithContext;
+import io.github.seonwkim.core.impl.DefaultSpringActorContext;
 import java.util.Objects;
 import java.util.UUID;
-import java.util.function.Function;
 import javax.annotation.Nullable;
-
-import io.github.seonwkim.core.impl.DefaultSpringActorContext;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.SupervisorStrategy;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
@@ -26,17 +27,24 @@ import org.apache.pekko.actor.typed.javadsl.Routers;
  *
  *     &#64;Override
  *     public SpringActorBehavior&lt;Command&gt; create(SpringActorContext ctx) {
- *         return SpringRouterBehavior.builder(Command.class)
+ *         return SpringRouterBehavior.builder(Command.class, ctx)
  *             .withRoutingStrategy(RoutingStrategy.roundRobin())
  *             .withPoolSize(10)
- *             .withWorkerBehavior(workerContext -&gt; {
- *                 // Define worker behavior here
- *                 return Behaviors.receive(Command.class)
- *                     .onMessage(Command.class, (context, msg) -&gt; {
- *                         // Handle message
- *                         return Behaviors.same();
- *                     })
- *                     .build();
+ *             .withWorkerActors(WorkerActor.class)
+ *             .build();
+ *     }
+ * }
+ *
+ * &#64;Component
+ * class WorkerActor implements SpringActor&lt;Command&gt; {
+ *     &#64;Autowired private SomeService service; // Spring DI works!
+ *
+ *     &#64;Override
+ *     public SpringActorBehavior&lt;Command&gt; create(SpringActorContext ctx) {
+ *         return SpringActorBehavior.builder(Command.class, ctx)
+ *             .onMessage(Command.class, (context, msg) -&gt; {
+ *                 service.doSomething(); // Use injected service
+ *                 return Behaviors.same();
  *             })
  *             .build();
  *     }
@@ -49,17 +57,20 @@ public final class SpringRouterBehavior<C> {
 
     private final RoutingStrategy routingStrategy;
     private final int poolSize;
-    private final Function<SpringActorContext, Behavior<C>> workerBehaviorFactory;
+    private final Class<? extends SpringActorWithContext<C, ?>> workerActorClass;
+    private final SpringActorContext actorContext;
     @Nullable private final SupervisorStrategy supervisionStrategy;
 
     private SpringRouterBehavior(
             RoutingStrategy routingStrategy,
             int poolSize,
-            java.util.function.Function<SpringActorContext, Behavior<C>> workerBehaviorFactory,
+            Class<? extends SpringActorWithContext<C, ?>> workerActorClass,
+            SpringActorContext actorContext,
             @Nullable SupervisorStrategy supervisionStrategy) {
         this.routingStrategy = routingStrategy;
         this.poolSize = poolSize;
-        this.workerBehaviorFactory = workerBehaviorFactory;
+        this.workerActorClass = workerActorClass;
+        this.actorContext = actorContext;
         this.supervisionStrategy = supervisionStrategy;
     }
 
@@ -67,11 +78,12 @@ public final class SpringRouterBehavior<C> {
      * Creates a new builder for constructing a router behavior.
      *
      * @param commandClass The command class that worker actors handle
+     * @param actorContext The Spring actor context for accessing the actor system
      * @param <C> The command type that worker actors handle
      * @return A new builder instance
      */
-    public static <C> Builder<C> builder(Class<C> commandClass) {
-        return new Builder<>(commandClass);
+    public static <C> Builder<C> builder(Class<C> commandClass, SpringActorContext actorContext) {
+        return new Builder<>(commandClass, actorContext);
     }
 
     /**
@@ -83,9 +95,22 @@ public final class SpringRouterBehavior<C> {
     public SpringActorBehavior<C> toSpringActorBehavior() {
         // Create the Pekko router behavior
         Behavior<C> routerBehavior = Behaviors.setup(ctx -> {
-            // Create worker behavior
-            SpringActorContext workerContext = new DefaultSpringActorContext("worker-" + UUID.randomUUID());
-            Behavior<C> workerBehavior = workerBehaviorFactory.apply(workerContext);
+            // Get the actor type registry from context
+            ActorTypeRegistry registry = actorContext.registry();
+            if (registry == null) {
+                throw new IllegalStateException(
+                        "ActorTypeRegistry is null. Cannot spawn worker actors without registry.");
+            }
+
+            // Create worker context
+            SpringActorContext workerContext =
+                    new DefaultSpringActorContext("worker-" + UUID.randomUUID());
+
+            // Create worker behavior using the registry
+            @SuppressWarnings("unchecked")
+            SpringActorBehavior<C> workerSpringBehavior =
+                    (SpringActorBehavior<C>) registry.createBehavior(workerActorClass, workerContext);
+            Behavior<C> workerBehavior = workerSpringBehavior.asBehavior();
 
             // Apply supervision strategy if specified
             if (supervisionStrategy != null) {
@@ -111,13 +136,15 @@ public final class SpringRouterBehavior<C> {
      */
     public static final class Builder<C> {
         private final Class<C> commandClass;
+        private final SpringActorContext actorContext;
         @Nullable private RoutingStrategy routingStrategy;
         private int poolSize = 5;
-        @Nullable private java.util.function.Function<SpringActorContext, Behavior<C>> workerBehaviorFactory;
+        @Nullable private Class<? extends SpringActorWithContext<C, ?>> workerActorClass;
         @Nullable private SupervisorStrategy supervisionStrategy;
 
-        private Builder(Class<C> commandClass) {
+        private Builder(Class<C> commandClass, SpringActorContext actorContext) {
             this.commandClass = Objects.requireNonNull(commandClass, "Command class cannot be null");
+            this.actorContext = Objects.requireNonNull(actorContext, "Actor context cannot be null");
         }
 
         /**
@@ -146,13 +173,14 @@ public final class SpringRouterBehavior<C> {
         }
 
         /**
-         * Set the worker behavior factory.
+         * Set the worker actor class. Workers will be Spring-managed components with full dependency
+         * injection support.
          *
-         * @param factory The worker behavior factory
+         * @param workerClass The Spring actor class for workers
          * @return This builder for chaining
          */
-        public Builder<C> withWorkerBehavior(java.util.function.Function<SpringActorContext, Behavior<C>> factory) {
-            this.workerBehaviorFactory = Objects.requireNonNull(factory, "Worker behavior factory cannot be null");
+        public Builder<C> withWorkerActors(Class<? extends SpringActor<C>> workerClass) {
+            this.workerActorClass = Objects.requireNonNull(workerClass, "Worker actor class cannot be null");
             return this;
         }
 
@@ -174,10 +202,11 @@ public final class SpringRouterBehavior<C> {
          */
         public SpringActorBehavior<C> build() {
             Objects.requireNonNull(routingStrategy, "Routing strategy is required");
-            Objects.requireNonNull(workerBehaviorFactory, "Worker behavior factory is required");
+            Objects.requireNonNull(workerActorClass, "Worker actor class is required");
 
             SpringRouterBehavior<C> config =
-                    new SpringRouterBehavior<>(routingStrategy, poolSize, workerBehaviorFactory, supervisionStrategy);
+                    new SpringRouterBehavior<>(
+                            routingStrategy, poolSize, workerActorClass, actorContext, supervisionStrategy);
             return config.toSpringActorBehavior();
         }
     }
