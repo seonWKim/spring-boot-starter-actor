@@ -41,9 +41,26 @@ dependencies {
 	implementation("com.google.code.findbugs:jsr305")
 	implementation("org.springframework.boot:spring-boot-starter")
 
+	// Resilience patterns - Circuit Breaker
+	compileOnly("io.github.resilience4j:resilience4j-spring-boot2:2.1.0")
+	compileOnly("io.github.resilience4j:resilience4j-circuitbreaker:2.1.0")
+	compileOnly("io.github.resilience4j:resilience4j-micrometer:2.1.0")
+
+	// Resilience patterns - Deduplication (Caffeine for local cache)
+	compileOnly("com.github.ben-manes.caffeine:caffeine:3.1.8")
+
+	// Resilience patterns - Distributed Deduplication (Redis)
+	compileOnly("org.springframework.boot:spring-boot-starter-data-redis-reactive")
+
+	// Spring Boot Actuator for monitoring endpoints
+	compileOnly("org.springframework.boot:spring-boot-starter-actuator")
+
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testImplementation("org.apache.pekko:pekko-actor-testkit-typed_3")
 	testImplementation("org.awaitility:awaitility")
+	testImplementation("io.github.resilience4j:resilience4j-spring-boot2:2.1.0")
+	testImplementation("io.github.resilience4j:resilience4j-circuitbreaker:2.1.0")
+	testImplementation("com.github.ben-manes.caffeine:caffeine:3.1.8")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
