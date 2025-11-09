@@ -16,14 +16,21 @@ This monitoring stack provides:
 ### 1. Deploy the Monitoring Stack
 
 ```bash
+# Make sure the Kind cluster exists first
+cd ../app && ./setup-local.sh
+
+# Deploy monitoring
+cd ../monitoring
 ./setup-monitoring.sh
 ```
 
 This will:
+- Pre-pull and load Prometheus and Grafana images into Kind cluster
 - Deploy Prometheus and Grafana to the `spring-actor-monitoring` namespace
 - Configure Prometheus to scrape metrics from your actor system
 - Provision 3 Grafana dashboards automatically
 - Make Grafana accessible at http://localhost:30000
+- Make Prometheus accessible at http://localhost:30090
 
 ### 2. Deploy the Application
 
@@ -181,14 +188,54 @@ monitoring/
 └── README.md                          # This file
 ```
 
-## Common Operations
+## Available Commands
 
-### Check Monitoring Stack Status
+The `setup-monitoring.sh` script provides several helper commands similar to the application setup:
 
+### Setup (Deploy Monitoring)
 ```bash
-kubectl get pods -n spring-actor-monitoring
-kubectl get svc -n spring-actor-monitoring
+./setup-monitoring.sh setup
+# or simply
+./setup-monitoring.sh
 ```
+
+### Check Status
+```bash
+./setup-monitoring.sh status
+```
+Shows:
+- Pod status and health
+- Service endpoints
+- ConfigMaps
+- Access URLs
+
+### View Logs
+```bash
+./setup-monitoring.sh logs
+```
+Interactive menu to view:
+1. Prometheus logs
+2. Grafana logs
+3. All logs (both components)
+
+### Restart Components
+```bash
+./setup-monitoring.sh restart
+```
+Performs rolling restart of both Prometheus and Grafana
+
+### Cleanup
+```bash
+./setup-monitoring.sh cleanup
+```
+Removes all monitoring resources with confirmation prompt
+
+### Help
+```bash
+./setup-monitoring.sh help
+```
+
+## Common Operations
 
 ### View Prometheus Targets
 
@@ -196,34 +243,33 @@ kubectl get svc -n spring-actor-monitoring
 # Open Prometheus UI
 open http://localhost:30090/targets
 
-# Or check via kubectl
-kubectl port-forward -n spring-actor-monitoring svc/prometheus 9090:9090
+# Check scrape status
+kubectl exec -n spring-actor-monitoring deploy/prometheus -- \
+  wget -qO- http://localhost:9090/api/v1/targets | jq
 ```
 
-### Restart Monitoring Stack
+### Manual Kubectl Commands
+
+If you prefer using kubectl directly:
 
 ```bash
-kubectl rollout restart deployment/prometheus -n spring-actor-monitoring
-kubectl rollout restart deployment/grafana -n spring-actor-monitoring
-```
+# Check pods
+kubectl get pods -n spring-actor-monitoring
 
-### View Logs
+# Check services
+kubectl get svc -n spring-actor-monitoring
 
-```bash
-# Prometheus logs
+# View Prometheus logs
 kubectl logs -f -n spring-actor-monitoring -l app=prometheus
 
-# Grafana logs
+# View Grafana logs
 kubectl logs -f -n spring-actor-monitoring -l app=grafana
-```
 
-### Delete Monitoring Stack
+# Restart manually
+kubectl rollout restart deployment/prometheus -n spring-actor-monitoring
+kubectl rollout restart deployment/grafana -n spring-actor-monitoring
 
-```bash
-# Use the cleanup script (recommended)
-./cleanup-monitoring.sh
-
-# Or manually delete
+# Delete namespace
 kubectl delete namespace spring-actor-monitoring
 ```
 
@@ -324,6 +370,37 @@ spec:
 
 ## Troubleshooting
 
+### Pods stuck in ImagePullBackOff (FIXED)
+
+**Symptom:**
+```bash
+kubectl get pods -n spring-actor-monitoring
+# NAME                          READY   STATUS             RESTARTS   AGE
+# prometheus-xxx                0/1     ImagePullBackOff   0          2m
+# grafana-xxx                   0/1     ImagePullBackOff   0          2m
+```
+
+**Solution:**
+The setup script now automatically pre-pulls and loads images into Kind. If you still see this issue:
+
+```bash
+# Manual fix - pull and load images
+docker pull prom/prometheus:v2.48.0
+docker pull grafana/grafana:10.2.2
+
+# Load into Kind cluster
+kind load docker-image prom/prometheus:v2.48.0 --name spring-actor-demo
+kind load docker-image grafana/grafana:10.2.2 --name spring-actor-demo
+
+# Restart monitoring
+./setup-monitoring.sh restart
+```
+
+**Root Cause:**
+- Docker Hub rate limiting
+- Network connectivity issues
+- Kind cluster can't pull images directly from registry
+
 ### Grafana shows "No data"
 
 **Check:**
@@ -351,7 +428,7 @@ kubectl auth can-i list pods --as=system:serviceaccount:spring-actor-monitoring:
 kubectl get configmap grafana-dashboards -n spring-actor-monitoring -o yaml
 
 # Restart Grafana to reload dashboards
-kubectl rollout restart deployment/grafana -n spring-actor-monitoring
+./setup-monitoring.sh restart
 ```
 
 ### Blue/Green metrics not showing
