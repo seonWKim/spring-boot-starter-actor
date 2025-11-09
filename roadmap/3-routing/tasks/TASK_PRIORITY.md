@@ -1,26 +1,24 @@
 # Routing Patterns Implementation Tasks
 
 **Overall Priority:** HIGH
-**Status:** ✅ EXCELLENT DESIGN - Proceed as planned
+**Status:** 🚧 IN PROGRESS
 **Approach:** Hybrid (Wrap Pekko routers with Spring Boot API)
 
 ---
 
-## Task Breakdown (In Priority Order)
+## ✅ Completed Work
 
-### Phase 1: Core Router Infrastructure (Week 1-2)
-**Priority:** HIGH
-**Estimated Effort:** 2 weeks
+### Phase 1: Core Router Infrastructure ✅ COMPLETED
+- ✅ **Task 1.1:** Router base infrastructure (see `01-router-base-infrastructure.md`)
+- ✅ **Task 1.2:** Round Robin & Random strategies (see `02-basic-routing-strategies.md`)
 
-- [ ] **Task 1.1:** Router base infrastructure (1 week)
-  - File: `tasks/01-router-base-infrastructure.md`
-  - `SpringRouterActor` interface
-  - `SpringRouterBehavior` builder
-  - Pekko router wrapping layer
+**Test Results:** 145/145 tests passing (100%)
 
-- [ ] **Task 1.2:** Round Robin & Random strategies (3-4 days)
-  - File: `tasks/02-basic-routing-strategies.md`
-  - Implement and test Round Robin and Random strategies
+See `PROGRESS.md` for complete details.
+
+---
+
+## 🔜 Remaining Tasks
 
 ### Phase 2: Advanced Routing Strategies (Week 3)
 **Priority:** HIGH
@@ -59,9 +57,9 @@
   - File: `tasks/08-spring-boot-config.md`
   - Per-router configuration in application.yml
 
-- [ ] **Task 4.2:** Supervision strategy integration (2-3 days)
-  - File: `tasks/09-router-supervision.md`
-  - Worker supervision strategies
+- ✅ **Task 4.2:** Supervision strategy integration (COMPLETED)
+  - Worker supervision via `withSupervisionStrategy()`
+  - Tested with restart strategy in RouterEdgeCaseTest
 
 ### Phase 5: Metrics & Monitoring (Week 6)
 **Priority:** HIGH
@@ -91,10 +89,11 @@
 
 ## Success Criteria
 
-After completion:
-- ✅ All major routing strategies implemented
-- ✅ Dynamic pool resizing works correctly
-- ✅ Spring Boot YAML configuration
-- ✅ Comprehensive metrics and health checks
-- ✅ Production-ready with supervision
-- ✅ Excellent documentation and examples
+**Completed:** Phase 1 - Core infrastructure and basic strategies (see `PROGRESS.md`)
+
+**Remaining:**
+- [ ] Phase 2: Advanced routing strategies (Smallest Mailbox, Consistent Hashing, Broadcast)
+- [ ] Phase 3: Dynamic pool resizing
+- [ ] Phase 4: Spring Boot YAML configuration
+- [ ] Phase 5: Metrics and health checks
+- [ ] Phase 6: Documentation and examples
