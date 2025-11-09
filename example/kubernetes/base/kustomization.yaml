@@ -9,9 +9,6 @@ resources:
 - configmap.yaml
 - service.yaml
 - deployment.yaml
-- networkpolicy.yaml
-- podmonitor.yaml
-- servicemonitor.yaml
 
 commonLabels:
   app: spring-actor

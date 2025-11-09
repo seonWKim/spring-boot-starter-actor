@@ -34,10 +34,9 @@ show_usage() {
     echo
     echo -e "${CYAN}Commands:${NC}"
     echo -e "  ${GREEN}setup${NC}         Set up the local Kubernetes cluster (default)"
-    echo -e "  ${GREEN}monitoring${NC}    Deploy Prometheus & Grafana monitoring stack"
     echo -e "  ${GREEN}status${NC}        Show cluster and pod status"
     echo -e "  ${GREEN}logs${NC}          View application logs"
-    echo -e "  ${GREEN}port-forward${NC}  Set up port forwarding to pods and monitoring"
+    echo -e "  ${GREEN}port-forward${NC}  Set up port forwarding to pods"
     echo -e "  ${GREEN}rebuild${NC}       Rebuild application and restart deployment"
     echo -e "  ${GREEN}cleanup${NC}       Clean up all resources"
     echo -e "  ${GREEN}help${NC}          Show this help message"
@@ -91,7 +90,7 @@ setup_cluster() {
 
     # Deploy to Kubernetes
     echo -e "${YELLOW}[4/5] Deploying to Kubernetes...${NC}"
-    kubectl apply -k "$SCRIPT_DIR/overlays/local"
+    kubectl apply -k "$SCRIPT_DIR/base"
     echo -e "${GREEN}✓ Deployed to Kubernetes${NC}"
     echo
 
@@ -109,16 +108,14 @@ setup_cluster() {
     echo
 
     echo -e "${CYAN}📝 Available Commands:${NC}"
-    echo -e "   ${GREEN}./setup-local.sh monitoring${NC}     Deploy Grafana monitoring"
     echo -e "   ${GREEN}./setup-local.sh status${NC}         Show cluster status"
     echo -e "   ${GREEN}./setup-local.sh logs${NC}           View application logs"
-    echo -e "   ${GREEN}./setup-local.sh port-forward${NC}   Forward pods & monitoring"
+    echo -e "   ${GREEN}./setup-local.sh port-forward${NC}   Forward pods"
     echo -e "   ${GREEN}./setup-local.sh rebuild${NC}        Rebuild and restart"
     echo -e "   ${GREEN}./setup-local.sh cleanup${NC}        Remove all resources"
 
     echo
     echo -e "${YELLOW}💡 Tip: Wait 30-60 seconds for the cluster to fully form before testing!${NC}"
-    echo -e "${YELLOW}💡 To monitor during rolling updates, run: ./setup-local.sh monitoring${NC}"
     echo
 }
 
@@ -217,22 +214,6 @@ port_forward() {
         kubectl port-forward -n $NAMESPACE ${PODS[2]} 8082:8080 &
     fi
 
-    # Forward monitoring services if they exist
-    if kubectl get namespace monitoring &> /dev/null; then
-        echo
-        echo -e "${CYAN}Forwarding monitoring services...${NC}"
-
-        if kubectl get svc grafana -n monitoring &> /dev/null; then
-            echo -e "${CYAN}➜${NC} Port forwarding Grafana -> localhost:30300"
-            kubectl port-forward -n monitoring svc/grafana 30300:3000 &
-        fi
-
-        if kubectl get svc prometheus -n monitoring &> /dev/null; then
-            echo -e "${CYAN}➜${NC} Port forwarding Prometheus -> localhost:30090"
-            kubectl port-forward -n monitoring svc/prometheus 30090:9090 &
-        fi
-    fi
-
     echo
     echo -e "${GREEN}✓ Port forwarding active${NC}"
     echo
@@ -240,13 +221,6 @@ port_forward() {
     [ ${#PODS[@]} -ge 1 ] && echo -e "   ${GREEN}Pod 1:${NC} http://localhost:8080"
     [ ${#PODS[@]} -ge 2 ] && echo -e "   ${GREEN}Pod 2:${NC} http://localhost:8081"
     [ ${#PODS[@]} -ge 3 ] && echo -e "   ${GREEN}Pod 3:${NC} http://localhost:8082"
-
-    if kubectl get namespace monitoring &> /dev/null; then
-        echo
-        echo -e "${CYAN}Monitoring:${NC}"
-        kubectl get svc grafana -n monitoring &> /dev/null && echo -e "   ${GREEN}Grafana:${NC}    http://localhost:30300 (admin/admin)"
-        kubectl get svc prometheus -n monitoring &> /dev/null && echo -e "   ${GREEN}Prometheus:${NC} http://localhost:30090"
-    fi
 
     echo
     echo -e "${YELLOW}Press Ctrl+C to stop all port forwards${NC}"
@@ -284,53 +258,6 @@ rebuild() {
     echo
 }
 
-# Monitoring function
-deploy_monitoring() {
-    if ! cluster_exists; then
-        echo -e "${RED}✗ Cluster '$CLUSTER_NAME' does not exist${NC}"
-        echo -e "${YELLOW}  Run './setup-local.sh setup' first${NC}"
-        return 1
-    fi
-
-    print_banner
-    echo -e "${YELLOW}Deploying Prometheus & Grafana monitoring stack...${NC}"
-    echo
-
-    echo -e "${CYAN}[1/2] Deploying monitoring components...${NC}"
-    kubectl apply -k "$SCRIPT_DIR/monitoring"
-    echo -e "${GREEN}✓ Monitoring stack deployed${NC}"
-    echo
-
-    echo -e "${CYAN}[2/2] Waiting for pods to be ready...${NC}"
-    kubectl wait --for=condition=ready pod -l app=prometheus -n monitoring --timeout=120s 2>/dev/null || echo -e "${YELLOW}   Prometheus still starting...${NC}"
-    kubectl wait --for=condition=ready pod -l app=grafana -n monitoring --timeout=120s 2>/dev/null || echo -e "${YELLOW}   Grafana still starting...${NC}"
-    echo
-
-    echo -e "${GREEN}═══════════════════════════════════════════════════════════${NC}"
-    echo -e "${GREEN}✓ Monitoring Stack Deployed!${NC}"
-    echo -e "${GREEN}═══════════════════════════════════════════════════════════${NC}"
-    echo
-
-    echo -e "${CYAN}📊 Access Monitoring:${NC}"
-    echo -e "   ${GREEN}Grafana:${NC}     http://localhost:30300"
-    echo -e "   ${GREEN}Username:${NC}    admin"
-    echo -e "   ${GREEN}Password:${NC}    admin"
-    echo -e "   ${GREEN}Prometheus:${NC}  http://localhost:30090"
-    echo
-
-    echo -e "${CYAN}📈 Pre-configured Dashboards:${NC}"
-    echo -e "   ${GREEN}•${NC} Pekko Cluster Health - Monitor cluster members, shards, entities"
-    echo -e "   ${GREEN}•${NC} Rolling Update Monitor - Track pod lifecycle during deployments"
-    echo
-
-    echo -e "${CYAN}💡 Usage Tips:${NC}"
-    echo -e "   1. Open Grafana at http://localhost:30300"
-    echo -e "   2. Login with admin/admin"
-    echo -e "   3. Navigate to Dashboards to view cluster metrics"
-    echo -e "   4. Run './setup-local.sh rebuild' and watch the rolling update!"
-    echo
-}
-
 # Cleanup function
 cleanup() {
     "$SCRIPT_DIR/cleanup-local.sh"
@@ -342,9 +269,6 @@ COMMAND="${1:-setup}"
 case "$COMMAND" in
     setup)
         setup_cluster
-        ;;
-    monitoring)
-        deploy_monitoring
         ;;
     status)
         show_status
