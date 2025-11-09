@@ -6,13 +6,12 @@ import io.github.seonwkim.core.SpringActor;
 import io.github.seonwkim.core.SpringActorBehavior;
 import io.github.seonwkim.core.SpringActorContext;
 import io.github.seonwkim.example.persistence.OrderStatus;
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.springframework.stereotype.Component;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Example of event-sourced actor that persists all changes as events.
@@ -24,9 +23,7 @@ public class EventSourcedOrderActor implements SpringActor<EventSourcedOrderActo
     private final OrderEventRepository eventRepository;
     private final ObjectMapper objectMapper;
 
-    public EventSourcedOrderActor(
-            OrderEventRepository eventRepository,
-            ObjectMapper objectMapper) {
+    public EventSourcedOrderActor(OrderEventRepository eventRepository, ObjectMapper objectMapper) {
         this.eventRepository = eventRepository;
         this.objectMapper = objectMapper;
     }
@@ -43,8 +40,13 @@ public class EventSourcedOrderActor implements SpringActor<EventSourcedOrderActo
             this.amount = amount;
         }
 
-        public String getCustomerId() { return customerId; }
-        public double getAmount() { return amount; }
+        public String getCustomerId() {
+            return customerId;
+        }
+
+        public double getAmount() {
+            return amount;
+        }
     }
 
     public static class AddItem extends AskCommand<OrderResponse> implements Command {
@@ -58,9 +60,17 @@ public class EventSourcedOrderActor implements SpringActor<EventSourcedOrderActo
             this.price = price;
         }
 
-        public String getProductId() { return productId; }
-        public int getQuantity() { return quantity; }
-        public double getPrice() { return price; }
+        public String getProductId() {
+            return productId;
+        }
+
+        public int getQuantity() {
+            return quantity;
+        }
+
+        public double getPrice() {
+            return price;
+        }
     }
 
     public static class ApproveOrder extends AskCommand<OrderResponse> implements Command {
@@ -70,7 +80,9 @@ public class EventSourcedOrderActor implements SpringActor<EventSourcedOrderActo
             this.approvedBy = approvedBy;
         }
 
-        public String getApprovedBy() { return approvedBy; }
+        public String getApprovedBy() {
+            return approvedBy;
+        }
     }
 
     public static class GetOrder extends AskCommand<OrderResponse> implements Command {}
@@ -78,23 +90,23 @@ public class EventSourcedOrderActor implements SpringActor<EventSourcedOrderActo
     public static class GetHistory extends AskCommand<HistoryResponse> implements Command {}
 
     public record OrderResponse(boolean success, OrderState state, String message) {}
+
     public record HistoryResponse(List<OrderEvent> events) {}
 
     @Override
     public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
         return SpringActorBehavior.builder(Command.class, actorContext)
-            .withState(ctx -> {
-                // Rebuild state from events
-                OrderState state = rebuildState(actorContext.actorId());
-                return new EventSourcedBehavior(
-                    ctx, actorContext, eventRepository, objectMapper, state);
-            })
-            .onMessage(CreateOrder.class, EventSourcedBehavior::handleCreateOrder)
-            .onMessage(AddItem.class, EventSourcedBehavior::handleAddItem)
-            .onMessage(ApproveOrder.class, EventSourcedBehavior::handleApproveOrder)
-            .onMessage(GetOrder.class, EventSourcedBehavior::handleGetOrder)
-            .onMessage(GetHistory.class, EventSourcedBehavior::handleGetHistory)
-            .build();
+                .withState(ctx -> {
+                    // Rebuild state from events
+                    OrderState state = rebuildState(actorContext.actorId());
+                    return new EventSourcedBehavior(ctx, actorContext, eventRepository, objectMapper, state);
+                })
+                .onMessage(CreateOrder.class, EventSourcedBehavior::handleCreateOrder)
+                .onMessage(AddItem.class, EventSourcedBehavior::handleAddItem)
+                .onMessage(ApproveOrder.class, EventSourcedBehavior::handleApproveOrder)
+                .onMessage(GetOrder.class, EventSourcedBehavior::handleGetOrder)
+                .onMessage(GetHistory.class, EventSourcedBehavior::handleGetHistory)
+                .build();
     }
 
     private OrderState rebuildState(String orderId) {
@@ -151,12 +163,29 @@ public class EventSourcedOrderActor implements SpringActor<EventSourcedOrderActo
         }
 
         // Getters
-        public String getOrderId() { return orderId; }
-        public String getCustomerId() { return customerId; }
-        public double getAmount() { return amount; }
-        public OrderStatus getStatus() { return status; }
-        public List<OrderItem> getItems() { return items; }
-        public long getSequenceNumber() { return sequenceNumber; }
+        public String getOrderId() {
+            return orderId;
+        }
+
+        public String getCustomerId() {
+            return customerId;
+        }
+
+        public double getAmount() {
+            return amount;
+        }
+
+        public OrderStatus getStatus() {
+            return status;
+        }
+
+        public List<OrderItem> getItems() {
+            return items;
+        }
+
+        public long getSequenceNumber() {
+            return sequenceNumber;
+        }
     }
 
     public record OrderItem(String productId, int quantity, double price) {}
@@ -190,8 +219,8 @@ public class EventSourcedOrderActor implements SpringActor<EventSourcedOrderActo
 
             try {
                 // Create event
-                OrderCreatedEvent domainEvent = new OrderCreatedEvent(
-                    actorContext.actorId(), cmd.getCustomerId(), cmd.getAmount());
+                OrderCreatedEvent domainEvent =
+                        new OrderCreatedEvent(actorContext.actorId(), cmd.getCustomerId(), cmd.getAmount());
 
                 // Persist event
                 persistEvent(domainEvent, state.getSequenceNumber() + 1);
@@ -213,7 +242,7 @@ public class EventSourcedOrderActor implements SpringActor<EventSourcedOrderActo
         private Behavior<Command> handleAddItem(AddItem cmd) {
             try {
                 OrderItemAddedEvent domainEvent = new OrderItemAddedEvent(
-                    actorContext.actorId(), cmd.getProductId(), cmd.getQuantity(), cmd.getPrice());
+                        actorContext.actorId(), cmd.getProductId(), cmd.getQuantity(), cmd.getPrice());
 
                 persistEvent(domainEvent, state.getSequenceNumber() + 1);
                 state.apply(domainEvent);
@@ -231,8 +260,7 @@ public class EventSourcedOrderActor implements SpringActor<EventSourcedOrderActo
 
         private Behavior<Command> handleApproveOrder(ApproveOrder cmd) {
             try {
-                OrderApprovedEvent domainEvent = new OrderApprovedEvent(
-                    actorContext.actorId(), cmd.getApprovedBy());
+                OrderApprovedEvent domainEvent = new OrderApprovedEvent(actorContext.actorId(), cmd.getApprovedBy());
 
                 persistEvent(domainEvent, state.getSequenceNumber() + 1);
                 state.apply(domainEvent);
@@ -254,21 +282,15 @@ public class EventSourcedOrderActor implements SpringActor<EventSourcedOrderActo
         }
 
         private Behavior<Command> handleGetHistory(GetHistory cmd) {
-            List<OrderEvent> events = eventRepository
-                .findByOrderIdOrderBySequenceNumberAsc(actorContext.actorId());
+            List<OrderEvent> events = eventRepository.findByOrderIdOrderBySequenceNumberAsc(actorContext.actorId());
             cmd.reply(new HistoryResponse(events));
             return Behaviors.same();
         }
 
-        private OrderEvent persistEvent(OrderDomainEvent domainEvent, long sequenceNumber)
-                throws Exception {
+        private OrderEvent persistEvent(OrderDomainEvent domainEvent, long sequenceNumber) throws Exception {
             String eventData = objectMapper.writeValueAsString(domainEvent);
-            OrderEvent event = new OrderEvent(
-                actorContext.actorId(),
-                domainEvent.getEventType(),
-                eventData,
-                sequenceNumber
-            );
+            OrderEvent event =
+                    new OrderEvent(actorContext.actorId(), domainEvent.getEventType(), eventData, sequenceNumber);
             return eventRepository.save(event);
         }
     }

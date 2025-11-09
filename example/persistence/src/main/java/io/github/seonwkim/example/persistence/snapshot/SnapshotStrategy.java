@@ -5,5 +5,6 @@ package io.github.seonwkim.example.persistence.snapshot;
  */
 public interface SnapshotStrategy {
     boolean shouldCreateSnapshot(long operationCount, long timeSinceLastSnapshot);
+
     boolean shouldLoadSnapshot();
 }

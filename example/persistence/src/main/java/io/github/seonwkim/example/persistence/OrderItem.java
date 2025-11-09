@@ -13,7 +13,7 @@ public class OrderItem {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id", nullable = false)
-    @JsonIgnore  // Prevent circular reference in JSON serialization
+    @JsonIgnore // Prevent circular reference in JSON serialization
     private Order order;
 
     @Column(nullable = false)
@@ -34,18 +34,43 @@ public class OrderItem {
     }
 
     // Getters and setters
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public Long getId() {
+        return id;
+    }
 
-    public Order getOrder() { return order; }
-    public void setOrder(Order order) { this.order = order; }
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-    public String getProductId() { return productId; }
-    public void setProductId(String productId) { this.productId = productId; }
+    public Order getOrder() {
+        return order;
+    }
 
-    public Integer getQuantity() { return quantity; }
-    public void setQuantity(Integer quantity) { this.quantity = quantity; }
+    public void setOrder(Order order) {
+        this.order = order;
+    }
 
-    public Double getPrice() { return price; }
-    public void setPrice(Double price) { this.price = price; }
+    public String getProductId() {
+        return productId;
+    }
+
+    public void setProductId(String productId) {
+        this.productId = productId;
+    }
+
+    public Integer getQuantity() {
+        return quantity;
+    }
+
+    public void setQuantity(Integer quantity) {
+        this.quantity = quantity;
+    }
+
+    public Double getPrice() {
+        return price;
+    }
+
+    public void setPrice(Double price) {
+        this.price = price;
+    }
 }

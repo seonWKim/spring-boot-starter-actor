@@ -10,8 +10,6 @@ import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
-
 /**
  * Example actor demonstrating JPA-based persistence.
  * This actor manages order state using Spring Data JPA repositories.
@@ -37,8 +35,13 @@ public class OrderActor implements SpringActor<OrderActor.Command> {
             this.amount = amount;
         }
 
-        public String getCustomerId() { return customerId; }
-        public double getAmount() { return amount; }
+        public String getCustomerId() {
+            return customerId;
+        }
+
+        public double getAmount() {
+            return amount;
+        }
     }
 
     public static class AddItem extends AskCommand<OrderResponse> implements Command {
@@ -52,9 +55,17 @@ public class OrderActor implements SpringActor<OrderActor.Command> {
             this.price = price;
         }
 
-        public String getProductId() { return productId; }
-        public int getQuantity() { return quantity; }
-        public double getPrice() { return price; }
+        public String getProductId() {
+            return productId;
+        }
+
+        public int getQuantity() {
+            return quantity;
+        }
+
+        public double getPrice() {
+            return price;
+        }
     }
 
     public static class GetOrder extends AskCommand<OrderResponse> implements Command {}
@@ -70,7 +81,9 @@ public class OrderActor implements SpringActor<OrderActor.Command> {
             this.newAmount = newAmount;
         }
 
-        public double getNewAmount() { return newAmount; }
+        public double getNewAmount() {
+            return newAmount;
+        }
     }
 
     public record OrderResponse(boolean success, Order order, String message) {}
@@ -78,18 +91,20 @@ public class OrderActor implements SpringActor<OrderActor.Command> {
     @Override
     public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
         return SpringActorBehavior.builder(Command.class, actorContext)
-            .withState(ctx -> {
-                // Load existing order on startup
-                Order order = orderRepository.findByOrderId(actorContext.actorId()).orElse(null);
-                return new OrderActorBehavior(ctx, actorContext, orderRepository, order);
-            })
-            .onMessage(CreateOrder.class, OrderActorBehavior::handleCreateOrder)
-            .onMessage(AddItem.class, OrderActorBehavior::handleAddItem)
-            .onMessage(GetOrder.class, OrderActorBehavior::handleGetOrder)
-            .onMessage(ApproveOrder.class, OrderActorBehavior::handleApproveOrder)
-            .onMessage(RejectOrder.class, OrderActorBehavior::handleRejectOrder)
-            .onMessage(UpdateAmount.class, OrderActorBehavior::handleUpdateAmount)
-            .build();
+                .withState(ctx -> {
+                    // Load existing order on startup
+                    Order order = orderRepository
+                            .findByOrderId(actorContext.actorId())
+                            .orElse(null);
+                    return new OrderActorBehavior(ctx, actorContext, orderRepository, order);
+                })
+                .onMessage(CreateOrder.class, OrderActorBehavior::handleCreateOrder)
+                .onMessage(AddItem.class, OrderActorBehavior::handleAddItem)
+                .onMessage(GetOrder.class, OrderActorBehavior::handleGetOrder)
+                .onMessage(ApproveOrder.class, OrderActorBehavior::handleApproveOrder)
+                .onMessage(RejectOrder.class, OrderActorBehavior::handleRejectOrder)
+                .onMessage(UpdateAmount.class, OrderActorBehavior::handleUpdateAmount)
+                .build();
     }
 
     private static class OrderActorBehavior {
@@ -116,11 +131,7 @@ public class OrderActor implements SpringActor<OrderActor.Command> {
             }
 
             try {
-                currentOrder = new Order(
-                    actorContext.actorId(),
-                    cmd.getCustomerId(),
-                    cmd.getAmount()
-                );
+                currentOrder = new Order(actorContext.actorId(), cmd.getCustomerId(), cmd.getAmount());
 
                 currentOrder = orderRepository.save(currentOrder);
 
@@ -142,11 +153,7 @@ public class OrderActor implements SpringActor<OrderActor.Command> {
             }
 
             try {
-                OrderItem item = new OrderItem(
-                    cmd.getProductId(),
-                    cmd.getQuantity(),
-                    cmd.getPrice()
-                );
+                OrderItem item = new OrderItem(cmd.getProductId(), cmd.getQuantity(), cmd.getPrice());
 
                 currentOrder.addItem(item);
                 currentOrder = orderRepository.save(currentOrder);
@@ -165,7 +172,8 @@ public class OrderActor implements SpringActor<OrderActor.Command> {
         private Behavior<Command> handleGetOrder(GetOrder cmd) {
             if (currentOrder == null) {
                 // Try to reload from database
-                currentOrder = orderRepository.findByOrderId(actorContext.actorId()).orElse(null);
+                currentOrder =
+                        orderRepository.findByOrderId(actorContext.actorId()).orElse(null);
             }
 
             if (currentOrder != null) {
@@ -200,9 +208,10 @@ public class OrderActor implements SpringActor<OrderActor.Command> {
 
             } catch (OptimisticLockingFailureException e) {
                 ctx.getLog().warn("Optimistic locking failure, reloading order");
-                currentOrder = orderRepository.findByOrderId(currentOrder.getOrderId()).orElse(null);
-                cmd.reply(new OrderResponse(false, currentOrder,
-                    "Order was modified by another process, please retry"));
+                currentOrder =
+                        orderRepository.findByOrderId(currentOrder.getOrderId()).orElse(null);
+                cmd.reply(
+                        new OrderResponse(false, currentOrder, "Order was modified by another process, please retry"));
 
             } catch (Exception e) {
                 ctx.getLog().error("Failed to update amount", e);
@@ -213,9 +222,7 @@ public class OrderActor implements SpringActor<OrderActor.Command> {
         }
 
         private Behavior<Command> updateOrderStatus(
-                AskCommand<OrderResponse> cmd,
-                OrderStatus newStatus,
-                String action) {
+                AskCommand<OrderResponse> cmd, OrderStatus newStatus, String action) {
 
             if (currentOrder == null) {
                 cmd.reply(new OrderResponse(false, null, "Order not found"));
@@ -231,9 +238,10 @@ public class OrderActor implements SpringActor<OrderActor.Command> {
 
             } catch (OptimisticLockingFailureException e) {
                 ctx.getLog().warn("Optimistic locking failure for order {}", currentOrder.getOrderId());
-                currentOrder = orderRepository.findByOrderId(currentOrder.getOrderId()).orElse(null);
-                cmd.reply(new OrderResponse(false, currentOrder,
-                    "Order was modified by another process, please retry"));
+                currentOrder =
+                        orderRepository.findByOrderId(currentOrder.getOrderId()).orElse(null);
+                cmd.reply(
+                        new OrderResponse(false, currentOrder, "Order was modified by another process, please retry"));
 
             } catch (Exception e) {
                 ctx.getLog().error("Failed to update order", e);

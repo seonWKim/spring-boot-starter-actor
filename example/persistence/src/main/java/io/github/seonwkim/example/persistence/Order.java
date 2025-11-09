@@ -1,9 +1,9 @@
 package io.github.seonwkim.example.persistence;
 
-import javax.persistence.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import javax.persistence.*;
 
 @Entity
 @Table(name = "orders")
@@ -85,23 +85,55 @@ public class Order {
     }
 
     // Getters and setters
-    public String getOrderId() { return orderId; }
-    public void setOrderId(String orderId) { this.orderId = orderId; }
+    public String getOrderId() {
+        return orderId;
+    }
 
-    public String getCustomerId() { return customerId; }
-    public void setCustomerId(String customerId) { this.customerId = customerId; }
+    public void setOrderId(String orderId) {
+        this.orderId = orderId;
+    }
 
-    public Double getAmount() { return amount; }
-    public void setAmount(Double amount) { this.amount = amount; }
+    public String getCustomerId() {
+        return customerId;
+    }
 
-    public OrderStatus getStatus() { return status; }
-    public void setStatus(OrderStatus status) { this.status = status; }
+    public void setCustomerId(String customerId) {
+        this.customerId = customerId;
+    }
 
-    public Long getVersion() { return version; }
+    public Double getAmount() {
+        return amount;
+    }
 
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setAmount(Double amount) {
+        this.amount = amount;
+    }
 
-    public List<OrderItem> getItems() { return items; }
-    public void setItems(List<OrderItem> items) { this.items = items; }
+    public OrderStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(OrderStatus status) {
+        this.status = status;
+    }
+
+    public Long getVersion() {
+        return version;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public List<OrderItem> getItems() {
+        return items;
+    }
+
+    public void setItems(List<OrderItem> items) {
+        this.items = items;
+    }
 }

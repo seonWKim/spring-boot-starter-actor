@@ -1,7 +1,7 @@
 package io.github.seonwkim.example.persistence.snapshot;
 
-import javax.persistence.*;
 import java.time.Instant;
+import javax.persistence.*;
 
 @Entity
 @Table(name = "actor_snapshots")
@@ -40,24 +40,59 @@ public class ActorSnapshot {
     }
 
     // Getters and setters
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public Long getId() {
+        return id;
+    }
 
-    public String getActorId() { return actorId; }
-    public void setActorId(String actorId) { this.actorId = actorId; }
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-    public String getActorType() { return actorType; }
-    public void setActorType(String actorType) { this.actorType = actorType; }
+    public String getActorId() {
+        return actorId;
+    }
 
-    public String getStateData() { return stateData; }
-    public void setStateData(String stateData) { this.stateData = stateData; }
+    public void setActorId(String actorId) {
+        this.actorId = actorId;
+    }
 
-    public Long getSequenceNumber() { return sequenceNumber; }
-    public void setSequenceNumber(Long sequenceNumber) { this.sequenceNumber = sequenceNumber; }
+    public String getActorType() {
+        return actorType;
+    }
 
-    public Integer getVersion() { return version; }
-    public void setVersion(Integer version) { this.version = version; }
+    public void setActorType(String actorType) {
+        this.actorType = actorType;
+    }
 
-    public Instant getCreatedAt() { return createdAt; }
-    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+    public String getStateData() {
+        return stateData;
+    }
+
+    public void setStateData(String stateData) {
+        this.stateData = stateData;
+    }
+
+    public Long getSequenceNumber() {
+        return sequenceNumber;
+    }
+
+    public void setSequenceNumber(Long sequenceNumber) {
+        this.sequenceNumber = sequenceNumber;
+    }
+
+    public Integer getVersion() {
+        return version;
+    }
+
+    public void setVersion(Integer version) {
+        this.version = version;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Instant createdAt) {
+        this.createdAt = createdAt;
+    }
 }

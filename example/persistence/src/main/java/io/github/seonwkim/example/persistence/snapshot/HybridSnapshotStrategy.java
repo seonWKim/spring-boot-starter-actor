@@ -14,8 +14,7 @@ public class HybridSnapshotStrategy implements SnapshotStrategy {
 
     @Override
     public boolean shouldCreateSnapshot(long operationCount, long timeSinceLastSnapshot) {
-        return operationCount >= operationInterval ||
-               timeSinceLastSnapshot >= timeIntervalMillis;
+        return operationCount >= operationInterval || timeSinceLastSnapshot >= timeIntervalMillis;
     }
 
     @Override

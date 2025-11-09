@@ -8,13 +8,12 @@ import io.github.seonwkim.core.SpringActorContext;
 import io.github.seonwkim.example.persistence.Order;
 import io.github.seonwkim.example.persistence.OrderRepository;
 import io.github.seonwkim.example.persistence.OrderStatus;
+import java.time.Instant;
+import java.util.Optional;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.springframework.stereotype.Component;
-
-import java.time.Instant;
-import java.util.Optional;
 
 /**
  * Example actor with snapshot support for fast recovery.
@@ -28,9 +27,7 @@ public class SnapshotOrderActor implements SpringActor<SnapshotOrderActor.Comman
     private final ObjectMapper objectMapper;
 
     public SnapshotOrderActor(
-            OrderRepository orderRepository,
-            ActorSnapshotRepository snapshotRepository,
-            ObjectMapper objectMapper) {
+            OrderRepository orderRepository, ActorSnapshotRepository snapshotRepository, ObjectMapper objectMapper) {
         this.orderRepository = orderRepository;
         this.snapshotRepository = snapshotRepository;
         this.objectMapper = objectMapper;
@@ -47,8 +44,13 @@ public class SnapshotOrderActor implements SpringActor<SnapshotOrderActor.Comman
             this.amount = amount;
         }
 
-        public String getCustomerId() { return customerId; }
-        public double getAmount() { return amount; }
+        public String getCustomerId() {
+            return customerId;
+        }
+
+        public double getAmount() {
+            return amount;
+        }
     }
 
     public static class UpdateOrder extends AskCommand<OrderResponse> implements Command {
@@ -58,7 +60,9 @@ public class SnapshotOrderActor implements SpringActor<SnapshotOrderActor.Comman
             this.newAmount = newAmount;
         }
 
-        public double getNewAmount() { return newAmount; }
+        public double getNewAmount() {
+            return newAmount;
+        }
     }
 
     public static class ApproveOrder extends AskCommand<OrderResponse> implements Command {}
@@ -72,40 +76,39 @@ public class SnapshotOrderActor implements SpringActor<SnapshotOrderActor.Comman
     @Override
     public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
         return SpringActorBehavior.builder(Command.class, actorContext)
-            .withState(ctx -> {
-                // Try to load from snapshot first
-                Order order = loadFromSnapshot(actorContext.actorId())
-                    .orElseGet(() ->
-                        orderRepository.findByOrderId(actorContext.actorId()).orElse(null));
+                .withState(ctx -> {
+                    // Try to load from snapshot first
+                    Order order = loadFromSnapshot(actorContext.actorId()).orElseGet(() -> orderRepository
+                            .findByOrderId(actorContext.actorId())
+                            .orElse(null));
 
-                SnapshotStrategy strategy = new HybridSnapshotStrategy(
-                    10,    // Every 10 operations
-                    60000  // Or every 60 seconds
-                );
+                    SnapshotStrategy strategy = new HybridSnapshotStrategy(
+                            10, // Every 10 operations
+                            60000 // Or every 60 seconds
+                            );
 
-                return new SnapshotOrderBehavior(
-                    ctx, actorContext, orderRepository, snapshotRepository,
-                    objectMapper, order, strategy);
-            })
-            .onMessage(CreateOrder.class, SnapshotOrderBehavior::handleCreateOrder)
-            .onMessage(UpdateOrder.class, SnapshotOrderBehavior::handleUpdateOrder)
-            .onMessage(ApproveOrder.class, SnapshotOrderBehavior::handleApproveOrder)
-            .onMessage(GetOrder.class, SnapshotOrderBehavior::handleGetOrder)
-            .onMessage(SaveSnapshot.class, SnapshotOrderBehavior::handleSaveSnapshot)
-            .build();
+                    return new SnapshotOrderBehavior(
+                            ctx, actorContext, orderRepository, snapshotRepository, objectMapper, order, strategy);
+                })
+                .onMessage(CreateOrder.class, SnapshotOrderBehavior::handleCreateOrder)
+                .onMessage(UpdateOrder.class, SnapshotOrderBehavior::handleUpdateOrder)
+                .onMessage(ApproveOrder.class, SnapshotOrderBehavior::handleApproveOrder)
+                .onMessage(GetOrder.class, SnapshotOrderBehavior::handleGetOrder)
+                .onMessage(SaveSnapshot.class, SnapshotOrderBehavior::handleSaveSnapshot)
+                .build();
     }
 
     private Optional<Order> loadFromSnapshot(String actorId) {
         try {
             return snapshotRepository
-                .findTopByActorIdAndActorTypeOrderByCreatedAtDesc(actorId, "OrderActor")
-                .map(snapshot -> {
-                    try {
-                        return objectMapper.readValue(snapshot.getStateData(), Order.class);
-                    } catch (Exception e) {
-                        return null;
-                    }
-                });
+                    .findTopByActorIdAndActorTypeOrderByCreatedAtDesc(actorId, "OrderActor")
+                    .map(snapshot -> {
+                        try {
+                            return objectMapper.readValue(snapshot.getStateData(), Order.class);
+                        } catch (Exception e) {
+                            return null;
+                        }
+                    });
         } catch (Exception e) {
             return Optional.empty();
         }
@@ -214,7 +217,8 @@ public class SnapshotOrderActor implements SpringActor<SnapshotOrderActor.Comman
 
         private Behavior<Command> handleGetOrder(GetOrder cmd) {
             if (currentOrder == null) {
-                currentOrder = orderRepository.findByOrderId(actorContext.actorId()).orElse(null);
+                currentOrder =
+                        orderRepository.findByOrderId(actorContext.actorId()).orElse(null);
             }
 
             if (currentOrder != null) {
@@ -232,8 +236,7 @@ public class SnapshotOrderActor implements SpringActor<SnapshotOrderActor.Comman
         }
 
         private void saveSnapshotIfNeeded() {
-            long timeSinceLastSnapshot =
-                Instant.now().toEpochMilli() - lastSnapshotTime.toEpochMilli();
+            long timeSinceLastSnapshot = Instant.now().toEpochMilli() - lastSnapshotTime.toEpochMilli();
 
             if (strategy.shouldCreateSnapshot(operationCount, timeSinceLastSnapshot)) {
                 saveSnapshot();
@@ -250,11 +253,7 @@ public class SnapshotOrderActor implements SpringActor<SnapshotOrderActor.Comman
             try {
                 String stateData = objectMapper.writeValueAsString(currentOrder);
 
-                ActorSnapshot snapshot = new ActorSnapshot(
-                    actorContext.actorId(),
-                    "OrderActor",
-                    stateData
-                );
+                ActorSnapshot snapshot = new ActorSnapshot(actorContext.actorId(), "OrderActor", stateData);
 
                 snapshotRepository.save(snapshot);
 
