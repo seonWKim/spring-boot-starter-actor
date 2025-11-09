@@ -37,9 +37,26 @@ public class OrderActor implements SpringActor<Command> {
     @Override
     public SpringActorBehavior<Command> create(SpringActorContext ctx) {
         return SpringActorBehavior.builder(Command.class, ctx)
-            .withState(actorCtx -> new OrderBehavior(repository, service))
+            .withState(actorCtx -> new OrderBehavior(actorCtx, repository, service))
             .onMessage(CreateOrder.class, OrderBehavior::handleCreate)
             .build();
+    }
+
+    private static class OrderBehavior {
+        private final ActorContext<Command> ctx;
+        private final OrderRepository repository;
+        private final OrderService service;
+
+        public OrderBehavior(ActorContext<Command> ctx, OrderRepository repository, OrderService service) {
+            this.ctx = ctx;
+            this.repository = repository;
+            this.service = service;
+        }
+
+        private Behavior<Command> handleCreate(CreateOrder cmd) {
+            // Implementation here
+            return Behaviors.same();
+        }
     }
 }
 ```
@@ -88,7 +105,7 @@ public class OrderActor implements SpringActor<Command> {
         return SpringActorBehavior.builder(Command.class, ctx)
             .withState(actorCtx -> {
                 // Load state on startup from database
-                Order order = orderRepository.findById(ctx.actorId()).orElse(null);
+                Order order = orderRepository.findByOrderId(ctx.actorId()).orElse(null);
                 return new OrderBehavior(actorCtx, orderRepository, order);
             })
             .onMessage(UpdateOrder.class, OrderBehavior::handleUpdate)
@@ -107,9 +124,15 @@ public class OrderActor implements SpringActor<Command> {
         }
 
         private Behavior<Command> handleUpdate(UpdateOrder cmd) {
-            currentOrder.setAmount(cmd.getAmount());
+            if (currentOrder == null) {
+                cmd.reply(new OrderResponse(false, null, "Order not found"));
+                return Behaviors.same();
+            }
+
+            currentOrder.setAmount(cmd.getNewAmount());
             currentOrder = orderRepository.save(currentOrder);  // Explicit save
             ctx.getLog().info("Order updated: {}", currentOrder.getOrderId());
+            cmd.reply(new OrderResponse(true, currentOrder, "Order updated"));
             return Behaviors.same();
         }
     }
@@ -206,9 +229,11 @@ Inject into actors:
 ```java
 @Component
 public class OrderActor implements SpringActor<Command> {
+    private final OrderRepository orderRepository;
     private final OrderConfig config;  // Injected automatically
 
-    public OrderActor(OrderRepository repo, OrderConfig config) {
+    public OrderActor(OrderRepository orderRepository, OrderConfig config) {
+        this.orderRepository = orderRepository;
         this.config = config;
     }
 
@@ -220,8 +245,9 @@ public class OrderActor implements SpringActor<Command> {
                     config.getSnapshot().getOperationInterval(),
                     config.getSnapshot().getTimeIntervalMillis()
                 );
-                return new Behavior(strategy);
+                return new OrderBehavior(actorCtx, orderRepository, strategy);
             })
+            .onMessage(CreateOrder.class, OrderBehavior::handleCreate)
             .build();
     }
 }
@@ -273,10 +299,11 @@ public class OrderActor implements SpringActor<Command> {
         }
 
         private Behavior<Command> handleCreate(CreateOrder cmd) {
-            Order order = orderService.createOrderWithItems(ctx.actorId(), cmd.items());
+            List<OrderItem> items = cmd.getItems();
+            Order order = orderService.createOrderWithItems(ctx.actorId(), items);
             // Transaction is managed by Spring
             ctx.getLog().info("Order created with items: {}", order.getOrderId());
-            cmd.reply(new OrderResponse(true, order));
+            cmd.reply(new OrderResponse(true, order, "Order created"));
             return Behaviors.same();
         }
     }
