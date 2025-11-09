@@ -177,6 +177,7 @@ monitoring/
 │   └── jvm-system-metrics.json
 │
 ├── setup-monitoring.sh                # Deployment script
+├── cleanup-monitoring.sh              # Cleanup script
 └── README.md                          # This file
 ```
 
@@ -219,6 +220,10 @@ kubectl logs -f -n spring-actor-monitoring -l app=grafana
 ### Delete Monitoring Stack
 
 ```bash
+# Use the cleanup script (recommended)
+./cleanup-monitoring.sh
+
+# Or manually delete
 kubectl delete namespace spring-actor-monitoring
 ```
 

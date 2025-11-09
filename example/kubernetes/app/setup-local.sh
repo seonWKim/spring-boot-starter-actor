@@ -104,7 +104,8 @@ setup_cluster() {
 
     echo
     echo -e "${CYAN}🔗 Access the Application:${NC}"
-    echo -e "   ${GREEN}Main Service:${NC}      http://localhost:8080"
+    echo -e "   ${GREEN}Main Service:${NC}      http://localhost:30080"
+    echo -e "   ${GREEN}Load Balanced:${NC}     Access any pod via NodePort"
     echo
 
     echo -e "${CYAN}📝 Available Commands:${NC}"
