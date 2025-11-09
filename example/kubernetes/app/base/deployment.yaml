@@ -54,7 +54,7 @@ spec:
       containers:
       - name: spring-actor
         image: your-registry/spring-actor-app:latest
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent  # Use local image from kind load
 
         env:
         # Kubernetes metadata
