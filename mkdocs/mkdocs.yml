@@ -39,6 +39,7 @@ nav:
     - Dispatchers: guides/dispatchers.md
     - Logging with MDC and Tags: guides/logging.md
     - Sharded Actors: guides/sharded-actors.md
+    - Persistence with Spring Boot: guides/persistence-spring-boot.md
   - Examples:
     - Overview: examples/index.md
     - Simple: examples/simple.md
