@@ -1,4 +1,4 @@
-# Getting Started with Spring Boot Starter Actor
+# Getting Started
 
 This guide will help you get started with Spring Boot Starter Actor in your Spring Boot application.
 
