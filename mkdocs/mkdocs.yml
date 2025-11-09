@@ -31,8 +31,9 @@ markdown_extensions:
   - tables
 
 nav:
-  - Home: index.md
-  - Getting Started: getting-started.md
+  - Home:
+    - index.md
+    - getting-started.md
   - Guides:
     - Actor Registration and Messaging: guides/actor-registration-messaging.md
     - Routers: guides/routers.md
