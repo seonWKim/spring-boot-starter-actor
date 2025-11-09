@@ -35,6 +35,7 @@ nav:
   - Getting Started: getting-started.md
   - Guides:
     - Actor Registration and Messaging: guides/actor-registration-messaging.md
+    - Routers: guides/routers.md
     - Dispatchers: guides/dispatchers.md
     - Logging with MDC and Tags: guides/logging.md
     - Sharded Actors: guides/sharded-actors.md
