@@ -192,6 +192,30 @@ public class ReactiveOrderActor implements SpringActor<Command> {
 }
 ```
 
+## Handling Blocking Operations
+
+Database operations (JPA, JDBC) are **blocking** and should not run on the default actor dispatcher. Use a dedicated blocking dispatcher to prevent thread starvation.
+
+```java
+@RestController
+public class OrderController {
+    private final SpringActorSystem actorSystem;
+
+    @PostMapping("/orders/{orderId}")
+    public CompletionStage<OrderResponse> createOrder(@PathVariable String orderId, ...) {
+        return actorSystem.actor(OrderActor.class)
+            .withId(orderId)
+            .withDispatcher(DispatcherConfig.blocking())  // Configure dispatcher here
+            .spawn()
+            .thenCompose(ref -> ref.ask(new CreateOrder(...))
+                .withTimeout(Duration.ofSeconds(5))
+                .execute());
+    }
+}
+```
+
+See the [Dispatchers guide](dispatchers.md) for detailed configuration and best practices.
+
 ## Spring Boot Features
 
 ### Configuration Properties
