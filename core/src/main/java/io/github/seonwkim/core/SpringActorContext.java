@@ -43,6 +43,10 @@ public abstract class SpringActorContext {
         return registry;
     }
 
+    /**
+     * Internal: set by the framework during {@link SpringActorBehavior} initialization.
+     * Not for application use.
+     */
     public void setRegistry(ActorTypeRegistry registry) {
         this.registry = registry;
     }
