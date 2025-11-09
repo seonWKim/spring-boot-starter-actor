@@ -52,8 +52,8 @@ echo
 
 # Delete monitoring namespace
 echo -e "${YELLOW}[2/4] Deleting monitoring resources...${NC}"
-if kubectl get namespace monitoring &> /dev/null; then
-    kubectl delete namespace monitoring --timeout=60s || true
+if kubectl get namespace spring-actor-monitoring &> /dev/null; then
+    kubectl delete namespace spring-actor-monitoring --timeout=60s || true
     echo -e "${GREEN}✓ Monitoring namespace deleted${NC}"
 else
     echo -e "${YELLOW}✓ Monitoring namespace doesn't exist${NC}"
