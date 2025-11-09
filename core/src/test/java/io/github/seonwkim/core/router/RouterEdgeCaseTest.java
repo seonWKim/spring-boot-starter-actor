@@ -15,6 +15,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.pekko.actor.typed.SupervisorStrategy;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -49,6 +50,11 @@ class RouterEdgeCaseTest {
         public int getFailureCount() {
             return failureCount.get();
         }
+
+        public void reset() {
+            successCount.set(0);
+            failureCount.set(0);
+        }
     }
 
     @Component
@@ -61,6 +67,10 @@ class RouterEdgeCaseTest {
 
         public int getProcessedCount() {
             return processedCount.get();
+        }
+
+        public void reset() {
+            processedCount.set(0);
         }
     }
 
@@ -180,6 +190,12 @@ class RouterEdgeCaseTest {
     @SpringBootApplication(scanBasePackages = "io.github.seonwkim.core")
     static class TestApp {}
 
+    @BeforeEach
+    void resetState(@Autowired SupervisionState supervisionState, @Autowired HighVolumeState highVolumeState) {
+        supervisionState.reset();
+        highVolumeState.reset();
+    }
+
     @Test
     void routerHandlesWorkerFailuresWithSupervision(@Autowired SpringActorSystem actorSystem)
             throws Exception {
@@ -293,55 +309,33 @@ class RouterEdgeCaseTest {
             router3.tell(new HighVolumeRouterActor.BulkMessage(i));
         }
 
-        // Wait for all routers to process
+        // Wait for all messages to be processed
+        // Note: All routers share the same HighVolumeState singleton,
+        // so the total count accumulates across all routers
         await().atMost(10, TimeUnit.SECONDS)
                 .pollInterval(100, TimeUnit.MILLISECONDS)
                 .until(
                         () -> {
-                            Integer count1 =
+                            Integer count =
                                     router1.ask(new HighVolumeRouterActor.GetProcessedCount())
                                             .withTimeout(Duration.ofSeconds(1))
                                             .execute()
                                             .toCompletableFuture()
                                             .get();
-                            Integer count2 =
-                                            router2.ask(new HighVolumeRouterActor.GetProcessedCount())
-                                            .withTimeout(Duration.ofSeconds(1))
-                                            .execute()
-                                            .toCompletableFuture()
-                                            .get();
-                            Integer count3 =
-                                    router3.ask(new HighVolumeRouterActor.GetProcessedCount())
-                                            .withTimeout(Duration.ofSeconds(1))
-                                            .execute()
-                                            .toCompletableFuture()
-                                            .get();
-                            return count1 == 10 && count2 == 10 && count3 == 10;
+                            return count >= 30;
                         });
 
-        // Verify each router processed exactly 10 messages
-        Integer count1 =
+        // Verify total messages processed across all routers
+        // Since HighVolumeState is a shared singleton, all routers see the same global count
+        Integer totalCount =
                 router1.ask(new HighVolumeRouterActor.GetProcessedCount())
                         .withTimeout(Duration.ofSeconds(1))
                         .execute()
                         .toCompletableFuture()
                         .get();
-        Integer count2 =
-                router2.ask(new HighVolumeRouterActor.GetProcessedCount())
-                        .withTimeout(Duration.ofSeconds(1))
-                        .execute()
-                        .toCompletableFuture()
-                        .get();
-        Integer count3 =
-                router3.ask(new HighVolumeRouterActor.GetProcessedCount())
-                        .withTimeout(Duration.ofSeconds(1))
-                        .execute()
-                        .toCompletableFuture()
-                        .get();
 
-        assertThat(count1).isEqualTo(10);
-        assertThat(count2).isEqualTo(10);
-        assertThat(count3).isEqualTo(10);
+        // All 3 routers coexist and collectively processed 30 messages (10 each)
+        assertThat(totalCount).isEqualTo(30);
     }
 
     @Test

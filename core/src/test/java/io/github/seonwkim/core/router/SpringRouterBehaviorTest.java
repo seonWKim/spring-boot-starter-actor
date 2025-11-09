@@ -17,6 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -79,6 +80,11 @@ class SpringRouterBehaviorTest {
 
         public int getTotalCount() {
             return totalCount.get();
+        }
+
+        public void reset() {
+            workerCounts.clear();
+            totalCount.set(0);
         }
     }
 
@@ -147,6 +153,10 @@ class SpringRouterBehaviorTest {
         public int getCount() {
             return totalCount.get();
         }
+
+        public void reset() {
+            totalCount.set(0);
+        }
     }
 
     /** Router with random strategy for testing */
@@ -175,12 +185,145 @@ class SpringRouterBehaviorTest {
         }
     }
 
+    // Service to demonstrate Spring DI in workers
+    @Component
+    static class WorkerService {
+        private final AtomicInteger serviceCallCount = new AtomicInteger(0);
+
+        public String processMessage(String message) {
+            serviceCallCount.incrementAndGet();
+            return "Processed by service: " + message;
+        }
+
+        public int getServiceCallCount() {
+            return serviceCallCount.get();
+        }
+
+        public void reset() {
+            serviceCallCount.set(0);
+        }
+    }
+
+    // Worker that uses Spring DI
+    @Component
+    static class SpringDIWorkerActor implements SpringActor<SpringDIRouterActor.Command> {
+
+        @Autowired private WorkerService workerService; // Spring DI injection!
+
+        @Override
+        public SpringActorBehavior<SpringDIRouterActor.Command> create(SpringActorContext ctx) {
+            return SpringActorBehavior.builder(SpringDIRouterActor.Command.class, ctx)
+                    .onMessage(
+                            SpringDIRouterActor.ProcessWithService.class,
+                            (context, msg) -> {
+                                // Use the injected service
+                                String result = workerService.processMessage(msg.data);
+                                context.getLog().info("Service result: {}", result);
+                                return Behaviors.same();
+                            })
+                    .onMessage(
+                            SpringDIRouterActor.GetServiceCallCount.class,
+                            (context, msg) -> {
+                                msg.reply(workerService.getServiceCallCount());
+                                return Behaviors.same();
+                            })
+                    .build();
+        }
+    }
+
+    // Router using DI-enabled workers
+    @Component
+    static class SpringDIRouterActor implements SpringActor<SpringDIRouterActor.Command> {
+
+        public interface Command {}
+
+        public static class ProcessWithService implements Command {
+            public final String data;
+
+            public ProcessWithService(String data) {
+                this.data = data;
+            }
+        }
+
+        public static class GetServiceCallCount extends AskCommand<Integer> implements Command {}
+
+        @Override
+        public SpringActorBehavior<Command> create(SpringActorContext ctx) {
+            return SpringRouterBehavior.builder(Command.class, ctx)
+                    .withRoutingStrategy(RoutingStrategy.roundRobin())
+                    .withPoolSize(3)
+                    .withWorkerActors(SpringDIWorkerActor.class) // Workers get Spring DI!
+                    .build();
+        }
+    }
+
     @SpringBootApplication(scanBasePackages = "io.github.seonwkim.core")
     static class TestApp {}
 
     @Nested
     @SpringBootTest(classes = TestApp.class)
+    class SpringDependencyInjectionTests {
+
+        @BeforeEach
+        void resetState(@Autowired WorkerService workerService) {
+            workerService.reset();
+        }
+
+        @Test
+        void workerActorsCanInjectSpringBeans(@Autowired SpringActorSystem actorSystem)
+                throws Exception {
+            // This test verifies the key benefit of withWorkerActors() API:
+            // Workers are full Spring components with dependency injection!
+
+            SpringActorRef<SpringDIRouterActor.Command> router =
+                    actorSystem
+                            .actor(SpringDIRouterActor.class)
+                            .withId("spring-di-router")
+                            .spawnAndWait();
+
+            // Send messages that will be processed using the injected service
+            router.tell(new SpringDIRouterActor.ProcessWithService("message-1"));
+            router.tell(new SpringDIRouterActor.ProcessWithService("message-2"));
+            router.tell(new SpringDIRouterActor.ProcessWithService("message-3"));
+            router.tell(new SpringDIRouterActor.ProcessWithService("message-4"));
+            router.tell(new SpringDIRouterActor.ProcessWithService("message-5"));
+
+            // Wait for all messages to be processed
+            await().atMost(5, TimeUnit.SECONDS)
+                    .pollInterval(50, TimeUnit.MILLISECONDS)
+                    .until(
+                            () -> {
+                                Integer count =
+                                        router.ask(new SpringDIRouterActor.GetServiceCallCount())
+                                                .withTimeout(Duration.ofSeconds(1))
+                                                .execute()
+                                                .toCompletableFuture()
+                                                .get();
+                                return count == 5;
+                            });
+
+            // Verify the injected service was actually called
+            Integer serviceCallCount =
+                    router.ask(new SpringDIRouterActor.GetServiceCallCount())
+                            .withTimeout(Duration.ofSeconds(1))
+                            .execute()
+                            .toCompletableFuture()
+                            .get();
+
+            // SUCCESS! The injected WorkerService was called 5 times
+            // This proves Spring DI works in router workers!
+            assertThat(serviceCallCount).isEqualTo(5);
+        }
+    }
+
+    @Nested
+    @SpringBootTest(classes = TestApp.class)
     class RoundRobinRoutingTests {
+
+        @BeforeEach
+        void resetState(@Autowired WorkerState workerState) {
+            workerState.reset();
+        }
 
         @Test
         void roundRobinDistributesEvenly(@Autowired SpringActorSystem actorSystem) throws Exception {
@@ -287,6 +430,11 @@ class SpringRouterBehaviorTest {
     @Nested
     @SpringBootTest(classes = TestApp.class)
     class RandomRoutingTests {
+
+        @BeforeEach
+        void resetState(@Autowired RandomWorkerState randomWorkerState) {
+            randomWorkerState.reset();
+        }
 
         @Test
         void randomDistributesMessages(@Autowired SpringActorSystem actorSystem) throws Exception {
