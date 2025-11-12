@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.mock;
 
 import java.time.Duration;
+
+import io.github.seonwkim.core.shard.SpringShardedActorRef;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Scheduler;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityRef;

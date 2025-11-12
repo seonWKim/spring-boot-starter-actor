@@ -23,9 +23,9 @@ import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
  *     }
  *
  *     &#64;Override
- *     public SpringShardedActorBehavior&lt;Command&gt; create(EntityContext&lt;Command&gt; ctx) {
+ *     public SpringShardedActorBehavior&lt;Command&gt; create(SpringShardedActorContext&lt;Command&gt; ctx) {
  *         return SpringShardedActorBehavior.builder(ctx)
- *             .setup(entityCtx -&gt; SpringShardedActorBehavior.receive(Command.class)
+ *             .setup(shardedCtx -&gt; SpringShardedActorBehavior.receive(Command.class)
  *                 .onMessage(MyCommand.class, this::handleCommand)
  *                 .build())
  *             .build();
@@ -35,6 +35,7 @@ import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
  *
  * @param <T> The type of messages that the actor can handle
  * @see SpringShardedActorBehavior
+ * @see SpringShardedActorContext
  */
 public interface SpringShardedActor<T> {
     /**
@@ -46,13 +47,24 @@ public interface SpringShardedActor<T> {
     EntityTypeKey<T> typeKey();
 
     /**
-     * Creates a behavior for the actor given an entity context. This method is called when a new
-     * instance of the actor is created.
+     * Creates a context for this sharded actor. This method is called when a new instance of the
+     * actor is created, before {@link #create(SpringShardedActorContext)}.
      *
-     * @param ctx The entity context for the actor
+     * @param entityContext The Pekko entity context
+     * @return A SpringShardedActorContext for this actor instance
+     */
+    default SpringShardedActorContext<T> createContext(EntityContext<T> entityContext) {
+        return new DefaultSpringShardedActorContext<>(entityContext);
+    }
+
+    /**
+     * Creates a behavior for the actor given a sharded actor context. This method is called when
+     * a new instance of the actor is created.
+     *
+     * @param ctx The sharded actor context for the actor
      * @return A SpringShardedActorBehavior for the actor
      */
-    SpringShardedActorBehavior<T> create(EntityContext<T> ctx);
+    SpringShardedActorBehavior<T> create(SpringShardedActorContext<T> ctx);
 
     /**
      * Returns a message extractor for this actor type. The message extractor is used to extract

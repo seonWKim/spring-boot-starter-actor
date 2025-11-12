@@ -12,16 +12,6 @@ discovered and managed by the Spring container.
 To create an actor, implement the `SpringActor` interface and annotate the class with `@Component`:
 
 ```java
-import io.github.seonwkim.core.AskCommand;
-import io.github.seonwkim.core.SpringActor;
-import io.github.seonwkim.core.SpringActorBehavior;
-import io.github.seonwkim.core.SpringActorContext;
-
-import org.apache.pekko.actor.typed.Behavior;
-import org.apache.pekko.actor.typed.javadsl.ActorContext;
-import org.apache.pekko.actor.typed.javadsl.Behaviors;
-import org.springframework.stereotype.Component;
-
 @Component
 public class HelloActor implements SpringActor<HelloActor.Command> {
 
@@ -79,14 +69,6 @@ Once you've registered your actor, you can spawn instances of it using the `Spri
 The **recommended way** to work with actors is using `getOrSpawn()`, which automatically handles the actor lifecycle:
 
 ```java
-import io.github.seonwkim.core.SpringActorSystem;
-
-import org.springframework.stereotype.Service;
-
-import java.time.Duration;
-
-import reactor.core.publisher.Mono;
-
 @Service
 public class HelloService {
     private final SpringActorSystem actorSystem;
@@ -114,15 +96,6 @@ public class HelloService {
 For advanced scenarios requiring custom configuration (supervision strategies, dispatchers, mailboxes), use the fluent builder API:
 
 ```java
-import io.github.seonwkim.core.SpringActorRef;
-import io.github.seonwkim.core.SpringActorSystem;
-
-import org.springframework.stereotype.Service;
-
-import java.time.Duration;
-
-import reactor.core.publisher.Mono;
-
 @Service
 public class HelloService {
 
@@ -501,4 +474,3 @@ self.child(LoggerActor.class)
 Now that you know how to register actors, spawn them, and send messages, you can:
 
 1. [Learn how to create sharded actors](sharded-actors.md) for clustered environments
-2. Explore the [API Reference](../api-reference.md) for detailed information about the library's APIs

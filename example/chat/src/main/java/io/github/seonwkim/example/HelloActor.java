@@ -6,10 +6,10 @@ import io.github.seonwkim.core.AskCommand;
 import io.github.seonwkim.core.serialization.JsonSerializable;
 import io.github.seonwkim.core.shard.SpringShardedActor;
 import io.github.seonwkim.core.shard.SpringShardedActorBehavior;
+import io.github.seonwkim.core.shard.SpringShardedActorContext;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
-import org.apache.pekko.cluster.sharding.typed.javadsl.EntityContext;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
 import org.springframework.stereotype.Component;
 
@@ -43,11 +43,11 @@ public class HelloActor implements SpringShardedActor<HelloActor.Command> {
     /**
      * Creates the behavior for this actor when it's started.
      *
-     * @param ctx The entity context containing information about this entity
+     * @param ctx The sharded actor context containing information about this entity
      * @return The behavior for the actor
      */
     @Override
-    public SpringShardedActorBehavior<Command> create(EntityContext<Command> ctx) {
+    public SpringShardedActorBehavior<Command> create(SpringShardedActorContext<Command> ctx) {
         final String entityId = ctx.getEntityId();
 
         return SpringShardedActorBehavior.builder(Command.class, ctx)

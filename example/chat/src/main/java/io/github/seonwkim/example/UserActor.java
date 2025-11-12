@@ -6,7 +6,7 @@ import io.github.seonwkim.core.SpringActorBehavior;
 import io.github.seonwkim.core.SpringActorContext;
 import io.github.seonwkim.core.SpringActorSystem;
 import io.github.seonwkim.core.SpringActorWithContext;
-import io.github.seonwkim.core.SpringShardedActorRef;
+import io.github.seonwkim.core.shard.SpringShardedActorRef;
 import io.github.seonwkim.core.serialization.JsonSerializable;
 import javax.annotation.Nullable;
 import org.apache.pekko.actor.typed.Behavior;

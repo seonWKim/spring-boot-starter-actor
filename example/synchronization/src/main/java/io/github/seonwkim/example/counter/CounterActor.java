@@ -5,10 +5,10 @@ import io.github.seonwkim.core.AskCommand;
 import io.github.seonwkim.core.serialization.JsonSerializable;
 import io.github.seonwkim.core.shard.SpringShardedActor;
 import io.github.seonwkim.core.shard.SpringShardedActorBehavior;
+import io.github.seonwkim.core.shard.SpringShardedActorContext;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
-import org.apache.pekko.cluster.sharding.typed.javadsl.EntityContext;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,7 +59,7 @@ public class CounterActor implements SpringShardedActor<CounterActor.Command> {
     }
 
     @Override
-    public SpringShardedActorBehavior<Command> create(EntityContext<Command> ctx) {
+    public SpringShardedActorBehavior<Command> create(SpringShardedActorContext<Command> ctx) {
         return SpringShardedActorBehavior.builder(Command.class, ctx)
                 .withState(context -> new CounterActorBehavior(context, ctx.getEntityId()))
                 .onMessage(Increment.class, (behaviorHandler, msg) -> behaviorHandler.onIncrement(msg))

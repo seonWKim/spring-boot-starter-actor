@@ -99,4 +99,3 @@ Now that you have set up Spring Boot Starter Actor in your project, you can:
 
 1. [Learn how to register actors and send messages](guides/actor-registration-messaging.md)
 2. [Create sharded actors for clustered environments](guides/sharded-actors.md)
-3. Explore the [API Reference](api-reference.md) for detailed information about the library's APIs

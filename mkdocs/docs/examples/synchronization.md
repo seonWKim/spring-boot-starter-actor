@@ -164,23 +164,6 @@ public class RedisCounterService implements CounterService {
 `CounterActor` is a sharded actor that handles counter operations. Each counter is represented by a separate actor instance, identified by its counterId:
 
 ```java
-import com.fasterxml.jackson.annotation.JsonCreator;
-
-import io.github.seonwkim.core.AskCommand;
-import io.github.seonwkim.core.serialization.JsonSerializable;
-import io.github.seonwkim.core.shard.DefaultShardingMessageExtractor;
-import io.github.seonwkim.core.shard.ShardEnvelope;
-import io.github.seonwkim.core.shard.SpringShardedActor;
-import io.github.seonwkim.core.shard.SpringShardedActorBehavior;
-
-import org.apache.pekko.actor.typed.Behavior;
-import org.apache.pekko.actor.typed.javadsl.ActorContext;
-import org.apache.pekko.actor.typed.javadsl.Behaviors;
-import org.apache.pekko.cluster.sharding.typed.ShardingMessageExtractor;
-import org.apache.pekko.cluster.sharding.typed.javadsl.EntityContext;
-import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
-import org.springframework.stereotype.Component;
-
 @Component
 public class CounterActor implements SpringShardedActor<CounterActor.Command> {
     public static final EntityTypeKey<Command> TYPE_KEY =

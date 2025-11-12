@@ -9,7 +9,6 @@ import org.apache.pekko.actor.typed.Signal;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.BehaviorBuilder;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
-import org.apache.pekko.cluster.sharding.typed.javadsl.EntityContext;
 
 /**
  * A behavior wrapper that provides framework-level features for sharded actors.
@@ -22,10 +21,10 @@ import org.apache.pekko.cluster.sharding.typed.javadsl.EntityContext;
  * <pre>
  * {@code
  * @Override
- * public SpringShardedActorBehavior<Command> create(EntityContext<Command> entityContext) {
- *     return SpringShardedActorBehavior.builder(Command.class, entityContext)
+ * public SpringShardedActorBehavior<Command> create(SpringShardedActorContext<Command> shardedCtx) {
+ *     return SpringShardedActorBehavior.builder(Command.class, shardedCtx)
  *         .onMessage(DoWork.class, (ctx, msg) -> {
- *             ctx.getLog().info("Processing work for entity {}", entityContext.getEntityId());
+ *             ctx.getLog().info("Processing work for entity {}", shardedCtx.getEntityId());
  *             return Behaviors.same();
  *         })
  *         .build();
@@ -36,8 +35,8 @@ import org.apache.pekko.cluster.sharding.typed.javadsl.EntityContext;
  * <p>You can use {@code .withState()} to create a custom state object that encapsulates your behavior logic:
  * <pre>
  * {@code
- * return SpringShardedActorBehavior.builder(Command.class, entityContext)
- *     .withState(ctx -> new MyBehaviorHandler(ctx, entityContext))
+ * return SpringShardedActorBehavior.builder(Command.class, shardedCtx)
+ *     .withState(ctx -> new MyBehaviorHandler(ctx, shardedCtx))
  *     .onMessage(DoWork.class, (handler, msg) -> handler.handleWork(msg))
  *     .build();
  * }
@@ -68,13 +67,14 @@ public final class SpringShardedActorBehavior<T> {
      * <p>The builder starts with ActorContext as the default state type. Use {@link Builder#withState(Function)}
      * to evolve the builder to use a custom state type that will be passed to message handlers.
      *
-     * @param commandClass  the command class
-     * @param entityContext the entity context from Pekko cluster sharding
-     * @param <T>           the message type
+     * @param commandClass         the command class
+     * @param shardedActorContext the sharded actor context
+     * @param <T>                  the message type
      * @return a new builder instance with ActorContext as the state type
      */
-    public static <T> Builder<T, ActorContext<T>> builder(Class<T> commandClass, EntityContext<T> entityContext) {
-        return new Builder<>(commandClass, entityContext, ctx -> ctx);
+    public static <T> Builder<T, ActorContext<T>> builder(
+            Class<T> commandClass, SpringShardedActorContext<T> shardedActorContext) {
+        return new Builder<>(commandClass, shardedActorContext, ctx -> ctx);
     }
 
     /**
@@ -87,16 +87,18 @@ public final class SpringShardedActorBehavior<T> {
      * @param <S> the state type passed to message handlers (defaults to ActorContext&lt;T&gt;)
      */
     public static final class Builder<T, S> {
-        private final EntityContext<T> entityContext;
+        private final SpringShardedActorContext<T> shardedActorContext;
         private final Class<T> commandClass;
         private final Function<ActorContext<T>, S> stateFactory;
         private final List<MessageHandler<T, S, ?>> messageHandlers = new ArrayList<>();
         private final List<SignalHandler<T, S, ?>> signalHandlers = new ArrayList<>();
 
         private Builder(
-                Class<T> commandClass, EntityContext<T> entityContext, Function<ActorContext<T>, S> stateFactory) {
+                Class<T> commandClass,
+                SpringShardedActorContext<T> shardedActorContext,
+                Function<ActorContext<T>, S> stateFactory) {
             this.commandClass = commandClass;
-            this.entityContext = entityContext;
+            this.shardedActorContext = shardedActorContext;
             this.stateFactory = stateFactory;
         }
 
@@ -110,8 +112,8 @@ public final class SpringShardedActorBehavior<T> {
          * <p>Example usage:
          * <pre>
          * {@code
-         * return SpringShardedActorBehavior.builder(Command.class, entityContext)
-         *     .withState(ctx -> new MyBehaviorHandler(ctx, entityContext))
+         * return SpringShardedActorBehavior.builder(Command.class, shardedCtx)
+         *     .withState(ctx -> new MyBehaviorHandler(ctx, shardedCtx))
          *     .onMessage(DoWork.class, (handler, msg) -> handler.handleWork(msg))
          *     .build();
          * }
@@ -122,7 +124,7 @@ public final class SpringShardedActorBehavior<T> {
          * @return a new builder with the evolved state type
          */
         public <NewS> Builder<T, NewS> withState(Function<ActorContext<T>, NewS> stateFactory) {
-            return new Builder<>(commandClass, entityContext, stateFactory);
+            return new Builder<>(commandClass, shardedActorContext, stateFactory);
         }
 
         /**
