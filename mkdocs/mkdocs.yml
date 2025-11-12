@@ -49,7 +49,6 @@ nav:
     - Chat: examples/chat.md
     - Supervision: examples/supervision.md
     - Monitoring: examples/monitoring.md
-  - API Reference: api-reference.md
 
 extra_css:
   - stylesheets/extra.css

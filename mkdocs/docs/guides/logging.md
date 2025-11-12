@@ -38,12 +38,6 @@ Static MDC values are set when spawning an actor and remain constant throughout 
 ### Spawning with Static MDC
 
 ```java
-import io.github.seonwkim.core.MdcConfig;
-import io.github.seonwkim.core.SpringActorRef;
-import io.github.seonwkim.core.SpringActorSystem;
-
-import java.util.Map;
-
 @Service
 public class OrderService {
 
@@ -81,12 +75,6 @@ Dynamic MDC values are computed per-message, allowing you to add message-specifi
 ### Adding Dynamic MDC to Actor Behavior
 
 ```java
-import io.github.seonwkim.core.SpringActor;
-import io.github.seonwkim.core.SpringActorBehavior;
-import io.github.seonwkim.core.SpringActorContext;
-
-import org.springframework.stereotype.Component;
-
 @Component
 public class OrderActor implements SpringActor<OrderActor.Command> {
 
@@ -188,8 +176,6 @@ Actor tags provide a way to categorize actors for easier log filtering and analy
 ### Spawning with Tags
 
 ```java
-import io.github.seonwkim.core.TagsConfig;
-
 // Single tag
 SpringActorRef<Worker.Command> worker = actorSystem
     .actor(Worker.class)

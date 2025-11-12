@@ -50,15 +50,6 @@ public interface SpringShardedActor<T> {
      * Creates a context for this sharded actor. This method is called when a new instance of the
      * actor is created, before {@link #create(SpringShardedActorContext)}.
      *
-     * <p>The default implementation returns a {@link DefaultSpringShardedActorContext}. Override
-     * this method to provide a custom context with additional data or services:
-     * <pre>
-     * &#64;Override
-     * public SpringShardedActorContext&lt;Command&gt; createContext(EntityContext&lt;Command&gt; entityCtx) {
-     *     return new CustomShardedActorContext(entityCtx, myService);
-     * }
-     * </pre>
-     *
      * @param entityContext The Pekko entity context
      * @return A SpringShardedActorContext for this actor instance
      */

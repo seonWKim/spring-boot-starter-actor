@@ -30,24 +30,6 @@ You can find the complete source code for this example on GitHub:
 - How to handle messages in a clustered environment
 
 ```java
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
-
-import io.github.seonwkim.core.AskCommand;
-import io.github.seonwkim.core.serialization.JsonSerializable;
-import io.github.seonwkim.core.shard.DefaultShardingMessageExtractor;
-import io.github.seonwkim.core.shard.ShardEnvelope;
-import io.github.seonwkim.core.shard.SpringShardedActor;
-import io.github.seonwkim.core.shard.SpringShardedActorBehavior;
-
-import org.apache.pekko.actor.typed.Behavior;
-import org.apache.pekko.actor.typed.javadsl.ActorContext;
-import org.apache.pekko.actor.typed.javadsl.Behaviors;
-import org.apache.pekko.cluster.sharding.typed.ShardingMessageExtractor;
-import org.apache.pekko.cluster.sharding.typed.javadsl.EntityContext;
-import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
-import org.springframework.stereotype.Component;
-
 @Component
 public class HelloActor implements SpringShardedActor<HelloActor.Command> {
     public static final EntityTypeKey<Command> TYPE_KEY =
@@ -71,7 +53,7 @@ public class HelloActor implements SpringShardedActor<HelloActor.Command> {
     }
 
     @Override
-    public SpringShardedActorBehavior<Command> create(EntityContext<Command> ctx) {
+    public SpringShardedActorBehavior<Command> create(SpringShardedActorContext<Command> ctx) {
         final String entityId = ctx.getEntityId();
 
         return SpringShardedActorBehavior.builder(Command.class, ctx)

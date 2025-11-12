@@ -26,27 +26,6 @@ You can find the complete source code for this example on GitHub:
 `ChatRoomActor` is a sharded actor that manages a chat room. Each chat room is a separate entity identified by a room ID. The actor maintains a list of connected users and broadcasts messages to all users in the room:
 
 ```java
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
-
-import io.github.seonwkim.core.serialization.JsonSerializable;
-import io.github.seonwkim.core.shard.DefaultShardingMessageExtractor;
-import io.github.seonwkim.core.shard.ShardEnvelope;
-import io.github.seonwkim.core.shard.SpringShardedActor;
-import io.github.seonwkim.core.shard.SpringShardedActorBehavior;
-
-import org.apache.pekko.actor.typed.ActorRef;
-import org.apache.pekko.actor.typed.Behavior;
-import org.apache.pekko.actor.typed.javadsl.ActorContext;
-import org.apache.pekko.actor.typed.javadsl.Behaviors;
-import org.apache.pekko.cluster.sharding.typed.ShardingMessageExtractor;
-import org.apache.pekko.cluster.sharding.typed.javadsl.EntityContext;
-import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
-import org.springframework.stereotype.Component;
-
-import java.util.HashMap;
-import java.util.Map;
-
 @Component
 public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> {
 
@@ -99,7 +78,7 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
     }
 
     @Override
-    public SpringShardedActorBehavior<Command> create(EntityContext<Command> ctx) {
+    public SpringShardedActorBehavior<Command> create(SpringShardedActorContext<Command> ctx) {
         final String roomId = ctx.getEntityId();
 
         return SpringShardedActorBehavior.builder(Command.class, ctx)
@@ -184,26 +163,6 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
 `UserActor` represents a connected user and handles sending messages to the user's WebSocket connection. It's implemented as a SpringActor that interacts with ChatRoomActor:
 
 ```java
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-
-import io.github.seonwkim.core.SpringActor;
-import io.github.seonwkim.core.SpringActorBehavior;
-import io.github.seonwkim.core.SpringActorContext;
-import io.github.seonwkim.core.SpringActorSystem;
-import io.github.seonwkim.core.shard.SpringShardedActorRef;
-import io.github.seonwkim.core.serialization.JsonSerializable;
-
-import org.apache.pekko.actor.typed.Behavior;
-import org.apache.pekko.actor.typed.javadsl.ActorContext;
-import org.apache.pekko.actor.typed.javadsl.Behaviors;
-import org.springframework.stereotype.Component;
-import org.springframework.web.socket.TextMessage;
-import org.springframework.web.socket.WebSocketSession;
-
-import javax.annotation.Nullable;
-import java.io.IOException;
-
 @Component
 public class UserActor implements SpringActor<UserActor.Command> {
 

@@ -32,9 +32,6 @@ java -javaagent:metrics-{version}-agent.jar -jar your-application.jar
 The `ActorInstrumentationEventListener` allows you to capture metrics about actor message processing:
 
 ```java
-import io.github.seonwkim.metrics.ActorInstrumentationEventListener;
-import io.github.seonwkim.metrics.ActorInstrumentationEventListener.InvokeAdviceEventListener;
-
 // Register a listener for actor messages
 ActorInstrumentationEventListener.register(new InvokeAdviceEventListener() {
     @Override

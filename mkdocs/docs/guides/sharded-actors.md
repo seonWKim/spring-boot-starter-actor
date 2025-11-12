@@ -55,24 +55,6 @@ Make sure to adjust the hostname, port, and seed-nodes according to your environ
 To create a sharded actor, implement the `SpringShardedActor` interface and annotate the class with `@Component`:
 
 ```java
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
-
-import io.github.seonwkim.core.AskCommand;
-import io.github.seonwkim.core.serialization.JsonSerializable;
-import io.github.seonwkim.core.shard.DefaultShardingMessageExtractor;
-import io.github.seonwkim.core.shard.ShardEnvelope;
-import io.github.seonwkim.core.shard.SpringShardedActor;
-import io.github.seonwkim.core.shard.SpringShardedActorBehavior;
-
-import org.apache.pekko.actor.typed.Behavior;
-import org.apache.pekko.actor.typed.javadsl.ActorContext;
-import org.apache.pekko.actor.typed.javadsl.Behaviors;
-import org.apache.pekko.cluster.sharding.typed.ShardingMessageExtractor;
-import org.apache.pekko.cluster.sharding.typed.javadsl.EntityContext;
-import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
-import org.springframework.stereotype.Component;
-
 @Component
 public class HelloActor implements SpringShardedActor<HelloActor.Command> {
 
@@ -98,7 +80,7 @@ public class HelloActor implements SpringShardedActor<HelloActor.Command> {
     }
 
     @Override
-    public SpringShardedActorBehavior<Command> create(EntityContext<Command> ctx) {
+    public SpringShardedActorBehavior<Command> create(SpringShardedActorContext<Command> ctx) {
         final String entityId = ctx.getEntityId();
 
         return SpringShardedActorBehavior.builder(Command.class, ctx)
@@ -155,7 +137,7 @@ Key differences from a regular actor:
 2. Commands must implement `JsonSerializable` (or `CborSerializable`) for serialization across the network
 3. Define an `EntityTypeKey` for the actor type
 4. Override `typeKey()` to return the EntityTypeKey
-5. Override `create(EntityContext<T>)` to return `SpringShardedActorBehavior<T>` instead of `SpringActorBehavior<T>`
+5. Override `create(SpringShardedActorContext<T>)` to return `SpringShardedActorBehavior<T>` instead of `SpringActorBehavior<T>`
 6. Use `SpringShardedActorBehavior.builder()` instead of `SpringActorBehavior.builder()`
 7. Override `extractor()` to provide a sharding message extractor
 8. Use Jackson annotations (`@JsonCreator`, `@JsonProperty`) for message serialization
@@ -165,16 +147,6 @@ Key differences from a regular actor:
 To interact with sharded actors, you use the `sharded` method of the `SpringActorSystem`:
 
 ```java
-import io.github.seonwkim.core.SpringActorSystem;
-import io.github.seonwkim.core.shard.SpringShardedActorRef;
-
-import java.time.Duration;
-import java.util.concurrent.CompletionStage;
-
-import org.springframework.stereotype.Service;
-
-import reactor.core.publisher.Mono;
-
 @Service
 public class HelloService {
 
@@ -256,12 +228,6 @@ SpringShardedActorRef<Command> actor = actorSystem
 Here's an example of how to use the sharded actor service in a REST controller:
 
 ```java
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-
-import reactor.core.publisher.Mono;
-
 @RestController
 public class HelloController {
 
@@ -333,5 +299,4 @@ allow for finer-grained distribution but increase overhead.
 
 Now that you know how to create and use sharded actors, you can:
 
-1. Explore the [API Reference](../api-reference.md) for detailed information about the library's APIs
-2. Learn about advanced topics like persistence, event sourcing, and cluster singleton actors
+1. Learn about advanced topics like persistence, event sourcing, and cluster singleton actors
