@@ -5,13 +5,13 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.github.seonwkim.core.serialization.JsonSerializable;
 import io.github.seonwkim.core.shard.SpringShardedActor;
 import io.github.seonwkim.core.shard.SpringShardedActorBehavior;
+import io.github.seonwkim.core.shard.SpringShardedActorContext;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
-import org.apache.pekko.cluster.sharding.typed.javadsl.EntityContext;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
 import org.springframework.stereotype.Component;
 
@@ -79,7 +79,7 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
     }
 
     @Override
-    public SpringShardedActorBehavior<Command> create(EntityContext<Command> ctx) {
+    public SpringShardedActorBehavior<Command> create(SpringShardedActorContext<Command> ctx) {
         final String roomId = ctx.getEntityId();
 
         return SpringShardedActorBehavior.builder(Command.class, ctx)
