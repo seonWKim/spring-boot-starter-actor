@@ -3,16 +3,19 @@ package io.github.seonwkim.core;
 import io.github.seonwkim.core.RootGuardian.Spawned;
 import io.github.seonwkim.core.behavior.ClusterEventBehavior;
 import io.github.seonwkim.core.impl.DefaultSpringActorContext;
+import io.github.seonwkim.core.pubsub.SpringTopicBuilder;
 import io.github.seonwkim.core.shard.ShardedActorRegistry;
 import io.github.seonwkim.core.shard.SpringShardedActor;
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ConcurrentHashMap;
 import javax.annotation.Nullable;
 
 import io.github.seonwkim.core.shard.SpringShardedActorBuilder;
 import org.apache.pekko.actor.typed.*;
 import org.apache.pekko.actor.typed.javadsl.AskPattern;
+import org.apache.pekko.actor.typed.pubsub.Topic;
 import org.apache.pekko.cluster.ClusterEvent;
 import org.apache.pekko.cluster.sharding.typed.javadsl.ClusterSharding;
 import org.apache.pekko.cluster.typed.Cluster;
@@ -54,6 +57,9 @@ public class SpringActorSystem implements DisposableBean {
     private final Duration defaultQueryTimeout = Duration.ofMillis(100);
 
     private final Duration defaultActorRefTimeout = Duration.ofSeconds(3);
+
+    // Cache for topic references to ensure idempotent getOrCreate
+    private final ConcurrentHashMap<String, ActorRef<?>> topicRegistry = new ConcurrentHashMap<>();
 
     /**
      * Creates a new SpringActorSystem in local mode.
@@ -372,6 +378,80 @@ public class SpringActorSystem implements DisposableBean {
             throw new IllegalStateException("Cluster sharding not configured. Sharded actors require cluster mode.");
         }
         return new SpringShardedActorBuilder<>(this, actorClass);
+    }
+
+    /**
+     * Creates a fluent builder for working with distributed pub/sub topics. This provides
+     * a simplified API for publish-subscribe messaging across the cluster.
+     *
+     * <p>Topics enable decoupled communication between actors. Multiple actors can subscribe
+     * to a topic to receive messages published to it, without needing to know about each other.
+     *
+     * <p><b>Example usage:</b>
+     *
+     * <pre>{@code
+     * // Create or get a topic
+     * SpringTopicRef<ChatEvent> topic = actorSystem
+     *     .topic(ChatEvent.class)
+     *     .withName("chat-room-1")
+     *     .getOrCreate();
+     *
+     * // Publish messages
+     * topic.publish(new ChatEvent.Message("user1", "Hello!"));
+     *
+     * // Subscribe actors
+     * topic.subscribe(userActorRef);
+     * }</pre>
+     *
+     * <p><b>Requirements:</b>
+     * <ul>
+     *   <li>Cluster mode must be enabled (not required for local testing, but recommended)
+     *   <li>Messages should be serializable (implement JsonSerializable or CborSerializable)
+     *   <li>Topic names should be unique within your application
+     * </ul>
+     *
+     * <p><b>Delivery Guarantees:</b>
+     * <ul>
+     *   <li>At-most-once delivery - messages may be lost but never duplicated
+     *   <li>No ordering guarantees across subscribers
+     *   <li>Subscribers are automatically removed when they terminate
+     * </ul>
+     *
+     * @param messageType The class of messages that will be published to the topic
+     * @param <T> The type of messages that can be published to the topic
+     * @return A builder for configuring and getting the topic reference
+     */
+    public <T> SpringTopicBuilder<T> topic(Class<T> messageType) {
+        return new SpringTopicBuilder<>(this, messageType);
+    }
+
+    /**
+     * Internal method used by SpringTopicBuilder to get or create a topic actor.
+     * This method is thread-safe and ensures that only one topic actor is created per topic name.
+     *
+     * <p><b>Note:</b> This method is intended for internal use by {@link SpringTopicBuilder}.
+     * Users should use {@link #topic(Class)} instead.
+     *
+     * @param messageType The message type for the topic
+     * @param topicName The unique name for the topic
+     * @param <T> The type of messages
+     * @return The actor reference for the topic
+     */
+    public <T> ActorRef<Topic.Command<T>> getOrCreateTopicActor(Class<T> messageType, String topicName) {
+        @SuppressWarnings("unchecked")
+        ActorRef<Topic.Command<T>> existingRef = (ActorRef<Topic.Command<T>>) topicRegistry.get(topicName);
+
+        if (existingRef != null) {
+            return existingRef;
+        }
+
+        // Use computeIfAbsent to ensure atomicity
+        @SuppressWarnings("unchecked")
+        ActorRef<Topic.Command<T>> topicRef = (ActorRef<Topic.Command<T>>) topicRegistry.computeIfAbsent(
+                topicName,
+                name -> actorSystem.systemActorOf(Topic.create(messageType, name), name, Props.empty()));
+
+        return topicRef;
     }
 
     /**
