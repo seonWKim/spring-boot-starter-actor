@@ -166,7 +166,7 @@ To interact with sharded actors, you use the `sharded` method of the `SpringActo
 
 ```java
 import io.github.seonwkim.core.SpringActorSystem;
-import io.github.seonwkim.core.SpringShardedActorRef;
+import io.github.seonwkim.core.shard.SpringShardedActorRef;
 
 import java.time.Duration;
 import java.util.concurrent.CompletionStage;

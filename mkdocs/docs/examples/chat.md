@@ -191,7 +191,7 @@ import io.github.seonwkim.core.SpringActor;
 import io.github.seonwkim.core.SpringActorBehavior;
 import io.github.seonwkim.core.SpringActorContext;
 import io.github.seonwkim.core.SpringActorSystem;
-import io.github.seonwkim.core.SpringShardedActorRef;
+import io.github.seonwkim.core.shard.SpringShardedActorRef;
 import io.github.seonwkim.core.serialization.JsonSerializable;
 
 import org.apache.pekko.actor.typed.Behavior;

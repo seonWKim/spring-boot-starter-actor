@@ -1,4 +1,4 @@
-package io.github.seonwkim.core;
+package io.github.seonwkim.core.shard;
 
 import java.time.Duration;
 import org.apache.pekko.actor.typed.Scheduler;

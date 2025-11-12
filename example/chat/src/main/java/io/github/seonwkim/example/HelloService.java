@@ -1,7 +1,7 @@
 package io.github.seonwkim.example;
 
 import io.github.seonwkim.core.SpringActorSystem;
-import io.github.seonwkim.core.SpringShardedActorRef;
+import io.github.seonwkim.core.shard.SpringShardedActorRef;
 import java.time.Duration;
 import java.util.concurrent.CompletionStage;
 import org.springframework.stereotype.Service;

@@ -10,6 +10,8 @@ import io.github.seonwkim.core.fixture.TestShardedActor.GetState;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+
+import io.github.seonwkim.core.shard.SpringShardedActorRef;
 import org.apache.pekko.cluster.ClusterEvent.MemberLeft;
 import org.apache.pekko.cluster.ClusterEvent.MemberUp;
 import org.junit.jupiter.api.Test;
