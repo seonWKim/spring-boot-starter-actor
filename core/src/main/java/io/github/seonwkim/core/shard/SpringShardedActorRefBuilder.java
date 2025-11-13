@@ -1,5 +1,6 @@
 package io.github.seonwkim.core.shard;
 
+import io.github.seonwkim.core.ActorConstants;
 import java.time.Duration;
 import org.apache.pekko.actor.typed.Scheduler;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityRef;
@@ -13,7 +14,7 @@ import org.apache.pekko.cluster.sharding.typed.javadsl.EntityRef;
 public class SpringShardedActorRefBuilder<T> {
     private final Scheduler scheduler;
     private final EntityRef<T> entityRef;
-    private Duration timeout = Duration.ofSeconds(SpringShardedActorRef.DEFAULT_TIMEOUT_SECONDS);
+    private Duration timeout = ActorConstants.DEFAULT_TIMEOUT;
 
     /**
      * Creates a new builder with the required parameters.

@@ -50,9 +50,9 @@ public class SpringActorSystem implements DisposableBean {
 
     @Nullable private final ShardedActorRegistry shardedActorRegistry;
 
-    private final Duration defaultQueryTimeout = Duration.ofMillis(100);
+    private final Duration defaultQueryTimeout = ActorConstants.DEFAULT_QUERY_TIMEOUT;
 
-    private final Duration defaultActorRefTimeout = Duration.ofSeconds(3);
+    private final Duration defaultActorRefTimeout = ActorConstants.DEFAULT_TIMEOUT;
 
     /**
      * Creates a new SpringActorSystem in local mode.

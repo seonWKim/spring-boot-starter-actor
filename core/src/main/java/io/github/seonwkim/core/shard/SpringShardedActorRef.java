@@ -1,5 +1,6 @@
 package io.github.seonwkim.core.shard;
 
+import io.github.seonwkim.core.ActorConstants;
 import io.github.seonwkim.core.AskCommand;
 import java.time.Duration;
 import java.util.concurrent.CompletionStage;
@@ -38,7 +39,7 @@ public class SpringShardedActorRef<T> {
     }
 
     /** Default value for the default timeout in seconds. */
-    public static final int DEFAULT_TIMEOUT_SECONDS = 3;
+    public static final int DEFAULT_TIMEOUT_SECONDS = ActorConstants.DEFAULT_TIMEOUT_SECONDS;
 
     /**
      * Creates a new SpringShardedActorRef with the given scheduler and entity reference. Uses the
@@ -48,7 +49,7 @@ public class SpringShardedActorRef<T> {
      * @param entityRef The entity reference to wrap
      */
     public SpringShardedActorRef(Scheduler scheduler, EntityRef<T> entityRef) {
-        this(scheduler, entityRef, Duration.ofSeconds(DEFAULT_TIMEOUT_SECONDS));
+        this(scheduler, entityRef, ActorConstants.DEFAULT_TIMEOUT);
     }
 
     /**

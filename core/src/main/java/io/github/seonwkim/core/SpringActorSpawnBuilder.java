@@ -22,7 +22,7 @@ public class SpringActorSpawnBuilder<A extends SpringActorWithContext<C, ?>, C> 
 
     @Nullable private SpringActorContext actorContext;
 
-    private Duration timeout = Duration.ofSeconds(3);
+    private Duration timeout = ActorConstants.DEFAULT_TIMEOUT;
     private MailboxConfig mailboxConfig = MailboxConfig.defaultMailbox();
     private DispatcherConfig dispatcherConfig = DispatcherConfig.defaultDispatcher();
     private TagsConfig tagsConfig = TagsConfig.empty();

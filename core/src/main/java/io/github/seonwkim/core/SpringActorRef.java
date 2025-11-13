@@ -36,7 +36,7 @@ public class SpringActorRef<T> {
     }
 
     /** Default value for the default timeout in seconds. */
-    public static final int DEFAULT_TIMEOUT_SECONDS = 3;
+    public static final int DEFAULT_TIMEOUT_SECONDS = ActorConstants.DEFAULT_TIMEOUT_SECONDS;
 
     /**
      * Creates a new SpringActorRef with the given scheduler and actor reference.
@@ -45,7 +45,7 @@ public class SpringActorRef<T> {
      * @param actorRef The actor reference to wrap
      */
     public SpringActorRef(Scheduler scheduler, ActorRef<T> actorRef) {
-        this(scheduler, actorRef, Duration.ofSeconds(DEFAULT_TIMEOUT_SECONDS));
+        this(scheduler, actorRef, ActorConstants.DEFAULT_TIMEOUT);
     }
 
     /**
