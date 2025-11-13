@@ -23,7 +23,7 @@ import org.springframework.stereotype.Component;
  *
  * <p>This test spawns a 3-node cluster and verifies:
  * <ul>
- *   <li>Topics can be created and accessed from any node</li>
+ *   <li>Topics can be created from actors using SpringBehaviorContext</li>
  *   <li>Messages published from one node are received by subscribers on other nodes</li>
  *   <li>Multiple subscribers across different nodes all receive published messages</li>
  * </ul>
@@ -78,38 +78,149 @@ public class SpringTopicClusterTest extends AbstractClusterTest {
     }
 
     /**
+     * Actor that manages topics - creates them from SpringBehaviorContext.
+     * This actor can be deployed on any cluster node.
+     */
+    @Component
+    public static class TopicManagerActor
+            implements SpringActorWithContext<TopicManagerActor.Command, TopicManagerActor.ManagerContext> {
+
+        public interface Command extends JsonSerializable {}
+
+        public static class CreateTopic implements Command {
+            public final String topicName;
+
+            @JsonCreator
+            public CreateTopic(@JsonProperty("topicName") String topicName) {
+                this.topicName = topicName;
+            }
+        }
+
+        public static class PublishTextMessage implements Command {
+            public final TextMessage message;
+
+            @JsonCreator
+            public PublishTextMessage(@JsonProperty("message") TextMessage message) {
+                this.message = message;
+            }
+        }
+
+        public static class PublishNumberMessage implements Command {
+            public final NumberMessage message;
+
+            @JsonCreator
+            public PublishNumberMessage(@JsonProperty("message") NumberMessage message) {
+                this.message = message;
+            }
+        }
+
+        public static class Subscribe implements Command {
+            public final SpringActorRef<TopicTestMessage> subscriber;
+
+            @JsonCreator
+            public Subscribe(@JsonProperty("subscriber") SpringActorRef<TopicTestMessage> subscriber) {
+                this.subscriber = subscriber;
+            }
+        }
+
+        public static class Unsubscribe implements Command {
+            public final SpringActorRef<TopicTestMessage> subscriber;
+
+            @JsonCreator
+            public Unsubscribe(@JsonProperty("subscriber") SpringActorRef<TopicTestMessage> subscriber) {
+                this.subscriber = subscriber;
+            }
+        }
+
+        public static class GetTopicRef extends AskCommand<SpringTopicRef<TopicTestMessage>> implements Command {
+            @JsonCreator
+            public GetTopicRef() {}
+        }
+
+        public static class ManagerContext extends SpringActorContext {
+            private final String actorId;
+
+            public ManagerContext(String actorId) {
+                this.actorId = actorId;
+            }
+
+            @Override
+            public String actorId() {
+                return actorId;
+            }
+        }
+
+        @Override
+        public SpringActorBehavior<Command> create(ManagerContext context) {
+            return SpringActorBehavior.builder(Command.class, context)
+                    .withState(ManagerBehavior::new)
+                    .onMessage(CreateTopic.class, ManagerBehavior::onCreateTopic)
+                    .onMessage(PublishTextMessage.class, ManagerBehavior::onPublishTextMessage)
+                    .onMessage(PublishNumberMessage.class, ManagerBehavior::onPublishNumberMessage)
+                    .onMessage(Subscribe.class, ManagerBehavior::onSubscribe)
+                    .onMessage(Unsubscribe.class, ManagerBehavior::onUnsubscribe)
+                    .onMessage(GetTopicRef.class, ManagerBehavior::onGetTopicRef)
+                    .build();
+        }
+
+        private static class ManagerBehavior {
+            private final SpringBehaviorContext<Command> ctx;
+            private SpringTopicRef<TopicTestMessage> topic;
+
+            ManagerBehavior(SpringBehaviorContext<Command> ctx) {
+                this.ctx = ctx;
+            }
+
+            private org.apache.pekko.actor.typed.Behavior<Command> onCreateTopic(CreateTopic msg) {
+                topic = ctx.createTopic(TopicTestMessage.class, msg.topicName);
+                ctx.getLog().info("Created topic: {}", msg.topicName);
+                return Behaviors.same();
+            }
+
+            private org.apache.pekko.actor.typed.Behavior<Command> onPublishTextMessage(
+                    PublishTextMessage msg) {
+                if (topic != null) {
+                    topic.publish(msg.message);
+                }
+                return Behaviors.same();
+            }
+
+            private org.apache.pekko.actor.typed.Behavior<Command> onPublishNumberMessage(
+                    PublishNumberMessage msg) {
+                if (topic != null) {
+                    topic.publish(msg.message);
+                }
+                return Behaviors.same();
+            }
+
+            private org.apache.pekko.actor.typed.Behavior<Command> onSubscribe(Subscribe msg) {
+                if (topic != null) {
+                    topic.subscribe(msg.subscriber);
+                }
+                return Behaviors.same();
+            }
+
+            private org.apache.pekko.actor.typed.Behavior<Command> onUnsubscribe(Unsubscribe msg) {
+                if (topic != null) {
+                    topic.unsubscribe(msg.subscriber);
+                }
+                return Behaviors.same();
+            }
+
+            private org.apache.pekko.actor.typed.Behavior<Command> onGetTopicRef(GetTopicRef msg) {
+                msg.reply(topic);
+                return Behaviors.same();
+            }
+        }
+    }
+
+    /**
      * Test subscriber actor that collects received messages.
      * Uses a custom context to hold the message list and latch.
      */
     @Component
     public static class MessageCollectorActor
-            implements SpringActorWithContext<
-                    MessageCollectorActor.Command, MessageCollectorActor.CollectorContext> {
-
-        public interface Command extends JsonSerializable {}
-
-        public static class TextMessageCommand implements Command {
-            public final String content;
-
-            @JsonCreator
-            public TextMessageCommand(@JsonProperty("content") String content) {
-                this.content = content;
-            }
-        }
-
-        public static class NumberMessageCommand implements Command {
-            public final int value;
-
-            @JsonCreator
-            public NumberMessageCommand(@JsonProperty("value") int value) {
-                this.value = value;
-            }
-        }
-
-        public static class GetReceivedMessages extends AskCommand<List<TopicTestMessage>> implements Command {
-            @JsonCreator
-            public GetReceivedMessages() {}
-        }
+            implements SpringActorWithContext<TopicTestMessage, MessageCollectorActor.CollectorContext> {
 
         public static class CollectorContext extends SpringActorContext {
             private final String actorId;
@@ -129,26 +240,22 @@ public class SpringTopicClusterTest extends AbstractClusterTest {
         }
 
         @Override
-        public SpringActorBehavior<Command> create(CollectorContext context) {
-            return SpringActorBehavior.builder(Command.class, context)
-                    .onMessage(TextMessageCommand.class, (ctx, msg) -> {
-                        context.receivedMessages.add(new TextMessage(msg.content));
+        public SpringActorBehavior<TopicTestMessage> create(CollectorContext context) {
+            return SpringActorBehavior.builder(TopicTestMessage.class, context)
+                    .onMessage(TextMessage.class, (ctx, msg) -> {
+                        context.receivedMessages.add(msg);
                         context.latch.countDown();
                         ctx.getLog().info("Actor {} received text message: {}", context.actorId(), msg.content);
                         return Behaviors.same();
                     })
-                    .onMessage(NumberMessageCommand.class, (ctx, msg) -> {
-                        context.receivedMessages.add(new NumberMessage(msg.value));
+                    .onMessage(NumberMessage.class, (ctx, msg) -> {
+                        context.receivedMessages.add(msg);
                         context.latch.countDown();
                         ctx.getLog()
                                 .info(
                                         "Actor {} received number message: {}",
                                         context.actorId(),
                                         msg.value);
-                        return Behaviors.same();
-                    })
-                    .onMessage(GetReceivedMessages.class, (ctx, msg) -> {
-                        msg.reply(Collections.unmodifiableList(context.receivedMessages));
                         return Behaviors.same();
                     })
                     .build();
@@ -172,11 +279,15 @@ public class SpringTopicClusterTest extends AbstractClusterTest {
         waitUntilClusterInitialized();
         System.out.println("Cluster initialized - starting pub/sub test");
 
-        // Create topic on node 1
-        SpringTopicRef<MessageCollectorActor.Command> topic = system1
-                .topic(MessageCollectorActor.Command.class)
-                .withName("cluster-test-topic")
-                .getOrCreate();
+        // Create topic manager on node 1
+        SpringActorRef<TopicManagerActor.Command> manager = system1
+                .actor(TopicManagerActor.class)
+                .withContext(new TopicManagerActor.ManagerContext("topic-manager-1"))
+                .spawnAndWait();
+
+        // Create topic
+        manager.tell(new TopicManagerActor.CreateTopic("cluster-test-topic"));
+        Thread.sleep(1000);
 
         // Create subscribers on all 3 nodes
         int expectedMessages = 3; // We'll publish 3 messages
@@ -187,17 +298,17 @@ public class SpringTopicClusterTest extends AbstractClusterTest {
         MessageCollectorActor.CollectorContext context3 =
                 new MessageCollectorActor.CollectorContext("subscriber-node-3", expectedMessages);
 
-        SpringActorRef<MessageCollectorActor.Command> subscriber1 = system1
+        SpringActorRef<TopicTestMessage> subscriber1 = system1
                 .actor(MessageCollectorActor.class)
                 .withContext(context1)
                 .spawnAndWait();
 
-        SpringActorRef<MessageCollectorActor.Command> subscriber2 = system2
+        SpringActorRef<TopicTestMessage> subscriber2 = system2
                 .actor(MessageCollectorActor.class)
                 .withContext(context2)
                 .spawnAndWait();
 
-        SpringActorRef<MessageCollectorActor.Command> subscriber3 = system3
+        SpringActorRef<TopicTestMessage> subscriber3 = system3
                 .actor(MessageCollectorActor.class)
                 .withContext(context3)
                 .spawnAndWait();
@@ -205,18 +316,18 @@ public class SpringTopicClusterTest extends AbstractClusterTest {
         System.out.println("Subscribers created on all nodes");
 
         // Subscribe all actors to the topic
-        topic.subscribe(subscriber1);
-        topic.subscribe(subscriber2);
-        topic.subscribe(subscriber3);
+        manager.tell(new TopicManagerActor.Subscribe(subscriber1));
+        manager.tell(new TopicManagerActor.Subscribe(subscriber2));
+        manager.tell(new TopicManagerActor.Subscribe(subscriber3));
 
         // Give subscriptions time to propagate across cluster
         Thread.sleep(2000);
         System.out.println("Subscriptions propagated");
 
         // Publish messages from node 1
-        topic.publish(new MessageCollectorActor.TextMessageCommand("Hello from node 1"));
-        topic.publish(new MessageCollectorActor.NumberMessageCommand(42));
-        topic.publish(new MessageCollectorActor.TextMessageCommand("Distributed pub/sub works!"));
+        manager.tell(new TopicManagerActor.PublishTextMessage(new TextMessage("Hello from node 1")));
+        manager.tell(new TopicManagerActor.PublishNumberMessage(new NumberMessage(42)));
+        manager.tell(new TopicManagerActor.PublishTextMessage(new TextMessage("Distributed pub/sub works!")));
 
         System.out.println("Messages published");
 
@@ -255,16 +366,21 @@ public class SpringTopicClusterTest extends AbstractClusterTest {
 
         waitUntilClusterInitialized();
 
-        // Create two different topics
-        SpringTopicRef<MessageCollectorActor.Command> topic1 = system1
-                .topic(MessageCollectorActor.Command.class)
-                .withName("cluster-topic-1")
-                .getOrCreate();
+        // Create two topic managers with different topics
+        SpringActorRef<TopicManagerActor.Command> manager1 = system1
+                .actor(TopicManagerActor.class)
+                .withContext(new TopicManagerActor.ManagerContext("manager-topic-1"))
+                .spawnAndWait();
 
-        SpringTopicRef<MessageCollectorActor.Command> topic2 = system1
-                .topic(MessageCollectorActor.Command.class)
-                .withName("cluster-topic-2")
-                .getOrCreate();
+        SpringActorRef<TopicManagerActor.Command> manager2 = system1
+                .actor(TopicManagerActor.class)
+                .withContext(new TopicManagerActor.ManagerContext("manager-topic-2"))
+                .spawnAndWait();
+
+        // Create different topics
+        manager1.tell(new TopicManagerActor.CreateTopic("cluster-topic-1"));
+        manager2.tell(new TopicManagerActor.CreateTopic("cluster-topic-2"));
+        Thread.sleep(1000);
 
         // Create subscribers
         MessageCollectorActor.CollectorContext context1Topic1 =
@@ -272,27 +388,27 @@ public class SpringTopicClusterTest extends AbstractClusterTest {
         MessageCollectorActor.CollectorContext context2Topic2 =
                 new MessageCollectorActor.CollectorContext("sub2-topic2", 1);
 
-        SpringActorRef<MessageCollectorActor.Command> subscriberTopic1 = system1
+        SpringActorRef<TopicTestMessage> subscriberTopic1 = system1
                 .actor(MessageCollectorActor.class)
                 .withContext(context1Topic1)
                 .spawnAndWait();
 
-        SpringActorRef<MessageCollectorActor.Command> subscriberTopic2 = system2
+        SpringActorRef<TopicTestMessage> subscriberTopic2 = system2
                 .actor(MessageCollectorActor.class)
                 .withContext(context2Topic2)
                 .spawnAndWait();
 
         // Subscribe to different topics
-        topic1.subscribe(subscriberTopic1);
-        topic2.subscribe(subscriberTopic2);
+        manager1.tell(new TopicManagerActor.Subscribe(subscriberTopic1));
+        manager2.tell(new TopicManagerActor.Subscribe(subscriberTopic2));
 
         Thread.sleep(1000); // Wait for subscriptions
 
         // Publish to topic 1 only
-        topic1.publish(new MessageCollectorActor.TextMessageCommand("Only for topic 1"));
+        manager1.tell(new TopicManagerActor.PublishTextMessage(new TextMessage("Only for topic 1")));
 
         // Publish to topic 2 only
-        topic2.publish(new MessageCollectorActor.TextMessageCommand("Only for topic 2"));
+        manager2.tell(new TopicManagerActor.PublishTextMessage(new TextMessage("Only for topic 2")));
 
         // Wait for delivery
         boolean received1 = context1Topic1.latch.await(5, TimeUnit.SECONDS);
@@ -320,10 +436,14 @@ public class SpringTopicClusterTest extends AbstractClusterTest {
 
         waitUntilClusterInitialized();
 
-        SpringTopicRef<MessageCollectorActor.Command> topic = system1
-                .topic(MessageCollectorActor.Command.class)
-                .withName("unsubscribe-test-topic")
-                .getOrCreate();
+        // Create topic manager
+        SpringActorRef<TopicManagerActor.Command> manager = system1
+                .actor(TopicManagerActor.class)
+                .withContext(new TopicManagerActor.ManagerContext("manager-unsub"))
+                .spawnAndWait();
+
+        manager.tell(new TopicManagerActor.CreateTopic("unsubscribe-test-topic"));
+        Thread.sleep(1000);
 
         // Create subscribers on different nodes - expect 1 message each initially
         MessageCollectorActor.CollectorContext context1 =
@@ -331,32 +451,32 @@ public class SpringTopicClusterTest extends AbstractClusterTest {
         MessageCollectorActor.CollectorContext context2 =
                 new MessageCollectorActor.CollectorContext("subscriber2", 2); // Expects 2 messages
 
-        SpringActorRef<MessageCollectorActor.Command> subscriber1 = system1
+        SpringActorRef<TopicTestMessage> subscriber1 = system1
                 .actor(MessageCollectorActor.class)
                 .withContext(context1)
                 .spawnAndWait();
 
-        SpringActorRef<MessageCollectorActor.Command> subscriber2 = system2
+        SpringActorRef<TopicTestMessage> subscriber2 = system2
                 .actor(MessageCollectorActor.class)
                 .withContext(context2)
                 .spawnAndWait();
 
-        topic.subscribe(subscriber1);
-        topic.subscribe(subscriber2);
+        manager.tell(new TopicManagerActor.Subscribe(subscriber1));
+        manager.tell(new TopicManagerActor.Subscribe(subscriber2));
 
         Thread.sleep(1000);
 
         // Publish first message - both should receive
-        topic.publish(new MessageCollectorActor.TextMessageCommand("Message 1"));
+        manager.tell(new TopicManagerActor.PublishTextMessage(new TextMessage("Message 1")));
 
         assertTrue(context1.latch.await(5, TimeUnit.SECONDS), "Subscriber 1 should receive first message");
 
         // Unsubscribe subscriber1
-        topic.unsubscribe(subscriber1);
+        manager.tell(new TopicManagerActor.Unsubscribe(subscriber1));
         Thread.sleep(1000); // Wait for unsubscribe to propagate
 
         // Publish second message - only subscriber2 should receive
-        topic.publish(new MessageCollectorActor.TextMessageCommand("Message 2"));
+        manager.tell(new TopicManagerActor.PublishTextMessage(new TextMessage("Message 2")));
 
         // Wait for subscriber2 to receive both messages
         assertTrue(context2.latch.await(5, TimeUnit.SECONDS), "Subscriber 2 should receive both messages");

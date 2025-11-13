@@ -7,12 +7,15 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.github.seonwkim.core.*;
 import io.github.seonwkim.core.serialization.JsonSerializable;
-import java.time.Duration;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+
+import org.apache.pekko.actor.InvalidActorNameException;
+import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -25,7 +28,8 @@ import org.springframework.test.context.TestPropertySource;
 class SpringTopicTest {
 
     // Test messages
-    public interface TestMessage extends JsonSerializable {}
+    public interface TestMessage extends JsonSerializable {
+    }
 
     public static class TextMessage implements TestMessage {
         public final String content;
@@ -71,6 +75,144 @@ class SpringTopicTest {
         }
     }
 
+    /**
+     * Actor that manages topics - creates them from SpringBehaviorContext and coordinates pub/sub.
+     */
+    @Component
+    public static class TopicManagerActor
+            implements SpringActorWithContext<TopicManagerActor.Command, TopicManagerActor.ManagerContext> {
+
+        public interface Command extends JsonSerializable {
+        }
+
+        public static class CreateTopic implements Command {
+            public final String topicName;
+
+            @JsonCreator
+            public CreateTopic(@JsonProperty("topicName") String topicName) {
+                this.topicName = topicName;
+            }
+        }
+
+        public static class PublishTextMessage implements Command {
+            public final TextMessage message;
+
+            @JsonCreator
+            public PublishTextMessage(@JsonProperty("message") TextMessage message) {
+                this.message = message;
+            }
+        }
+
+        public static class PublishNumberMessage implements Command {
+            public final NumberMessage message;
+
+            @JsonCreator
+            public PublishNumberMessage(@JsonProperty("message") NumberMessage message) {
+                this.message = message;
+            }
+        }
+
+        public static class Subscribe implements Command {
+            public final SpringActorRef<TestMessage> subscriber;
+
+            @JsonCreator
+            public Subscribe(@JsonProperty("subscriber") SpringActorRef<TestMessage> subscriber) {
+                this.subscriber = subscriber;
+            }
+        }
+
+        public static class Unsubscribe implements Command {
+            public final SpringActorRef<TestMessage> subscriber;
+
+            @JsonCreator
+            public Unsubscribe(@JsonProperty("subscriber") SpringActorRef<TestMessage> subscriber) {
+                this.subscriber = subscriber;
+            }
+        }
+
+        public static class GetTopicRef extends AskCommand<SpringTopicRef<TestMessage>> implements Command {
+            @JsonCreator
+            public GetTopicRef() {
+            }
+        }
+
+        public static class ManagerContext extends SpringActorContext {
+            private final String actorId;
+
+            public ManagerContext(String actorId) {
+                this.actorId = actorId;
+            }
+
+            @Override
+            public String actorId() {
+                return actorId;
+            }
+        }
+
+        @Override
+        public SpringActorBehavior<Command> create(ManagerContext context) {
+            return SpringActorBehavior.builder(Command.class, context)
+                    .withState(ManagerBehavior::new)
+                    .onMessage(CreateTopic.class, ManagerBehavior::onCreateTopic)
+                    .onMessage(PublishTextMessage.class, ManagerBehavior::onPublishTextMessage)
+                    .onMessage(PublishNumberMessage.class, ManagerBehavior::onPublishNumberMessage)
+                    .onMessage(Subscribe.class, ManagerBehavior::onSubscribe)
+                    .onMessage(Unsubscribe.class, ManagerBehavior::onUnsubscribe)
+                    .onMessage(GetTopicRef.class, ManagerBehavior::onGetTopicRef)
+                    .build();
+        }
+
+        private static class ManagerBehavior {
+            private final SpringBehaviorContext<Command> ctx;
+            private SpringTopicRef<TestMessage> topic;
+
+            ManagerBehavior(SpringBehaviorContext<Command> ctx) {
+                this.ctx = ctx;
+            }
+
+            private Behavior<Command> onCreateTopic(CreateTopic msg) {
+                topic = ctx.createTopic(TestMessage.class, msg.topicName);
+                ctx.getLog().info("Created topic: {}", msg.topicName);
+                return Behaviors.same();
+            }
+
+            private Behavior<Command> onPublishTextMessage(
+                    PublishTextMessage msg) {
+                if (topic != null) {
+                    topic.publish(msg.message);
+                }
+                return Behaviors.same();
+            }
+
+            private Behavior<Command> onPublishNumberMessage(
+                    PublishNumberMessage msg) {
+                if (topic != null) {
+                    topic.publish(msg.message);
+                }
+                return Behaviors.same();
+            }
+
+            private Behavior<Command> onSubscribe(Subscribe msg) {
+                if (topic != null) {
+                    topic.subscribe(msg.subscriber);
+                }
+                return Behaviors.same();
+            }
+
+            private Behavior<Command> onUnsubscribe(Unsubscribe msg) {
+                if (topic != null) {
+                    topic.unsubscribe(msg.subscriber);
+                }
+                return Behaviors.same();
+            }
+
+            private Behavior<Command> onGetTopicRef(GetTopicRef msg) {
+                msg.reply(topic);
+                return Behaviors.same();
+            }
+        }
+    }
+
     // Test subscriber actor
     @Component
     static class SubscriberActor implements SpringActor<TestMessage> {
@@ -88,12 +230,12 @@ class SpringTopicTest {
             private final List<TestMessage> receivedMessages =
                     Collections.synchronizedList(new ArrayList<>());
 
-            org.apache.pekko.actor.typed.Behavior<TestMessage> onTextMessage(TextMessage msg) {
+            Behavior<TestMessage> onTextMessage(TextMessage msg) {
                 receivedMessages.add(msg);
                 return Behaviors.same();
             }
 
-            org.apache.pekko.actor.typed.Behavior<TestMessage> onNumberMessage(NumberMessage msg) {
+            Behavior<TestMessage> onNumberMessage(NumberMessage msg) {
                 receivedMessages.add(msg);
                 return Behaviors.same();
             }
@@ -108,11 +250,13 @@ class SpringTopicTest {
     @Component
     static class QueryableSubscriberActor implements SpringActor<QueryableSubscriberActor.Command> {
 
-        public interface Command extends JsonSerializable {}
+        public interface Command extends JsonSerializable {
+        }
 
         public static class GetReceivedMessages extends AskCommand<List<TestMessage>> implements Command {
             @JsonCreator
-            public GetReceivedMessages() {}
+            public GetReceivedMessages() {
+            }
         }
 
         // Text and Number messages also implement Command
@@ -148,17 +292,17 @@ class SpringTopicTest {
             private final List<TestMessage> receivedMessages =
                     Collections.synchronizedList(new ArrayList<>());
 
-            org.apache.pekko.actor.typed.Behavior<Command> onTextMessage(TextMessageCommand msg) {
+            Behavior<Command> onTextMessage(TextMessageCommand msg) {
                 receivedMessages.add(new TextMessage(msg.content));
                 return Behaviors.same();
             }
 
-            org.apache.pekko.actor.typed.Behavior<Command> onNumberMessage(NumberMessageCommand msg) {
+            Behavior<Command> onNumberMessage(NumberMessageCommand msg) {
                 receivedMessages.add(new NumberMessage(msg.value));
                 return Behaviors.same();
             }
 
-            org.apache.pekko.actor.typed.Behavior<Command> onGetReceivedMessages(GetReceivedMessages msg) {
+            Behavior<Command> onGetReceivedMessages(GetReceivedMessages msg) {
                 msg.reply(new ArrayList<>(receivedMessages));
                 return Behaviors.same();
             }
@@ -168,28 +312,7 @@ class SpringTopicTest {
     // Test actor that uses a latch to signal message receipt
     @Component
     static class LatchSubscriberActor
-            implements SpringActorWithContext<
-                    LatchSubscriberActor.Command, LatchSubscriberActor.LatchActorContext> {
-
-        public interface Command extends JsonSerializable {}
-
-        public static class TextMessageCommand implements Command {
-            public final String content;
-
-            @JsonCreator
-            public TextMessageCommand(@JsonProperty("content") String content) {
-                this.content = content;
-            }
-        }
-
-        public static class NumberMessageCommand implements Command {
-            public final int value;
-
-            @JsonCreator
-            public NumberMessageCommand(@JsonProperty("value") int value) {
-                this.value = value;
-            }
-        }
+            implements SpringActorWithContext<TestMessage, LatchSubscriberActor.LatchActorContext> {
 
         static class LatchActorContext extends SpringActorContext {
             private final String actorId;
@@ -209,15 +332,15 @@ class SpringTopicTest {
         }
 
         @Override
-        public SpringActorBehavior<Command> create(LatchActorContext actorContext) {
-            return SpringActorBehavior.builder(Command.class, actorContext)
-                    .onMessage(TextMessageCommand.class, (ctx, msg) -> {
-                        actorContext.receivedMessages.add(new TextMessage(msg.content));
+        public SpringActorBehavior<TestMessage> create(LatchActorContext actorContext) {
+            return SpringActorBehavior.builder(TestMessage.class, actorContext)
+                    .onMessage(TextMessage.class, (ctx, msg) -> {
+                        actorContext.receivedMessages.add(msg);
                         actorContext.latch.countDown();
                         return Behaviors.same();
                     })
-                    .onMessage(NumberMessageCommand.class, (ctx, msg) -> {
-                        actorContext.receivedMessages.add(new NumberMessage(msg.value));
+                    .onMessage(NumberMessage.class, (ctx, msg) -> {
+                        actorContext.receivedMessages.add(msg);
                         actorContext.latch.countDown();
                         return Behaviors.same();
                     })
@@ -226,71 +349,97 @@ class SpringTopicTest {
     }
 
     @SpringBootApplication(scanBasePackages = "io.github.seonwkim.core")
-    static class TestApp {}
+    static class TestApp {
+    }
 
     @Nested
     @SpringBootTest(classes = TestApp.class)
     @TestPropertySource(
             properties = {
-                "spring.actor.pekko.loglevel=INFO",
-                "spring.actor.pekko.actor.provider=local"
+                    "spring.actor.pekko.loglevel=INFO",
+                    "spring.actor.pekko.actor.provider=local"
             })
     class BasicPubSubTest {
 
         @Test
-        void createTopicWithBuilder(ApplicationContext context) {
+        void createTopicFromBehaviorContext(ApplicationContext context) throws Exception {
             SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
 
-            // Create a topic using the builder
+            // Create topic manager
+            SpringActorRef<TopicManagerActor.Command> manager = actorSystem
+                    .actor(TopicManagerActor.class)
+                    .withContext(new TopicManagerActor.ManagerContext("manager-create-topic"))
+                    .spawnAndWait();
+
+            // Create topic
+            manager.tell(new TopicManagerActor.CreateTopic("test-topic"));
+            Thread.sleep(500);
+
+            // Verify topic was created
             SpringTopicRef<TestMessage> topic =
-                    actorSystem.topic(TestMessage.class).withName("test-topic").getOrCreate();
+                    manager.ask(new TopicManagerActor.GetTopicRef()).execute().toCompletableFuture().get();
 
             assertThat(topic).isNotNull();
             assertThat(topic.getTopicName()).isEqualTo("test-topic");
         }
 
         @Test
-        void getOrCreateIsIdempotent(ApplicationContext context) {
+        void canCreateMultipleTopicsWithDifferentNames(ApplicationContext context) throws Exception {
             SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
 
-            // Create the same topic multiple times
-            SpringTopicRef<TestMessage> topic1 =
-                    actorSystem.topic(TestMessage.class).withName("idempotent-topic").getOrCreate();
-            SpringTopicRef<TestMessage> topic2 =
-                    actorSystem.topic(TestMessage.class).withName("idempotent-topic").getOrCreate();
+            // Create two topic managers with different topics
+            SpringActorRef<TopicManagerActor.Command> manager1 = actorSystem
+                    .actor(TopicManagerActor.class)
+                    .withContext(new TopicManagerActor.ManagerContext("manager-topic-1"))
+                    .spawnAndWait();
 
-            assertThat(topic1).isNotNull();
-            assertThat(topic2).isNotNull();
-            assertThat(topic1.getTopicName()).isEqualTo(topic2.getTopicName());
+            SpringActorRef<TopicManagerActor.Command> manager2 = actorSystem
+                    .actor(TopicManagerActor.class)
+                    .withContext(new TopicManagerActor.ManagerContext("manager-topic-2"))
+                    .spawnAndWait();
+
+            // Create topics
+            manager1.tell(new TopicManagerActor.CreateTopic("topic-1"));
+            manager2.tell(new TopicManagerActor.CreateTopic("topic-2"));
+            Thread.sleep(500);
+
+            // Get topic refs
+            SpringTopicRef<TestMessage> topic1 =
+                    manager1.ask(new TopicManagerActor.GetTopicRef()).execute().toCompletableFuture().get();
+            SpringTopicRef<TestMessage> topic2 =
+                    manager2.ask(new TopicManagerActor.GetTopicRef()).execute().toCompletableFuture().get();
+
+            assertThat(topic1.getTopicName()).isEqualTo("topic-1");
+            assertThat(topic2.getTopicName()).isEqualTo("topic-2");
+            assertThat(topic1.getTopicName()).isNotEqualTo(topic2.getTopicName());
         }
 
         @Test
         void publishAndSubscribeSingleMessage(ApplicationContext context) throws Exception {
             SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
 
-            // Create topic
-            SpringTopicRef<LatchSubscriberActor.Command> topic = actorSystem
-                    .topic(LatchSubscriberActor.Command.class)
-                    .withName("single-message-topic")
-                    .getOrCreate();
+            // Create topic manager
+            SpringActorRef<TopicManagerActor.Command> manager = actorSystem
+                    .actor(TopicManagerActor.class)
+                    .withContext(new TopicManagerActor.ManagerContext("manager-single-msg"))
+                    .spawnAndWait();
+
+            manager.tell(new TopicManagerActor.CreateTopic("single-message-topic"));
+            Thread.sleep(500);
 
             // Create subscriber actor with latch
             CountDownLatch latch = new CountDownLatch(1);
             LatchSubscriberActor.LatchActorContext actorContext =
-                    new LatchSubscriberActor.LatchActorContext("subscriber-1", latch);
-            SpringActorRef<LatchSubscriberActor.Command> subscriber = actorSystem
-                    .actor(LatchSubscriberActor.class)
-                    .withContext(actorContext)
-                    .spawnAndWait();
+                    new LatchSubscriberActor.LatchActorContext("single-msg-subscriber", latch);
+            SpringActorRef<TestMessage> subscriber =
+                    actorSystem.actor(LatchSubscriberActor.class).withContext(actorContext).spawnAndWait();
 
             // Subscribe
-            topic.subscribe(subscriber);
-
-            // Give subscription time to propagate
+            manager.tell(new TopicManagerActor.Subscribe(subscriber));
             Thread.sleep(100);
 
             // Publish message
-            topic.publish(new LatchSubscriberActor.TextMessageCommand("Hello, World!"));
+            manager.tell(new TopicManagerActor.PublishTextMessage(new TextMessage("Hello, World!")));
 
             // Wait for message to be received
             boolean received = latch.await(5, TimeUnit.SECONDS);
@@ -306,11 +455,14 @@ class SpringTopicTest {
         void multipleSubscribersReceiveSameMessage(ApplicationContext context) throws Exception {
             SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
 
-            // Create topic
-            SpringTopicRef<LatchSubscriberActor.Command> topic = actorSystem
-                    .topic(LatchSubscriberActor.Command.class)
-                    .withName("multiple-subscribers-topic")
-                    .getOrCreate();
+            // Create topic manager
+            SpringActorRef<TopicManagerActor.Command> manager = actorSystem
+                    .actor(TopicManagerActor.class)
+                    .withContext(new TopicManagerActor.ManagerContext("manager-multi-sub"))
+                    .spawnAndWait();
+
+            manager.tell(new TopicManagerActor.CreateTopic("multiple-subscribers-topic"));
+            Thread.sleep(500);
 
             // Create multiple subscriber actors
             int subscriberCount = 3;
@@ -319,22 +471,22 @@ class SpringTopicTest {
 
             for (int i = 0; i < subscriberCount; i++) {
                 LatchSubscriberActor.LatchActorContext actorContext =
-                        new LatchSubscriberActor.LatchActorContext("subscriber-" + i, latch);
+                        new LatchSubscriberActor.LatchActorContext("multi-sub-subscriber-" + i, latch);
                 contexts.add(actorContext);
 
-                SpringActorRef<LatchSubscriberActor.Command> subscriber = actorSystem
+                SpringActorRef<TestMessage> subscriber = actorSystem
                         .actor(LatchSubscriberActor.class)
                         .withContext(actorContext)
                         .spawnAndWait();
 
-                topic.subscribe(subscriber);
+                manager.tell(new TopicManagerActor.Subscribe(subscriber));
             }
 
             // Give subscriptions time to propagate
             Thread.sleep(100);
 
             // Publish a single message
-            topic.publish(new LatchSubscriberActor.TextMessageCommand("Broadcast message"));
+            manager.tell(new TopicManagerActor.PublishTextMessage(new TextMessage("Broadcast message")));
 
             // Wait for all subscribers to receive the message
             boolean allReceived = latch.await(5, TimeUnit.SECONDS);
@@ -351,36 +503,37 @@ class SpringTopicTest {
         void unsubscribeStopsReceivingMessages(ApplicationContext context) throws Exception {
             SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
 
-            // Create topic
-            SpringTopicRef<LatchSubscriberActor.Command> topic = actorSystem
-                    .topic(LatchSubscriberActor.Command.class)
-                    .withName("unsubscribe-topic")
-                    .getOrCreate();
+            // Create topic manager
+            SpringActorRef<TopicManagerActor.Command> manager = actorSystem
+                    .actor(TopicManagerActor.class)
+                    .withContext(new TopicManagerActor.ManagerContext("manager-unsub"))
+                    .spawnAndWait();
+
+            manager.tell(new TopicManagerActor.CreateTopic("unsubscribe-topic"));
+            Thread.sleep(500);
 
             // Create subscriber
             CountDownLatch latch = new CountDownLatch(1);
             LatchSubscriberActor.LatchActorContext actorContext =
-                    new LatchSubscriberActor.LatchActorContext("subscriber", latch);
-            SpringActorRef<LatchSubscriberActor.Command> subscriber = actorSystem
-                    .actor(LatchSubscriberActor.class)
-                    .withContext(actorContext)
-                    .spawnAndWait();
+                    new LatchSubscriberActor.LatchActorContext("unsub-subscriber", latch);
+            SpringActorRef<TestMessage> subscriber =
+                    actorSystem.actor(LatchSubscriberActor.class).withContext(actorContext).spawnAndWait();
 
             // Subscribe and receive first message
-            topic.subscribe(subscriber);
+            manager.tell(new TopicManagerActor.Subscribe(subscriber));
             Thread.sleep(100);
 
-            topic.publish(new LatchSubscriberActor.TextMessageCommand("Message 1"));
+            manager.tell(new TopicManagerActor.PublishTextMessage(new TextMessage("Message 1")));
             latch.await(5, TimeUnit.SECONDS);
 
             assertEquals(1, actorContext.receivedMessages.size());
 
             // Unsubscribe
-            topic.unsubscribe(subscriber);
+            manager.tell(new TopicManagerActor.Unsubscribe(subscriber));
             Thread.sleep(100);
 
             // Publish second message - should NOT be received
-            topic.publish(new LatchSubscriberActor.TextMessageCommand("Message 2"));
+            manager.tell(new TopicManagerActor.PublishTextMessage(new TextMessage("Message 2")));
             Thread.sleep(500); // Wait to ensure message would have been delivered
 
             // Should still only have the first message
@@ -392,11 +545,14 @@ class SpringTopicTest {
         void publishMultipleMessagesToMultipleSubscribers(ApplicationContext context) throws Exception {
             SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
 
-            // Create topic
-            SpringTopicRef<LatchSubscriberActor.Command> topic = actorSystem
-                    .topic(LatchSubscriberActor.Command.class)
-                    .withName("multiple-messages-topic")
-                    .getOrCreate();
+            // Create topic manager
+            SpringActorRef<TopicManagerActor.Command> manager = actorSystem
+                    .actor(TopicManagerActor.class)
+                    .withContext(new TopicManagerActor.ManagerContext("manager-multi-msgs"))
+                    .spawnAndWait();
+
+            manager.tell(new TopicManagerActor.CreateTopic("multiple-messages-topic"));
+            Thread.sleep(500);
 
             // Create subscribers
             int subscriberCount = 2;
@@ -406,22 +562,22 @@ class SpringTopicTest {
 
             for (int i = 0; i < subscriberCount; i++) {
                 LatchSubscriberActor.LatchActorContext actorContext =
-                        new LatchSubscriberActor.LatchActorContext("subscriber-" + i, latch);
+                        new LatchSubscriberActor.LatchActorContext("multi-msgs-subscriber-" + i, latch);
                 contexts.add(actorContext);
 
-                SpringActorRef<LatchSubscriberActor.Command> subscriber = actorSystem
+                SpringActorRef<TestMessage> subscriber = actorSystem
                         .actor(LatchSubscriberActor.class)
                         .withContext(actorContext)
                         .spawnAndWait();
 
-                topic.subscribe(subscriber);
+                manager.tell(new TopicManagerActor.Subscribe(subscriber));
             }
 
             Thread.sleep(100);
 
             // Publish multiple messages
             for (int i = 0; i < messageCount; i++) {
-                topic.publish(new LatchSubscriberActor.NumberMessageCommand(i));
+                manager.tell(new TopicManagerActor.PublishNumberMessage(new NumberMessage(i)));
             }
 
             // Wait for all messages to be received
@@ -435,71 +591,166 @@ class SpringTopicTest {
         }
 
         @Test
-        void topicWithDifferentNames(ApplicationContext context) {
+        void topicsAreIndependentWithinSameActor(ApplicationContext context) throws Exception {
             SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
 
-            // Create two different topics
-            SpringTopicRef<TestMessage> topic1 =
-                    actorSystem.topic(TestMessage.class).withName("topic-1").getOrCreate();
-            SpringTopicRef<TestMessage> topic2 =
-                    actorSystem.topic(TestMessage.class).withName("topic-2").getOrCreate();
+            // Create two topic managers
+            SpringActorRef<TopicManagerActor.Command> manager1 = actorSystem
+                    .actor(TopicManagerActor.class)
+                    .withContext(new TopicManagerActor.ManagerContext("manager-independent-1"))
+                    .spawnAndWait();
 
-            assertThat(topic1.getTopicName()).isEqualTo("topic-1");
-            assertThat(topic2.getTopicName()).isEqualTo("topic-2");
-            assertThat(topic1.getTopicName()).isNotEqualTo(topic2.getTopicName());
+            SpringActorRef<TopicManagerActor.Command> manager2 = actorSystem
+                    .actor(TopicManagerActor.class)
+                    .withContext(new TopicManagerActor.ManagerContext("manager-independent-2"))
+                    .spawnAndWait();
+
+            // Create different topics
+            manager1.tell(new TopicManagerActor.CreateTopic("topic-a"));
+            manager2.tell(new TopicManagerActor.CreateTopic("topic-b"));
+            Thread.sleep(500);
+
+            // Create subscribers
+            CountDownLatch latch1 = new CountDownLatch(1);
+            CountDownLatch latch2 = new CountDownLatch(1);
+
+            LatchSubscriberActor.LatchActorContext ctx1 =
+                    new LatchSubscriberActor.LatchActorContext("independent-sub-a", latch1);
+            LatchSubscriberActor.LatchActorContext ctx2 =
+                    new LatchSubscriberActor.LatchActorContext("independent-sub-b", latch2);
+
+            SpringActorRef<TestMessage> subscriber1 =
+                    actorSystem.actor(LatchSubscriberActor.class).withContext(ctx1).spawnAndWait();
+            SpringActorRef<TestMessage> subscriber2 =
+                    actorSystem.actor(LatchSubscriberActor.class).withContext(ctx2).spawnAndWait();
+
+            // Subscribe to different topics
+            manager1.tell(new TopicManagerActor.Subscribe(subscriber1));
+            manager2.tell(new TopicManagerActor.Subscribe(subscriber2));
+            Thread.sleep(100);
+
+            // Publish to topic 1 only
+            manager1.tell(new TopicManagerActor.PublishTextMessage(new TextMessage("Only for topic A")));
+
+            // Publish to topic 2 only
+            manager2.tell(new TopicManagerActor.PublishTextMessage(new TextMessage("Only for topic B")));
+
+            // Wait for delivery
+            assertTrue(latch1.await(5, TimeUnit.SECONDS));
+            assertTrue(latch2.await(5, TimeUnit.SECONDS));
+
+            // Verify correct messages received
+            assertEquals(1, ctx1.receivedMessages.size());
+            assertEquals("Only for topic A", ((TextMessage) ctx1.receivedMessages.get(0)).content);
+
+            assertEquals(1, ctx2.receivedMessages.size());
+            assertEquals("Only for topic B", ((TextMessage) ctx2.receivedMessages.get(0)).content);
         }
+    }
+
+    @Nested
+    @SpringBootTest(classes = TestApp.class)
+    @TestPropertySource(
+            properties = {
+                    "spring.actor.pekko.loglevel=INFO",
+                    "spring.actor.pekko.actor.provider=local"
+            })
+    class SystemLevelTopicTest {
 
         @Test
-        void getMethodWorksSameAsGetOrCreate(ApplicationContext context) {
+        void canCreateSystemLevelTopics(ApplicationContext context) throws Exception {
             SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
 
-            // get() should work the same as getOrCreate()
-            SpringTopicRef<TestMessage> topic1 =
-                    actorSystem.topic(TestMessage.class).withName("get-test-topic").get();
-            SpringTopicRef<TestMessage> topic2 =
-                    actorSystem.topic(TestMessage.class).withName("get-test-topic").getOrCreate();
+            // Test create()
+            SpringTopicRef<TestMessage> topic1 = actorSystem
+                    .topic(TestMessage.class)
+                    .withName("system-topic-1")
+                    .create();
 
             assertThat(topic1).isNotNull();
+            assertThat(topic1.getTopicName()).isEqualTo("system-topic-1");
+
+            // Test getOrCreate()
+            SpringTopicRef<TestMessage> topic2 = actorSystem
+                    .topic(TestMessage.class)
+                    .withName("system-topic-2")
+                    .getOrCreate();
+
             assertThat(topic2).isNotNull();
-            assertThat(topic1.getTopicName()).isEqualTo(topic2.getTopicName());
+            assertThat(topic2.getTopicName()).isEqualTo("system-topic-2");
         }
 
         @Test
-        void throwsExceptionWhenTopicNameNotSet(ApplicationContext context) {
+        void unsubscribeFromSystemLevelTopic(ApplicationContext context) throws Exception {
             SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
 
-            // Try to create topic without setting name
-            assertThrows(IllegalStateException.class, () -> actorSystem.topic(TestMessage.class).getOrCreate());
+            // Create system-level topic
+            SpringTopicRef<TestMessage> topic = actorSystem
+                    .topic(TestMessage.class)
+                    .withName("system-unsub-topic")
+                    .create();
+
+            // Create subscriber
+            CountDownLatch latch = new CountDownLatch(1);
+            LatchSubscriberActor.LatchActorContext ctx =
+                    new LatchSubscriberActor.LatchActorContext("system-unsub-subscriber", latch);
+            SpringActorRef<TestMessage> subscriber =
+                    actorSystem.actor(LatchSubscriberActor.class).withContext(ctx).spawnAndWait();
+
+            // Subscribe and receive first message
+            topic.subscribe(subscriber);
+            Thread.sleep(100);
+
+            topic.publish(new TextMessage("Message 1"));
+            latch.await(1, TimeUnit.SECONDS);
+
+            assertEquals(1, ctx.receivedMessages.size());
+
+            // Unsubscribe
+            topic.unsubscribe(subscriber);
+            Thread.sleep(100);
+
+            // Publish second message - should NOT be received
+            topic.publish(new TextMessage("Message 2"));
+            Thread.sleep(500);
+
+            // Should still only have first message
+            assertEquals(1, ctx.receivedMessages.size());
+            assertEquals("Message 1", ((TextMessage) ctx.receivedMessages.get(0)).content);
         }
 
         @Test
-        void throwsExceptionWhenSubscriberIsNull(ApplicationContext context) {
+        void throwsExceptionForInvalidTopicNames(ApplicationContext context) {
             SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
 
-            SpringTopicRef<TestMessage> topic =
-                    actorSystem.topic(TestMessage.class).withName("null-subscriber-topic").getOrCreate();
+            // Should throw when withName() is not called
+            assertThrows(IllegalStateException.class, () -> {
+                actorSystem.topic(TestMessage.class).create();
+            });
 
-            assertThrows(IllegalArgumentException.class, () -> topic.subscribe(null));
+            // Should throw when topic name is empty
+            assertThrows(IllegalStateException.class, () -> {
+                actorSystem.topic(TestMessage.class).withName("").create();
+            });
         }
 
         @Test
-        void throwsExceptionWhenUnsubscriberIsNull(ApplicationContext context) {
+        void throwsExceptionWhenCreatingDuplicateSystemTopic(ApplicationContext context) throws Exception {
             SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
 
-            SpringTopicRef<TestMessage> topic =
-                    actorSystem.topic(TestMessage.class).withName("null-unsubscriber-topic").getOrCreate();
+            // Create first topic
+            actorSystem
+                    .topic(TestMessage.class)
+                    .withName("duplicate-topic")
+                    .create();
 
-            assertThrows(IllegalArgumentException.class, () -> topic.unsubscribe(null));
-        }
-
-        @Test
-        void throwsExceptionWhenPublishingNull(ApplicationContext context) {
-            SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
-
-            SpringTopicRef<TestMessage> topic =
-                    actorSystem.topic(TestMessage.class).withName("null-publish-topic").getOrCreate();
-
-            assertThrows(IllegalArgumentException.class, () -> topic.publish(null));
+            // Trying to create second topic with same name should fail
+            assertThrows(InvalidActorNameException.class, () -> {
+                actorSystem
+                        .topic(TestMessage.class)
+                        .withName("duplicate-topic")
+                        .create();
+            });
         }
     }
 }
