@@ -22,7 +22,7 @@ public class SpringActorSpawnBuilder<A extends SpringActorWithContext<C, ?>, C> 
 
     @Nullable private SpringActorContext actorContext;
 
-    private Duration timeout = Duration.ofSeconds(3);
+    private Duration timeout = ActorConstants.DEFAULT_TIMEOUT;
     private MailboxConfig mailboxConfig = MailboxConfig.defaultMailbox();
     private DispatcherConfig dispatcherConfig = DispatcherConfig.defaultDispatcher();
     private TagsConfig tagsConfig = TagsConfig.empty();
@@ -268,7 +268,10 @@ public class SpringActorSpawnBuilder<A extends SpringActorWithContext<C, ?>, C> 
     public CompletionStage<SpringActorRef<C>> spawn() {
         if (actorContext == null) {
             if (actorId == null) {
-                throw new IllegalStateException("Either actorId or actorContext must be set");
+                throw new IllegalStateException("Either actorId or actorContext must be set before spawning. "
+                        + "Call withId(\"your-id\") or withContext(context) on the builder. "
+                        + "Actor class: "
+                        + actorClass.getName());
             }
             actorContext = new DefaultSpringActorContext(actorId);
         }

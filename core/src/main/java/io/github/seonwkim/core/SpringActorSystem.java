@@ -5,12 +5,11 @@ import io.github.seonwkim.core.behavior.ClusterEventBehavior;
 import io.github.seonwkim.core.impl.DefaultSpringActorContext;
 import io.github.seonwkim.core.shard.ShardedActorRegistry;
 import io.github.seonwkim.core.shard.SpringShardedActor;
+import io.github.seonwkim.core.shard.SpringShardedActorBuilder;
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import javax.annotation.Nullable;
-
-import io.github.seonwkim.core.shard.SpringShardedActorBuilder;
 import org.apache.pekko.actor.typed.*;
 import org.apache.pekko.actor.typed.javadsl.AskPattern;
 import org.apache.pekko.cluster.ClusterEvent;
@@ -51,9 +50,9 @@ public class SpringActorSystem implements DisposableBean {
 
     @Nullable private final ShardedActorRegistry shardedActorRegistry;
 
-    private final Duration defaultQueryTimeout = Duration.ofMillis(100);
+    private final Duration defaultQueryTimeout = ActorConstants.DEFAULT_QUERY_TIMEOUT;
 
-    private final Duration defaultActorRefTimeout = Duration.ofSeconds(3);
+    private final Duration defaultActorRefTimeout = ActorConstants.DEFAULT_TIMEOUT;
 
     /**
      * Creates a new SpringActorSystem in local mode.
@@ -372,6 +371,24 @@ public class SpringActorSystem implements DisposableBean {
             throw new IllegalStateException("Cluster sharding not configured. Sharded actors require cluster mode.");
         }
         return new SpringShardedActorBuilder<>(this, actorClass);
+    }
+
+    /**
+     * Returns the name of this actor system.
+     *
+     * @return The actor system name
+     */
+    public String getName() {
+        return actorSystem.name();
+    }
+
+    /**
+     * Checks if the actor system is running in cluster mode.
+     *
+     * @return true if cluster mode is enabled, false otherwise
+     */
+    public boolean isClusterMode() {
+        return cluster != null;
     }
 
     /**

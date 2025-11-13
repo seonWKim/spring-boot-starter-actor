@@ -36,7 +36,7 @@ public class SpringActorRef<T> {
     }
 
     /** Default value for the default timeout in seconds. */
-    public static final int DEFAULT_TIMEOUT_SECONDS = 3;
+    public static final int DEFAULT_TIMEOUT_SECONDS = ActorConstants.DEFAULT_TIMEOUT_SECONDS;
 
     /**
      * Creates a new SpringActorRef with the given scheduler and actor reference.
@@ -45,7 +45,7 @@ public class SpringActorRef<T> {
      * @param actorRef The actor reference to wrap
      */
     public SpringActorRef(Scheduler scheduler, ActorRef<T> actorRef) {
-        this(scheduler, actorRef, Duration.ofSeconds(DEFAULT_TIMEOUT_SECONDS));
+        this(scheduler, actorRef, ActorConstants.DEFAULT_TIMEOUT);
     }
 
     /**
@@ -126,10 +126,26 @@ public class SpringActorRef<T> {
      *
      * <p>Note: This method does not wait for the actor to terminate. The actor will stop
      * asynchronously after processing pending messages.
+     *
+     * <p><b>Warning:</b> This method uses PoisonPill which is not type-safe. The actor's
+     * Command interface must be able to accept Object messages for this to work. If your
+     * actor uses a sealed command hierarchy, consider implementing a Stop command instead.
      */
     @SuppressWarnings("unchecked")
     public void stop() {
         actorRef.tell((T) PoisonPill.getInstance());
+    }
+
+    /**
+     * Returns the path of this actor in the actor system hierarchy.
+     * The path uniquely identifies the actor's location in the system.
+     *
+     * <p>This is useful for debugging, logging, and understanding actor hierarchies.
+     *
+     * @return The actor's path as a string
+     */
+    public String getPath() {
+        return actorRef.path().toString();
     }
 
     /**

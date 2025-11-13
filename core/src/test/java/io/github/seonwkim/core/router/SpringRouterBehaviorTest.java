@@ -31,31 +31,26 @@ class SpringRouterBehaviorTest {
     @Component
     static class RoundRobinWorkerActor implements SpringActor<TestRouterActor.Command> {
 
-        @Autowired private WorkerState workerState;
+        @Autowired
+        private WorkerState workerState;
 
         @Override
         public SpringActorBehavior<TestRouterActor.Command> create(SpringActorContext ctx) {
             return SpringActorBehavior.builder(TestRouterActor.Command.class, ctx)
-                    .onMessage(
-                            TestRouterActor.ProcessMessage.class,
-                            (context, msg) -> {
-                                String workerId = context.getSelf().path().name();
-                                workerState.recordMessage(workerId, msg.message);
-                                context.getLog().info("Worker {} processed: {}", workerId, msg.message);
-                                return Behaviors.same();
-                            })
-                    .onMessage(
-                            TestRouterActor.GetWorkerMessageCounts.class,
-                            (context, msg) -> {
-                                msg.reply(workerState.getWorkerCounts());
-                                return Behaviors.same();
-                            })
-                    .onMessage(
-                            TestRouterActor.GetTotalMessageCount.class,
-                            (context, msg) -> {
-                                msg.reply(workerState.getTotalCount());
-                                return Behaviors.same();
-                            })
+                    .onMessage(TestRouterActor.ProcessMessage.class, (context, msg) -> {
+                        String workerId = context.getSelf().path().name();
+                        workerState.recordMessage(workerId, msg.message);
+                        context.getLog().info("Worker {} processed: {}", workerId, msg.message);
+                        return Behaviors.same();
+                    })
+                    .onMessage(TestRouterActor.GetWorkerMessageCounts.class, (context, msg) -> {
+                        msg.reply(workerState.getWorkerCounts());
+                        return Behaviors.same();
+                    })
+                    .onMessage(TestRouterActor.GetTotalMessageCount.class, (context, msg) -> {
+                        msg.reply(workerState.getTotalCount());
+                        return Behaviors.same();
+                    })
                     .build();
         }
     }
@@ -102,8 +97,7 @@ class SpringRouterBehaviorTest {
             }
         }
 
-        public static class GetWorkerMessageCounts extends AskCommand<Map<String, Integer>>
-                implements Command {}
+        public static class GetWorkerMessageCounts extends AskCommand<Map<String, Integer>> implements Command {}
 
         public static class GetTotalMessageCount extends AskCommand<Integer> implements Command {}
 
@@ -121,23 +115,20 @@ class SpringRouterBehaviorTest {
     @Component
     static class RandomWorkerActor implements SpringActor<RandomRouterActor.Command> {
 
-        @Autowired private RandomWorkerState state;
+        @Autowired
+        private RandomWorkerState state;
 
         @Override
         public SpringActorBehavior<RandomRouterActor.Command> create(SpringActorContext ctx) {
             return SpringActorBehavior.builder(RandomRouterActor.Command.class, ctx)
-                    .onMessage(
-                            RandomRouterActor.ProcessMessage.class,
-                            (context, msg) -> {
-                                state.incrementCount();
-                                return Behaviors.same();
-                            })
-                    .onMessage(
-                            RandomRouterActor.GetTotalMessageCount.class,
-                            (context, msg) -> {
-                                msg.reply(state.getCount());
-                                return Behaviors.same();
-                            })
+                    .onMessage(RandomRouterActor.ProcessMessage.class, (context, msg) -> {
+                        state.incrementCount();
+                        return Behaviors.same();
+                    })
+                    .onMessage(RandomRouterActor.GetTotalMessageCount.class, (context, msg) -> {
+                        msg.reply(state.getCount());
+                        return Behaviors.same();
+                    })
                     .build();
         }
     }
@@ -189,30 +180,25 @@ class SpringRouterBehaviorTest {
     @Component
     static class BroadcastWorkerActor implements SpringActor<BroadcastRouterActor.Command> {
 
-        @Autowired private BroadcastWorkerState state;
+        @Autowired
+        private BroadcastWorkerState state;
 
         @Override
         public SpringActorBehavior<BroadcastRouterActor.Command> create(SpringActorContext ctx) {
             return SpringActorBehavior.builder(BroadcastRouterActor.Command.class, ctx)
-                    .onMessage(
-                            BroadcastRouterActor.ProcessMessage.class,
-                            (context, msg) -> {
-                                String workerId = context.getSelf().path().name();
-                                state.recordMessage(workerId, msg.message);
-                                return Behaviors.same();
-                            })
-                    .onMessage(
-                            BroadcastRouterActor.GetWorkerMessageCounts.class,
-                            (context, msg) -> {
-                                msg.reply(state.getWorkerCounts());
-                                return Behaviors.same();
-                            })
-                    .onMessage(
-                            BroadcastRouterActor.GetTotalMessagesReceived.class,
-                            (context, msg) -> {
-                                msg.reply(state.getTotalCount());
-                                return Behaviors.same();
-                            })
+                    .onMessage(BroadcastRouterActor.ProcessMessage.class, (context, msg) -> {
+                        String workerId = context.getSelf().path().name();
+                        state.recordMessage(workerId, msg.message);
+                        return Behaviors.same();
+                    })
+                    .onMessage(BroadcastRouterActor.GetWorkerMessageCounts.class, (context, msg) -> {
+                        msg.reply(state.getWorkerCounts());
+                        return Behaviors.same();
+                    })
+                    .onMessage(BroadcastRouterActor.GetTotalMessagesReceived.class, (context, msg) -> {
+                        msg.reply(state.getTotalCount());
+                        return Behaviors.same();
+                    })
                     .build();
         }
     }
@@ -258,8 +244,7 @@ class SpringRouterBehaviorTest {
             }
         }
 
-        public static class GetWorkerMessageCounts extends AskCommand<Map<String, Integer>>
-                implements Command {}
+        public static class GetWorkerMessageCounts extends AskCommand<Map<String, Integer>> implements Command {}
 
         public static class GetTotalMessagesReceived extends AskCommand<Integer> implements Command {}
 
@@ -275,34 +260,27 @@ class SpringRouterBehaviorTest {
 
     /** Worker for consistent hashing routing */
     @Component
-    static class ConsistentHashingWorkerActor
-            implements SpringActor<ConsistentHashingRouterActor.Command> {
+    static class ConsistentHashingWorkerActor implements SpringActor<ConsistentHashingRouterActor.Command> {
 
-        @Autowired private ConsistentHashingWorkerState state;
+        @Autowired
+        private ConsistentHashingWorkerState state;
 
         @Override
-        public SpringActorBehavior<ConsistentHashingRouterActor.Command> create(
-                SpringActorContext ctx) {
+        public SpringActorBehavior<ConsistentHashingRouterActor.Command> create(SpringActorContext ctx) {
             return SpringActorBehavior.builder(ConsistentHashingRouterActor.Command.class, ctx)
-                    .onMessage(
-                            ConsistentHashingRouterActor.ProcessHashableMessage.class,
-                            (context, msg) -> {
-                                String workerId = context.getSelf().path().name();
-                                state.recordMessage(workerId, msg.getConsistentHashKey());
-                                return Behaviors.same();
-                            })
-                    .onMessage(
-                            ConsistentHashingRouterActor.GetHashKeyWorkerMapping.class,
-                            (context, msg) -> {
-                                msg.reply(state.getHashKeyWorkerMapping());
-                                return Behaviors.same();
-                            })
-                    .onMessage(
-                            ConsistentHashingRouterActor.GetTotalMessageCount.class,
-                            (context, msg) -> {
-                                msg.reply(state.getTotalCount());
-                                return Behaviors.same();
-                            })
+                    .onMessage(ConsistentHashingRouterActor.ProcessHashableMessage.class, (context, msg) -> {
+                        String workerId = context.getSelf().path().name();
+                        state.recordMessage(workerId, msg.getConsistentHashKey());
+                        return Behaviors.same();
+                    })
+                    .onMessage(ConsistentHashingRouterActor.GetHashKeyWorkerMapping.class, (context, msg) -> {
+                        msg.reply(state.getHashKeyWorkerMapping());
+                        return Behaviors.same();
+                    })
+                    .onMessage(ConsistentHashingRouterActor.GetTotalMessageCount.class, (context, msg) -> {
+                        msg.reply(state.getTotalCount());
+                        return Behaviors.same();
+                    })
                     .build();
         }
     }
@@ -334,8 +312,7 @@ class SpringRouterBehaviorTest {
 
     /** Router with consistent hashing strategy for testing */
     @Component
-    static class ConsistentHashingRouterActor
-            implements SpringActor<ConsistentHashingRouterActor.Command> {
+    static class ConsistentHashingRouterActor implements SpringActor<ConsistentHashingRouterActor.Command> {
 
         public interface Command {}
 
@@ -358,8 +335,7 @@ class SpringRouterBehaviorTest {
             }
         }
 
-        public static class GetHashKeyWorkerMapping extends AskCommand<Map<String, String>>
-                implements Command {}
+        public static class GetHashKeyWorkerMapping extends AskCommand<Map<String, String>> implements Command {}
 
         public static class GetTotalMessageCount extends AskCommand<Integer> implements Command {}
 
@@ -396,25 +372,22 @@ class SpringRouterBehaviorTest {
     @Component
     static class SpringDIWorkerActor implements SpringActor<SpringDIRouterActor.Command> {
 
-        @Autowired private WorkerService workerService; // Spring DI injection!
+        @Autowired
+        private WorkerService workerService; // Spring DI injection!
 
         @Override
         public SpringActorBehavior<SpringDIRouterActor.Command> create(SpringActorContext ctx) {
             return SpringActorBehavior.builder(SpringDIRouterActor.Command.class, ctx)
-                    .onMessage(
-                            SpringDIRouterActor.ProcessWithService.class,
-                            (context, msg) -> {
-                                // Use the injected service
-                                String result = workerService.processMessage(msg.data);
-                                context.getLog().info("Service result: {}", result);
-                                return Behaviors.same();
-                            })
-                    .onMessage(
-                            SpringDIRouterActor.GetServiceCallCount.class,
-                            (context, msg) -> {
-                                msg.reply(workerService.getServiceCallCount());
-                                return Behaviors.same();
-                            })
+                    .onMessage(SpringDIRouterActor.ProcessWithService.class, (context, msg) -> {
+                        // Use the injected service
+                        String result = workerService.processMessage(msg.data);
+                        context.getLog().info("Service result: {}", result);
+                        return Behaviors.same();
+                    })
+                    .onMessage(SpringDIRouterActor.GetServiceCallCount.class, (context, msg) -> {
+                        msg.reply(workerService.getServiceCallCount());
+                        return Behaviors.same();
+                    })
                     .build();
         }
     }
@@ -458,16 +431,14 @@ class SpringRouterBehaviorTest {
         }
 
         @Test
-        void workerActorsCanInjectSpringBeans(@Autowired SpringActorSystem actorSystem)
-                throws Exception {
+        void workerActorsCanInjectSpringBeans(@Autowired SpringActorSystem actorSystem) throws Exception {
             // This test verifies the key benefit of withWorkerActors() API:
             // Workers are full Spring components with dependency injection!
 
-            SpringActorRef<SpringDIRouterActor.Command> router =
-                    actorSystem
-                            .actor(SpringDIRouterActor.class)
-                            .withId("spring-di-router")
-                            .spawnAndWait();
+            SpringActorRef<SpringDIRouterActor.Command> router = actorSystem
+                    .actor(SpringDIRouterActor.class)
+                    .withId("spring-di-router")
+                    .spawnAndWait();
 
             // Send messages that will be processed using the injected service
             router.tell(new SpringDIRouterActor.ProcessWithService("message-1"));
@@ -479,24 +450,21 @@ class SpringRouterBehaviorTest {
             // Wait for all messages to be processed
             await().atMost(5, TimeUnit.SECONDS)
                     .pollInterval(50, TimeUnit.MILLISECONDS)
-                    .until(
-                            () -> {
-                                Integer count =
-                                        router.ask(new SpringDIRouterActor.GetServiceCallCount())
-                                                .withTimeout(Duration.ofSeconds(1))
-                                                .execute()
-                                                .toCompletableFuture()
-                                                .get();
-                                return count == 5;
-                            });
+                    .until(() -> {
+                        Integer count = router.ask(new SpringDIRouterActor.GetServiceCallCount())
+                                .withTimeout(Duration.ofSeconds(1))
+                                .execute()
+                                .toCompletableFuture()
+                                .get();
+                        return count == 5;
+                    });
 
             // Verify the injected service was actually called
-            Integer serviceCallCount =
-                    router.ask(new SpringDIRouterActor.GetServiceCallCount())
-                            .withTimeout(Duration.ofSeconds(1))
-                            .execute()
-                            .toCompletableFuture()
-                            .get();
+            Integer serviceCallCount = router.ask(new SpringDIRouterActor.GetServiceCallCount())
+                    .withTimeout(Duration.ofSeconds(1))
+                    .execute()
+                    .toCompletableFuture()
+                    .get();
 
             // SUCCESS! The injected WorkerService was called 5 times
             // This proves Spring DI works in router workers!
@@ -515,11 +483,10 @@ class SpringRouterBehaviorTest {
 
         @Test
         void roundRobinDistributesEvenly(@Autowired SpringActorSystem actorSystem) throws Exception {
-            SpringActorRef<TestRouterActor.Command> router =
-                    actorSystem
-                            .actor(TestRouterActor.class)
-                            .withId("round-robin-router")
-                            .spawnAndWait();
+            SpringActorRef<TestRouterActor.Command> router = actorSystem
+                    .actor(TestRouterActor.class)
+                    .withId("round-robin-router")
+                    .spawnAndWait();
 
             // Send 9 messages (should distribute 3 to each of the 3 workers)
             for (int i = 0; i < 9; i++) {
@@ -529,47 +496,41 @@ class SpringRouterBehaviorTest {
             // Query total count until all messages are processed
             await().atMost(5, TimeUnit.SECONDS)
                     .pollInterval(50, TimeUnit.MILLISECONDS)
-                    .until(
-                            () -> {
-                                Integer count =
-                                        router.ask(new TestRouterActor.GetTotalMessageCount())
-                                                .withTimeout(Duration.ofSeconds(1))
-                                                .execute()
-                                                .toCompletableFuture()
-                                                .get();
-                                return count >= 9;
-                            });
+                    .until(() -> {
+                        Integer count = router.ask(new TestRouterActor.GetTotalMessageCount())
+                                .withTimeout(Duration.ofSeconds(1))
+                                .execute()
+                                .toCompletableFuture()
+                                .get();
+                        return count >= 9;
+                    });
 
             // Verify total count
-            Integer totalCount =
-                    router.ask(new TestRouterActor.GetTotalMessageCount())
-                            .withTimeout(Duration.ofSeconds(1))
-                            .execute()
-                            .toCompletableFuture()
-                            .get();
+            Integer totalCount = router.ask(new TestRouterActor.GetTotalMessageCount())
+                    .withTimeout(Duration.ofSeconds(1))
+                    .execute()
+                    .toCompletableFuture()
+                    .get();
 
             assertThat(totalCount).isEqualTo(9);
 
             // Verify distribution - each worker should have received exactly 3 messages
-            Map<String, Integer> workerCounts =
-                    router.ask(new TestRouterActor.GetWorkerMessageCounts())
-                            .withTimeout(Duration.ofSeconds(1))
-                            .execute()
-                            .toCompletableFuture()
-                            .get();
+            Map<String, Integer> workerCounts = router.ask(new TestRouterActor.GetWorkerMessageCounts())
+                    .withTimeout(Duration.ofSeconds(1))
+                    .execute()
+                    .toCompletableFuture()
+                    .get();
 
             assertThat(workerCounts).hasSize(3);
             assertThat(workerCounts.values()).containsOnly(3); // Each worker got exactly 3
         }
 
         @Test
-        void roundRobinHandlesUnevenMessageCount(@Autowired SpringActorSystem actorSystem)
-                throws Exception {
-            SpringActorRef<TestRouterActor.Command> router =
-                    actorSystem
-                            .actor(TestRouterActor.class)
-                            .withId("round-robin-uneven")
-                            .spawnAndWait();
+        void roundRobinHandlesUnevenMessageCount(@Autowired SpringActorSystem actorSystem) throws Exception {
+            SpringActorRef<TestRouterActor.Command> router = actorSystem
+                    .actor(TestRouterActor.class)
+                    .withId("round-robin-uneven")
+                    .spawnAndWait();
 
             // Send 10 messages to 3 workers (3, 3, 4 distribution expected)
             for (int i = 0; i < 10; i++) {
@@ -579,34 +540,30 @@ class SpringRouterBehaviorTest {
             // Wait for all messages to be processed
             await().atMost(5, TimeUnit.SECONDS)
                     .pollInterval(50, TimeUnit.MILLISECONDS)
-                    .until(
-                            () -> {
-                                Integer count =
-                                        router.ask(new TestRouterActor.GetTotalMessageCount())
-                                                .withTimeout(Duration.ofSeconds(1))
-                                                .execute()
-                                                .toCompletableFuture()
-                                                .get();
-                                return count == 10;
-                            });
+                    .until(() -> {
+                        Integer count = router.ask(new TestRouterActor.GetTotalMessageCount())
+                                .withTimeout(Duration.ofSeconds(1))
+                                .execute()
+                                .toCompletableFuture()
+                                .get();
+                        return count == 10;
+                    });
 
             // Verify total count is exactly 10
-            Integer totalCount =
-                    router.ask(new TestRouterActor.GetTotalMessageCount())
-                            .withTimeout(Duration.ofSeconds(1))
-                            .execute()
-                            .toCompletableFuture()
-                            .get();
+            Integer totalCount = router.ask(new TestRouterActor.GetTotalMessageCount())
+                    .withTimeout(Duration.ofSeconds(1))
+                    .execute()
+                    .toCompletableFuture()
+                    .get();
 
             assertThat(totalCount).isEqualTo(10);
 
             // Verify all workers participated
-            Map<String, Integer> workerCounts =
-                    router.ask(new TestRouterActor.GetWorkerMessageCounts())
-                            .withTimeout(Duration.ofSeconds(1))
-                            .execute()
-                            .toCompletableFuture()
-                            .get();
+            Map<String, Integer> workerCounts = router.ask(new TestRouterActor.GetWorkerMessageCounts())
+                    .withTimeout(Duration.ofSeconds(1))
+                    .execute()
+                    .toCompletableFuture()
+                    .get();
 
             assertThat(workerCounts).hasSize(3);
             // Sum should equal total
@@ -626,11 +583,10 @@ class SpringRouterBehaviorTest {
 
         @Test
         void randomDistributesMessages(@Autowired SpringActorSystem actorSystem) throws Exception {
-            SpringActorRef<RandomRouterActor.Command> router =
-                    actorSystem
-                            .actor(RandomRouterActor.class)
-                            .withId("random-router")
-                            .spawnAndWait();
+            SpringActorRef<RandomRouterActor.Command> router = actorSystem
+                    .actor(RandomRouterActor.class)
+                    .withId("random-router")
+                    .spawnAndWait();
 
             // Send 15 messages
             for (int i = 0; i < 15; i++) {
@@ -640,24 +596,21 @@ class SpringRouterBehaviorTest {
             // Wait until all messages are processed
             await().atMost(5, TimeUnit.SECONDS)
                     .pollInterval(50, TimeUnit.MILLISECONDS)
-                    .until(
-                            () -> {
-                                Integer count =
-                                        router.ask(new RandomRouterActor.GetTotalMessageCount())
-                                                .withTimeout(Duration.ofSeconds(1))
-                                                .execute()
-                                                .toCompletableFuture()
-                                                .get();
-                                return count == 15;
-                            });
+                    .until(() -> {
+                        Integer count = router.ask(new RandomRouterActor.GetTotalMessageCount())
+                                .withTimeout(Duration.ofSeconds(1))
+                                .execute()
+                                .toCompletableFuture()
+                                .get();
+                        return count == 15;
+                    });
 
             // Verify exact count
-            Integer totalCount =
-                    router.ask(new RandomRouterActor.GetTotalMessageCount())
-                            .withTimeout(Duration.ofSeconds(1))
-                            .execute()
-                            .toCompletableFuture()
-                            .get();
+            Integer totalCount = router.ask(new RandomRouterActor.GetTotalMessageCount())
+                    .withTimeout(Duration.ofSeconds(1))
+                    .execute()
+                    .toCompletableFuture()
+                    .get();
 
             assertThat(totalCount).isEqualTo(15);
         }
@@ -674,11 +627,10 @@ class SpringRouterBehaviorTest {
 
         @Test
         void broadcastSendsToAllWorkers(@Autowired SpringActorSystem actorSystem) throws Exception {
-            SpringActorRef<BroadcastRouterActor.Command> router =
-                    actorSystem
-                            .actor(BroadcastRouterActor.class)
-                            .withId("broadcast-router")
-                            .spawnAndWait();
+            SpringActorRef<BroadcastRouterActor.Command> router = actorSystem
+                    .actor(BroadcastRouterActor.class)
+                    .withId("broadcast-router")
+                    .spawnAndWait();
 
             // Send 5 messages - each should go to ALL 3 workers
             for (int i = 0; i < 5; i++) {
@@ -689,34 +641,30 @@ class SpringRouterBehaviorTest {
             // Expected: 5 messages × 3 workers = 15 total messages received
             await().atMost(5, TimeUnit.SECONDS)
                     .pollInterval(50, TimeUnit.MILLISECONDS)
-                    .until(
-                            () -> {
-                                Integer count =
-                                        router.ask(new BroadcastRouterActor.GetTotalMessagesReceived())
-                                                .withTimeout(Duration.ofSeconds(1))
-                                                .execute()
-                                                .toCompletableFuture()
-                                                .get();
-                                return count >= 15;
-                            });
+                    .until(() -> {
+                        Integer count = router.ask(new BroadcastRouterActor.GetTotalMessagesReceived())
+                                .withTimeout(Duration.ofSeconds(1))
+                                .execute()
+                                .toCompletableFuture()
+                                .get();
+                        return count >= 15;
+                    });
 
             // Verify total messages received (5 sent × 3 workers = 15 received)
-            Integer totalReceived =
-                    router.ask(new BroadcastRouterActor.GetTotalMessagesReceived())
-                            .withTimeout(Duration.ofSeconds(1))
-                            .execute()
-                            .toCompletableFuture()
-                            .get();
+            Integer totalReceived = router.ask(new BroadcastRouterActor.GetTotalMessagesReceived())
+                    .withTimeout(Duration.ofSeconds(1))
+                    .execute()
+                    .toCompletableFuture()
+                    .get();
 
             assertThat(totalReceived).isEqualTo(15);
 
             // Verify each worker received ALL 5 messages
-            Map<String, Integer> workerCounts =
-                    router.ask(new BroadcastRouterActor.GetWorkerMessageCounts())
-                            .withTimeout(Duration.ofSeconds(1))
-                            .execute()
-                            .toCompletableFuture()
-                            .get();
+            Map<String, Integer> workerCounts = router.ask(new BroadcastRouterActor.GetWorkerMessageCounts())
+                    .withTimeout(Duration.ofSeconds(1))
+                    .execute()
+                    .toCompletableFuture()
+                    .get();
 
             assertThat(workerCounts).hasSize(3);
             assertThat(workerCounts.values()).containsOnly(5); // Each worker got ALL 5 messages
@@ -733,13 +681,11 @@ class SpringRouterBehaviorTest {
         }
 
         @Test
-        void consistentHashingRoutesMessagesToSameWorker(@Autowired SpringActorSystem actorSystem)
-                throws Exception {
-            SpringActorRef<ConsistentHashingRouterActor.Command> router =
-                    actorSystem
-                            .actor(ConsistentHashingRouterActor.class)
-                            .withId("consistent-hashing-router")
-                            .spawnAndWait();
+        void consistentHashingRoutesMessagesToSameWorker(@Autowired SpringActorSystem actorSystem) throws Exception {
+            SpringActorRef<ConsistentHashingRouterActor.Command> router = actorSystem
+                    .actor(ConsistentHashingRouterActor.class)
+                    .withId("consistent-hashing-router")
+                    .spawnAndWait();
 
             // Send 3 messages with hash key "user-1" - all should go to same worker
             router.tell(new ConsistentHashingRouterActor.ProcessHashableMessage("user-1", "msg-1"));
@@ -757,36 +703,30 @@ class SpringRouterBehaviorTest {
             // Wait until all messages are processed
             await().atMost(5, TimeUnit.SECONDS)
                     .pollInterval(50, TimeUnit.MILLISECONDS)
-                    .until(
-                            () -> {
-                                Integer count =
-                                        router.ask(
-                                                        new ConsistentHashingRouterActor
-                                                                .GetTotalMessageCount())
-                                                .withTimeout(Duration.ofSeconds(1))
-                                                .execute()
-                                                .toCompletableFuture()
-                                                .get();
-                                return count == 7;
-                            });
+                    .until(() -> {
+                        Integer count = router.ask(new ConsistentHashingRouterActor.GetTotalMessageCount())
+                                .withTimeout(Duration.ofSeconds(1))
+                                .execute()
+                                .toCompletableFuture()
+                                .get();
+                        return count == 7;
+                    });
 
             // Verify total count
-            Integer totalCount =
-                    router.ask(new ConsistentHashingRouterActor.GetTotalMessageCount())
-                            .withTimeout(Duration.ofSeconds(1))
-                            .execute()
-                            .toCompletableFuture()
-                            .get();
+            Integer totalCount = router.ask(new ConsistentHashingRouterActor.GetTotalMessageCount())
+                    .withTimeout(Duration.ofSeconds(1))
+                    .execute()
+                    .toCompletableFuture()
+                    .get();
 
             assertThat(totalCount).isEqualTo(7);
 
             // Get the hash key -> worker mapping
-            Map<String, String> mapping =
-                    router.ask(new ConsistentHashingRouterActor.GetHashKeyWorkerMapping())
-                            .withTimeout(Duration.ofSeconds(1))
-                            .execute()
-                            .toCompletableFuture()
-                            .get();
+            Map<String, String> mapping = router.ask(new ConsistentHashingRouterActor.GetHashKeyWorkerMapping())
+                    .withTimeout(Duration.ofSeconds(1))
+                    .execute()
+                    .toCompletableFuture()
+                    .get();
 
             // Verify: Each hash key was consistently routed to the same worker
             // (We sent multiple messages per hash key, but map only shows last worker per key)
@@ -804,45 +744,36 @@ class SpringRouterBehaviorTest {
         }
 
         @Test
-        void consistentHashingDistributesAcrossWorkers(@Autowired SpringActorSystem actorSystem)
-                throws Exception {
-            SpringActorRef<ConsistentHashingRouterActor.Command> router =
-                    actorSystem
-                            .actor(ConsistentHashingRouterActor.class)
-                            .withId("consistent-hashing-distribution")
-                            .spawnAndWait();
+        void consistentHashingDistributesAcrossWorkers(@Autowired SpringActorSystem actorSystem) throws Exception {
+            SpringActorRef<ConsistentHashingRouterActor.Command> router = actorSystem
+                    .actor(ConsistentHashingRouterActor.class)
+                    .withId("consistent-hashing-distribution")
+                    .spawnAndWait();
 
             // Send many messages with different hash keys
             // With 20 different keys and 3 workers, we expect some distribution
             for (int i = 0; i < 20; i++) {
-                router.tell(
-                        new ConsistentHashingRouterActor.ProcessHashableMessage(
-                                "key-" + i, "data-" + i));
+                router.tell(new ConsistentHashingRouterActor.ProcessHashableMessage("key-" + i, "data-" + i));
             }
 
             // Wait for all messages to be processed
             await().atMost(5, TimeUnit.SECONDS)
                     .pollInterval(50, TimeUnit.MILLISECONDS)
-                    .until(
-                            () -> {
-                                Integer count =
-                                        router.ask(
-                                                        new ConsistentHashingRouterActor
-                                                                .GetTotalMessageCount())
-                                                .withTimeout(Duration.ofSeconds(1))
-                                                .execute()
-                                                .toCompletableFuture()
-                                                .get();
-                                return count == 20;
-                            });
+                    .until(() -> {
+                        Integer count = router.ask(new ConsistentHashingRouterActor.GetTotalMessageCount())
+                                .withTimeout(Duration.ofSeconds(1))
+                                .execute()
+                                .toCompletableFuture()
+                                .get();
+                        return count == 20;
+                    });
 
             // Get the mapping
-            Map<String, String> mapping =
-                    router.ask(new ConsistentHashingRouterActor.GetHashKeyWorkerMapping())
-                            .withTimeout(Duration.ofSeconds(1))
-                            .execute()
-                            .toCompletableFuture()
-                            .get();
+            Map<String, String> mapping = router.ask(new ConsistentHashingRouterActor.GetHashKeyWorkerMapping())
+                    .withTimeout(Duration.ofSeconds(1))
+                    .execute()
+                    .toCompletableFuture()
+                    .get();
 
             // Verify all keys are present
             assertThat(mapping).hasSize(20);
@@ -869,12 +800,11 @@ class SpringRouterBehaviorTest {
                 }
             };
 
-            assertThatThrownBy(
-                            () -> SpringRouterBehavior.builder(TestRouterActor.Command.class, ctx)
-                                            .withPoolSize(5)
-                                            .withWorkerActors(RoundRobinWorkerActor.class)
-                                            .build())
-                    .isInstanceOf(NullPointerException.class)
+            assertThatThrownBy(() -> SpringRouterBehavior.builder(TestRouterActor.Command.class, ctx)
+                            .withPoolSize(5)
+                            .withWorkerActors(RoundRobinWorkerActor.class)
+                            .build())
+                    .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("Routing strategy");
         }
 
@@ -887,13 +817,11 @@ class SpringRouterBehaviorTest {
                 }
             };
 
-            assertThatThrownBy(
-                            () ->
-                                    SpringRouterBehavior.builder(TestRouterActor.Command.class, ctx)
-                                            .withRoutingStrategy(RoutingStrategy.roundRobin())
-                                            .withPoolSize(5)
-                                            .build())
-                    .isInstanceOf(NullPointerException.class)
+            assertThatThrownBy(() -> SpringRouterBehavior.builder(TestRouterActor.Command.class, ctx)
+                            .withRoutingStrategy(RoutingStrategy.roundRobin())
+                            .withPoolSize(5)
+                            .build())
+                    .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("Worker actor class");
         }
 
@@ -906,11 +834,13 @@ class SpringRouterBehaviorTest {
                 }
             };
 
-            assertThatThrownBy(() -> SpringRouterBehavior.builder(TestRouterActor.Command.class, ctx).withPoolSize(0))
+            assertThatThrownBy(() -> SpringRouterBehavior.builder(TestRouterActor.Command.class, ctx)
+                            .withPoolSize(0))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("Pool size must be positive");
 
-            assertThatThrownBy(() -> SpringRouterBehavior.builder(TestRouterActor.Command.class, ctx).withPoolSize(-1))
+            assertThatThrownBy(() -> SpringRouterBehavior.builder(TestRouterActor.Command.class, ctx)
+                            .withPoolSize(-1))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("Pool size must be positive");
         }

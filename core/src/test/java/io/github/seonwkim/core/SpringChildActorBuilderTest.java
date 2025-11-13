@@ -254,7 +254,7 @@ class SpringChildActorBuilderTest {
             // When/Then: Calling spawn without setting ID or context should throw
             assertThatThrownBy(() -> parent.child(SimpleChildActor.class).spawn())
                     .isInstanceOf(IllegalStateException.class)
-                    .hasMessage("Either childId or childContext must be set");
+                    .hasMessageContaining("Either childId or childContext must be set");
         }
 
         @Test

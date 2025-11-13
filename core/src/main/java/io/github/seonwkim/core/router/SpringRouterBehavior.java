@@ -59,6 +59,7 @@ public final class SpringRouterBehavior<C> {
     private final int poolSize;
     private final Class<? extends SpringActorWithContext<C, ?>> workerActorClass;
     private final SpringActorContext actorContext;
+
     @Nullable private final SupervisorStrategy supervisionStrategy;
 
     private SpringRouterBehavior(
@@ -103,8 +104,7 @@ public final class SpringRouterBehavior<C> {
             }
 
             // Create worker context
-            SpringActorContext workerContext =
-                    new DefaultSpringActorContext("worker-" + UUID.randomUUID());
+            SpringActorContext workerContext = new DefaultSpringActorContext("worker-" + UUID.randomUUID());
 
             // Create worker behavior using the registry
             @SuppressWarnings("unchecked")
@@ -137,9 +137,13 @@ public final class SpringRouterBehavior<C> {
     public static final class Builder<C> {
         private final Class<C> commandClass;
         private final SpringActorContext actorContext;
+
         @Nullable private RoutingStrategy routingStrategy;
+
         private int poolSize = 5;
+
         @Nullable private Class<? extends SpringActorWithContext<C, ?>> workerActorClass;
+
         @Nullable private SupervisorStrategy supervisionStrategy;
 
         private Builder(Class<C> commandClass, SpringActorContext actorContext) {
@@ -199,14 +203,23 @@ public final class SpringRouterBehavior<C> {
          * Build the SpringActorBehavior with the configured router settings.
          *
          * @return A SpringActorBehavior that implements the configured router
+         * @throws NullPointerException if routing strategy or worker actor class is not set
          */
         public SpringActorBehavior<C> build() {
-            Objects.requireNonNull(routingStrategy, "Routing strategy is required");
-            Objects.requireNonNull(workerActorClass, "Worker actor class is required");
+            if (routingStrategy == null) {
+                throw new IllegalStateException("Routing strategy is required. "
+                        + "Call withRoutingStrategy() before building. "
+                        + "Available strategies: RoutingStrategy.roundRobin(), "
+                        + "RoutingStrategy.random(), RoutingStrategy.broadcast(), "
+                        + "or RoutingStrategy.consistentHashing()");
+            }
+            if (workerActorClass == null) {
+                throw new IllegalStateException("Worker actor class is required. "
+                        + "Call withWorkerActors(YourWorkerActor.class) before building.");
+            }
 
-            SpringRouterBehavior<C> config =
-                    new SpringRouterBehavior<>(
-                            routingStrategy, poolSize, workerActorClass, actorContext, supervisionStrategy);
+            SpringRouterBehavior<C> config = new SpringRouterBehavior<>(
+                    routingStrategy, poolSize, workerActorClass, actorContext, supervisionStrategy);
             return config.toSpringActorBehavior();
         }
     }
