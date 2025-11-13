@@ -45,7 +45,7 @@ class SpringChildActorReferenceTest {
         @Override
         public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
             return SpringActorBehavior.builder(Command.class, actorContext)
-                    .withState(ctx -> new SimpleChildBehavior(ctx, actorContext))
+                    .withState(ctx -> new SimpleChildBehavior(actorContext))
                     .onMessage(Ping.class, SimpleChildBehavior::onPing)
                     .onMessage(GetId.class, SimpleChildBehavior::onGetId)
                     .build();
@@ -54,7 +54,7 @@ class SpringChildActorReferenceTest {
         private static class SimpleChildBehavior {
             private final SpringActorContext actorContext;
 
-            SimpleChildBehavior(ActorContext<Command> ctx, SpringActorContext actorContext) {
+            SimpleChildBehavior(SpringActorContext actorContext) {
                 this.actorContext = actorContext;
             }
 

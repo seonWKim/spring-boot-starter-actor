@@ -46,10 +46,10 @@ class SpringChildActorBuilderTest {
         }
 
         private static class SimpleChildBehavior {
-            private final ActorContext<Command> ctx;
+            private final SpringBehaviorContext<Command> ctx;
             private final SpringActorContext actorContext;
 
-            SimpleChildBehavior(ActorContext<Command> ctx, SpringActorContext actorContext) {
+            SimpleChildBehavior(SpringBehaviorContext<Command> ctx, SpringActorContext actorContext) {
                 this.ctx = ctx;
                 this.actorContext = actorContext;
             }
@@ -79,18 +79,13 @@ class SpringChildActorBuilderTest {
         @Override
         public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
             return SpringActorBehavior.builder(Command.class, actorContext)
-                    .withState(ctx -> new ParentBehavior(ctx, actorContext))
+                    .withState(ctx -> new ParentBehavior())
                     .onMessage(DoNothing.class, ParentBehavior::onDoNothing)
                     .build();
         }
 
         private static class ParentBehavior {
-            private final ActorContext<Command> ctx;
-            private final SpringActorContext actorContext;
-
-            ParentBehavior(ActorContext<Command> ctx, SpringActorContext actorContext) {
-                this.ctx = ctx;
-                this.actorContext = actorContext;
+            ParentBehavior() {
             }
 
             private Behavior<Command> onDoNothing(DoNothing msg) {
