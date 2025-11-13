@@ -259,8 +259,16 @@ public final class SpringActorBehavior<C> {
          * Builds the final SpringActorBehavior.
          *
          * @return the constructed behavior
+         * @throws IllegalStateException if no message handlers have been added
          */
         public SpringActorBehavior<C> build() {
+            if (messageHandlers.isEmpty() && signalHandlers.isEmpty()) {
+                throw new IllegalStateException("No message or signal handlers defined. "
+                        + "Use onMessage() or onSignal() to add at least one handler. "
+                        + "Command class: "
+                        + commandClass.getName());
+            }
+
             if (enableFrameworkCommands) {
                 // Wrap with framework command handling
                 Behavior<C> behaviorWithFramework = Behaviors.setup(ctx -> {

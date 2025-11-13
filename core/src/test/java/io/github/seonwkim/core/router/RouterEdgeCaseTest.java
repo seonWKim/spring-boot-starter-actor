@@ -78,33 +78,28 @@ class RouterEdgeCaseTest {
     @Component
     static class SupervisedWorkerActor implements SpringActor<SupervisedRouterActor.Command> {
 
-        @Autowired private SupervisionState state;
+        @Autowired
+        private SupervisionState state;
 
         @Override
         public SpringActorBehavior<SupervisedRouterActor.Command> create(SpringActorContext ctx) {
             return SpringActorBehavior.builder(SupervisedRouterActor.Command.class, ctx)
-                    .onMessage(
-                            SupervisedRouterActor.ProcessCommand.class,
-                            (context, msg) -> {
-                                if (msg.data.contains("fail")) {
-                                    state.recordFailure();
-                                    throw new RuntimeException("Intentional failure");
-                                }
-                                state.recordSuccess();
-                                return Behaviors.same();
-                            })
-                    .onMessage(
-                            SupervisedRouterActor.GetSuccessCount.class,
-                            (context, msg) -> {
-                                msg.reply(state.getSuccessCount());
-                                return Behaviors.same();
-                            })
-                    .onMessage(
-                            SupervisedRouterActor.GetFailureCount.class,
-                            (context, msg) -> {
-                                msg.reply(state.getFailureCount());
-                                return Behaviors.same();
-                            })
+                    .onMessage(SupervisedRouterActor.ProcessCommand.class, (context, msg) -> {
+                        if (msg.data.contains("fail")) {
+                            state.recordFailure();
+                            throw new RuntimeException("Intentional failure");
+                        }
+                        state.recordSuccess();
+                        return Behaviors.same();
+                    })
+                    .onMessage(SupervisedRouterActor.GetSuccessCount.class, (context, msg) -> {
+                        msg.reply(state.getSuccessCount());
+                        return Behaviors.same();
+                    })
+                    .onMessage(SupervisedRouterActor.GetFailureCount.class, (context, msg) -> {
+                        msg.reply(state.getFailureCount());
+                        return Behaviors.same();
+                    })
                     .build();
         }
     }
@@ -112,23 +107,20 @@ class RouterEdgeCaseTest {
     @Component
     static class HighVolumeWorkerActor implements SpringActor<HighVolumeRouterActor.Command> {
 
-        @Autowired private HighVolumeState state;
+        @Autowired
+        private HighVolumeState state;
 
         @Override
         public SpringActorBehavior<HighVolumeRouterActor.Command> create(SpringActorContext ctx) {
             return SpringActorBehavior.builder(HighVolumeRouterActor.Command.class, ctx)
-                    .onMessage(
-                            HighVolumeRouterActor.BulkMessage.class,
-                            (context, msg) -> {
-                                state.incrementProcessed();
-                                return Behaviors.same();
-                            })
-                    .onMessage(
-                            HighVolumeRouterActor.GetProcessedCount.class,
-                            (context, msg) -> {
-                                msg.reply(state.getProcessedCount());
-                                return Behaviors.same();
-                            })
+                    .onMessage(HighVolumeRouterActor.BulkMessage.class, (context, msg) -> {
+                        state.incrementProcessed();
+                        return Behaviors.same();
+                    })
+                    .onMessage(HighVolumeRouterActor.GetProcessedCount.class, (context, msg) -> {
+                        msg.reply(state.getProcessedCount());
+                        return Behaviors.same();
+                    })
                     .build();
         }
     }
@@ -197,13 +189,11 @@ class RouterEdgeCaseTest {
     }
 
     @Test
-    void routerHandlesWorkerFailuresWithSupervision(@Autowired SpringActorSystem actorSystem)
-            throws Exception {
-        SpringActorRef<SupervisedRouterActor.Command> router =
-                actorSystem
-                        .actor(SupervisedRouterActor.class)
-                        .withId("supervised-router")
-                        .spawnAndWait();
+    void routerHandlesWorkerFailuresWithSupervision(@Autowired SpringActorSystem actorSystem) throws Exception {
+        SpringActorRef<SupervisedRouterActor.Command> router = actorSystem
+                .actor(SupervisedRouterActor.class)
+                .withId("supervised-router")
+                .spawnAndWait();
 
         // Send mix of normal and failing messages
         router.tell(new SupervisedRouterActor.ProcessCommand("success-1"));
@@ -215,30 +205,26 @@ class RouterEdgeCaseTest {
         // Wait for all successful messages to be processed
         await().atMost(10, TimeUnit.SECONDS)
                 .pollInterval(100, TimeUnit.MILLISECONDS)
-                .until(
-                        () -> {
-                            Integer successCount =
-                                    router.ask(new SupervisedRouterActor.GetSuccessCount())
-                                            .withTimeout(Duration.ofSeconds(1))
-                                            .execute()
-                                            .toCompletableFuture()
-                                            .get();
-                            return successCount == 3;
-                        });
+                .until(() -> {
+                    Integer successCount = router.ask(new SupervisedRouterActor.GetSuccessCount())
+                            .withTimeout(Duration.ofSeconds(1))
+                            .execute()
+                            .toCompletableFuture()
+                            .get();
+                    return successCount == 3;
+                });
 
-        Integer successCount =
-                router.ask(new SupervisedRouterActor.GetSuccessCount())
-                        .withTimeout(Duration.ofSeconds(1))
-                        .execute()
-                        .toCompletableFuture()
-                        .get();
+        Integer successCount = router.ask(new SupervisedRouterActor.GetSuccessCount())
+                .withTimeout(Duration.ofSeconds(1))
+                .execute()
+                .toCompletableFuture()
+                .get();
 
-        Integer failureCount =
-                router.ask(new SupervisedRouterActor.GetFailureCount())
-                        .withTimeout(Duration.ofSeconds(1))
-                        .execute()
-                        .toCompletableFuture()
-                        .get();
+        Integer failureCount = router.ask(new SupervisedRouterActor.GetFailureCount())
+                .withTimeout(Duration.ofSeconds(1))
+                .execute()
+                .toCompletableFuture()
+                .get();
 
         assertThat(successCount).isEqualTo(3);
         assertThat(failureCount).isEqualTo(2);
@@ -246,11 +232,10 @@ class RouterEdgeCaseTest {
 
     @Test
     void routerHandlesHighMessageVolume(@Autowired SpringActorSystem actorSystem) throws Exception {
-        SpringActorRef<HighVolumeRouterActor.Command> router =
-                actorSystem
-                        .actor(HighVolumeRouterActor.class)
-                        .withId("high-volume-router")
-                        .spawnAndWait();
+        SpringActorRef<HighVolumeRouterActor.Command> router = actorSystem
+                .actor(HighVolumeRouterActor.class)
+                .withId("high-volume-router")
+                .spawnAndWait();
 
         // Send 1000 messages
         int messageCount = 1000;
@@ -261,46 +246,40 @@ class RouterEdgeCaseTest {
         // Wait for all messages to be processed
         await().atMost(30, TimeUnit.SECONDS)
                 .pollInterval(100, TimeUnit.MILLISECONDS)
-                .until(
-                        () -> {
-                            Integer count =
-                                    router.ask(new HighVolumeRouterActor.GetProcessedCount())
-                                            .withTimeout(Duration.ofSeconds(2))
-                                            .execute()
-                                            .toCompletableFuture()
-                                            .get();
-                            return count == 1000;
-                        });
+                .until(() -> {
+                    Integer count = router.ask(new HighVolumeRouterActor.GetProcessedCount())
+                            .withTimeout(Duration.ofSeconds(2))
+                            .execute()
+                            .toCompletableFuture()
+                            .get();
+                    return count == 1000;
+                });
 
-        Integer processedCount =
-                router.ask(new HighVolumeRouterActor.GetProcessedCount())
-                        .withTimeout(Duration.ofSeconds(1))
-                        .execute()
-                        .toCompletableFuture()
-                        .get();
+        Integer processedCount = router.ask(new HighVolumeRouterActor.GetProcessedCount())
+                .withTimeout(Duration.ofSeconds(1))
+                .execute()
+                .toCompletableFuture()
+                .get();
 
         assertThat(processedCount).isEqualTo(1000);
     }
 
     @Test
     void multipleRoutersCanCoexist(@Autowired SpringActorSystem actorSystem) throws Exception {
-        SpringActorRef<HighVolumeRouterActor.Command> router1 =
-                actorSystem
-                        .actor(HighVolumeRouterActor.class)
-                        .withId("router-1")
-                        .spawnAndWait();
+        SpringActorRef<HighVolumeRouterActor.Command> router1 = actorSystem
+                .actor(HighVolumeRouterActor.class)
+                .withId("router-1")
+                .spawnAndWait();
 
-        SpringActorRef<HighVolumeRouterActor.Command> router2 =
-                actorSystem
-                        .actor(HighVolumeRouterActor.class)
-                        .withId("router-2")
-                        .spawnAndWait();
+        SpringActorRef<HighVolumeRouterActor.Command> router2 = actorSystem
+                .actor(HighVolumeRouterActor.class)
+                .withId("router-2")
+                .spawnAndWait();
 
-        SpringActorRef<HighVolumeRouterActor.Command> router3 =
-                actorSystem
-                        .actor(HighVolumeRouterActor.class)
-                        .withId("router-3")
-                        .spawnAndWait();
+        SpringActorRef<HighVolumeRouterActor.Command> router3 = actorSystem
+                .actor(HighVolumeRouterActor.class)
+                .withId("router-3")
+                .spawnAndWait();
 
         // Send messages to all routers
         for (int i = 0; i < 10; i++) {
@@ -314,63 +293,52 @@ class RouterEdgeCaseTest {
         // so the total count accumulates across all routers
         await().atMost(10, TimeUnit.SECONDS)
                 .pollInterval(100, TimeUnit.MILLISECONDS)
-                .until(
-                        () -> {
-                            Integer count =
-                                    router1.ask(new HighVolumeRouterActor.GetProcessedCount())
-                                            .withTimeout(Duration.ofSeconds(1))
-                                            .execute()
-                                            .toCompletableFuture()
-                                            .get();
-                            return count >= 30;
-                        });
+                .until(() -> {
+                    Integer count = router1.ask(new HighVolumeRouterActor.GetProcessedCount())
+                            .withTimeout(Duration.ofSeconds(1))
+                            .execute()
+                            .toCompletableFuture()
+                            .get();
+                    return count >= 30;
+                });
 
         // Verify total messages processed across all routers
         // Since HighVolumeState is a shared singleton, all routers see the same global count
-        Integer totalCount =
-                router1.ask(new HighVolumeRouterActor.GetProcessedCount())
-                        .withTimeout(Duration.ofSeconds(1))
-                        .execute()
-                        .toCompletableFuture()
-                        .get();
+        Integer totalCount = router1.ask(new HighVolumeRouterActor.GetProcessedCount())
+                .withTimeout(Duration.ofSeconds(1))
+                .execute()
+                .toCompletableFuture()
+                .get();
 
         // All 3 routers coexist and collectively processed 30 messages (10 each)
         assertThat(totalCount).isEqualTo(30);
     }
 
     @Test
-    void routerHandlesConcurrentMessageBursts(@Autowired SpringActorSystem actorSystem)
-            throws Exception {
-        SpringActorRef<HighVolumeRouterActor.Command> router =
-                actorSystem
-                        .actor(HighVolumeRouterActor.class)
-                        .withId("burst-router")
-                        .spawnAndWait();
+    void routerHandlesConcurrentMessageBursts(@Autowired SpringActorSystem actorSystem) throws Exception {
+        SpringActorRef<HighVolumeRouterActor.Command> router = actorSystem
+                .actor(HighVolumeRouterActor.class)
+                .withId("burst-router")
+                .spawnAndWait();
 
         // Simulate concurrent bursts from multiple threads
-        CompletableFuture<Void> burst1 =
-                CompletableFuture.runAsync(
-                        () -> {
-                            for (int i = 0; i < 100; i++) {
-                                router.tell(new HighVolumeRouterActor.BulkMessage(i));
-                            }
-                        });
+        CompletableFuture<Void> burst1 = CompletableFuture.runAsync(() -> {
+            for (int i = 0; i < 100; i++) {
+                router.tell(new HighVolumeRouterActor.BulkMessage(i));
+            }
+        });
 
-        CompletableFuture<Void> burst2 =
-                CompletableFuture.runAsync(
-                        () -> {
-                            for (int i = 100; i < 200; i++) {
-                                router.tell(new HighVolumeRouterActor.BulkMessage(i));
-                            }
-                        });
+        CompletableFuture<Void> burst2 = CompletableFuture.runAsync(() -> {
+            for (int i = 100; i < 200; i++) {
+                router.tell(new HighVolumeRouterActor.BulkMessage(i));
+            }
+        });
 
-        CompletableFuture<Void> burst3 =
-                CompletableFuture.runAsync(
-                        () -> {
-                            for (int i = 200; i < 300; i++) {
-                                router.tell(new HighVolumeRouterActor.BulkMessage(i));
-                            }
-                        });
+        CompletableFuture<Void> burst3 = CompletableFuture.runAsync(() -> {
+            for (int i = 200; i < 300; i++) {
+                router.tell(new HighVolumeRouterActor.BulkMessage(i));
+            }
+        });
 
         // Wait for all bursts to complete sending
         CompletableFuture.allOf(burst1, burst2, burst3).get(10, TimeUnit.SECONDS);
@@ -378,23 +346,20 @@ class RouterEdgeCaseTest {
         // Wait for all 300 messages to be processed
         await().atMost(15, TimeUnit.SECONDS)
                 .pollInterval(100, TimeUnit.MILLISECONDS)
-                .until(
-                        () -> {
-                            Integer count =
-                                    router.ask(new HighVolumeRouterActor.GetProcessedCount())
-                                            .withTimeout(Duration.ofSeconds(2))
-                                            .execute()
-                                            .toCompletableFuture()
-                                            .get();
-                            return count == 300;
-                        });
+                .until(() -> {
+                    Integer count = router.ask(new HighVolumeRouterActor.GetProcessedCount())
+                            .withTimeout(Duration.ofSeconds(2))
+                            .execute()
+                            .toCompletableFuture()
+                            .get();
+                    return count == 300;
+                });
 
-        Integer processedCount =
-                router.ask(new HighVolumeRouterActor.GetProcessedCount())
-                        .withTimeout(Duration.ofSeconds(1))
-                        .execute()
-                        .toCompletableFuture()
-                        .get();
+        Integer processedCount = router.ask(new HighVolumeRouterActor.GetProcessedCount())
+                .withTimeout(Duration.ofSeconds(1))
+                .execute()
+                .toCompletableFuture()
+                .get();
 
         assertThat(processedCount).isEqualTo(300);
     }

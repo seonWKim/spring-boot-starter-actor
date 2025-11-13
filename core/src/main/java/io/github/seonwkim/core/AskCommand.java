@@ -68,7 +68,7 @@ public abstract class AskCommand<RES> {
      * {@code
      * private Behavior<Command> onGetUserName(GetUserName msg) {
      *     String name = userRepository.findById(msg.getUserId()).getName();
-     *     msg.tell(name);  // Safe - handles null checking
+     *     msg.reply(name);  // Safe - handles null checking
      *     return Behaviors.same();
      * }
      * }
@@ -80,8 +80,22 @@ public abstract class AskCommand<RES> {
     public final void reply(RES response) {
         if (replyTo == null) {
             throw new IllegalStateException("Cannot send reply: replyTo has not been set. "
-                    + "This command may not have been sent through the ask() method.");
+                    + "This command was not sent through the ask() method. "
+                    + "Ensure you're using SpringActorRef.ask() or a similar ask pattern, "
+                    + "not tell() which doesn't expect a response. "
+                    + "Command type: "
+                    + this.getClass().getName());
         }
         replyTo.tell(response);
+    }
+
+    /**
+     * Checks if this command has a reply-to reference set.
+     * This can be useful for commands that can be used in both ask and tell patterns.
+     *
+     * @return true if replyTo is set, false otherwise
+     */
+    public final boolean hasReplyTo() {
+        return replyTo != null;
     }
 }

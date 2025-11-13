@@ -7,11 +7,10 @@ import io.github.seonwkim.core.behavior.ClusterEventBehavior.ClusterDomainWrappe
 import io.github.seonwkim.core.fixture.SimpleShardedActorWithoutWithState;
 import io.github.seonwkim.core.fixture.TestShardedActor;
 import io.github.seonwkim.core.fixture.TestShardedActor.GetState;
+import io.github.seonwkim.core.shard.SpringShardedActorRef;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
-
-import io.github.seonwkim.core.shard.SpringShardedActorRef;
 import org.apache.pekko.cluster.ClusterEvent.MemberLeft;
 import org.apache.pekko.cluster.ClusterEvent.MemberUp;
 import org.junit.jupiter.api.Test;

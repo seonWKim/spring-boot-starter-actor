@@ -188,13 +188,12 @@ public class DefaultSpringActorSystemBuilder implements SpringActorSystemBuilder
      * @param <T> The type of messages that the actor can handle
      */
     private <T> void initShardedActor(ClusterSharding sharding, SpringShardedActor<T> actor) {
-        Entity<T, ShardEnvelope<T>> entity = Entity.of(
-                        actor.typeKey(), entityCtx -> {
-                            // Create the sharded actor context by calling the factory method
-                            var shardedActorContext = actor.createContext(entityCtx);
-                            // Create the behavior using the sharded actor context
-                            return actor.create(shardedActorContext).asBehavior();
-                        })
+        Entity<T, ShardEnvelope<T>> entity = Entity.of(actor.typeKey(), entityCtx -> {
+                    // Create the sharded actor context by calling the factory method
+                    var shardedActorContext = actor.createContext(entityCtx);
+                    // Create the behavior using the sharded actor context
+                    return actor.create(shardedActorContext).asBehavior();
+                })
                 .withMessageExtractor(actor.extractor());
         sharding.init(entity);
     }
