@@ -5,6 +5,7 @@ import io.github.seonwkim.core.EnableActorSupport;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
  * Main application class for the chat example. This class serves as the entry point for the Spring
@@ -12,6 +13,7 @@ import org.springframework.context.annotation.Bean;
  */
 @SpringBootApplication
 @EnableActorSupport
+@EnableScheduling
 public class SpringPekkoApplication {
 
     /**
