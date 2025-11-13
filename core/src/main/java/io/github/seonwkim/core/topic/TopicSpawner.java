@@ -64,7 +64,7 @@ public final class TopicSpawner {
     @SuppressWarnings("unchecked")
     public static <M> SpringTopicRef<M> getTopic(ActorContext<?> ctx, String topicName) {
         return ctx.getChild(topicName)
-            .<SpringTopicRef<M>>map(ref -> {
+            .map(ref -> {
                 ActorRef<Topic.Command<M>> typedRef = (ActorRef<Topic.Command<M>>) (Object) ref;
                 return new SpringTopicRef<>(typedRef, topicName);
             })

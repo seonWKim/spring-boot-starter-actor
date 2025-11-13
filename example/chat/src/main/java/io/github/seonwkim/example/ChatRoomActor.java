@@ -53,13 +53,17 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
         }
     }
 
-    /** Command to leave a chat room. */
+    /** Command to leave a chat room. Provides actor ref for unsubscription. */
     public static class LeaveRoom implements Command {
         public final String userId;
+        public final org.apache.pekko.actor.typed.ActorRef<UserActor.Command> userActorRef;
 
         @JsonCreator
-        public LeaveRoom(@JsonProperty("userId") String userId) {
+        public LeaveRoom(
+                @JsonProperty("userId") String userId,
+                @JsonProperty("userActorRef") org.apache.pekko.actor.typed.ActorRef<UserActor.Command> userActorRef) {
             this.userId = userId;
+            this.userActorRef = userActorRef;
         }
     }
 
@@ -100,7 +104,6 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
         private final SpringBehaviorContext<Command> ctx;
         private final String roomId;
         private final SpringTopicRef<UserActor.Command> roomTopic;
-        private final java.util.Map<String, SpringActorRef<UserActor.Command>> connectedUsers = new java.util.HashMap<>();
 
         ChatRoomBehavior(SpringBehaviorContext<Command> ctx, String roomId) {
             this.ctx = ctx;
@@ -122,14 +125,10 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
             SpringActorRef<UserActor.Command> springUserRef =
                 new SpringActorRef<>(ctx.getUnderlying().getSystem().scheduler(), msg.userActorRef);
 
-            // Track the user ref for unsubscription
-            connectedUsers.put(msg.userId, springUserRef);
-
             // Subscribe the user to the room topic
             roomTopic.subscribe(springUserRef);
 
-            ctx.getLog().info("User {} joined room {} (now {} users)",
-                msg.userId, roomId, connectedUsers.size());
+            ctx.getLog().info("User {} joined room {}", msg.userId, roomId);
 
             // Notify all users that a new user has joined
             UserActor.JoinRoomEvent joinRoomEvent = new UserActor.JoinRoomEvent(msg.userId);
@@ -145,20 +144,18 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
          * @return The next behavior (same in this case)
          */
         private Behavior<Command> onLeaveRoom(LeaveRoom msg) {
-            // Remove the user and get their ref for unsubscription
-            SpringActorRef<UserActor.Command> userRef = connectedUsers.remove(msg.userId);
+            // Wrap the Pekko ActorRef in SpringActorRef for unsubscription
+            SpringActorRef<UserActor.Command> springUserRef =
+                new SpringActorRef<>(ctx.getUnderlying().getSystem().scheduler(), msg.userActorRef);
 
-            if (userRef != null) {
-                // Unsubscribe the user from the topic
-                roomTopic.unsubscribe(userRef);
+            // Unsubscribe the user from the topic
+            roomTopic.unsubscribe(springUserRef);
 
-                ctx.getLog().info("User {} left room {} ({} users remaining)",
-                    msg.userId, roomId, connectedUsers.size());
+            ctx.getLog().info("User {} left room {}", msg.userId, roomId);
 
-                // Notify all remaining users that a user has left
-                UserActor.LeaveRoomEvent leaveRoomEvent = new UserActor.LeaveRoomEvent(msg.userId);
-                roomTopic.publish(leaveRoomEvent);
-            }
+            // Notify all remaining users that a user has left
+            UserActor.LeaveRoomEvent leaveRoomEvent = new UserActor.LeaveRoomEvent(msg.userId);
+            roomTopic.publish(leaveRoomEvent);
 
             return Behaviors.same();
         }

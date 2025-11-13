@@ -173,7 +173,7 @@ public class UserActor implements SpringActorWithContext<UserActor.Command, User
             });
 
             final var roomActor = getRoomActor();
-            roomActor.tell(new ChatRoomActor.LeaveRoom(userId));
+            roomActor.tell(new ChatRoomActor.LeaveRoom(userId, context.getUnderlying().getSelf()));
 
             return Behaviors.same();
         }
