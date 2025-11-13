@@ -47,7 +47,8 @@ import org.springframework.test.context.TestPropertySource;
         })
 class SpringReceptionistServiceTest {
 
-    @Autowired private SpringActorSystem actorSystem;
+    @Autowired
+    private SpringActorSystem actorSystem;
 
     @SpringBootApplication
     @io.github.seonwkim.core.EnableActorSupport
@@ -136,7 +137,8 @@ class SpringReceptionistServiceTest {
                 assertThat(workers).hasSize(1);
 
                 // Verify the worker can do work
-                SpringActorRef<WorkerActor.Command> foundWorker = workers.iterator().next();
+                SpringActorRef<WorkerActor.Command> foundWorker =
+                        workers.iterator().next();
                 String result = foundWorker
                         .ask(new WorkerActor.DoWork("task-1"))
                         .withTimeout(Duration.ofSeconds(5))
@@ -203,8 +205,7 @@ class SpringReceptionistServiceTest {
         @Test
         void testDeregisterRemovesActor() throws Exception {
             // Arrange
-            ServiceKey<WorkerActor.Command> workerKey =
-                    ServiceKey.create(WorkerActor.Command.class, "test-deregister");
+            ServiceKey<WorkerActor.Command> workerKey = ServiceKey.create(WorkerActor.Command.class, "test-deregister");
             SpringReceptionistService receptionist = actorSystem.receptionist();
 
             SpringActorRef<WorkerActor.Command> worker = actorSystem
@@ -237,8 +238,7 @@ class SpringReceptionistServiceTest {
         @Test
         void testActorAutomaticallyDeregisteredWhenStopped() throws Exception {
             // Arrange
-            ServiceKey<WorkerActor.Command> workerKey =
-                    ServiceKey.create(WorkerActor.Command.class, "test-auto-dereg");
+            ServiceKey<WorkerActor.Command> workerKey = ServiceKey.create(WorkerActor.Command.class, "test-auto-dereg");
             SpringReceptionistService receptionist = actorSystem.receptionist();
 
             SpringActorRef<WorkerActor.Command> worker = actorSystem
@@ -342,8 +342,7 @@ class SpringReceptionistServiceTest {
                 assertThat(receivedListings.size()).isGreaterThan(initialSize);
 
                 // Find the listing with one actor
-                boolean foundNonEmptyListing = receivedListings.stream()
-                        .anyMatch(listing -> listing.size() == 1);
+                boolean foundNonEmptyListing = receivedListings.stream().anyMatch(listing -> listing.size() == 1);
                 assertThat(foundNonEmptyListing).isTrue();
             });
         }
@@ -392,8 +391,7 @@ class SpringReceptionistServiceTest {
                 assertThat(receivedListings.size()).isGreaterThan(initialSize);
 
                 // Find the empty listing
-                boolean foundEmptyListing =
-                        receivedListings.stream().anyMatch(listing -> listing.isEmpty());
+                boolean foundEmptyListing = receivedListings.stream().anyMatch(listing -> listing.isEmpty());
                 assertThat(foundEmptyListing).isTrue();
             });
         }
@@ -431,8 +429,7 @@ class SpringReceptionistServiceTest {
             Listing<WorkerActor.Command> listing =
                     receptionist.find(workerKey).toCompletableFuture().get(5, TimeUnit.SECONDS);
 
-            List<SpringActorRef<WorkerActor.Command>> workers =
-                    new ArrayList<>(listing.getServiceInstances());
+            List<SpringActorRef<WorkerActor.Command>> workers = new ArrayList<>(listing.getServiceInstances());
             List<CompletionStage<String>> results = new ArrayList<>();
 
             // Simple round-robin distribution
@@ -458,12 +455,9 @@ class SpringReceptionistServiceTest {
         @Test
         void testServiceKeyEquality() {
             // Arrange
-            ServiceKey<WorkerActor.Command> key1 =
-                    ServiceKey.create(WorkerActor.Command.class, "test-key");
-            ServiceKey<WorkerActor.Command> key2 =
-                    ServiceKey.create(WorkerActor.Command.class, "test-key");
-            ServiceKey<WorkerActor.Command> key3 =
-                    ServiceKey.create(WorkerActor.Command.class, "different-key");
+            ServiceKey<WorkerActor.Command> key1 = ServiceKey.create(WorkerActor.Command.class, "test-key");
+            ServiceKey<WorkerActor.Command> key2 = ServiceKey.create(WorkerActor.Command.class, "test-key");
+            ServiceKey<WorkerActor.Command> key3 = ServiceKey.create(WorkerActor.Command.class, "different-key");
 
             // Assert
             assertThat(key1).isEqualTo(key2);
@@ -474,8 +468,7 @@ class SpringReceptionistServiceTest {
         @Test
         void testServiceKeyGetId() {
             // Arrange
-            ServiceKey<WorkerActor.Command> key =
-                    ServiceKey.create(WorkerActor.Command.class, "my-service");
+            ServiceKey<WorkerActor.Command> key = ServiceKey.create(WorkerActor.Command.class, "my-service");
 
             // Assert
             assertThat(key.getId()).isEqualTo("my-service");

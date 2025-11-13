@@ -89,10 +89,7 @@ public class SpringReceptionistService {
      */
     public <T> void register(ServiceKey<T> serviceKey, SpringActorRef<T> actorRef) {
         ActorRef<T> underlyingRef = actorRef.getUnderlying();
-        actorSystem
-                .getRaw()
-                .receptionist()
-                .tell(Receptionist.register(serviceKey.getUnderlying(), underlyingRef));
+        actorSystem.getRaw().receptionist().tell(Receptionist.register(serviceKey.getUnderlying(), underlyingRef));
     }
 
     /**
@@ -108,8 +105,7 @@ public class SpringReceptionistService {
     public <T> CompletionStage<Listing<T>> find(ServiceKey<T> serviceKey) {
         CompletionStage<Receptionist.Listing> pekkoListing = AskPattern.ask(
                 actorSystem.getRaw().receptionist(),
-                (ActorRef<Receptionist.Listing> replyTo) ->
-                        Receptionist.find(serviceKey.getUnderlying(), replyTo),
+                (ActorRef<Receptionist.Listing> replyTo) -> Receptionist.find(serviceKey.getUnderlying(), replyTo),
                 defaultTimeout,
                 actorSystem.getRaw().scheduler());
 
@@ -152,14 +148,10 @@ public class SpringReceptionistService {
                                             return org.apache.pekko.actor.typed.javadsl.Behaviors.same();
                                         }))
                                 .narrow(),
-                        "receptionist-subscriber-" + serviceKey.getId() + "-"
-                                + System.currentTimeMillis(),
+                        "receptionist-subscriber-" + serviceKey.getId() + "-" + System.currentTimeMillis(),
                         org.apache.pekko.actor.typed.Props.empty());
 
-        actorSystem
-                .getRaw()
-                .receptionist()
-                .tell(Receptionist.subscribe(serviceKey.getUnderlying(), adapter));
+        actorSystem.getRaw().receptionist().tell(Receptionist.subscribe(serviceKey.getUnderlying(), adapter));
     }
 
     /**
@@ -186,8 +178,7 @@ public class SpringReceptionistService {
                                             return org.apache.pekko.actor.typed.javadsl.Behaviors.same();
                                         }))
                                 .narrow(),
-                        "receptionist-callback-" + serviceKey.getId() + "-"
-                                + System.currentTimeMillis(),
+                        "receptionist-callback-" + serviceKey.getId() + "-" + System.currentTimeMillis(),
                         org.apache.pekko.actor.typed.Props.empty());
 
         subscribe(serviceKey, subscriber);
@@ -205,9 +196,6 @@ public class SpringReceptionistService {
      */
     public <T> void deregister(ServiceKey<T> serviceKey, SpringActorRef<T> actorRef) {
         ActorRef<T> underlyingRef = actorRef.getUnderlying();
-        actorSystem
-                .getRaw()
-                .receptionist()
-                .tell(Receptionist.deregister(serviceKey.getUnderlying(), underlyingRef));
+        actorSystem.getRaw().receptionist().tell(Receptionist.deregister(serviceKey.getUnderlying(), underlyingRef));
     }
 }

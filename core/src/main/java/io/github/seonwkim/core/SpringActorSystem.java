@@ -419,8 +419,8 @@ public class SpringActorSystem implements DisposableBean {
      */
     public io.github.seonwkim.core.receptionist.SpringReceptionistService receptionist() {
         if (receptionistService == null) {
-            receptionistService = new io.github.seonwkim.core.receptionist.SpringReceptionistService(
-                    this, defaultQueryTimeout);
+            receptionistService =
+                    new io.github.seonwkim.core.receptionist.SpringReceptionistService(this, defaultQueryTimeout);
         }
         return receptionistService;
     }
