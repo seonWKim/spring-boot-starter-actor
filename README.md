@@ -445,18 +445,12 @@ Run a distributed chat application across multiple nodes:
 # Start 3-node cluster on ports 8080, 8081, 8082
 $ sh cluster-start.sh chat io.github.seonwkim.example.SpringPekkoApplication 8080 2551 3
 
+# run frontend 
+$ cd example/chat/frontend
+$ npm run dev 
+
 # Stop cluster
 $ sh cluster-stop.sh
-```
-
-**Or use Docker:**
-```bash
-cd example/chat
-sh init-local-docker.sh
-
-# Access at http://localhost:8080, 8081, 8082
-# View logs: docker-compose logs -f chat-app-0
-# Stop: docker-compose down
 ```
 
 ## Monitoring
