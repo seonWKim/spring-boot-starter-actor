@@ -246,7 +246,10 @@ public class SpringChildActorBuilder<P, C> {
     public CompletionStage<SpringActorRef<C>> spawn() {
         if (childContext == null) {
             if (childId == null) {
-                throw new IllegalStateException("Either childId or childContext must be set");
+                throw new IllegalStateException("Either childId or childContext must be set before spawning. "
+                        + "Call withId(\"your-child-id\") or withContext(context) on the builder. "
+                        + "Child actor class: "
+                        + childActorClass.getName());
             }
             childContext = new DefaultSpringActorContext(childId);
         }
@@ -275,7 +278,12 @@ public class SpringChildActorBuilder<P, C> {
                             && response.childRef != null) {
                         return new SpringActorRef<>(scheduler, response.childRef, defaultTimeout);
                     } else {
-                        throw new RuntimeException("Failed to spawn child: " + response.message);
+                        throw new RuntimeException("Failed to spawn child actor "
+                                + childActorClass.getName()
+                                + " with id '"
+                                + childId
+                                + "': "
+                                + response.message);
                     }
                 });
     }

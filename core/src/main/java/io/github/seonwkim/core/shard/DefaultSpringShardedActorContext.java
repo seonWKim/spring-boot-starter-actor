@@ -7,7 +7,7 @@ import org.apache.pekko.cluster.sharding.typed.javadsl.EntityContext;
  *
  * <p>This class provides a simple wrapper around Pekko's {@link EntityContext} without adding
  * any additional functionality.
-
+ *
  * @param <T> The type of messages that the sharded actor can handle
  * @see SpringShardedActorContext
  */

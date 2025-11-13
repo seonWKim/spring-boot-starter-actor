@@ -6,12 +6,11 @@ import io.github.seonwkim.core.impl.DefaultSpringActorContext;
 import io.github.seonwkim.core.pubsub.SpringTopicBuilder;
 import io.github.seonwkim.core.shard.ShardedActorRegistry;
 import io.github.seonwkim.core.shard.SpringShardedActor;
+import io.github.seonwkim.core.shard.SpringShardedActorBuilder;
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import javax.annotation.Nullable;
-
-import io.github.seonwkim.core.shard.SpringShardedActorBuilder;
 import org.apache.pekko.actor.typed.*;
 import org.apache.pekko.actor.typed.javadsl.AskPattern;
 import org.apache.pekko.cluster.ClusterEvent;
@@ -408,6 +407,24 @@ public class SpringActorSystem implements DisposableBean {
      */
     public <M> SpringTopicBuilder<M> topic(Class<M> messageType) {
         return new SpringTopicBuilder<>(actorSystem, messageType);
+    }
+
+    /**
+     * Returns the name of this actor system.
+     *
+     * @return The actor system name
+     */
+    public String getName() {
+        return actorSystem.name();
+    }
+
+    /**
+     * Checks if the actor system is running in cluster mode.
+     *
+     * @return true if cluster mode is enabled, false otherwise
+     */
+    public boolean isClusterMode() {
+        return cluster != null;
     }
 
     /**

@@ -13,7 +13,7 @@ import org.apache.pekko.actor.typed.Scheduler;
 public class SpringActorRefBuilder<T> {
     private final Scheduler scheduler;
     private final ActorRef<T> actorRef;
-    private Duration timeout = Duration.ofSeconds(SpringActorRef.DEFAULT_TIMEOUT_SECONDS);
+    private Duration timeout = ActorConstants.DEFAULT_TIMEOUT;
 
     /**
      * Creates a new builder with the required parameters.

@@ -7,7 +7,6 @@ import io.github.seonwkim.core.shard.SpringShardedActorRef;
 import io.github.seonwkim.core.serialization.JsonSerializable;
 import javax.annotation.Nullable;
 import org.apache.pekko.actor.typed.Behavior;
-import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Sinks;
@@ -125,7 +124,7 @@ public class UserActor implements SpringActorWithContext<UserActor.Command, User
     }
 
     public static class UserActorBehavior {
-        private final SpringBehaviorContext<UserActor.Command> context;
+        private final SpringBehaviorContext<Command> context;
         private final SpringActorSystem actorSystem;
 
         private final String userId;

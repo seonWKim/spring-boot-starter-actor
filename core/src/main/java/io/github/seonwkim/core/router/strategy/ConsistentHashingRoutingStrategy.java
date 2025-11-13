@@ -57,8 +57,7 @@ public final class ConsistentHashingRoutingStrategy implements RoutingStrategy {
      */
     public ConsistentHashingRoutingStrategy(int virtualNodesFactor) {
         if (virtualNodesFactor < 1) {
-            throw new IllegalArgumentException(
-                    "virtualNodesFactor must be >= 1, got: " + virtualNodesFactor);
+            throw new IllegalArgumentException("virtualNodesFactor must be >= 1, got: " + virtualNodesFactor);
         }
         this.virtualNodesFactor = virtualNodesFactor;
     }
@@ -82,8 +81,7 @@ public final class ConsistentHashingRoutingStrategy implements RoutingStrategy {
             String key = ((ConsistentHashable) message).getConsistentHashKey();
             if (key == null) {
                 throw new IllegalStateException(
-                        "ConsistentHashable.getConsistentHashKey() returned null for message: "
-                                + message);
+                        "ConsistentHashable.getConsistentHashKey() returned null for message: " + message);
             }
             return key;
         }
