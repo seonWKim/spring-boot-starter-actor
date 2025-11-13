@@ -151,6 +151,22 @@ public class SpringActorSpawnBuilder<A extends SpringActorWithContext<C, ?>, C> 
     }
 
     /**
+     * Configures the actor to use a virtual thread dispatcher (Java 21+ required).
+     * Virtual threads are lightweight and ideal for actors performing blocking I/O operations.
+     * This dispatcher automatically uses Java 21+ virtual threads for actor execution.
+     *
+     * <p>Note: This method will throw an {@link UnsupportedOperationException} if called
+     * on Java versions earlier than 21.
+     *
+     * @return This builder
+     * @throws UnsupportedOperationException if Java version is less than 21
+     */
+    public SpringActorSpawnBuilder<A, C> withVirtualThreadDispatcher() {
+        this.dispatcherConfig = DispatcherConfig.virtualThreads();
+        return this;
+    }
+
+    /**
      * Configures the actor to use the default dispatcher.
      * This is the default behavior if no dispatcher is specified.
      *

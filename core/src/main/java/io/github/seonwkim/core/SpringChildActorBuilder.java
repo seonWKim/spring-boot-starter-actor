@@ -179,6 +179,32 @@ public class SpringChildActorBuilder<P, C> {
     }
 
     /**
+     * Configures the child actor to use the blocking dispatcher.
+     * This should be used for actors that perform blocking I/O operations.
+     *
+     * @return This builder for method chaining
+     */
+    public SpringChildActorBuilder<P, C> withBlockingDispatcher() {
+        this.dispatcherConfig = DispatcherConfig.blocking();
+        return this;
+    }
+
+    /**
+     * Configures the child actor to use a virtual thread dispatcher (Java 21+ required).
+     * Virtual threads are lightweight and ideal for actors performing blocking I/O operations.
+     *
+     * <p>Note: This method will throw an {@link UnsupportedOperationException} if called
+     * on Java versions earlier than 21.
+     *
+     * @return This builder for method chaining
+     * @throws UnsupportedOperationException if Java version is less than 21
+     */
+    public SpringChildActorBuilder<P, C> withVirtualThreadDispatcher() {
+        this.dispatcherConfig = DispatcherConfig.virtualThreads();
+        return this;
+    }
+
+    /**
      * Sets the tags configuration for this child actor. Tags are used for logging and categorization,
      * appearing in the MDC pekkoTags attribute.
      *
