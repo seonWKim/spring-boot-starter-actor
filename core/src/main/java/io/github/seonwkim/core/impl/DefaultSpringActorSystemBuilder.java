@@ -107,7 +107,7 @@ public class DefaultSpringActorSystemBuilder implements SpringActorSystemBuilder
                     "RootGuardianSupplierWrapper is not set. Call withRootGuardianSupplier() before build().");
         }
 
-        final Config config = ConfigFactory.parseMap(ConfigValueFactory.fromMap(applyDefaultSerializers(configMap)))
+        final Config config = ConfigFactory.parseMap(ConfigValueFactory.fromMap(applyDefaultConfiguration(configMap)))
                 .withFallback(ConfigFactory.load());
         final String name = config.hasPath("pekko.name") ? config.getString("pekko.name") : DEFAULT_SYSTEM_NAME;
 
@@ -139,13 +139,25 @@ public class DefaultSpringActorSystemBuilder implements SpringActorSystemBuilder
     }
 
     /**
-     * Applies default serializers to the configuration map. This method adds Jackson JSON and CBOR
-     * serializers to the configuration if they are not already present. It also adds default
-     * serialization bindings for JsonSerializable and CborSerializable interfaces. Additionally,
-     * it configures the virtual thread dispatcher if virtual threads are available.
+     * Applies default configuration to the configuration map. This method adds default serializers
+     * and other framework-level configurations such as the virtual thread dispatcher.
      *
      * @param configMap The original configuration map
-     * @return A new configuration map with default serializers and virtual thread dispatcher applied
+     * @return A new configuration map with default configuration applied
+     */
+    private Map<String, Object> applyDefaultConfiguration(Map<String, Object> configMap) {
+        Map<String, Object> result = applyDefaultSerializers(configMap);
+        result = applyVirtualThreadDispatcherConfig(result);
+        return result;
+    }
+
+    /**
+     * Applies default serializers to the configuration map. This method adds Jackson JSON and CBOR
+     * serializers to the configuration if they are not already present. It also adds default
+     * serialization bindings for JsonSerializable and CborSerializable interfaces.
+     *
+     * @param configMap The original configuration map
+     * @return A new configuration map with default serializers applied
      */
     @SuppressWarnings("unchecked")
     private Map<String, Object> applyDefaultSerializers(Map<String, Object> configMap) {
@@ -177,6 +189,18 @@ public class DefaultSpringActorSystemBuilder implements SpringActorSystemBuilder
         // Merge without overwriting existing entries
         defaultSerializers.forEach(serializers::putIfAbsent);
         defaultBindings.forEach(bindings::putIfAbsent);
+
+        return result;
+    }
+
+    /**
+     * Applies virtual thread dispatcher configuration if virtual threads are available.
+     *
+     * @param configMap The configuration map
+     * @return The configuration map with virtual thread dispatcher config applied if available
+     */
+    private Map<String, Object> applyVirtualThreadDispatcherConfig(Map<String, Object> configMap) {
+        final Map<String, Object> result = new HashMap<>(configMap);
 
         // Apply virtual thread dispatcher configuration if available
         Map<String, Object> virtualThreadConfig = DispatcherConfig.getVirtualThreadDispatcherConfig();
