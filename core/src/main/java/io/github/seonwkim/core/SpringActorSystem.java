@@ -3,7 +3,6 @@ package io.github.seonwkim.core;
 import io.github.seonwkim.core.RootGuardian.Spawned;
 import io.github.seonwkim.core.behavior.ClusterEventBehavior;
 import io.github.seonwkim.core.impl.DefaultSpringActorContext;
-import io.github.seonwkim.core.topic.SpringTopicBuilder;
 import io.github.seonwkim.core.shard.ShardedActorRegistry;
 import io.github.seonwkim.core.shard.SpringShardedActor;
 import io.github.seonwkim.core.shard.SpringShardedActorBuilder;
@@ -372,41 +371,6 @@ public class SpringActorSystem implements DisposableBean {
             throw new IllegalStateException("Cluster sharding not configured. Sharded actors require cluster mode.");
         }
         return new SpringShardedActorBuilder<>(this, actorClass);
-    }
-
-    /**
-     * Creates a fluent builder for creating system-wide pub/sub topics.
-     *
-     * <p>Topics created at the system level are managed by the RootGuardian actor,
-     * making them system-wide and not tied to any particular actor's lifecycle.
-     * This is useful for application-wide event buses, metrics collection, audit logs, etc.
-     *
-     * <p>Example usage:
-     * <pre>
-     * {@code
-     * // Create system-wide event topic
-     * SpringTopicRef<SystemEvent> eventBus = actorSystem
-     *     .topic(SystemEvent.class)
-     *     .withName("system-events")
-     *     .getOrCreate();
-     *
-     * // Publish to the topic
-     * eventBus.publish(new SystemEvent("Application started"));
-     *
-     * // Subscribe an actor
-     * eventBus.subscribe(monitoringActor);
-     * }
-     * </pre>
-     *
-     * <p>For actor-owned topics that are tied to a specific actor's lifecycle,
-     * use {@link io.github.seonwkim.core.SpringBehaviorContext#createTopic(Class, String)} instead.
-     *
-     * @param messageType The type of messages this topic will handle
-     * @param <M> The message type
-     * @return A builder for configuring and creating the topic
-     */
-    public <M> SpringTopicBuilder<M> topic(Class<M> messageType) {
-        return new SpringTopicBuilder<>(actorSystem, messageType);
     }
 
     /**

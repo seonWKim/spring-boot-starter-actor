@@ -12,6 +12,7 @@ Pub/sub topics enable one-to-many message distribution without maintaining subsc
 - At-most-once delivery (fire-and-forget)
 - Automatic cleanup when subscribers terminate
 - Type-safe with compile-time guarantees
+- Spring DI integration via `SpringTopicManager`
 
 **Use topics for:**
 
@@ -27,44 +28,22 @@ Pub/sub topics enable one-to-many message distribution without maintaining subsc
 
 ## Creating Topics
 
-### From Actor Context
+Topics are managed through the `SpringTopicManager` service, which provides a fluent API for creating bounded and unbounded topics.
 
-Create topics owned by an actor:
+### Unbounded Topics
 
-```java
-@Component
-public class ChatRoomActor implements SpringShardedActor<Command> {
-
-    private static class ChatRoomBehavior {
-        private final SpringBehaviorContext<Command> ctx;
-        private final SpringTopicRef<ChatMessage> roomTopic;
-
-        ChatRoomBehavior(SpringBehaviorContext<Command> ctx, String roomId) {
-            this.ctx = ctx;
-            // Create topic - stopped when this actor stops
-            this.roomTopic = ctx.createTopic(ChatMessage.class, "chat-room-" + roomId);
-        }
-    }
-}
-```
-
-Use `getOrCreateTopic()` for idempotent creation:
-
-```java
-SpringTopicRef<MyMessage> topic = ctx.getOrCreateTopic(MyMessage.class, "my-topic");
-```
-
-### From Actor System
-
-Create topics that persist for the ActorSystem lifetime:
+Unbounded topics persist for the entire application lifecycle:
 
 ```java
 @Service
 public class EventBusService {
+    private final SpringTopicManager topicManager;
     private final SpringTopicRef<SystemEvent> eventBus;
 
-    public EventBusService(SpringActorSystem actorSystem) {
-        this.eventBus = actorSystem
+    public EventBusService(SpringTopicManager topicManager) {
+        this.topicManager = topicManager;
+        // Create unbounded topic - persists for app lifetime
+        this.eventBus = topicManager
                 .topic(SystemEvent.class)
                 .withName("system-events")
                 .create();
@@ -76,24 +55,105 @@ public class EventBusService {
 }
 ```
 
-## Topic Identity and Lifecycle
+### Bounded Topics
 
-**Topics are identified by name and message type only**, not by creation location:
+Bounded topics are tied to an actor's lifecycle and automatically stop when the owning actor stops:
 
 ```java
-// In Actor A
-SpringTopicRef<ChatMessage> topic1 = ctx.createTopic(ChatMessage.class, "chat");
+@Component
+public class ChatRoomActor implements SpringActorWithContext<Command, Context> {
 
-// In Actor B
-SpringTopicRef<ChatMessage> topic2 = ctx.createTopic(ChatMessage.class, "chat");
+    private static class ChatRoomBehavior {
+        private final SpringTopicRef<ChatMessage> roomTopic;
 
-// topic1 and topic2 are THE SAME topic!
+        ChatRoomBehavior(
+                SpringBehaviorContext<Command> ctx,
+                SpringTopicManager topicManager,
+                String roomId) {
+            // Create bounded topic - stopped when this actor stops
+            this.roomTopic = topicManager
+                    .topic(ChatMessage.class)
+                    .withName("chat-room-" + roomId)
+                    .ownedBy(ctx)
+                    .create();
+        }
+    }
+
+    @Override
+    public SpringActorBehavior<Command> create(Context context) {
+        // Inject SpringTopicManager via WithContext pattern
+        SpringTopicManager topicManager = context.getBean(SpringTopicManager.class);
+
+        return SpringActorBehavior.builder(Command.class, context)
+                .withState(ctx -> new ChatRoomBehavior(ctx, topicManager, context.getRoomId()))
+                .onMessage(SendMessage.class, ChatRoomBehavior::onSendMessage)
+                .build();
+    }
+}
 ```
 
-**Lifecycle depends on creation:**
+### Using WithContext for DI
 
-- **Actor-owned** (`ctx.createTopic()`): Stops when owning actor stops
-- **System-level** (`actorSystem.topic().create()`): Persists for ActorSystem lifetime
+The `WithContext` pattern allows actors to access Spring beans like `SpringTopicManager`:
+
+```java
+@Component
+public class NotificationActor
+        implements SpringActorWithContext<Command, NotificationActor.Context> {
+
+    public static class Context extends SpringActorContext {
+        private final String actorId;
+
+        public Context(String actorId) {
+            this.actorId = actorId;
+        }
+
+        @Override
+        public String actorId() {
+            return actorId;
+        }
+    }
+
+    @Override
+    public SpringActorBehavior<Command> create(Context context) {
+        SpringTopicManager topicManager = context.getBean(SpringTopicManager.class);
+
+        return SpringActorBehavior.builder(Command.class, context)
+                .withState(ctx -> {
+                    SpringTopicRef<Notification> topic = topicManager
+                            .topic(Notification.class)
+                            .withName("notifications")
+                            .ownedBy(ctx)
+                            .create();
+                    return new NotificationBehavior(ctx, topic);
+                })
+                .build();
+    }
+}
+```
+
+### Advanced: Using TopicSpawner
+
+For cases where DI is not available (e.g., sharded actors), use `TopicSpawner` directly:
+
+```java
+@Component
+public class ChatRoomActor implements SpringShardedActor<Command> {
+
+    private static class ChatRoomBehavior {
+        private final SpringTopicRef<UserCommand> roomTopic;
+
+        ChatRoomBehavior(SpringBehaviorContext<Command> ctx, String roomId) {
+            // Use TopicSpawner directly for sharded actors
+            this.roomTopic = TopicSpawner.createTopic(
+                ctx.getUnderlying(),
+                UserCommand.class,
+                "chat-room-" + roomId
+            );
+        }
+    }
+}
+```
 
 ## Publishing Messages
 
@@ -129,7 +189,9 @@ Subscribe using `SpringActorRef`:
 
 ```java
 private static class SubscriberBehavior {
-    SubscriberBehavior(SpringBehaviorContext<Command> ctx, SpringTopicRef<ChatMessage> topic) {
+    SubscriberBehavior(
+            SpringBehaviorContext<Command> ctx,
+            SpringTopicRef<ChatMessage> topic) {
         // Subscribe to topic
         topic.subscribe(ctx.getSelf());
     }
@@ -188,7 +250,7 @@ roomActor.tell(new JoinRoom(ctx.getUnderlying().getSelf()));
 
 ## Complete Example
 
-Notification system with pub/sub:
+Notification system with pub/sub using `SpringTopicManager`:
 
 ```java
 // Message
@@ -204,15 +266,46 @@ public class Notification implements JsonSerializable {
     }
 }
 
-// Publisher
+// Publisher Actor
 @Component
-public class NotificationPublisher implements SpringActor<Command> {
+public class NotificationPublisher
+        implements SpringActorWithContext<Command, NotificationPublisher.Context> {
+
+    public static class Context extends SpringActorContext {
+        private final String actorId;
+
+        public Context(String actorId) {
+            this.actorId = actorId;
+        }
+
+        @Override
+        public String actorId() {
+            return actorId;
+        }
+    }
+
+    @Override
+    public SpringActorBehavior<Command> create(Context context) {
+        SpringTopicManager topicManager = context.getBean(SpringTopicManager.class);
+
+        return SpringActorBehavior.builder(Command.class, context)
+                .withState(ctx -> {
+                    SpringTopicRef<Notification> topic = topicManager
+                            .topic(Notification.class)
+                            .withName("notifications")
+                            .ownedBy(ctx)
+                            .create();
+                    return new PublisherBehavior(topic);
+                })
+                .onMessage(Publish.class, PublisherBehavior::onPublish)
+                .build();
+    }
 
     private static class PublisherBehavior {
         private final SpringTopicRef<Notification> topic;
 
-        PublisherBehavior(SpringBehaviorContext<Command> ctx) {
-            this.topic = ctx.createTopic(Notification.class, "notifications");
+        PublisherBehavior(SpringTopicRef<Notification> topic) {
+            this.topic = topic;
         }
 
         private Behavior<Command> onPublish(Publish msg) {
@@ -222,19 +315,51 @@ public class NotificationPublisher implements SpringActor<Command> {
     }
 }
 
-// Subscriber
+// Subscriber Actor
 @Component
-public class NotificationSubscriber implements SpringActor<Notification> {
+public class NotificationSubscriber
+        implements SpringActorWithContext<Notification, NotificationSubscriber.Context> {
+
+    public static class Context extends SpringActorContext {
+        private final String actorId;
+
+        public Context(String actorId) {
+            this.actorId = actorId;
+        }
+
+        @Override
+        public String actorId() {
+            return actorId;
+        }
+    }
+
+    @Override
+    public SpringActorBehavior<Notification> create(Context context) {
+        SpringTopicManager topicManager = context.getBean(SpringTopicManager.class);
+
+        return SpringActorBehavior.builder(Notification.class, context)
+                .withState(ctx -> {
+                    // Get or create the same topic
+                    SpringTopicRef<Notification> topic = topicManager
+                            .topic(Notification.class)
+                            .withName("notifications")
+                            .create();
+                    topic.subscribe(ctx.getSelf());
+                    return new SubscriberBehavior(ctx);
+                })
+                .onMessage(Notification.class, SubscriberBehavior::onNotification)
+                .build();
+    }
 
     private static class SubscriberBehavior {
+        private final SpringBehaviorContext<Notification> ctx;
+
         SubscriberBehavior(SpringBehaviorContext<Notification> ctx) {
-            SpringTopicRef<Notification> topic =
-                ctx.getOrCreateTopic(Notification.class, "notifications");
-            topic.subscribe(ctx.getSelf());
+            this.ctx = ctx;
         }
 
         private Behavior<Notification> onNotification(Notification notification) {
-            // Process notification
+            ctx.getLog().info("Received: {} - {}", notification.type, notification.message);
             return Behaviors.same();
         }
     }
@@ -247,10 +372,10 @@ public class NotificationSubscriber implements SpringActor<Notification> {
 
 ```java
 // ✅ Good
-ctx.createTopic(ChatMessage.class, "chat-room-" + roomId)
+topicManager.topic(ChatMessage.class).withName("chat-room-" + roomId)
 
 // ❌ Bad: Too generic
-ctx.createTopic(Message.class, "topic")
+topicManager.topic(Message.class).withName("topic")
 ```
 
 **Message design**: Keep immutable and serializable
@@ -266,6 +391,23 @@ public class UserEvent implements JsonSerializable {
 public class UserEvent {
     public String userId;  // Mutable!
 }
+```
+
+**Lifecycle management**: Use `ownedBy(ctx)` for actor-scoped topics
+
+```java
+// ✅ Good: Topic dies with actor
+SpringTopicRef<Event> topic = topicManager
+        .topic(Event.class)
+        .withName("my-events")
+        .ownedBy(ctx)
+        .create();
+
+// ❌ Bad: Topic persists forever (unless intended)
+SpringTopicRef<Event> topic = topicManager
+        .topic(Event.class)
+        .withName("my-events")
+        .create();
 ```
 
 **Error handling**: Add application-level acknowledgments for critical messages
@@ -311,6 +453,17 @@ new JoinRoom(userId, ctx.getSelf())  // SpringActorRef
 
 // To:
 new JoinRoom(userId, ctx.getUnderlying().getSelf())  // Raw ActorRef
+```
+
+**SpringTopicManager not available:**
+
+Ensure the service is scanned by Spring:
+
+```java
+@SpringBootApplication(scanBasePackages = "io.github.seonwkim.core")
+public class MyApplication {
+    // ...
+}
 ```
 
 ## Further Reading

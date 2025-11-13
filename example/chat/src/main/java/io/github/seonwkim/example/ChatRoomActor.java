@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.github.seonwkim.core.SpringActorRef;
 import io.github.seonwkim.core.SpringBehaviorContext;
 import io.github.seonwkim.core.topic.SpringTopicRef;
+import io.github.seonwkim.core.topic.TopicSpawner;
 import io.github.seonwkim.core.serialization.JsonSerializable;
 import io.github.seonwkim.core.shard.SpringShardedActor;
 import io.github.seonwkim.core.shard.SpringShardedActorBehavior;
@@ -99,6 +100,10 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
     /**
      * Behavior handler for chat room actor using pub/sub.
      * Creates a topic owned by this actor.
+     *
+     * <p>Note: Since this is a sharded actor that doesn't easily support DI,
+     * we use TopicSpawner directly. For regular actors, use SpringTopicManager
+     * with dependency injection instead.
      */
     private static class ChatRoomBehavior {
         private final SpringBehaviorContext<Command> ctx;
@@ -108,9 +113,13 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
         ChatRoomBehavior(SpringBehaviorContext<Command> ctx, String roomId) {
             this.ctx = ctx;
             this.roomId = roomId;
-            // Create a pub/sub topic owned by this actor
+            // Create a pub/sub topic owned by this actor using TopicSpawner directly
             // Topic will be stopped when this chat room actor stops
-            this.roomTopic = ctx.createTopic(UserActor.Command.class, "chat-room-" + roomId);
+            this.roomTopic = TopicSpawner.createTopic(
+                ctx.getUnderlying(),
+                UserActor.Command.class,
+                "chat-room-" + roomId
+            );
             ctx.getLog().info("Created pub/sub topic for chat room: {}", roomId);
         }
 
