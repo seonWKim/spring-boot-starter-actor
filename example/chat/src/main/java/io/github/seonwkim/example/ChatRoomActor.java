@@ -98,7 +98,7 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
 
     /**
      * Behavior handler for chat room actor using pub/sub.
-     * Creates a topic for the room and publishes events to subscribers.
+     * Creates a topic owned by this actor.
      */
     private static class ChatRoomBehavior {
         private final SpringBehaviorContext<Command> ctx;
@@ -108,8 +108,8 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
         ChatRoomBehavior(SpringBehaviorContext<Command> ctx, String roomId) {
             this.ctx = ctx;
             this.roomId = roomId;
-            // Create a pub/sub topic for this chat room
-            // Topic identity is based on the name, not the actor hierarchy
+            // Create a pub/sub topic owned by this actor
+            // Topic will be stopped when this chat room actor stops
             this.roomTopic = ctx.createTopic(UserActor.Command.class, "chat-room-" + roomId);
             ctx.getLog().info("Created pub/sub topic for chat room: {}", roomId);
         }

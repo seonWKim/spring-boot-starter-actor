@@ -4,6 +4,8 @@ import io.github.seonwkim.core.impl.DefaultSpringActorSystemBuilder;
 import io.github.seonwkim.core.shard.ShardedActorRegistry;
 import io.github.seonwkim.core.shard.SpringShardedActor;
 import java.util.Map;
+
+import io.github.seonwkim.core.topic.SpringTopicManager;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationEventPublisher;
@@ -47,6 +49,12 @@ public class ActorConfiguration {
     @ConditionalOnMissingBean(SpringActorSystem.class)
     public SpringActorSystem actorSystem(SpringActorSystemBuilder builder) {
         return builder.build();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(SpringTopicManager.class)
+    public SpringTopicManager topicManager(SpringActorSystem actorSystem) {
+        return new SpringTopicManager(actorSystem);
     }
 
     /**
