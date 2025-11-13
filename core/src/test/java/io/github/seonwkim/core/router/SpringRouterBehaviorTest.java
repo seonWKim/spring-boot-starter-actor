@@ -39,7 +39,7 @@ class SpringRouterBehaviorTest {
                     .onMessage(
                             TestRouterActor.ProcessMessage.class,
                             (context, msg) -> {
-                                String workerId = context.getSelf().path().name();
+                                String workerId = context.path().name();
                                 workerState.recordMessage(workerId, msg.message);
                                 context.getLog().info("Worker {} processed: {}", workerId, msg.message);
                                 return Behaviors.same();
@@ -197,7 +197,7 @@ class SpringRouterBehaviorTest {
                     .onMessage(
                             BroadcastRouterActor.ProcessMessage.class,
                             (context, msg) -> {
-                                String workerId = context.getSelf().path().name();
+                                String workerId = context.path().name();
                                 state.recordMessage(workerId, msg.message);
                                 return Behaviors.same();
                             })
@@ -287,7 +287,7 @@ class SpringRouterBehaviorTest {
                     .onMessage(
                             ConsistentHashingRouterActor.ProcessHashableMessage.class,
                             (context, msg) -> {
-                                String workerId = context.getSelf().path().name();
+                                String workerId = context.path().name();
                                 state.recordMessage(workerId, msg.getConsistentHashKey());
                                 return Behaviors.same();
                             })

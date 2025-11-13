@@ -198,8 +198,7 @@ class HierarchicalSupervisionTest {
 
             private Behavior<Command> onDelegateWork(DelegateWork msg) {
                 // Create SpringActorRef to self for child management
-                SpringActorRef<Command> self =
-                        new SpringActorRef<>(ctx.getUnderlying().getSystem().scheduler(), ctx.getSelf());
+                SpringActorRef<Command> self = ctx.getSelf();
 
                 // Try to get existing child first
                 ctx.getUnderlying().pipeToSelf(
@@ -231,8 +230,7 @@ class HierarchicalSupervisionTest {
                 ctx.getLog().info("Spawning new worker {} with strategy {}", msg.workerId, msg.strategy);
 
                 SupervisorStrategy strategy = buildStrategy(msg.strategy);
-                SpringActorRef<Command> self =
-                        new SpringActorRef<>(ctx.getUnderlying().getSystem().scheduler(), ctx.getSelf());
+                SpringActorRef<Command> self = ctx.getSelf();
 
                 // Spawn child using SpringActorRef unified API
                 ctx.getUnderlying().pipeToSelf(
