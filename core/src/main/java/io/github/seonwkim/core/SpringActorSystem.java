@@ -76,7 +76,7 @@ public class SpringActorSystem implements DisposableBean {
      */
     public SpringActorSystem(
             ActorSystem<RootGuardian.Command> actorSystem,
-            ShardedActorRegistry shardedActorRegistry) {
+            @Nullable ShardedActorRegistry shardedActorRegistry) {
         this.actorSystem = actorSystem;
         this.cluster = null;
         this.clusterSharding = null;
@@ -115,10 +115,10 @@ public class SpringActorSystem implements DisposableBean {
     public SpringActorSystem(
             ActorSystem<RootGuardian.Command> actorSystem,
             Cluster cluster,
-            ClusterSharding clusterSharding,
-            ClusterSingleton clusterSingleton,
+            @Nullable ClusterSharding clusterSharding,
+            @Nullable ClusterSingleton clusterSingleton,
             ApplicationEventPublisher publisher,
-            ShardedActorRegistry shardedActorRegistry) {
+            @Nullable ShardedActorRegistry shardedActorRegistry) {
         this.actorSystem = actorSystem;
         this.cluster = cluster;
         this.clusterSharding = clusterSharding;
