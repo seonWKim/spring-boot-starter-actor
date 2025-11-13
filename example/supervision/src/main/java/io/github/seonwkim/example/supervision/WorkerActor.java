@@ -32,7 +32,7 @@ public class WorkerActor implements SpringActorWithContext<HierarchicalActor.Com
                     ctx.getLog().info("Worker {} started", actorId);
                     logPublisher.publish(String.format(
                             "[%s] Worker started (path: %s)",
-                            actorId, ctx.getSelf().path()));
+                            actorId, ctx.path()));
 
                     return behavior;
                 })

@@ -51,8 +51,8 @@ public class HelloActor implements SpringShardedActor<HelloActor.Command> {
         final String entityId = ctx.getEntityId();
 
         return SpringShardedActorBehavior.builder(Command.class, ctx)
-                .withState(actorCtx -> new HelloActorBehavior(actorCtx, entityId))
-                .onMessage(SayHello.class, HelloActorBehavior::onSayHello)
+                .withState(actorCtx -> new HelloActorBehavior(actorCtx.getUnderlying(), entityId))
+                .onMessage(SayHello.class, (state, msg) -> state.onSayHello(msg))
                 .build();
     }
 
@@ -60,10 +60,10 @@ public class HelloActor implements SpringShardedActor<HelloActor.Command> {
      * Behavior handler for hello actor. Holds the entity ID and handles messages.
      */
     private static class HelloActorBehavior {
-        private final ActorContext<Command> ctx;
+        private final org.apache.pekko.actor.typed.javadsl.ActorContext<Command> ctx;
         private final String entityId;
 
-        HelloActorBehavior(ActorContext<Command> ctx, String entityId) {
+        HelloActorBehavior(org.apache.pekko.actor.typed.javadsl.ActorContext<Command> ctx, String entityId) {
             this.ctx = ctx;
             this.entityId = entityId;
         }

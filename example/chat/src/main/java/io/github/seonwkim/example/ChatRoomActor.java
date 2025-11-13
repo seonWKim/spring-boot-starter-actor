@@ -39,17 +39,17 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
     /** Base interface for all commands that can be sent to the chat room actor. */
     public interface Command extends JsonSerializable {}
 
-    /** Command to join a chat room. Provides a topic reference for subscription. */
+    /** Command to join a chat room. Provides actor ref for subscription. */
     public static class JoinRoom implements Command {
         public final String userId;
-        public final SpringActorRef<UserActor.Command> userRef;
+        public final org.apache.pekko.actor.typed.ActorRef<UserActor.Command> userActorRef;
 
         @JsonCreator
         public JoinRoom(
                 @JsonProperty("userId") String userId,
-                @JsonProperty("userRef") SpringActorRef<UserActor.Command> userRef) {
+                @JsonProperty("userActorRef") org.apache.pekko.actor.typed.ActorRef<UserActor.Command> userActorRef) {
             this.userId = userId;
-            this.userRef = userRef;
+            this.userActorRef = userActorRef;
         }
     }
 
@@ -106,6 +106,7 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
             this.ctx = ctx;
             this.roomId = roomId;
             // Create a pub/sub topic for this chat room
+            // Topic identity is based on the name, not the actor hierarchy
             this.roomTopic = ctx.createTopic(UserActor.Command.class, "chat-room-" + roomId);
             ctx.getLog().info("Created pub/sub topic for chat room: {}", roomId);
         }
@@ -117,11 +118,15 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
          * @return The next behavior (same in this case)
          */
         private Behavior<Command> onJoinRoom(JoinRoom msg) {
+            // Wrap the Pekko ActorRef in SpringActorRef for subscription
+            SpringActorRef<UserActor.Command> springUserRef =
+                new SpringActorRef<>(ctx.getUnderlying().getSystem().scheduler(), msg.userActorRef);
+
             // Track the user ref for unsubscription
-            connectedUsers.put(msg.userId, msg.userRef);
+            connectedUsers.put(msg.userId, springUserRef);
 
             // Subscribe the user to the room topic
-            roomTopic.subscribe(msg.userRef);
+            roomTopic.subscribe(springUserRef);
 
             ctx.getLog().info("User {} joined room {} (now {} users)",
                 msg.userId, roomId, connectedUsers.size());

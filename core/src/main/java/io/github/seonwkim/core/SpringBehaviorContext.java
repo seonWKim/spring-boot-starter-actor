@@ -2,11 +2,15 @@ package io.github.seonwkim.core;
 
 import io.github.seonwkim.core.pubsub.SpringTopicRef;
 import io.github.seonwkim.core.pubsub.TopicSpawner;
+import org.apache.pekko.actor.ActorPath;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.Scheduler;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.slf4j.Logger;
+
+import java.util.List;
+import java.util.Optional;
 
 /**
  * Spring-enhanced wrapper around Pekko's ActorContext used during behavior creation.
@@ -83,6 +87,8 @@ public final class SpringBehaviorContext<T> {
      * Gets a reference to an existing topic, or creates it if it doesn't exist.
      * This provides idempotent topic creation semantics.
      *
+     * <p>Note: This creates an actor-owned topic that will be stopped when this actor stops.
+     *
      * @param messageType The type of messages this topic will handle
      * @param topicName The unique name for this topic
      * @param <M> The message type
@@ -91,6 +97,42 @@ public final class SpringBehaviorContext<T> {
      */
     public <M> SpringTopicRef<M> getOrCreateTopic(Class<M> messageType, String topicName) {
         return TopicSpawner.getOrCreateTopic(underlying, messageType, topicName);
+    }
+
+    /**
+     * Gets a reference to an existing system-level topic, or creates it if it doesn't exist.
+     *
+     * <p>System-level topics persist independently of any actor's lifecycle and are ideal for
+     * scenarios where the topic should outlive individual actor instances, such as:
+     * <ul>
+     *   <li>Chat rooms that persist across room actor passivations
+     *   <li>Event buses shared across the entire system
+     *   <li>Cross-cluster communication channels
+     * </ul>
+     *
+     * <p><b>Important:</b> System-level topics cannot be stopped programmatically. They exist
+     * for the lifetime of the ActorSystem. Choose actor-owned topics ({@link #createTopic})
+     * if you need explicit lifecycle control.
+     *
+     * <p>Example:
+     * <pre>
+     * {@code
+     * // Create a system-level topic that persists across actor restarts
+     * SpringTopicRef<ChatMessage> chatTopic =
+     *     ctx.getOrCreateSystemTopic(ChatMessage.class, "chat-room-" + roomId);
+     * }
+     * </pre>
+     *
+     * @param messageType The type of messages this topic will handle
+     * @param topicName The unique name for this system-level topic
+     * @param <M> The message type
+     * @return A reference to the system-level topic (existing or newly created)
+     * @throws IllegalStateException if a topic with this name already exists
+     * @see SpringTopicRef
+     * @see #createTopic
+     */
+    public <M> SpringTopicRef<M> getOrCreateSystemTopic(Class<M> messageType, String topicName) {
+        return TopicSpawner.getOrCreateTopic(underlying.getSystem(), messageType, topicName);
     }
 
     /**
@@ -112,8 +154,8 @@ public final class SpringBehaviorContext<T> {
      *
      * @return This actor's reference
      */
-    public ActorRef<T> getSelf() {
-        return underlying.getSelf();
+    public SpringActorRef<T> getSelf() {
+        return new SpringActorRef<>(underlying.getSystem().scheduler(), underlying.getSelf());
     }
 
     /**
@@ -144,5 +186,25 @@ public final class SpringBehaviorContext<T> {
      */
     public <M> ActorRef<M> spawn(Behavior<M> behavior, String name) {
         return underlying.spawn(behavior, name);
+    }
+
+    // TODO: update docs
+    public ActorPath path() {
+        return underlying.getSelf().path();
+    }
+
+    // TODO: update docs
+    public Optional<ActorRef<Void>> getChild(String name) {
+        return underlying.getChild(name);
+    }
+
+    // TODO: update docs
+    public List<ActorRef<Void>> getChildren() {
+        return underlying.getChildren();
+    }
+
+    // TODO: update docs and check signature is approprate
+    public void stop(ActorRef<?> child) {
+        underlying.stop(child);
     }
 }
