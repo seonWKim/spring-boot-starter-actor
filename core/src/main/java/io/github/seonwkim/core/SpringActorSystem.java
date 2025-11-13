@@ -76,7 +76,7 @@ public class SpringActorSystem implements DisposableBean {
      */
     public SpringActorSystem(
             ActorSystem<RootGuardian.Command> actorSystem,
-            io.github.seonwkim.core.shard.ShardedActorRegistry shardedActorRegistry) {
+            ShardedActorRegistry shardedActorRegistry) {
         this.actorSystem = actorSystem;
         this.cluster = null;
         this.clusterSharding = null;
@@ -118,7 +118,7 @@ public class SpringActorSystem implements DisposableBean {
             ClusterSharding clusterSharding,
             ClusterSingleton clusterSingleton,
             ApplicationEventPublisher publisher,
-            @Nullable io.github.seonwkim.core.shard.ShardedActorRegistry shardedActorRegistry) {
+            ShardedActorRegistry shardedActorRegistry) {
         this.actorSystem = actorSystem;
         this.cluster = cluster;
         this.clusterSharding = clusterSharding;
@@ -166,7 +166,7 @@ public class SpringActorSystem implements DisposableBean {
      *
      * @return The ShardedActorRegistry, or null if not available
      */
-    @Nullable public io.github.seonwkim.core.shard.ShardedActorRegistry getShardedActorRegistry() {
+    @Nullable public ShardedActorRegistry getShardedActorRegistry() {
         return shardedActorRegistry;
     }
 
