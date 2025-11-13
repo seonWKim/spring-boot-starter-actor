@@ -7,15 +7,10 @@ import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.pubsub.Topic;
 
 /**
- * Utility class that provides centralized topic creation logic.
- * This class consolidates the common topic spawning logic used by both:
- * <ul>
- *   <li>SpringActorSystem - for system-wide topics</li>
- *   <li>SpringBehaviorContext - for actor-owned topics</li>
- * </ul>
+ * Centralized topic creation logic for both ActorSystem and ActorContext.
  *
- * <p>By centralizing this logic, we ensure consistency and reduce code duplication
- * across the framework.
+ * <p>Topics are identified by name, not creation location. Lifecycle differs:
+ * actor-owned topics stop with their owner, system-level topics persist.
  */
 public final class TopicSpawner {
 
@@ -24,17 +19,12 @@ public final class TopicSpawner {
     }
 
     /**
-     * Creates a pub/sub topic with the given message type and name in an ActorContext.
+     * Creates a topic as a child of the given actor context.
      *
-     * <p>This method spawns a Pekko Topic actor as a child of the given context.
-     * Topics enable distributed publish-subscribe messaging within a local actor system
-     * or across a cluster.
-     *
-     * @param ctx The actor context to spawn the topic in
-     * @param messageType The type of messages this topic will handle
-     * @param topicName The unique name for this topic
-     * @param <M> The message type
-     * @return A reference to the created topic
+     * @param ctx The actor context
+     * @param messageType The message type
+     * @param topicName The unique topic name
+     * @return Reference to the created topic
      */
     public static <M> SpringTopicRef<M> createTopic(
             ActorContext<?> ctx, Class<M> messageType, String topicName) {
@@ -46,17 +36,12 @@ public final class TopicSpawner {
     }
 
     /**
-     * Creates a pub/sub topic with the given message type and name in an ActorSystem.
+     * Creates a topic as a system actor (persists for ActorSystem lifetime).
      *
-     * <p>This method spawns a Pekko Topic actor as a system actor.
-     * Topics enable distributed publish-subscribe messaging within a local actor system
-     * or across a cluster.
-     *
-     * @param system The actor system to spawn the topic in
-     * @param messageType The type of messages this topic will handle
-     * @param topicName The unique name for this topic
-     * @param <M> The message type
-     * @return A reference to the created topic
+     * @param system The actor system
+     * @param messageType The message type
+     * @param topicName The unique topic name
+     * @return Reference to the created topic
      */
     public static <M> SpringTopicRef<M> createTopic(
             ActorSystem<?> system, Class<M> messageType, String topicName) {
@@ -69,13 +54,11 @@ public final class TopicSpawner {
     }
 
     /**
-     * Gets a reference to an existing topic in the given context.
-     * Returns null if the topic does not exist.
+     * Gets an existing topic by name, or null if not found.
      *
-     * @param ctx The actor context to search in
-     * @param topicName The name of the topic to find
-     * @param <M> The message type
-     * @return The topic reference if found, null otherwise
+     * @param ctx The actor context
+     * @param topicName The topic name
+     * @return The topic reference, or null
      */
     @Nullable
     @SuppressWarnings("unchecked")
@@ -89,14 +72,12 @@ public final class TopicSpawner {
     }
 
     /**
-     * Gets a reference to an existing topic, or creates it if it doesn't exist.
-     * This provides idempotent topic creation semantics.
+     * Gets or creates a topic with idempotent semantics.
      *
-     * @param ctx The actor context to spawn the topic in
-     * @param messageType The type of messages this topic will handle
-     * @param topicName The unique name for this topic
-     * @param <M> The message type
-     * @return A reference to the topic (existing or newly created)
+     * @param ctx The actor context
+     * @param messageType The message type
+     * @param topicName The topic name
+     * @return Reference to the topic
      */
     public static <M> SpringTopicRef<M> getOrCreateTopic(
             ActorContext<?> ctx, Class<M> messageType, String topicName) {

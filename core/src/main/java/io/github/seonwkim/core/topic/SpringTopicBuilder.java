@@ -5,28 +5,18 @@ import org.apache.pekko.actor.typed.ActorSystem;
 import io.github.seonwkim.core.SpringBehaviorContext;
 
 /**
- * Fluent builder for creating pub/sub topics at the system level.
+ * Fluent builder for creating pub/sub topics via ActorSystem.
  *
- * <p>This builder provides a convenient API for creating topics that are managed
- * by the RootGuardian actor, making them system-wide and not tied to any particular
- * actor's lifecycle.
+ * <p>Topics created this way persist for the ActorSystem lifetime.
+ * For actor-owned topics, use {@link SpringBehaviorContext#createTopic}.
  *
- * <p>Example usage:
- * <pre>
- * {@code
- * // Create a new topic
- * SpringTopicRef<SystemEvent> topic = actorSystem
- *     .topic(SystemEvent.class)
- *     .withName("system-events")
+ * <p>Example:
+ * <pre>{@code
+ * SpringTopicRef<Event> topic = actorSystem
+ *     .topic(Event.class)
+ *     .withName("events")
  *     .create();
- *
- * // Get or create (idempotent)
- * SpringTopicRef<SystemEvent> topic = actorSystem
- *     .topic(SystemEvent.class)
- *     .withName("system-events")
- *     .getOrCreate();
- * }
- * </pre>
+ * }</pre>
  *
  * @param <M> The type of messages this topic will handle
  */
@@ -60,15 +50,11 @@ public class SpringTopicBuilder<M> {
     }
 
     /**
-     * Creates a new topic with the configured name.
-     *
-     * <p>Note: This will fail with InvalidActorNameException if a topic actor
-     * with the same name already exists. For actor-context-owned topics, use
-     * {@link SpringBehaviorContext#getOrCreateTopic} for idempotent creation.
+     * Creates a new topic. Fails if the name is already in use.
      *
      * @return A reference to the created topic
-     * @throws IllegalStateException if topic name is not set
-     * @throws org.apache.pekko.actor.InvalidActorNameException if a topic with this name exists
+     * @throws IllegalStateException if topic name not set
+     * @throws org.apache.pekko.actor.InvalidActorNameException if name already exists
      */
     public SpringTopicRef<M> create() {
         String validatedName = validateTopicName();

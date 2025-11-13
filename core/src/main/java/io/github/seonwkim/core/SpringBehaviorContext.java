@@ -84,14 +84,10 @@ public final class SpringBehaviorContext<T> {
     }
 
     /**
-     * Gets a reference to an existing topic, or creates it if it doesn't exist.
-     * This provides idempotent topic creation semantics.
+     * Gets or creates a topic with idempotent semantics.
      *
-     * <p><b>Important Note on Topic Identity:</b> Topics are identified solely by their name
-     * and message type, regardless of where they are created. A topic created from an actor
-     * context and one created from the system with the same name reference the SAME topic.
-     * The only difference is lifecycle - actor-owned topics are stopped when the owning actor
-     * stops, while system-level topics persist for the ActorSystem lifetime.
+     * <p>Topics are identified by name and message type, not by creation location.
+     * Lifecycle: actor-owned topics stop when the owning actor stops.
      *
      * @param messageType The type of messages this topic will handle
      * @param topicName The unique name for this topic
@@ -156,22 +152,39 @@ public final class SpringBehaviorContext<T> {
         return underlying.spawn(behavior, name);
     }
 
-    // TODO: update docs
+    /**
+     * Returns the actor path of this actor.
+     *
+     * @return The actor path
+     */
     public ActorPath path() {
         return underlying.getSelf().path();
     }
 
-    // TODO: update docs
+    /**
+     * Returns a child actor by name if it exists.
+     *
+     * @param name The name of the child actor
+     * @return Optional containing the child actor reference, or empty if not found
+     */
     public Optional<ActorRef<Void>> getChild(String name) {
         return underlying.getChild(name);
     }
 
-    // TODO: update docs
+    /**
+     * Returns all child actors of this actor.
+     *
+     * @return List of child actor references
+     */
     public List<ActorRef<Void>> getChildren() {
         return underlying.getChildren();
     }
 
-    // TODO: update docs and check signature is approprate
+    /**
+     * Stops a child actor.
+     *
+     * @param child The child actor to stop
+     */
     public void stop(ActorRef<?> child) {
         underlying.stop(child);
     }
