@@ -1,4 +1,4 @@
-package io.github.seonwkim.core.pubsub;
+package io.github.seonwkim.core.topic;
 
 import io.github.seonwkim.core.SpringActorRef;
 import org.apache.pekko.actor.typed.ActorRef;

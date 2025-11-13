@@ -1,4 +1,4 @@
-package io.github.seonwkim.core.pubsub;
+package io.github.seonwkim.core.topic;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.*;

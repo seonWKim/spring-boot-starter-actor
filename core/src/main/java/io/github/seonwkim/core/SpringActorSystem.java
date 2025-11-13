@@ -3,7 +3,7 @@ package io.github.seonwkim.core;
 import io.github.seonwkim.core.RootGuardian.Spawned;
 import io.github.seonwkim.core.behavior.ClusterEventBehavior;
 import io.github.seonwkim.core.impl.DefaultSpringActorContext;
-import io.github.seonwkim.core.pubsub.SpringTopicBuilder;
+import io.github.seonwkim.core.topic.SpringTopicBuilder;
 import io.github.seonwkim.core.shard.ShardedActorRegistry;
 import io.github.seonwkim.core.shard.SpringShardedActor;
 import io.github.seonwkim.core.shard.SpringShardedActorBuilder;

@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.github.seonwkim.core.SpringActorRef;
 import io.github.seonwkim.core.SpringBehaviorContext;
-import io.github.seonwkim.core.pubsub.SpringTopicRef;
+import io.github.seonwkim.core.topic.SpringTopicRef;
 import io.github.seonwkim.core.serialization.JsonSerializable;
 import io.github.seonwkim.core.shard.SpringShardedActor;
 import io.github.seonwkim.core.shard.SpringShardedActorBehavior;

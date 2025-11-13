@@ -1,4 +1,4 @@
-package io.github.seonwkim.core.pubsub;
+package io.github.seonwkim.core.topic;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -7,8 +7,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.github.seonwkim.core.*;
 import io.github.seonwkim.core.serialization.JsonSerializable;
-import java.time.Duration;
-import java.util.Collections;
+
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;

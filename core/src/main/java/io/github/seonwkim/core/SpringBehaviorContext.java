@@ -1,7 +1,7 @@
 package io.github.seonwkim.core;
 
-import io.github.seonwkim.core.pubsub.SpringTopicRef;
-import io.github.seonwkim.core.pubsub.TopicSpawner;
+import io.github.seonwkim.core.topic.SpringTopicRef;
+import io.github.seonwkim.core.topic.TopicSpawner;
 import org.apache.pekko.actor.ActorPath;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
@@ -87,7 +87,11 @@ public final class SpringBehaviorContext<T> {
      * Gets a reference to an existing topic, or creates it if it doesn't exist.
      * This provides idempotent topic creation semantics.
      *
-     * <p>Note: This creates an actor-owned topic that will be stopped when this actor stops.
+     * <p><b>Important Note on Topic Identity:</b> Topics are identified solely by their name
+     * and message type, regardless of where they are created. A topic created from an actor
+     * context and one created from the system with the same name reference the SAME topic.
+     * The only difference is lifecycle - actor-owned topics are stopped when the owning actor
+     * stops, while system-level topics persist for the ActorSystem lifetime.
      *
      * @param messageType The type of messages this topic will handle
      * @param topicName The unique name for this topic
@@ -97,42 +101,6 @@ public final class SpringBehaviorContext<T> {
      */
     public <M> SpringTopicRef<M> getOrCreateTopic(Class<M> messageType, String topicName) {
         return TopicSpawner.getOrCreateTopic(underlying, messageType, topicName);
-    }
-
-    /**
-     * Gets a reference to an existing system-level topic, or creates it if it doesn't exist.
-     *
-     * <p>System-level topics persist independently of any actor's lifecycle and are ideal for
-     * scenarios where the topic should outlive individual actor instances, such as:
-     * <ul>
-     *   <li>Chat rooms that persist across room actor passivations
-     *   <li>Event buses shared across the entire system
-     *   <li>Cross-cluster communication channels
-     * </ul>
-     *
-     * <p><b>Important:</b> System-level topics cannot be stopped programmatically. They exist
-     * for the lifetime of the ActorSystem. Choose actor-owned topics ({@link #createTopic})
-     * if you need explicit lifecycle control.
-     *
-     * <p>Example:
-     * <pre>
-     * {@code
-     * // Create a system-level topic that persists across actor restarts
-     * SpringTopicRef<ChatMessage> chatTopic =
-     *     ctx.getOrCreateSystemTopic(ChatMessage.class, "chat-room-" + roomId);
-     * }
-     * </pre>
-     *
-     * @param messageType The type of messages this topic will handle
-     * @param topicName The unique name for this system-level topic
-     * @param <M> The message type
-     * @return A reference to the system-level topic (existing or newly created)
-     * @throws IllegalStateException if a topic with this name already exists
-     * @see SpringTopicRef
-     * @see #createTopic
-     */
-    public <M> SpringTopicRef<M> getOrCreateSystemTopic(Class<M> messageType, String topicName) {
-        return TopicSpawner.getOrCreateTopic(underlying.getSystem(), messageType, topicName);
     }
 
     /**
