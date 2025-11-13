@@ -9,12 +9,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+
+import io.github.seonwkim.core.SpringBehaviorContext;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.PostStop;
 import org.apache.pekko.actor.typed.PreRestart;
 import org.apache.pekko.actor.typed.SupervisorStrategy;
-import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.AskPattern;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 
@@ -23,7 +24,7 @@ import org.apache.pekko.actor.typed.javadsl.Behaviors;
  * Contains all common logic for child spawning, routing, and hierarchy management.
  */
 public class HierarchicalActorBehavior<C> {
-    protected final ActorContext<C> ctx;
+    protected final SpringBehaviorContext<C> ctx;
     protected final SpringActorContext actorContext;
     protected final LogPublisher logPublisher;
     protected final boolean canProcessWork;
@@ -34,7 +35,7 @@ public class HierarchicalActorBehavior<C> {
     protected final Map<String, String> childStrategies = new HashMap<>();
 
     public HierarchicalActorBehavior(
-            ActorContext<C> ctx,
+            SpringBehaviorContext<C> ctx,
             SpringActorContext actorContext,
             LogPublisher logPublisher,
             boolean canProcessWork,
@@ -261,7 +262,7 @@ public class HierarchicalActorBehavior<C> {
         // Check if the parent is a direct child
         Optional<ActorRef<Void>> directChildOpt = ctx.getChild(msg.parentId);
         if (directChildOpt.isPresent()) {
-            ActorRef<C> child = (ActorRef<C>) (ActorRef<?>) directChildOpt.get();
+            ActorRef<C> child = (ActorRef<C>) directChildOpt.get();
             HierarchicalActor.SpawnChild spawnCmd = new HierarchicalActor.SpawnChild(msg.childId, msg.strategy);
             spawnCmd.withReplyTo(msg.getReplyTo());
             child.tell((C) spawnCmd);
@@ -290,7 +291,7 @@ public class HierarchicalActorBehavior<C> {
         boolean hasChildren = false;
         for (ActorRef<Void> childRef : (Iterable<ActorRef<Void>>) ctx.getChildren()::iterator) {
             hasChildren = true;
-            ActorRef<C> child = (ActorRef<C>) (ActorRef<?>) childRef;
+            ActorRef<C> child = (ActorRef<C>) childRef;
             HierarchicalActor.RouteSpawnChild routeCmd =
                     new HierarchicalActor.RouteSpawnChild(msg.parentId, msg.childId, msg.strategy);
             routeCmd.withReplyTo(msg.getReplyTo());
@@ -324,7 +325,7 @@ public class HierarchicalActorBehavior<C> {
                                 return (C) cmd;
                             },
                             Duration.ofSeconds(3),
-                            ctx.getSystem().scheduler())
+                            ctx.getUnderlying().getSystem().scheduler())
                     .toCompletableFuture();
 
             childFutures.add(future);
@@ -356,7 +357,7 @@ public class HierarchicalActorBehavior<C> {
                             actorId,
                             canProcessWork ? "worker" : "supervisor",
                             canProcessWork ? null : "Supervisor",
-                            ctx.getSelf().path().toString(),
+                            ctx.path().toString(),
                             failureCount,
                             children);
                     msg.reply(node);
@@ -367,7 +368,7 @@ public class HierarchicalActorBehavior<C> {
                             actorId,
                             canProcessWork ? "worker" : "supervisor",
                             canProcessWork ? null : "Supervisor",
-                            ctx.getSelf().path().toString(),
+                            ctx.path().toString(),
                             failureCount,
                             List.of());
                     msg.reply(node);

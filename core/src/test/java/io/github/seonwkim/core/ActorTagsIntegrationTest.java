@@ -119,7 +119,7 @@ public class ActorTagsIntegrationTest {
                     .onMessage(Ping.class, (ctx, msg) -> {
                         ctx.getLog().info("Received: {}", msg.message);
                         msg.reply(new Pong(
-                                "Pong: " + msg.message, ctx.getSelf().path().toString()));
+                                "Pong: " + msg.message, ctx.path().toString()));
                         return Behaviors.same();
                     })
                     .build();
@@ -133,7 +133,7 @@ public class ActorTagsIntegrationTest {
                     .onMessage(Ping.class, (ctx, msg) -> {
                         ctx.getLog().info("Parent received: {}", msg.message);
                         msg.reply(new Pong(
-                                "Pong: " + msg.message, ctx.getSelf().path().toString()));
+                                "Pong: " + msg.message, ctx.path().toString()));
                         return Behaviors.same();
                     })
                     .build();
@@ -147,7 +147,7 @@ public class ActorTagsIntegrationTest {
                     .onMessage(Ping.class, (ctx, msg) -> {
                         ctx.getLog().info("Child received: {}", msg.message);
                         msg.reply(new Pong(
-                                "Pong: " + msg.message, ctx.getSelf().path().toString()));
+                                "Pong: " + msg.message, ctx.path().toString()));
                         return Behaviors.same();
                     })
                     .build();
