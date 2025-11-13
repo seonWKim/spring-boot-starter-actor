@@ -54,6 +54,8 @@ public class SpringActorSystem implements DisposableBean {
 
     private final Duration defaultActorRefTimeout = ActorConstants.DEFAULT_TIMEOUT;
 
+    @Nullable private io.github.seonwkim.core.receptionist.SpringReceptionistService receptionistService;
+
     /**
      * Creates a new SpringActorSystem in local mode.
      *
@@ -389,6 +391,38 @@ public class SpringActorSystem implements DisposableBean {
      */
     public boolean isClusterMode() {
         return cluster != null;
+    }
+
+    /**
+     * Returns the receptionist service for actor discovery and service registration.
+     *
+     * <p>The receptionist provides a dynamic service registry for actors. Actors can register
+     * themselves under ServiceKeys, and other actors can discover them by querying or subscribing.
+     *
+     * <p>Example usage:
+     *
+     * <pre>
+     * // Get the receptionist service
+     * SpringReceptionistService receptionist = actorSystem.receptionist();
+     *
+     * // Register an actor
+     * ServiceKey&lt;Command&gt; key = ServiceKey.create(Command.class, "my-service");
+     * receptionist.register(key, actorRef);
+     *
+     * // Find actors
+     * receptionist.find(key).thenAccept(listing -&gt; {
+     *     listing.getServiceInstances().forEach(actor -&gt; actor.tell(new Message()));
+     * });
+     * </pre>
+     *
+     * @return The SpringReceptionistService instance
+     */
+    public io.github.seonwkim.core.receptionist.SpringReceptionistService receptionist() {
+        if (receptionistService == null) {
+            receptionistService = new io.github.seonwkim.core.receptionist.SpringReceptionistService(
+                    this, defaultQueryTimeout);
+        }
+        return receptionistService;
     }
 
     /**
