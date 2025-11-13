@@ -2,14 +2,10 @@ package io.github.seonwkim.example;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.github.seonwkim.core.AskCommand;
-import io.github.seonwkim.core.SpringActorBehavior;
-import io.github.seonwkim.core.SpringActorContext;
-import io.github.seonwkim.core.SpringActorWithContext;
+import io.github.seonwkim.core.*;
 import io.github.seonwkim.core.serialization.JsonSerializable;
 import java.util.HashMap;
 import java.util.Map;
-import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.springframework.stereotype.Component;
 
@@ -122,18 +118,18 @@ public class ClusterMetricsAggregator
      * across the cluster.
      */
     private static class MetricsAggregatorBehavior {
-        private final ActorContext<Command> ctx;
+        private final SpringBehaviorContext<Command> ctx;
         // Map: nodeAddress -> (metricName -> MetricData)
         private final Map<String, Map<String, MetricData>> metrics;
 
-        MetricsAggregatorBehavior(ActorContext<Command> ctx) {
+        MetricsAggregatorBehavior(SpringBehaviorContext<Command> ctx) {
             this.ctx = ctx;
             this.metrics = new HashMap<>();
 
             ctx.getLog()
                     .info(
                             "Cluster Metrics Aggregator singleton started on node: {}",
-                            ctx.getSystem().address());
+                            ctx.getUnderlying().getSystem().address());
         }
 
         /**
@@ -157,7 +153,7 @@ public class ClusterMetricsAggregator
         private org.apache.pekko.actor.typed.Behavior<Command> onGetMetrics(GetMetrics msg) {
             ctx.getLog().debug("Getting all metrics (nodes: {})", metrics.size());
 
-            String nodeAddress = ctx.getSystem().address().toString();
+            String nodeAddress = ctx.getUnderlying().getSystem().address().toString();
             MetricsResponse response = new MetricsResponse(new HashMap<>(metrics), nodeAddress);
 
             msg.reply(response);
@@ -177,7 +173,7 @@ public class ClusterMetricsAggregator
                 result.put(msg.nodeAddress, new HashMap<>(nodeMetrics));
             }
 
-            String nodeAddress = ctx.getSystem().address().toString();
+            String nodeAddress = ctx.getUnderlying().getSystem().address().toString();
             MetricsResponse response = new MetricsResponse(result, nodeAddress);
 
             msg.reply(response);

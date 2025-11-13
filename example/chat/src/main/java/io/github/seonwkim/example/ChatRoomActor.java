@@ -2,32 +2,33 @@ package io.github.seonwkim.example;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.github.seonwkim.core.SpringActorRef;
+import io.github.seonwkim.core.SpringBehaviorContext;
+import io.github.seonwkim.core.pubsub.SpringTopicRef;
 import io.github.seonwkim.core.serialization.JsonSerializable;
 import io.github.seonwkim.core.shard.SpringShardedActor;
 import io.github.seonwkim.core.shard.SpringShardedActorBehavior;
 import io.github.seonwkim.core.shard.SpringShardedActorContext;
-import java.util.HashMap;
-import java.util.Map;
-import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
-import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
 import org.springframework.stereotype.Component;
 
 /**
- * Sharded actor that manages a chat room in a distributed cluster.
+ * Sharded actor that manages a chat room in a distributed cluster using pub/sub.
  *
- * <p>Each chat room is a separate entity identified by a room ID. The actor maintains
- * a list of connected users and broadcasts messages to all users in the room.
+ * <p>Each chat room is a separate entity identified by a room ID. The actor creates a pub/sub
+ * topic for the room and manages user subscriptions. Messages are broadcast to all subscribers
+ * through the topic, eliminating the need to maintain actor references.
  *
- * <p>Sharded actor benefits for chat rooms:
+ * <p>Sharded actor with pub/sub benefits:
  * <ul>
  *   <li>Automatic distribution - rooms are spread across cluster nodes
  *   <li>Location transparency - clients don't need to know which node hosts a room
- *   <li>Scalability - add more nodes to handle more rooms
- *   <li>State management - each room maintains its user list locally
+ *   <li>Scalability - pub/sub handles message distribution efficiently
+ *   <li>Decoupled communication - users subscribe/unsubscribe from topics
  *   <li>Message ordering - guaranteed per-room message ordering
+ *   <li>Simplified state - no need to maintain user actor references
  * </ul>
  */
 @Component
@@ -38,14 +39,15 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
     /** Base interface for all commands that can be sent to the chat room actor. */
     public interface Command extends JsonSerializable {}
 
-    /** Command to join a chat room. */
+    /** Command to join a chat room. Provides a topic reference for subscription. */
     public static class JoinRoom implements Command {
         public final String userId;
-        public final ActorRef<UserActor.Command> userRef;
+        public final SpringActorRef<UserActor.Command> userRef;
 
         @JsonCreator
         public JoinRoom(
-                @JsonProperty("userId") String userId, @JsonProperty("userRef") ActorRef<UserActor.Command> userRef) {
+                @JsonProperty("userId") String userId,
+                @JsonProperty("userRef") SpringActorRef<UserActor.Command> userRef) {
             this.userId = userId;
             this.userRef = userRef;
         }
@@ -83,7 +85,7 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
         final String roomId = ctx.getEntityId();
 
         return SpringShardedActorBehavior.builder(Command.class, ctx)
-                .withState(actorCtx -> new ChatRoomBehavior(actorCtx, roomId))
+                .withState(behaviorCtx -> new ChatRoomBehavior(behaviorCtx, roomId))
                 .onMessage(JoinRoom.class, ChatRoomBehavior::onJoinRoom)
                 .onMessage(LeaveRoom.class, ChatRoomBehavior::onLeaveRoom)
                 .onMessage(SendMessage.class, ChatRoomBehavior::onSendMessage)
@@ -91,81 +93,87 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
     }
 
     /**
-     * Behavior handler for chat room actor. Maintains the state of connected users
-     * and handles room operations.
+     * Behavior handler for chat room actor using pub/sub.
+     * Creates a topic for the room and publishes events to subscribers.
      */
     private static class ChatRoomBehavior {
-        private final ActorContext<Command> ctx;
+        private final SpringBehaviorContext<Command> ctx;
         private final String roomId;
-        private final Map<String, ActorRef<UserActor.Command>> connectedUsers = new HashMap<>();
+        private final SpringTopicRef<UserActor.Command> roomTopic;
+        private final java.util.Map<String, SpringActorRef<UserActor.Command>> connectedUsers = new java.util.HashMap<>();
 
-        ChatRoomBehavior(ActorContext<Command> ctx, String roomId) {
+        ChatRoomBehavior(SpringBehaviorContext<Command> ctx, String roomId) {
             this.ctx = ctx;
             this.roomId = roomId;
+            // Create a pub/sub topic for this chat room
+            this.roomTopic = ctx.createTopic(UserActor.Command.class, "chat-room-" + roomId);
+            ctx.getLog().info("Created pub/sub topic for chat room: {}", roomId);
         }
 
         /**
-         * Handles JoinRoom commands by adding the user to the room and notifying all users.
+         * Handles JoinRoom commands by subscribing the user to the room topic.
          *
          * @param msg The JoinRoom message
          * @return The next behavior (same in this case)
          */
         private Behavior<Command> onJoinRoom(JoinRoom msg) {
-            // Add the user to the connected users
+            // Track the user ref for unsubscription
             connectedUsers.put(msg.userId, msg.userRef);
+
+            // Subscribe the user to the room topic
+            roomTopic.subscribe(msg.userRef);
+
+            ctx.getLog().info("User {} joined room {} (now {} users)",
+                msg.userId, roomId, connectedUsers.size());
 
             // Notify all users that a new user has joined
             UserActor.JoinRoomEvent joinRoomEvent = new UserActor.JoinRoomEvent(msg.userId);
-            broadcastCommand(joinRoomEvent);
+            roomTopic.publish(joinRoomEvent);
 
             return Behaviors.same();
         }
 
         /**
-         * Handles LeaveRoom commands by removing the user and notifying remaining users.
+         * Handles LeaveRoom commands by unsubscribing the user from the room topic.
          *
          * @param msg The LeaveRoom message
          * @return The next behavior (same in this case)
          */
         private Behavior<Command> onLeaveRoom(LeaveRoom msg) {
-            // Remove the user from connected users
-            ActorRef<UserActor.Command> userRef = connectedUsers.remove(msg.userId);
+            // Remove the user and get their ref for unsubscription
+            SpringActorRef<UserActor.Command> userRef = connectedUsers.remove(msg.userId);
 
             if (userRef != null) {
-                // Notify the user that they left the room
-                UserActor.LeaveRoomEvent leaveRoomEvent = new UserActor.LeaveRoomEvent(msg.userId);
-                userRef.tell(leaveRoomEvent);
+                // Unsubscribe the user from the topic
+                roomTopic.unsubscribe(userRef);
+
+                ctx.getLog().info("User {} left room {} ({} users remaining)",
+                    msg.userId, roomId, connectedUsers.size());
 
                 // Notify all remaining users that a user has left
-                broadcastCommand(leaveRoomEvent);
+                UserActor.LeaveRoomEvent leaveRoomEvent = new UserActor.LeaveRoomEvent(msg.userId);
+                roomTopic.publish(leaveRoomEvent);
             }
 
             return Behaviors.same();
         }
 
         /**
-         * Handles SendMessage commands by broadcasting the message to all connected users.
+         * Handles SendMessage commands by publishing the message to the room topic.
          *
          * @param msg The SendMessage message
          * @return The next behavior (same in this case)
          */
         private Behavior<Command> onSendMessage(SendMessage msg) {
-            // Create a message received command
-            UserActor.SendMessageEvent receiveMessageCmd = new UserActor.SendMessageEvent(msg.userId, msg.message);
+            ctx.getLog().debug("Broadcasting message from {} in room {}", msg.userId, roomId);
 
-            // Broadcast the message to all connected users
-            broadcastCommand(receiveMessageCmd);
+            // Create a message event
+            UserActor.SendMessageEvent messageEvent = new UserActor.SendMessageEvent(msg.userId, msg.message);
+
+            // Publish the message to all subscribers via the topic
+            roomTopic.publish(messageEvent);
 
             return Behaviors.same();
-        }
-
-        /**
-         * Broadcasts a command to all connected users.
-         *
-         * @param command The command to broadcast
-         */
-        private void broadcastCommand(UserActor.Command command) {
-            connectedUsers.values().forEach(userRef -> userRef.tell(command));
         }
     }
 }
