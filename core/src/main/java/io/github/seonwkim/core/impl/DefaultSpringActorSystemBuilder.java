@@ -3,7 +3,6 @@ package io.github.seonwkim.core.impl;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
-import io.github.seonwkim.core.DispatcherConfig;
 import io.github.seonwkim.core.RootGuardian;
 import io.github.seonwkim.core.RootGuardianSupplierWrapper;
 import io.github.seonwkim.core.SpringActorSystem;
@@ -107,7 +106,7 @@ public class DefaultSpringActorSystemBuilder implements SpringActorSystemBuilder
                     "RootGuardianSupplierWrapper is not set. Call withRootGuardianSupplier() before build().");
         }
 
-        final Config config = ConfigFactory.parseMap(ConfigValueFactory.fromMap(applyDefaultConfiguration(configMap)))
+        final Config config = ConfigFactory.parseMap(ConfigValueFactory.fromMap(applyDefaultSerializers(configMap)))
                 .withFallback(ConfigFactory.load());
         final String name = config.hasPath("pekko.name") ? config.getString("pekko.name") : DEFAULT_SYSTEM_NAME;
 
@@ -136,19 +135,6 @@ public class DefaultSpringActorSystemBuilder implements SpringActorSystemBuilder
                 clusterSingleton,
                 applicationEventPublisher,
                 shardedActorRegistry);
-    }
-
-    /**
-     * Applies default configuration to the configuration map. This method adds default serializers
-     * and other framework-level configurations such as the virtual thread dispatcher.
-     *
-     * @param configMap The original configuration map
-     * @return A new configuration map with default configuration applied
-     */
-    private Map<String, Object> applyDefaultConfiguration(Map<String, Object> configMap) {
-        Map<String, Object> result = applyDefaultSerializers(configMap);
-        result = applyVirtualThreadDispatcherConfig(result);
-        return result;
     }
 
     /**
@@ -191,52 +177,6 @@ public class DefaultSpringActorSystemBuilder implements SpringActorSystemBuilder
         defaultBindings.forEach(bindings::putIfAbsent);
 
         return result;
-    }
-
-    /**
-     * Applies virtual thread dispatcher configuration if virtual threads are available.
-     *
-     * @param configMap The configuration map
-     * @return The configuration map with virtual thread dispatcher config applied if available
-     */
-    private Map<String, Object> applyVirtualThreadDispatcherConfig(Map<String, Object> configMap) {
-        final Map<String, Object> result = new HashMap<>(configMap);
-
-        // Apply virtual thread dispatcher configuration if available
-        Map<String, Object> virtualThreadConfig = DispatcherConfig.getVirtualThreadDispatcherConfig();
-        if (!virtualThreadConfig.isEmpty()) {
-            mergeConfigMaps(result, virtualThreadConfig);
-        }
-
-        return result;
-    }
-
-    /**
-     * Recursively merges the source map into the target map. If both maps contain a nested map for
-     * the same key, those nested maps are merged recursively. Otherwise, values from the source map
-     * are only added if the key doesn't exist in the target map (no overwriting).
-     *
-     * @param target The target map to merge into
-     * @param source The source map to merge from
-     */
-    @SuppressWarnings("unchecked")
-    private void mergeConfigMaps(Map<String, Object> target, Map<String, Object> source) {
-        for (Map.Entry<String, Object> entry : source.entrySet()) {
-            String key = entry.getKey();
-            Object sourceValue = entry.getValue();
-
-            if (target.containsKey(key)) {
-                Object targetValue = target.get(key);
-                if (targetValue instanceof Map && sourceValue instanceof Map) {
-                    // Both are maps, merge recursively
-                    mergeConfigMaps((Map<String, Object>) targetValue, (Map<String, Object>) sourceValue);
-                }
-                // If target already has a non-map value, don't overwrite
-            } else {
-                // Key doesn't exist in target, add it
-                target.put(key, sourceValue);
-            }
-        }
     }
 
     /**

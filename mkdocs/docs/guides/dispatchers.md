@@ -143,6 +143,56 @@ spring:
       throughput: 10
 ```
 
+### Virtual Thread Executor (Java 21+)
+
+If you're running on Java 21 or later, you can use Pekko's built-in virtual thread executor for actors performing blocking I/O operations. Virtual threads are lightweight threads that provide excellent scalability for blocking operations.
+
+**Benefits of Virtual Threads:**
+- Very low memory overhead (~1KB per thread vs ~1MB for platform threads)
+- Can handle millions of concurrent operations
+- Ideal for blocking I/O (database calls, HTTP requests, file operations)
+- No need for reactive programming patterns
+
+**Configuration:**
+
+```yaml
+spring:
+  actor:
+    virtual-thread-dispatcher:
+      executor: virtual-thread-executor
+```
+
+**Usage:**
+
+```java
+SpringActorRef<DatabaseActor.Command> dbActor = actorSystem
+    .actor(DatabaseActor.class)
+    .withId("db-actor")
+    .withDispatcherFromConfig("virtual-thread-dispatcher")
+    .spawnAndWait();
+```
+
+**JVM Tuning (Optional):**
+
+You can further configure virtual threads using JVM system properties:
+
+- `jdk.virtualThreadScheduler.parallelism` - Number of platform threads for virtual thread scheduling
+- `jdk.virtualThreadScheduler.maxPoolSize` - Maximum pool size for virtual thread scheduler
+- `jdk.unparker.maxPoolSize` - Maximum pool size for unparking virtual threads
+
+**Requirements:**
+- Java 21 or later
+- Suitable for blocking I/O operations only (not CPU-intensive tasks)
+
+**When to use Virtual Threads vs Thread Pool:**
+
+| Use Case | Recommended Dispatcher |
+|----------|----------------------|
+| Blocking I/O (Java 21+) | Virtual Thread Executor |
+| Blocking I/O (Java 11-17) | Thread Pool Executor |
+| CPU-intensive tasks | Fork-Join Executor (default) |
+| Non-blocking operations | Default Dispatcher |
+
 ## Blocking Operations
 
 The most important reason to use a separate dispatcher is to isolate blocking operations from the default dispatcher.
