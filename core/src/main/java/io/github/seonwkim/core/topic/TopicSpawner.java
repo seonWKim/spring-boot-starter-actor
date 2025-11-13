@@ -107,34 +107,4 @@ public final class TopicSpawner {
         return createTopic(ctx, messageType, topicName);
     }
 
-    /**
-     * Gets a reference to an existing topic, or creates it if it doesn't exist.
-     * This provides idempotent topic creation semantics.
-     *
-     * <p>Note: For system-level topics, this will always create a new topic because
-     * there's no way to check if a system actor already exists. If you try to create
-     * a topic with a name that already exists, it will throw an InvalidActorNameException.
-     *
-     * @param system The actor system to spawn the topic in
-     * @param messageType The type of messages this topic will handle
-     * @param topicName The unique name for this topic
-     * @param <M> The message type
-     * @return A reference to the topic (existing or newly created)
-     */
-    public static <M> SpringTopicRef<M> getOrCreateTopic(
-            ActorSystem<?> system, Class<M> messageType, String topicName) {
-        // For system-level topics, we can't check existence, so just try to create
-        // If it already exists, Pekko will throw InvalidActorNameException
-        try {
-            return createTopic(system, messageType, topicName);
-        } catch (Exception e) {
-            // Topic already exists - this is expected for getOrCreate semantics
-            // We need to find another way to handle this
-            // For now, we'll just throw - users should be careful with topic names
-            throw new IllegalStateException(
-                "Topic '" + topicName + "' already exists. " +
-                "System-level topics do not support true getOrCreate() semantics. " +
-                "Either use a unique name or manage topic lifecycle manually.", e);
-        }
-    }
 }

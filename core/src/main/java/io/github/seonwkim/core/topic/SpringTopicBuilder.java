@@ -2,6 +2,7 @@ package io.github.seonwkim.core.topic;
 
 import io.github.seonwkim.core.RootGuardian;
 import org.apache.pekko.actor.typed.ActorSystem;
+import io.github.seonwkim.core.SpringBehaviorContext;
 
 /**
  * Fluent builder for creating pub/sub topics at the system level.
@@ -61,38 +62,17 @@ public class SpringTopicBuilder<M> {
     /**
      * Creates a new topic with the configured name.
      *
-     * <p>Note: This will fail if a topic with the same name already exists.
-     * Use {@link #getOrCreate()} if you want idempotent creation.
+     * <p>Note: This will fail with InvalidActorNameException if a topic actor
+     * with the same name already exists. For actor-context-owned topics, use
+     * {@link SpringBehaviorContext#getOrCreateTopic} for idempotent creation.
      *
      * @return A reference to the created topic
      * @throws IllegalStateException if topic name is not set
+     * @throws org.apache.pekko.actor.InvalidActorNameException if a topic with this name exists
      */
     public SpringTopicRef<M> create() {
         String validatedName = validateTopicName();
         return TopicSpawner.createTopic(actorSystem, messageType, validatedName);
-    }
-
-    /**
-     * Gets a reference to an existing topic, or creates it if it doesn't exist.
-     * This provides idempotent topic creation semantics.
-     *
-     * @return A reference to the topic (existing or newly created)
-     * @throws IllegalStateException if topic name is not set
-     */
-    public SpringTopicRef<M> getOrCreate() {
-        String validatedName = validateTopicName();
-        return TopicSpawner.getOrCreateTopic(actorSystem, messageType, validatedName);
-    }
-
-    /**
-     * Convenience method that delegates to {@link #getOrCreate()}.
-     * Provides backward compatibility with previous API.
-     *
-     * @return A reference to the topic (existing or newly created)
-     * @throws IllegalStateException if topic name is not set
-     */
-    public SpringTopicRef<M> get() {
-        return getOrCreate();
     }
 
     private String validateTopicName() {

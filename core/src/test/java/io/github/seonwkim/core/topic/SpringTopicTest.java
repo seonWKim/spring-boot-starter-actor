@@ -655,13 +655,13 @@ class SpringTopicTest {
                     "spring.actor.pekko.loglevel=INFO",
                     "spring.actor.pekko.actor.provider=local"
             })
-    class SystemLevelTopicTest {
+    class TopicCreationViaActorSystemTest {
 
         @Test
-        void canCreateSystemLevelTopics(ApplicationContext context) throws Exception {
+        void canCreateTopicsViaActorSystem(ApplicationContext context) throws Exception {
             SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
 
-            // Test create()
+            // Create topics via actor system
             SpringTopicRef<TestMessage> topic1 = actorSystem
                     .topic(TestMessage.class)
                     .withName("system-topic-1")
@@ -670,21 +670,20 @@ class SpringTopicTest {
             assertThat(topic1).isNotNull();
             assertThat(topic1.getTopicName()).isEqualTo("system-topic-1");
 
-            // Test getOrCreate()
             SpringTopicRef<TestMessage> topic2 = actorSystem
                     .topic(TestMessage.class)
                     .withName("system-topic-2")
-                    .getOrCreate();
+                    .create();
 
             assertThat(topic2).isNotNull();
             assertThat(topic2.getTopicName()).isEqualTo("system-topic-2");
         }
 
         @Test
-        void unsubscribeFromSystemLevelTopic(ApplicationContext context) throws Exception {
+        void unsubscribeFromTopic(ApplicationContext context) throws Exception {
             SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
 
-            // Create system-level topic
+            // Create topic via actor system
             SpringTopicRef<TestMessage> topic = actorSystem
                     .topic(TestMessage.class)
                     .withName("system-unsub-topic")
@@ -735,7 +734,7 @@ class SpringTopicTest {
         }
 
         @Test
-        void throwsExceptionWhenCreatingDuplicateSystemTopic(ApplicationContext context) throws Exception {
+        void throwsExceptionWhenCreatingDuplicateTopic(ApplicationContext context) throws Exception {
             SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
 
             // Create first topic
