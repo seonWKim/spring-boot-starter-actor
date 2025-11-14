@@ -4,12 +4,12 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.github.seonwkim.core.SpringActorRef;
 import io.github.seonwkim.core.SpringBehaviorContext;
-import io.github.seonwkim.core.topic.SpringTopicManager;
-import io.github.seonwkim.core.topic.SpringTopicRef;
 import io.github.seonwkim.core.serialization.JsonSerializable;
 import io.github.seonwkim.core.shard.SpringShardedActor;
 import io.github.seonwkim.core.shard.SpringShardedActorBehavior;
 import io.github.seonwkim.core.shard.SpringShardedActorContext;
+import io.github.seonwkim.core.topic.SpringTopicManager;
+import io.github.seonwkim.core.topic.SpringTopicRef;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
@@ -95,8 +95,10 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
     @Override
     public SpringShardedActorBehavior<Command> create(SpringShardedActorContext<Command> ctx) {
         final String roomId = ctx.getEntityId();
-        final SpringTopicRef<UserActor.Command> roomTopic =
-                topicManager.topic(UserActor.Command.class).withName("chat-room-" + roomId).create();
+        final SpringTopicRef<UserActor.Command> roomTopic = topicManager
+                .topic(UserActor.Command.class)
+                .withName("chat-room-" + roomId)
+                .create();
 
         return SpringShardedActorBehavior.builder(Command.class, ctx)
                 .withState(behaviorCtx -> new ChatRoomBehavior(behaviorCtx, roomId, roomTopic))
@@ -115,7 +117,8 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
         private final String roomId;
         private final SpringTopicRef<UserActor.Command> roomTopic;
 
-        ChatRoomBehavior(SpringBehaviorContext<Command> ctx, String roomId, SpringTopicRef<UserActor.Command> roomTopic) {
+        ChatRoomBehavior(
+                SpringBehaviorContext<Command> ctx, String roomId, SpringTopicRef<UserActor.Command> roomTopic) {
             this.ctx = ctx;
             this.roomId = roomId;
             this.roomTopic = roomTopic;
@@ -131,7 +134,7 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
         private Behavior<Command> onJoinRoom(JoinRoom msg) {
             // Wrap the Pekko ActorRef in SpringActorRef for subscription
             SpringActorRef<UserActor.Command> springUserRef =
-                new SpringActorRef<>(ctx.getUnderlying().getSystem().scheduler(), msg.userActorRef);
+                    new SpringActorRef<>(ctx.getUnderlying().getSystem().scheduler(), msg.userActorRef);
 
             // Subscribe the user to the room topic
             roomTopic.subscribe(springUserRef);
@@ -154,7 +157,7 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
         private Behavior<Command> onLeaveRoom(LeaveRoom msg) {
             // Wrap the Pekko ActorRef in SpringActorRef for unsubscription
             SpringActorRef<UserActor.Command> springUserRef =
-                new SpringActorRef<>(ctx.getUnderlying().getSystem().scheduler(), msg.userActorRef);
+                    new SpringActorRef<>(ctx.getUnderlying().getSystem().scheduler(), msg.userActorRef);
 
             // Unsubscribe the user from the topic
             roomTopic.unsubscribe(springUserRef);

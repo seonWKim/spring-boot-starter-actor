@@ -1,21 +1,20 @@
 package io.github.seonwkim.core.topic;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.github.seonwkim.core.*;
 import io.github.seonwkim.core.serialization.JsonSerializable;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.test.annotation.DirtiesContext;
-
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Cluster tests for SpringTopicManager to verify distributed pub/sub functionality.
@@ -44,9 +43,7 @@ class SpringTopicClusterTest extends AbstractClusterTest {
         public final String nodeId;
 
         @JsonCreator
-        public ClusterMessage(
-                @JsonProperty("content") String content,
-                @JsonProperty("nodeId") String nodeId) {
+        public ClusterMessage(@JsonProperty("content") String content, @JsonProperty("nodeId") String nodeId) {
             this.content = content;
             this.nodeId = nodeId;
         }
@@ -70,38 +67,35 @@ class SpringTopicClusterTest extends AbstractClusterTest {
         SpringActorSystem system3 = context3.getBean(SpringActorSystem.class);
 
         // Create topic on node 1
-        SpringTopicRef<ClusterMessage> topic1 = manager1
-                .topic(ClusterMessage.class)
+        SpringTopicRef<ClusterMessage> topic1 = manager1.topic(ClusterMessage.class)
                 .withName("messageDistributesAcrossAllNodesInCluster-topic")
                 .create();
 
         Thread.sleep(1000); // Wait for cluster propagation
 
         // Get same topic on other nodes
-        SpringTopicRef<ClusterMessage> topic2 = manager2
-                .topic(ClusterMessage.class)
+        SpringTopicRef<ClusterMessage> topic2 = manager2.topic(ClusterMessage.class)
                 .withName("messageDistributesAcrossAllNodesInCluster-topic")
                 .getOrCreate();
 
-        SpringTopicRef<ClusterMessage> topic3 = manager3
-                .topic(ClusterMessage.class)
+        SpringTopicRef<ClusterMessage> topic3 = manager3.topic(ClusterMessage.class)
                 .withName("messageDistributesAcrossAllNodesInCluster-topic")
                 .getOrCreate();
 
         // Create subscribers on each node
-        SpringActorRef<ClusterMessage> sub1 = system1
-                .actor(ClusterSubscriberActor.class)
-                .withContext(new ClusterSubscriberActor.SubscriberContext(latch, messageCount, "messageDistributesAcrossAllNodesInCluster-sub-1"))
+        SpringActorRef<ClusterMessage> sub1 = system1.actor(ClusterSubscriberActor.class)
+                .withContext(new ClusterSubscriberActor.SubscriberContext(
+                        latch, messageCount, "messageDistributesAcrossAllNodesInCluster-sub-1"))
                 .spawnAndWait();
 
-        SpringActorRef<ClusterMessage> sub2 = system2
-                .actor(ClusterSubscriberActor.class)
-                .withContext(new ClusterSubscriberActor.SubscriberContext(latch, messageCount, "messageDistributesAcrossAllNodesInCluster-sub-2"))
+        SpringActorRef<ClusterMessage> sub2 = system2.actor(ClusterSubscriberActor.class)
+                .withContext(new ClusterSubscriberActor.SubscriberContext(
+                        latch, messageCount, "messageDistributesAcrossAllNodesInCluster-sub-2"))
                 .spawnAndWait();
 
-        SpringActorRef<ClusterMessage> sub3 = system3
-                .actor(ClusterSubscriberActor.class)
-                .withContext(new ClusterSubscriberActor.SubscriberContext(latch, messageCount, "messageDistributesAcrossAllNodesInCluster-sub-3"))
+        SpringActorRef<ClusterMessage> sub3 = system3.actor(ClusterSubscriberActor.class)
+                .withContext(new ClusterSubscriberActor.SubscriberContext(
+                        latch, messageCount, "messageDistributesAcrossAllNodesInCluster-sub-3"))
                 .spawnAndWait();
 
         topic1.subscribe(sub1);
@@ -131,32 +125,29 @@ class SpringTopicClusterTest extends AbstractClusterTest {
         SpringActorSystem system2 = context2.getBean(SpringActorSystem.class);
 
         // Create topic
-        SpringTopicRef<ClusterMessage> topic1 = manager1
-                .topic(ClusterMessage.class)
+        SpringTopicRef<ClusterMessage> topic1 = manager1.topic(ClusterMessage.class)
                 .withName("publishFromDifferentNodesReachesAllSubscribers-topic")
                 .create();
 
         Thread.sleep(1000); // Wait for topic creation to propagate
 
-        SpringTopicRef<ClusterMessage> topic2 = manager2
-                .topic(ClusterMessage.class)
+        SpringTopicRef<ClusterMessage> topic2 = manager2.topic(ClusterMessage.class)
                 .withName("publishFromDifferentNodesReachesAllSubscribers-topic")
                 .getOrCreate();
 
-        SpringTopicRef<ClusterMessage> topic3 = manager3
-                .topic(ClusterMessage.class)
+        SpringTopicRef<ClusterMessage> topic3 = manager3.topic(ClusterMessage.class)
                 .withName("publishFromDifferentNodesReachesAllSubscribers-topic")
                 .getOrCreate();
 
         // Create 2 subscribers on different nodes
-        SpringActorRef<ClusterMessage> sub1 = system1
-                .actor(ClusterSubscriberActor.class)
-                .withContext(new ClusterSubscriberActor.SubscriberContext(latch, messageCount, "publishFromDifferentNodesReachesAllSubscribers-sub-1"))
+        SpringActorRef<ClusterMessage> sub1 = system1.actor(ClusterSubscriberActor.class)
+                .withContext(new ClusterSubscriberActor.SubscriberContext(
+                        latch, messageCount, "publishFromDifferentNodesReachesAllSubscribers-sub-1"))
                 .spawnAndWait();
 
-        SpringActorRef<ClusterMessage> sub2 = system2
-                .actor(ClusterSubscriberActor.class)
-                .withContext(new ClusterSubscriberActor.SubscriberContext(latch, messageCount, "publishFromDifferentNodesReachesAllSubscribers-sub-2"))
+        SpringActorRef<ClusterMessage> sub2 = system2.actor(ClusterSubscriberActor.class)
+                .withContext(new ClusterSubscriberActor.SubscriberContext(
+                        latch, messageCount, "publishFromDifferentNodesReachesAllSubscribers-sub-2"))
                 .spawnAndWait();
 
         topic1.subscribe(sub1);
@@ -188,27 +179,25 @@ class SpringTopicClusterTest extends AbstractClusterTest {
         SpringActorSystem system1 = context1.getBean(SpringActorSystem.class);
         SpringActorSystem system2 = context2.getBean(SpringActorSystem.class);
 
-        SpringTopicRef<ClusterMessage> topic1 = manager1
-                .topic(ClusterMessage.class)
+        SpringTopicRef<ClusterMessage> topic1 = manager1.topic(ClusterMessage.class)
                 .withName("unsubscribeOnOneNodeStopsMessagesOnlyForThatNode-topic")
                 .create();
 
         Thread.sleep(1000); // Wait for topic creation to propagate
 
-        SpringTopicRef<ClusterMessage> topic2 = manager2
-                .topic(ClusterMessage.class)
+        SpringTopicRef<ClusterMessage> topic2 = manager2.topic(ClusterMessage.class)
                 .withName("unsubscribeOnOneNodeStopsMessagesOnlyForThatNode-topic")
                 .getOrCreate();
 
         // Create subscribers
-        SpringActorRef<ClusterMessage> sub1 = system1
-                .actor(ClusterSubscriberActor.class)
-                .withContext(new ClusterSubscriberActor.SubscriberContext(latch, count1, "unsubscribeOnOneNodeStopsMessagesOnlyForThatNode-sub-1"))
+        SpringActorRef<ClusterMessage> sub1 = system1.actor(ClusterSubscriberActor.class)
+                .withContext(new ClusterSubscriberActor.SubscriberContext(
+                        latch, count1, "unsubscribeOnOneNodeStopsMessagesOnlyForThatNode-sub-1"))
                 .spawnAndWait();
 
-        SpringActorRef<ClusterMessage> sub2 = system2
-                .actor(ClusterSubscriberActor.class)
-                .withContext(new ClusterSubscriberActor.SubscriberContext(latch, count2, "unsubscribeOnOneNodeStopsMessagesOnlyForThatNode-sub-2"))
+        SpringActorRef<ClusterMessage> sub2 = system2.actor(ClusterSubscriberActor.class)
+                .withContext(new ClusterSubscriberActor.SubscriberContext(
+                        latch, count2, "unsubscribeOnOneNodeStopsMessagesOnlyForThatNode-sub-2"))
                 .spawnAndWait();
 
         topic1.subscribe(sub1);
@@ -251,48 +240,44 @@ class SpringTopicClusterTest extends AbstractClusterTest {
         SpringActorSystem system2 = context2.getBean(SpringActorSystem.class);
 
         // Create two different topics
-        SpringTopicRef<ClusterMessage> topicA1 = manager1
-                .topic(ClusterMessage.class)
+        SpringTopicRef<ClusterMessage> topicA1 = manager1.topic(ClusterMessage.class)
                 .withName("multipleTopicsWorkIndependentlyAcrossCluster-topic-a")
                 .create();
 
-        SpringTopicRef<ClusterMessage> topicB1 = manager1
-                .topic(ClusterMessage.class)
+        SpringTopicRef<ClusterMessage> topicB1 = manager1.topic(ClusterMessage.class)
                 .withName("multipleTopicsWorkIndependentlyAcrossCluster-topic-b")
                 .create();
 
         Thread.sleep(1000); // Wait for topic creation to propagate
 
-        SpringTopicRef<ClusterMessage> topicA2 = manager2
-                .topic(ClusterMessage.class)
+        SpringTopicRef<ClusterMessage> topicA2 = manager2.topic(ClusterMessage.class)
                 .withName("multipleTopicsWorkIndependentlyAcrossCluster-topic-a")
                 .getOrCreate();
 
-        SpringTopicRef<ClusterMessage> topicB2 = manager2
-                .topic(ClusterMessage.class)
+        SpringTopicRef<ClusterMessage> topicB2 = manager2.topic(ClusterMessage.class)
                 .withName("multipleTopicsWorkIndependentlyAcrossCluster-topic-b")
                 .getOrCreate();
 
         // Subscribers for topic A
-        SpringActorRef<ClusterMessage> subA1 = system1
-                .actor(ClusterSubscriberActor.class)
-                .withContext(new ClusterSubscriberActor.SubscriberContext(topicALatch, countA, "multipleTopicsWorkIndependentlyAcrossCluster-sub-a-1"))
+        SpringActorRef<ClusterMessage> subA1 = system1.actor(ClusterSubscriberActor.class)
+                .withContext(new ClusterSubscriberActor.SubscriberContext(
+                        topicALatch, countA, "multipleTopicsWorkIndependentlyAcrossCluster-sub-a-1"))
                 .spawnAndWait();
 
-        SpringActorRef<ClusterMessage> subA2 = system2
-                .actor(ClusterSubscriberActor.class)
-                .withContext(new ClusterSubscriberActor.SubscriberContext(topicALatch, countA, "multipleTopicsWorkIndependentlyAcrossCluster-sub-a-2"))
+        SpringActorRef<ClusterMessage> subA2 = system2.actor(ClusterSubscriberActor.class)
+                .withContext(new ClusterSubscriberActor.SubscriberContext(
+                        topicALatch, countA, "multipleTopicsWorkIndependentlyAcrossCluster-sub-a-2"))
                 .spawnAndWait();
 
         // Subscribers for topic B
-        SpringActorRef<ClusterMessage> subB1 = system1
-                .actor(ClusterSubscriberActor.class)
-                .withContext(new ClusterSubscriberActor.SubscriberContext(topicBLatch, countB, "multipleTopicsWorkIndependentlyAcrossCluster-sub-b-1"))
+        SpringActorRef<ClusterMessage> subB1 = system1.actor(ClusterSubscriberActor.class)
+                .withContext(new ClusterSubscriberActor.SubscriberContext(
+                        topicBLatch, countB, "multipleTopicsWorkIndependentlyAcrossCluster-sub-b-1"))
                 .spawnAndWait();
 
-        SpringActorRef<ClusterMessage> subB2 = system2
-                .actor(ClusterSubscriberActor.class)
-                .withContext(new ClusterSubscriberActor.SubscriberContext(topicBLatch, countB, "multipleTopicsWorkIndependentlyAcrossCluster-sub-b-2"))
+        SpringActorRef<ClusterMessage> subB2 = system2.actor(ClusterSubscriberActor.class)
+                .withContext(new ClusterSubscriberActor.SubscriberContext(
+                        topicBLatch, countB, "multipleTopicsWorkIndependentlyAcrossCluster-sub-b-2"))
                 .spawnAndWait();
 
         topicA1.subscribe(subA1);
@@ -327,22 +312,20 @@ class SpringTopicClusterTest extends AbstractClusterTest {
         SpringActorSystem system2 = context2.getBean(SpringActorSystem.class);
 
         // Create topic on node 1
-        SpringTopicRef<ClusterMessage> topic1 = manager1
-                .topic(ClusterMessage.class)
+        SpringTopicRef<ClusterMessage> topic1 = manager1.topic(ClusterMessage.class)
                 .withName("subscriberOnOneNodeCanReceiveFromAnotherNode-topic")
                 .create();
 
         Thread.sleep(1000); // Wait for topic creation to propagate
 
-        SpringTopicRef<ClusterMessage> topic2 = manager2
-                .topic(ClusterMessage.class)
+        SpringTopicRef<ClusterMessage> topic2 = manager2.topic(ClusterMessage.class)
                 .withName("subscriberOnOneNodeCanReceiveFromAnotherNode-topic")
                 .getOrCreate();
 
         // Create subscriber ONLY on node 2
-        SpringActorRef<ClusterMessage> sub2 = system2
-                .actor(ClusterSubscriberActor.class)
-                .withContext(new ClusterSubscriberActor.SubscriberContext(latch, messageCount, "subscriberOnOneNodeCanReceiveFromAnotherNode-sub-2"))
+        SpringActorRef<ClusterMessage> sub2 = system2.actor(ClusterSubscriberActor.class)
+                .withContext(new ClusterSubscriberActor.SubscriberContext(
+                        latch, messageCount, "subscriberOnOneNodeCanReceiveFromAnotherNode-sub-2"))
                 .spawnAndWait();
 
         topic2.subscribe(sub2);
@@ -357,7 +340,8 @@ class SpringTopicClusterTest extends AbstractClusterTest {
 
     // ========== Test Actor Implementation ==========
 
-    public static class ClusterSubscriberActor implements SpringActorWithContext<ClusterMessage, ClusterSubscriberActor.SubscriberContext> {
+    public static class ClusterSubscriberActor
+            implements SpringActorWithContext<ClusterMessage, ClusterSubscriberActor.SubscriberContext> {
 
         public static class SubscriberContext extends SpringActorContext {
             final CountDownLatch latch;

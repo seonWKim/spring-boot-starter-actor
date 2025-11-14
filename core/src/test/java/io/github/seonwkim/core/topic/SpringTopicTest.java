@@ -1,9 +1,14 @@
 package io.github.seonwkim.core.topic;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.github.seonwkim.core.*;
 import io.github.seonwkim.core.serialization.JsonSerializable;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.junit.jupiter.api.Test;
@@ -12,22 +17,11 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
 
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import static org.junit.jupiter.api.Assertions.*;
-
 /**
  * Comprehensive tests for SpringTopicManager pub/sub functionality.
  * Tests basic operations, edge cases, and lifecycle management.
  */
-@SpringBootTest(
-    properties = {
-        "spring.actor.pekko.name=topic-test",
-        "spring.actor.pekko.actor.provider=local"
-    }
-)
+@SpringBootTest(properties = {"spring.actor.pekko.name=topic-test", "spring.actor.pekko.actor.provider=local"})
 class SpringTopicTest {
 
     @Autowired
@@ -67,10 +61,8 @@ class SpringTopicTest {
         AtomicInteger messageCount = new AtomicInteger(0);
 
         // Create topic
-        SpringTopicRef<TestMessage> topic = topicManager
-                .topic(TestMessage.class)
-                .withName("basic-topic")
-                .create();
+        SpringTopicRef<TestMessage> topic =
+                topicManager.topic(TestMessage.class).withName("basic-topic").create();
 
         // Create subscriber
         SpringActorRef<TestMessage> subscriber = actorSystem
@@ -131,14 +123,13 @@ class SpringTopicTest {
         CountDownLatch secondLatch = new CountDownLatch(1);
         AtomicInteger messageCount = new AtomicInteger(0);
 
-        SpringTopicRef<TestMessage> topic = topicManager
-                .topic(TestMessage.class)
-                .withName("unsub-topic")
-                .create();
+        SpringTopicRef<TestMessage> topic =
+                topicManager.topic(TestMessage.class).withName("unsub-topic").create();
 
         SpringActorRef<TestMessage> subscriber = actorSystem
                 .actor(SubscriberActor.class)
-                .withContext(new SubscriberActor.SubscriberContext(firstLatch, messageCount, "unsubscribeStopsReceivingMessages-sub-1"))
+                .withContext(new SubscriberActor.SubscriberContext(
+                        firstLatch, messageCount, "unsubscribeStopsReceivingMessages-sub-1"))
                 .spawnAndWait();
 
         // Subscribe and receive first message
@@ -154,8 +145,7 @@ class SpringTopicTest {
 
         // Publish second message - should NOT be received
         topic.publish(new TestMessage("Second"));
-        assertFalse(secondLatch.await(2, TimeUnit.SECONDS),
-                "Subscriber should not receive message after unsubscribe");
+        assertFalse(secondLatch.await(2, TimeUnit.SECONDS), "Subscriber should not receive message after unsubscribe");
         assertEquals(1, messageCount.get(), "Message count should remain at 1");
     }
 
@@ -173,17 +163,20 @@ class SpringTopicTest {
 
         SpringActorRef<TestMessage> sub1 = actorSystem
                 .actor(SubscriberActor.class)
-                .withContext(new SubscriberActor.SubscriberContext(new CountDownLatch(1), count1, "partialUnsubscribeOtherSubscribersContinue-sub-1"))
+                .withContext(new SubscriberActor.SubscriberContext(
+                        new CountDownLatch(1), count1, "partialUnsubscribeOtherSubscribersContinue-sub-1"))
                 .spawnAndWait();
 
         SpringActorRef<TestMessage> sub2 = actorSystem
                 .actor(SubscriberActor.class)
-                .withContext(new SubscriberActor.SubscriberContext(latch, count2, "partialUnsubscribeOtherSubscribersContinue-sub-2"))
+                .withContext(new SubscriberActor.SubscriberContext(
+                        latch, count2, "partialUnsubscribeOtherSubscribersContinue-sub-2"))
                 .spawnAndWait();
 
         SpringActorRef<TestMessage> sub3 = actorSystem
                 .actor(SubscriberActor.class)
-                .withContext(new SubscriberActor.SubscriberContext(latch, count3, "partialUnsubscribeOtherSubscribersContinue-sub-3"))
+                .withContext(new SubscriberActor.SubscriberContext(
+                        latch, count3, "partialUnsubscribeOtherSubscribersContinue-sub-3"))
                 .spawnAndWait();
 
         topic.subscribe(sub1);
@@ -208,10 +201,8 @@ class SpringTopicTest {
 
     @Test
     void publishToTopicWithNoSubscribers() throws Exception {
-        SpringTopicRef<TestMessage> topic = topicManager
-                .topic(TestMessage.class)
-                .withName("empty-topic")
-                .create();
+        SpringTopicRef<TestMessage> topic =
+                topicManager.topic(TestMessage.class).withName("empty-topic").create();
 
         // Should not throw exception
         assertDoesNotThrow(() -> topic.publish(new TestMessage("No subscribers")));
@@ -222,14 +213,13 @@ class SpringTopicTest {
         CountDownLatch latch = new CountDownLatch(1);
         AtomicInteger messageCount = new AtomicInteger(0);
 
-        SpringTopicRef<TestMessage> topic = topicManager
-                .topic(TestMessage.class)
-                .withName("dup-sub-topic")
-                .create();
+        SpringTopicRef<TestMessage> topic =
+                topicManager.topic(TestMessage.class).withName("dup-sub-topic").create();
 
         SpringActorRef<TestMessage> subscriber = actorSystem
                 .actor(SubscriberActor.class)
-                .withContext(new SubscriberActor.SubscriberContext(latch, messageCount, "duplicateSubscribeIsSafe-sub-1"))
+                .withContext(
+                        new SubscriberActor.SubscriberContext(latch, messageCount, "duplicateSubscribeIsSafe-sub-1"))
                 .spawnAndWait();
 
         // Subscribe twice
@@ -253,7 +243,8 @@ class SpringTopicTest {
 
         SpringActorRef<TestMessage> subscriber = actorSystem
                 .actor(SubscriberActor.class)
-                .withContext(new SubscriberActor.SubscriberContext(new CountDownLatch(1), new AtomicInteger(0), "unsubscribeNonSubscribedActorIsSafe-sub-1"))
+                .withContext(new SubscriberActor.SubscriberContext(
+                        new CountDownLatch(1), new AtomicInteger(0), "unsubscribeNonSubscribedActorIsSafe-sub-1"))
                 .spawnAndWait();
 
         // Unsubscribe without subscribing first - should not throw
@@ -281,7 +272,8 @@ class SpringTopicTest {
 
         SpringActorRef<TestMessage> subscriber = actorSystem
                 .actor(SubscriberActor.class)
-                .withContext(new SubscriberActor.SubscriberContext(latch, messageCount, "getOrCreateIsIdempotent-sub-1"))
+                .withContext(
+                        new SubscriberActor.SubscriberContext(latch, messageCount, "getOrCreateIsIdempotent-sub-1"))
                 .spawnAndWait();
 
         topic1.subscribe(subscriber);
@@ -299,15 +291,11 @@ class SpringTopicTest {
         AtomicInteger countA = new AtomicInteger(0);
         AtomicInteger countB = new AtomicInteger(0);
 
-        SpringTopicRef<TestMessage> topicA = topicManager
-                .topic(TestMessage.class)
-                .withName("topic-a")
-                .create();
+        SpringTopicRef<TestMessage> topicA =
+                topicManager.topic(TestMessage.class).withName("topic-a").create();
 
-        SpringTopicRef<TestMessage> topicB = topicManager
-                .topic(TestMessage.class)
-                .withName("topic-b")
-                .create();
+        SpringTopicRef<TestMessage> topicB =
+                topicManager.topic(TestMessage.class).withName("topic-b").create();
 
         SpringActorRef<TestMessage> subA = actorSystem
                 .actor(SubscriberActor.class)
@@ -338,7 +326,8 @@ class SpringTopicTest {
 
     // ========== Test Actor Implementations ==========
 
-    public static class SubscriberActor implements SpringActorWithContext<TestMessage, SubscriberActor.SubscriberContext> {
+    public static class SubscriberActor
+            implements SpringActorWithContext<TestMessage, SubscriberActor.SubscriberContext> {
 
         public static class SubscriberContext extends SpringActorContext {
             final CountDownLatch latch;
@@ -380,7 +369,8 @@ class SpringTopicTest {
         }
     }
 
-    public static class TopicCreatorActor implements SpringActorWithContext<TopicCreatorActor.Command, TopicCreatorActor.CreatorContext> {
+    public static class TopicCreatorActor
+            implements SpringActorWithContext<TopicCreatorActor.Command, TopicCreatorActor.CreatorContext> {
 
         public interface Command extends JsonSerializable {}
 

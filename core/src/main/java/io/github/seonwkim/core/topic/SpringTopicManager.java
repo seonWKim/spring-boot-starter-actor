@@ -2,11 +2,10 @@ package io.github.seonwkim.core.topic;
 
 import io.github.seonwkim.core.RootGuardian;
 import io.github.seonwkim.core.SpringActorSystem;
+import java.time.Duration;
+import javax.annotation.Nullable;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.javadsl.AskPattern;
-
-import javax.annotation.Nullable;
-import java.time.Duration;
 
 /**
  * Service for managing pub/sub topics with Spring DI.
@@ -37,8 +36,9 @@ public class SpringTopicManager {
     public static class TopicBuilder<T> {
         private final Class<T> messageType;
         private final SpringActorSystem actorSystem;
-        @Nullable
-        private String name;
+
+        @Nullable private String name;
+
         private Duration timeout = Duration.ofSeconds(5);
 
         TopicBuilder(Class<T> messageType, SpringActorSystem actorSystem) {
@@ -81,14 +81,14 @@ public class SpringTopicManager {
 
             try {
                 return AskPattern.ask(
-                        actorSystem.getRaw(),
-                        (ActorRef<RootGuardian.TopicCreated<T>> replyTo) ->
-                                new RootGuardian.CreateTopic<>(messageType, topicName, replyTo),
-                        timeout,
-                        actorSystem.getRaw().scheduler()
-                ).thenApply(response -> response.topicRef)
-                .toCompletableFuture()
-                .get();
+                                actorSystem.getRaw(),
+                                (ActorRef<RootGuardian.TopicCreated<T>> replyTo) ->
+                                        new RootGuardian.CreateTopic<>(messageType, topicName, replyTo),
+                                timeout,
+                                actorSystem.getRaw().scheduler())
+                        .thenApply(response -> response.topicRef)
+                        .toCompletableFuture()
+                        .get();
             } catch (Exception e) {
                 throw new RuntimeException("Failed to create topic: " + topicName, e);
             }
@@ -107,14 +107,14 @@ public class SpringTopicManager {
 
             try {
                 return AskPattern.ask(
-                        actorSystem.getRaw(),
-                        (ActorRef<RootGuardian.TopicCreated<T>> replyTo) ->
-                                new RootGuardian.GetOrCreateTopic<>(messageType, topicName, replyTo),
-                        timeout,
-                        actorSystem.getRaw().scheduler()
-                ).thenApply(response -> response.topicRef)
-                .toCompletableFuture()
-                .get();
+                                actorSystem.getRaw(),
+                                (ActorRef<RootGuardian.TopicCreated<T>> replyTo) ->
+                                        new RootGuardian.GetOrCreateTopic<>(messageType, topicName, replyTo),
+                                timeout,
+                                actorSystem.getRaw().scheduler())
+                        .thenApply(response -> response.topicRef)
+                        .toCompletableFuture()
+                        .get();
             } catch (Exception e) {
                 throw new RuntimeException("Failed to get or create topic: " + topicName, e);
             }

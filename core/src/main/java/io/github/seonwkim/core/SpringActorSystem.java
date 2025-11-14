@@ -74,8 +74,7 @@ public class SpringActorSystem implements DisposableBean {
      * @param shardedActorRegistry The sharded actor registry (for type resolution)
      */
     public SpringActorSystem(
-            ActorSystem<RootGuardian.Command> actorSystem,
-            @Nullable ShardedActorRegistry shardedActorRegistry) {
+            ActorSystem<RootGuardian.Command> actorSystem, @Nullable ShardedActorRegistry shardedActorRegistry) {
         this.actorSystem = actorSystem;
         this.cluster = null;
         this.clusterSharding = null;

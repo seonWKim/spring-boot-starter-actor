@@ -2,6 +2,7 @@ package io.github.seonwkim.example.supervision;
 
 import io.github.seonwkim.core.ActorTypeRegistry;
 import io.github.seonwkim.core.SpringActorContext;
+import io.github.seonwkim.core.SpringBehaviorContext;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -9,8 +10,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-
-import io.github.seonwkim.core.SpringBehaviorContext;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.PostStop;

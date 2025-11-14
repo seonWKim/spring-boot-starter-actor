@@ -126,8 +126,7 @@ public class MdcIntegrationTest {
             return SpringActorBehavior.builder(TestCommand.class, actorContext)
                     .onMessage(Ping.class, (ctx, msg) -> {
                         ctx.getLog().info("Static MDC actor received: {}", msg.message);
-                        msg.reply(new Pong(
-                                "Pong: " + msg.message, ctx.path().toString()));
+                        msg.reply(new Pong("Pong: " + msg.message, ctx.path().toString()));
                         return Behaviors.same();
                     })
                     .build();
@@ -147,8 +146,7 @@ public class MdcIntegrationTest {
                     })
                     .onMessage(Ping.class, (ctx, msg) -> {
                         ctx.getLog().info("Dynamic MDC actor received: {}", msg.message);
-                        msg.reply(new Pong(
-                                "Pong: " + msg.message, ctx.path().toString()));
+                        msg.reply(new Pong("Pong: " + msg.message, ctx.path().toString()));
                         return Behaviors.same();
                     })
                     .build();
@@ -172,8 +170,7 @@ public class MdcIntegrationTest {
                     })
                     .onMessage(Ping.class, (ctx, msg) -> {
                         ctx.getLog().info("Combined MDC actor received: {}", msg.message);
-                        msg.reply(new Pong(
-                                "Pong: " + msg.message, ctx.path().toString()));
+                        msg.reply(new Pong("Pong: " + msg.message, ctx.path().toString()));
                         return Behaviors.same();
                     })
                     .build();
@@ -186,8 +183,7 @@ public class MdcIntegrationTest {
             return SpringActorBehavior.builder(TestCommand.class, actorContext)
                     .onMessage(Ping.class, (ctx, msg) -> {
                         ctx.getLog().info("Parent received: {}", msg.message);
-                        msg.reply(new Pong(
-                                "Pong: " + msg.message, ctx.path().toString()));
+                        msg.reply(new Pong("Pong: " + msg.message, ctx.path().toString()));
                         return Behaviors.same();
                     })
                     .build();
@@ -211,8 +207,7 @@ public class MdcIntegrationTest {
                     })
                     .onMessage(Ping.class, (ctx, msg) -> {
                         ctx.getLog().info("Child received: {}", msg.message);
-                        msg.reply(new Pong(
-                                "Pong: " + msg.message, ctx.path().toString()));
+                        msg.reply(new Pong("Pong: " + msg.message, ctx.path().toString()));
                         return Behaviors.same();
                     })
                     .build();

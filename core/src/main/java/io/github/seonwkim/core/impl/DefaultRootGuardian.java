@@ -152,12 +152,10 @@ public class DefaultRootGuardian implements RootGuardian {
      */
     @SuppressWarnings("unchecked")
     private <T> Behavior<RootGuardian.Command> handleCreateTopic(CreateTopic<T> msg) {
-        ActorRef<Topic.Command<Object>> topicActor = ctx.spawn(
-                Topic.create((Class<Object>) msg.messageType, msg.topicName),
-                msg.topicName
-        );
+        ActorRef<Topic.Command<Object>> topicActor =
+                ctx.spawn(Topic.create((Class<Object>) msg.messageType, msg.topicName), msg.topicName);
         SpringTopicRef<Object> topicRef = new SpringTopicRef<>(topicActor, msg.topicName);
-        
+
         // Cast is safe because we're creating the topic with the correct type
         ((ActorRef<TopicCreated<Object>>) (ActorRef<?>) msg.replyTo).tell(new TopicCreated<>(topicRef));
         return Behaviors.same();
@@ -182,20 +180,18 @@ public class DefaultRootGuardian implements RootGuardian {
     private <T> Behavior<RootGuardian.Command> handleGetOrCreateTopic(GetOrCreateTopic<T> msg) {
         // Try to get existing topic
         SpringTopicRef<Object> topicRef;
-        
+
         ActorRef<?> existingRef = ctx.getChild(msg.topicName).orElse(null);
-        
+
         if (existingRef != null) {
             topicRef = new SpringTopicRef<>((ActorRef<Topic.Command<Object>>) existingRef, msg.topicName);
         } else {
             // Create new topic
-            ActorRef<Topic.Command<Object>> topicActor = ctx.spawn(
-                    Topic.create((Class<Object>) msg.messageType, msg.topicName),
-                    msg.topicName
-            );
+            ActorRef<Topic.Command<Object>> topicActor =
+                    ctx.spawn(Topic.create((Class<Object>) msg.messageType, msg.topicName), msg.topicName);
             topicRef = new SpringTopicRef<>(topicActor, msg.topicName);
         }
-        
+
         ((ActorRef<TopicCreated<Object>>) (ActorRef<?>) msg.replyTo).tell(new TopicCreated<>(topicRef));
         return Behaviors.same();
     }

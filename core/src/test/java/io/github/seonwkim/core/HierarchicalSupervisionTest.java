@@ -11,7 +11,6 @@ import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.PostStop;
 import org.apache.pekko.actor.typed.PreRestart;
 import org.apache.pekko.actor.typed.SupervisorStrategy;
-import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -98,7 +97,8 @@ class HierarchicalSupervisionTest {
             private final TaskLogger taskLogger;
             private int tasksCompleted = 0;
 
-            ChildWorkerBehavior(SpringBehaviorContext<Command> ctx, SpringActorContext actorContext, TaskLogger taskLogger) {
+            ChildWorkerBehavior(
+                    SpringBehaviorContext<Command> ctx, SpringActorContext actorContext, TaskLogger taskLogger) {
                 this.ctx = ctx;
                 this.actorContext = actorContext;
                 this.taskLogger = taskLogger;
@@ -201,9 +201,12 @@ class HierarchicalSupervisionTest {
                 SpringActorRef<Command> self = ctx.getSelf();
 
                 // Try to get existing child first
-                ctx.getUnderlying().pipeToSelf(
-                        self.child(ChildWorkerActor.class, msg.workerId).get().thenApply(opt -> opt.orElse(null)),
-                        (childRef, failure) -> new ChildReady(msg, childRef, failure));
+                ctx.getUnderlying()
+                        .pipeToSelf(
+                                self.child(ChildWorkerActor.class, msg.workerId)
+                                        .get()
+                                        .thenApply(opt -> opt.orElse(null)),
+                                (childRef, failure) -> new ChildReady(msg, childRef, failure));
 
                 return Behaviors.same();
             }
@@ -233,12 +236,13 @@ class HierarchicalSupervisionTest {
                 SpringActorRef<Command> self = ctx.getSelf();
 
                 // Spawn child using SpringActorRef unified API
-                ctx.getUnderlying().pipeToSelf(
-                        self.child(ChildWorkerActor.class)
-                                .withId(msg.workerId)
-                                .withSupervisionStrategy(strategy)
-                                .spawn(),
-                        (childRef, failure) -> new ChildReady(msg, childRef, failure));
+                ctx.getUnderlying()
+                        .pipeToSelf(
+                                self.child(ChildWorkerActor.class)
+                                        .withId(msg.workerId)
+                                        .withSupervisionStrategy(strategy)
+                                        .spawn(),
+                                (childRef, failure) -> new ChildReady(msg, childRef, failure));
 
                 return Behaviors.same();
             }
