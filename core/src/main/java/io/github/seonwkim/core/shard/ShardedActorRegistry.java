@@ -28,6 +28,7 @@ public final class ShardedActorRegistry {
     /**
      * Registers a sharded actor, indexed by both type key and class.
      *
+     * @param <T> The command type that the sharded actor handles
      * @param actor Sharded actor to register
      */
     public static <T> void register(SpringShardedActor<T> actor) {
@@ -38,6 +39,7 @@ public final class ShardedActorRegistry {
     /**
      * Retrieves a sharded actor by its entity type key.
      *
+     * @param <T> The command type that the sharded actor handles
      * @param typeKey Entity type key of the actor
      * @return Sharded actor, or null if not found
      */
@@ -50,6 +52,7 @@ public final class ShardedActorRegistry {
     /**
      * Retrieves a sharded actor by its class.
      *
+     * @param <T> The command type that the sharded actor handles
      * @param actorClass Class of the sharded actor
      * @return Sharded actor, or null if not found
      */

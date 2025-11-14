@@ -24,6 +24,8 @@ public final class ActorTypeRegistry {
     /**
      * Registers an actor behavior factory.
      *
+     * @param <C> The command type that the actor handles
+     * @param <CTX> The context type that the actor requires
      * @param actorClass Actor class to register
      * @param factory Factory for creating actor behaviors
      */
@@ -48,6 +50,12 @@ public final class ActorTypeRegistry {
 
     /**
      * Creates a behavior with compile-time type checking.
+     *
+     * @param <C> The command type that the actor handles
+     * @param <CTX> The context type that the actor requires
+     * @param actorClass Actor class to create behavior for
+     * @param actorContext Context for creating the behavior
+     * @return Actor behavior instance with proper type information
      */
     @SuppressWarnings("unchecked")
     public static <C, CTX extends SpringActorContext> SpringActorBehavior<C> createTypedBehavior(
