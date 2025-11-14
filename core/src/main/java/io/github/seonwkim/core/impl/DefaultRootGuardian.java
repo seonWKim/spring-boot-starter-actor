@@ -145,15 +145,20 @@ public class DefaultRootGuardian implements RootGuardian {
 
     /**
      * Handles a CreateTopic command by creating a new Pekko Topic actor.
-     * If a topic with the same name already exists, Pekko will throw an InvalidActorNameException.
+     * The topic identity is based on both the message type and topic name, following Pekko's
+     * recommendation. The actor name includes both to ensure uniqueness.
      *
      * @param msg The CreateTopic command
      * @return The same behavior
      */
     @SuppressWarnings("unchecked")
     private <T> Behavior<RootGuardian.Command> handleCreateTopic(CreateTopic<T> msg) {
+        // Build actor name that includes both topic name and message type
+        // This ensures topics with same name but different types are distinct
+        String actorName = buildTopicActorName(msg.topicName, msg.messageType);
+
         ActorRef<Topic.Command<Object>> topicActor =
-                ctx.spawn(Topic.create((Class<Object>) msg.messageType, msg.topicName), msg.topicName);
+                ctx.spawn(Topic.create((Class<Object>) msg.messageType, msg.topicName), actorName);
         SpringTopicRef<Object> topicRef = new SpringTopicRef<>(topicActor, msg.topicName);
 
         // Cast is safe because we're creating the topic with the correct type
@@ -171,29 +176,44 @@ public class DefaultRootGuardian implements RootGuardian {
 
     /**
      * Handles a GetOrCreateTopic command by getting an existing topic or creating a new one.
-     * This operation is idempotent - multiple calls with the same name will return the same topic.
+     * This operation is idempotent - multiple calls with the same name and type will return the same topic.
+     * The topic identity is based on both the message type and topic name.
      *
      * @param msg The GetOrCreateTopic command
      * @return The same behavior
      */
     @SuppressWarnings("unchecked")
     private <T> Behavior<RootGuardian.Command> handleGetOrCreateTopic(GetOrCreateTopic<T> msg) {
-        // Try to get existing topic
+        // Try to get existing topic using full identity (name + type)
         SpringTopicRef<Object> topicRef;
 
-        ActorRef<?> existingRef = ctx.getChild(msg.topicName).orElse(null);
+        String actorName = buildTopicActorName(msg.topicName, msg.messageType);
+        ActorRef<?> existingRef = ctx.getChild(actorName).orElse(null);
 
         if (existingRef != null) {
             topicRef = new SpringTopicRef<>((ActorRef<Topic.Command<Object>>) existingRef, msg.topicName);
         } else {
-            // Create new topic
+            // Create new topic with full identity
             ActorRef<Topic.Command<Object>> topicActor =
-                    ctx.spawn(Topic.create((Class<Object>) msg.messageType, msg.topicName), msg.topicName);
+                    ctx.spawn(Topic.create((Class<Object>) msg.messageType, msg.topicName), actorName);
             topicRef = new SpringTopicRef<>(topicActor, msg.topicName);
         }
 
         ((ActorRef<TopicCreated<Object>>) (ActorRef<?>) msg.replyTo).tell(new TopicCreated<>(topicRef));
         return Behaviors.same();
+    }
+
+    /**
+     * Builds an actor name for a topic that includes both the topic name and message type.
+     * This ensures that topics with the same name but different message types are distinct,
+     * following Pekko's topic identity specification.
+     *
+     * @param topicName The topic name
+     * @param messageType The message type class
+     * @return A unique actor name combining both topic name and message type
+     */
+    private String buildTopicActorName(String topicName, Class<?> messageType) {
+        return "topic-" + topicName + "-" + messageType.getName().replace(".", "_");
     }
 
     private String buildActorKey(Class<?> actorClass, SpringActorContext actorContext) {

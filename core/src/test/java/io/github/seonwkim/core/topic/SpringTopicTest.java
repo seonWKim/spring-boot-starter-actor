@@ -335,35 +335,27 @@ class SpringTopicTest {
     }
 
     @Test
-    void getOrCreateWithSameNameButDifferentTypesReturnsExisting() throws Exception {
-        // When using getOrCreate, topics with the same name are considered the same
-        // regardless of type parameter, because the underlying actor name is the same.
-        // The first type that creates the topic wins.
-        //
-        // Note: Users should use getOrCreate() instead of create() when working with topics
-        // to avoid actor name conflicts. Topics with the same name but different type parameters
-        // will share the same underlying topic actor.
+    void topicsWithSameNameButDifferentTypesAreDifferent() throws Exception {
+        // Following Pekko's specification, topics are identified by both the message type and topic name.
+        // Topics with the same name but different message types should be distinct topics.
 
         // Create first topic with TestMessage type
-        SpringTopicRef<TestMessage> topic1 = topicManager
-                .topic(TestMessage.class)
-                .withName("shared-name-topic")
-                .getOrCreate();
+        SpringTopicRef<TestMessage> topic1 =
+                topicManager.topic(TestMessage.class).withName("shared-name").getOrCreate();
         assertNotNull(topic1);
 
-        // Try to getOrCreate with same name but different type
-        // This should return the existing topic actor (not fail)
-        SpringTopicRef<AnotherMessage> topic2 = topicManager
-                .topic(AnotherMessage.class)
-                .withName("shared-name-topic")
-                .getOrCreate();
+        // Create second topic with same name but different type
+        // This should create a different topic
+        SpringTopicRef<AnotherMessage> topic2 =
+                topicManager.topic(AnotherMessage.class).withName("shared-name").getOrCreate();
         assertNotNull(topic2);
 
-        // Both should reference the same underlying actor
-        assertEquals(
+        // Both should reference different underlying actors because the topic identity
+        // includes both the name and the message type
+        assertNotEquals(
                 topic1.getUnderlying().path(),
                 topic2.getUnderlying().path(),
-                "Topics with same name should share the same underlying actor regardless of type parameter");
+                "Topics with same name but different message types should be different");
     }
 
     // ========== Test Actor Implementations ==========
