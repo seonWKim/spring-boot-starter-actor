@@ -3,6 +3,7 @@ package io.github.seonwkim.core;
 import io.github.seonwkim.core.RootGuardian.Spawned;
 import io.github.seonwkim.core.behavior.ClusterEventBehavior;
 import io.github.seonwkim.core.impl.DefaultSpringActorContext;
+import io.github.seonwkim.core.shard.ShardEnvelope;
 import io.github.seonwkim.core.shard.ShardedActorRegistry;
 import io.github.seonwkim.core.shard.SpringShardedActor;
 import io.github.seonwkim.core.shard.SpringShardedActorBuilder;
@@ -14,6 +15,7 @@ import org.apache.pekko.actor.typed.*;
 import org.apache.pekko.actor.typed.javadsl.AskPattern;
 import org.apache.pekko.cluster.ClusterEvent;
 import org.apache.pekko.cluster.sharding.typed.javadsl.ClusterSharding;
+import org.apache.pekko.cluster.sharding.typed.javadsl.Entity;
 import org.apache.pekko.cluster.typed.Cluster;
 import org.apache.pekko.cluster.typed.ClusterSingleton;
 import org.apache.pekko.cluster.typed.Subscribe;
@@ -48,8 +50,6 @@ public class SpringActorSystem implements DisposableBean {
 
     @Nullable private final ClusterSingleton clusterSingleton;
 
-    @Nullable private final ShardedActorRegistry shardedActorRegistry;
-
     private final Duration defaultQueryTimeout = Duration.ofMillis(100);
 
     private final Duration defaultActorRefTimeout = Duration.ofSeconds(3);
@@ -64,22 +64,6 @@ public class SpringActorSystem implements DisposableBean {
         this.cluster = null;
         this.clusterSharding = null;
         this.clusterSingleton = null;
-        this.shardedActorRegistry = null;
-    }
-
-    /**
-     * Creates a new SpringActorSystem in local mode with a sharded actor registry.
-     *
-     * @param actorSystem The underlying Pekko ActorSystem
-     * @param shardedActorRegistry The sharded actor registry (for type resolution)
-     */
-    public SpringActorSystem(
-            ActorSystem<RootGuardian.Command> actorSystem, @Nullable ShardedActorRegistry shardedActorRegistry) {
-        this.actorSystem = actorSystem;
-        this.cluster = null;
-        this.clusterSharding = null;
-        this.clusterSingleton = null;
-        this.shardedActorRegistry = shardedActorRegistry;
     }
 
     /**
@@ -96,32 +80,30 @@ public class SpringActorSystem implements DisposableBean {
             Cluster cluster,
             ClusterSharding clusterSharding,
             ApplicationEventPublisher publisher) {
-        this(actorSystem, cluster, clusterSharding, ClusterSingleton.get(actorSystem), publisher, null);
+        this(actorSystem, cluster, clusterSharding, ClusterSingleton.get(actorSystem), publisher);
     }
 
     /**
-     * Creates a new SpringActorSystem in cluster mode with a sharded actor registry. This constructor
-     * also sets up a listener for cluster events and publishes them as Spring application events.
+     * Creates a new SpringActorSystem in cluster mode. This constructor also sets up a listener for
+     * cluster events and publishes them as Spring application events.
+     * Uses the static ShardedActorRegistry for type resolution.
      *
      * @param actorSystem The underlying Pekko ActorSystem
      * @param cluster The Pekko Cluster
      * @param clusterSharding The Pekko ClusterSharding
      * @param clusterSingleton The Pekko ClusterSingleton
      * @param publisher The Spring ApplicationEventPublisher for publishing cluster events
-     * @param shardedActorRegistry The sharded actor registry (for type resolution)
      */
     public SpringActorSystem(
             ActorSystem<RootGuardian.Command> actorSystem,
             Cluster cluster,
             @Nullable ClusterSharding clusterSharding,
             @Nullable ClusterSingleton clusterSingleton,
-            ApplicationEventPublisher publisher,
-            @Nullable ShardedActorRegistry shardedActorRegistry) {
+            ApplicationEventPublisher publisher) {
         this.actorSystem = actorSystem;
         this.cluster = cluster;
         this.clusterSharding = clusterSharding;
         this.clusterSingleton = clusterSingleton;
-        this.shardedActorRegistry = shardedActorRegistry;
 
         ActorRef<ClusterEvent.ClusterDomainEvent> listener = actorSystem.systemActorOf(
                 ClusterEventBehavior.create(publisher), "cluster-event-listener", Props.empty());
@@ -157,15 +139,6 @@ public class SpringActorSystem implements DisposableBean {
      */
     @Nullable public ClusterSingleton getClusterSingleton() {
         return clusterSingleton;
-    }
-
-    /**
-     * Returns the ShardedActorRegistry if this SpringActorSystem was created with one.
-     *
-     * @return The ShardedActorRegistry, or null if not available
-     */
-    @Nullable public ShardedActorRegistry getShardedActorRegistry() {
-        return shardedActorRegistry;
     }
 
     /**
@@ -388,6 +361,38 @@ public class SpringActorSystem implements DisposableBean {
      */
     public boolean isClusterMode() {
         return cluster != null;
+    }
+
+    /**
+     * Initializes cluster sharding for all registered sharded actors.
+     * This method should be called after all sharded actor beans are registered in the static registry.
+     * It's typically called by a SmartInitializingSingleton to ensure proper initialization order.
+     */
+    public void initializeClusterSharding() {
+        if (clusterSharding == null) {
+            throw new IllegalStateException("Cluster sharding not available");
+        }
+
+        // Initialize all sharded actors from static registry
+        for (SpringShardedActor<?> actor : ShardedActorRegistry.getAll()) {
+            initShardedActor(actor);
+        }
+    }
+
+    /**
+     * Initializes a single sharded actor with cluster sharding.
+     */
+    private <T> void initShardedActor(SpringShardedActor<T> actor) {
+        if (clusterSharding == null) {
+            return;
+        }
+
+        Entity<T, ShardEnvelope<T>> entity = Entity.of(actor.typeKey(), entityCtx -> {
+                    var shardedActorContext = actor.createContext(entityCtx);
+                    return actor.create(shardedActorContext).asBehavior();
+                })
+                .withMessageExtractor(actor.extractor());
+        clusterSharding.init(entity);
     }
 
     /**

@@ -1,10 +1,7 @@
 package io.github.seonwkim.example.persistence.snapshot;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.github.seonwkim.core.AskCommand;
-import io.github.seonwkim.core.SpringActor;
-import io.github.seonwkim.core.SpringActorBehavior;
-import io.github.seonwkim.core.SpringActorContext;
+import io.github.seonwkim.core.*;
 import io.github.seonwkim.example.persistence.Order;
 import io.github.seonwkim.example.persistence.OrderRepository;
 import io.github.seonwkim.example.persistence.OrderStatus;
@@ -115,7 +112,7 @@ public class SnapshotOrderActor implements SpringActor<SnapshotOrderActor.Comman
     }
 
     private static class SnapshotOrderBehavior {
-        private final ActorContext<Command> ctx;
+        private final SpringBehaviorContext<Command> ctx;
         private final SpringActorContext actorContext;
         private final OrderRepository orderRepository;
         private final ActorSnapshotRepository snapshotRepository;
@@ -127,7 +124,7 @@ public class SnapshotOrderActor implements SpringActor<SnapshotOrderActor.Comman
         private Instant lastSnapshotTime;
 
         SnapshotOrderBehavior(
-                ActorContext<Command> ctx,
+                SpringBehaviorContext<Command> ctx,
                 SpringActorContext actorContext,
                 OrderRepository orderRepository,
                 ActorSnapshotRepository snapshotRepository,

@@ -79,31 +79,19 @@ public class SpringShardedActorBuilder<T> {
     }
 
     /**
-     * Resolves the EntityTypeKey from the actor class using the ShardedActorRegistry. This method
-     * retrieves the actor instance from the registry (which was populated during Spring startup)
-     * and calls its typeKey() method. This approach is safer than reflection as it uses the
-     * Spring-managed bean instance.
+     * Resolves the EntityTypeKey from the actor class using the static ShardedActorRegistry.
+     * This method retrieves the actor instance from the registry (which was populated via
+     * BeanPostProcessor during Spring startup) and calls its typeKey() method.
      *
-     * <p>This method fails fast with clear error messages if:
-     * <ul>
-     *   <li>The ShardedActorRegistry is not available (incorrect SpringActorSystem setup)</li>
-     *   <li>The actor class is not registered (missing @Component annotation)</li>
-     * </ul>
+     * <p>This method fails fast with clear error messages if the actor class is not registered
+     * (missing @Component annotation).
      *
      * @param actorClass The sharded actor class
      * @return The resolved EntityTypeKey
-     * @throws IllegalStateException If the registry is not available or the actor is not registered
+     * @throws IllegalStateException If the actor is not registered
      */
     private EntityTypeKey<T> resolveTypeKey(Class<? extends SpringShardedActor<T>> actorClass) {
-        ShardedActorRegistry registry = actorSystem.getShardedActorRegistry();
-
-        if (registry == null) {
-            throw new IllegalStateException(
-                    "ShardedActorRegistry is not available. "
-                            + "Ensure you're using SpringActorSystemBuilder or Spring Boot auto-configuration with @EnableActorSupport.");
-        }
-
-        SpringShardedActor<T> actor = registry.getByClass(actorClass);
+        SpringShardedActor<T> actor = ShardedActorRegistry.getByClass(actorClass);
         if (actor == null) {
             throw new IllegalStateException("SpringShardedActor " + actorClass.getName() + " not found in registry. "
                     + "Ensure the actor is annotated with @Component and implements SpringShardedActor.");

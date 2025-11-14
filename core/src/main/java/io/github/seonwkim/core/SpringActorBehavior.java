@@ -405,14 +405,6 @@ public final class SpringActorBehavior<C> {
         @SuppressWarnings("unchecked")
         private <CC> void handleSpawnChild(ActorContext<C> ctx, FrameworkCommands.SpawnChild<CC> msg) {
             try {
-                ActorTypeRegistry registry = actorContext.registry();
-                if (registry == null) {
-                    msg.replyTo.tell(
-                            FrameworkCommands.SpawnChildResponse.failure(
-                                    "ActorTypeRegistry is null. Ensure SpringActorContext.registry() returns a non-null registry."));
-                    return;
-                }
-
                 // Build child context and name
                 SpringActorContext childContext = msg.childContext;
                 String childName = ActorSpawner.buildActorName(msg.actorClass, childContext.actorId());
@@ -425,10 +417,9 @@ public final class SpringActorBehavior<C> {
                     return;
                 }
 
-                // Spawn the child using the centralized spawning logic
+                // Spawn the child using the centralized spawning logic with static ActorTypeRegistry
                 ActorRef<CC> childRef = ActorSpawner.spawnActor(
                         ctx,
-                        registry,
                         msg.actorClass,
                         childContext,
                         childName,

@@ -1,33 +1,48 @@
 package io.github.seonwkim.core.shard;
 
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import javax.annotation.Nullable;
+
+import io.github.seonwkim.core.ActorConfiguration;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
 
 /**
- * Registry for sharded actors. This class maintains a mapping between entity type keys and their
- * corresponding sharded actors. It provides methods for registering, retrieving, and listing
- * sharded actors.
+ * Static registry for sharded actors. Maintains thread-safe mappings between entity type keys
+ * and sharded actor instances. All operations are thread-safe via {@link ConcurrentHashMap}.
+ *
+ * <p>Pure utility class - not managed by Spring. Actors are automatically registered by
+ * {@link ActorConfiguration#actorRegistrationBeanPostProcessor()}.
  */
-public class ShardedActorRegistry {
-    private final Map<EntityTypeKey<?>, SpringShardedActor<?>> registry = new HashMap<>();
-    private final Map<Class<?>, SpringShardedActor<?>> classIndex = new HashMap<>();
+public final class ShardedActorRegistry {
+
+    private static final ConcurrentMap<EntityTypeKey<?>, SpringShardedActor<?>> registry = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<Class<?>, SpringShardedActor<?>> classIndex = new ConcurrentHashMap<>();
+
+    // Prevent instantiation
+    private ShardedActorRegistry() {
+        throw new UnsupportedOperationException("Utility class");
+    }
 
     /**
-     * Singleton instance of the registry. This instance can be used when a shared registry is needed.
-     */
-    public static final ShardedActorRegistry INSTANCE = new ShardedActorRegistry();
-
-    /**
-     * Registers a sharded actor with the registry. The actor is indexed by both its entity type key
-     * and its class for fast lookups.
+     * Registers a sharded actor, indexed by both type key and class.
      *
-     * @param actor The sharded actor to register
-     * @param <T> The type of messages that the actor can handle
+     * <p><b>Note:</b> In most cases, you don't need to call this method directly.
+     * Sharded actors implementing {@link SpringShardedActor} and annotated with
+     * {@code @Component} are automatically registered by the framework.
+     *
+     * <p>Manual registration may be useful for:
+     * <ul>
+     *   <li>Registering actors programmatically outside of Spring's component scanning</li>
+     *   <li>Advanced testing scenarios where you need fine-grained control</li>
+     *   <li>Dynamic actor types generated at runtime</li>
+     * </ul>
+     *
+     * @param <T> The command type that the sharded actor handles
+     * @param actor Sharded actor to register
      */
-    public <T> void register(SpringShardedActor<T> actor) {
+    public static <T> void register(SpringShardedActor<T> actor) {
         registry.put(actor.typeKey(), actor);
         classIndex.put(actor.getClass(), actor);
     }
@@ -35,35 +50,51 @@ public class ShardedActorRegistry {
     /**
      * Retrieves a sharded actor by its entity type key.
      *
-     * @param typeKey The entity type key of the actor
-     * @param <T> The type of messages that the actor can handle
-     * @return The sharded actor with the given entity type key, or null if not found
+     * @param <T> The command type that the sharded actor handles
+     * @param typeKey Entity type key of the actor
+     * @return Sharded actor, or null if not found
      */
-    @Nullable public <T> SpringShardedActor<T> get(EntityTypeKey<T> typeKey) {
+    @Nullable @SuppressWarnings("unchecked")
+    public static <T> SpringShardedActor<T> get(EntityTypeKey<T> typeKey) {
         // Safe cast: registry maintains T type consistency between key and value
-        @SuppressWarnings("unchecked")
-        SpringShardedActor<T> actor = (SpringShardedActor<T>) registry.get(typeKey);
-        return actor;
+        return (SpringShardedActor<T>) registry.get(typeKey);
     }
 
     /**
      * Retrieves a sharded actor by its class.
      *
-     * @param actorClass The class of the sharded actor
-     * @param <T> The type of messages that the actor can handle
-     * @return The sharded actor with the given class, or null if not found
+     * @param <T> The command type that the sharded actor handles
+     * @param actorClass Class of the sharded actor
+     * @return Sharded actor, or null if not found
      */
     @Nullable @SuppressWarnings("unchecked")
-    public <T> SpringShardedActor<T> getByClass(Class<? extends SpringShardedActor<T>> actorClass) {
+    public static <T> SpringShardedActor<T> getByClass(Class<? extends SpringShardedActor<T>> actorClass) {
         return (SpringShardedActor<T>) classIndex.get(actorClass);
     }
 
     /**
      * Returns all registered sharded actors.
-     *
-     * @return A collection of all registered sharded actors
      */
-    public Collection<SpringShardedActor<?>> getAll() {
+    public static Collection<SpringShardedActor<?>> getAll() {
         return registry.values();
+    }
+
+    /**
+     * Clears all registrations. <b>For testing use only.</b>
+     *
+     * <p>This method is provided to ensure test isolation by clearing the static registry
+     * between test runs. It should not be used in production code.
+     *
+     * <p>Typical usage in tests:
+     * <pre>{@code
+     * @BeforeEach
+     * public void setUp() {
+     *     ShardedActorRegistry.clear();
+     * }
+     * }</pre>
+     */
+    public static void clear() {
+        registry.clear();
+        classIndex.clear();
     }
 }

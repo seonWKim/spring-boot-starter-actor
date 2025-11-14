@@ -1,10 +1,7 @@
 package io.github.seonwkim.example.persistence.eventsourcing;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.github.seonwkim.core.AskCommand;
-import io.github.seonwkim.core.SpringActor;
-import io.github.seonwkim.core.SpringActorBehavior;
-import io.github.seonwkim.core.SpringActorContext;
+import io.github.seonwkim.core.*;
 import io.github.seonwkim.example.persistence.OrderStatus;
 import java.util.ArrayList;
 import java.util.List;
@@ -192,14 +189,14 @@ public class EventSourcedOrderActor implements SpringActor<EventSourcedOrderActo
 
     // Behavior class
     private static class EventSourcedBehavior {
-        private final ActorContext<Command> ctx;
+        private final SpringBehaviorContext<Command> ctx;
         private final SpringActorContext actorContext;
         private final OrderEventRepository eventRepository;
         private final ObjectMapper objectMapper;
         private final OrderState state;
 
         EventSourcedBehavior(
-                ActorContext<Command> ctx,
+                SpringBehaviorContext<Command> ctx,
                 SpringActorContext actorContext,
                 OrderEventRepository eventRepository,
                 ObjectMapper objectMapper,

@@ -105,8 +105,8 @@ public class SpringTopicManager {
 
                 // Check if creation was successful
                 if (!response.isSuccess() || response.topicRef == null) {
-                    throw new RuntimeException("Failed to create topic: " + topicName +
-                            (response.errorMessage != null ? " - " + response.errorMessage : ""));
+                    throw new RuntimeException("Failed to create topic: " + topicName
+                            + (response.errorMessage != null ? " - " + response.errorMessage : ""));
                 }
 
                 return response.topicRef;
@@ -152,8 +152,8 @@ public class SpringTopicManager {
 
                 // Check if operation was successful
                 if (!response.isSuccess() || response.topicRef == null) {
-                    throw new RuntimeException("Failed to get or create topic: " + topicName +
-                            (response.errorMessage != null ? " - " + response.errorMessage : ""));
+                    throw new RuntimeException("Failed to get or create topic: " + topicName
+                            + (response.errorMessage != null ? " - " + response.errorMessage : ""));
                 }
 
                 return response.topicRef;

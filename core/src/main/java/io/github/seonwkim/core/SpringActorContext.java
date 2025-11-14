@@ -1,7 +1,5 @@
 package io.github.seonwkim.core;
 
-import javax.annotation.Nullable;
-
 /**
  * Represents the context for an actor in the Spring Actor system.
  *
@@ -25,8 +23,6 @@ import javax.annotation.Nullable;
  */
 public abstract class SpringActorContext {
 
-    @Nullable private ActorTypeRegistry registry;
-
     private MdcConfig mdcConfig = MdcConfig.empty();
 
     /**
@@ -38,18 +34,6 @@ public abstract class SpringActorContext {
      * @return the unique actor identifier
      */
     public abstract String actorId();
-
-    @Nullable public ActorTypeRegistry registry() {
-        return registry;
-    }
-
-    /**
-     * Internal: set by the framework during {@link SpringActorBehavior} initialization.
-     * Not for application use.
-     */
-    public void setRegistry(ActorTypeRegistry registry) {
-        this.registry = registry;
-    }
 
     /**
      * Returns the MDC configuration for this actor context.

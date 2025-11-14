@@ -72,7 +72,7 @@ public final class ActorSpawner {
      * Spawns an actor with the given configuration.
      * This method handles all the common spawning logic including:
      * <ul>
-     *   <li>Creating behavior from the actor type registry</li>
+     *   <li>Creating behavior from the static actor type registry</li>
      *   <li>Applying supervision strategy</li>
      *   <li>Configuring mailbox and dispatcher</li>
      *   <li>Applying actor tags for logging/categorization</li>
@@ -80,7 +80,6 @@ public final class ActorSpawner {
      * </ul>
      *
      * @param ctx The actor context to spawn in
-     * @param registry The actor type registry for creating behaviors
      * @param actorClass The class of the actor to spawn
      * @param actorContext The Spring actor context
      * @param actorName The unique name for the actor
@@ -96,7 +95,6 @@ public final class ActorSpawner {
      */
     public static <T> ActorRef<T> spawnActor(
             ActorContext<?> ctx,
-            ActorTypeRegistry registry,
             Class<?> actorClass,
             SpringActorContext actorContext,
             String actorName,
@@ -107,8 +105,9 @@ public final class ActorSpawner {
             @Nullable ClusterSingleton clusterSingleton,
             boolean isClusterSingleton) {
 
-        // Create behavior from registry using Spring DI
-        Behavior<?> behavior = registry.createBehavior(actorClass, actorContext).asBehavior();
+        // Create behavior from static registry using Spring DI
+        Behavior<?> behavior =
+                ActorTypeRegistry.createBehavior(actorClass, actorContext).asBehavior();
 
         if (supervisorStrategy != null) {
             behavior = Behaviors.supervise(behavior).onFailure(supervisorStrategy);

@@ -4,105 +4,136 @@ import io.github.seonwkim.core.impl.DefaultSpringActorSystemBuilder;
 import io.github.seonwkim.core.shard.ShardedActorRegistry;
 import io.github.seonwkim.core.shard.SpringShardedActor;
 import io.github.seonwkim.core.topic.SpringTopicManager;
-import java.util.Map;
+import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.SmartInitializingSingleton;
+import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 
+/**
+ * Auto-configuration for the Spring Boot Actor System.
+ *
+ * <p><b>Initialization Flow:</b>
+ * <ol>
+ *   <li>Spring scans and creates actor beans (with DI)</li>
+ *   <li>{@link #actorRegistrationBeanPostProcessor()} registers actors in static registries</li>
+ *   <li>{@link #actorSystem(SpringActorSystemBuilder)} builds the actor system</li>
+ *   <li>{@link #clusterShardingInitializer(SpringActorSystem)} initializes cluster sharding</li>
+ * </ol>
+ *
+ * <p><b>Key Design:</b> Uses static registries ({@link ActorTypeRegistry}, {@link ShardedActorRegistry})
+ * to avoid circular dependencies between actor system components.
+ */
 @Configuration
 public class ActorConfiguration {
 
+    // ==================================================================================
+    // PHASE 1: Actor Registration (BeanPostProcessor)
+    // ==================================================================================
+
     /**
-     * Creates an ActorTypeRegistry bean and registers all SpringActorWithContext beans in the
-     * application context. This includes both SpringActor and SpringActorWithContext implementations.
+     * Registers actor beans in static registries as they are initialized.
      *
-     * @param context The Spring application context
-     * @return An ActorTypeRegistry with all SpringActorWithContext beans registered
+     * <p>Runs automatically after each bean initialization to register:
+     * <ul>
+     *   <li>{@link SpringActor} → {@link ActorTypeRegistry}</li>
+     *   <li>{@link SpringShardedActor} → {@link ShardedActorRegistry}</li>
+     * </ul>
+     *
+     * <p><b>Why BeanPostProcessor?</b>
+     * <ul>
+     *   <li>Automatic - no manual registration needed</li>
+     *   <li>Runs after bean creation - Spring DI already complete</li>
+     *   <li>Avoids circular dependencies - registries are static</li>
+     * </ul>
      */
     @Bean
-    @ConditionalOnMissingBean(ActorTypeRegistry.class)
-    @SuppressWarnings({"rawtypes", "unchecked"})
-    public ActorTypeRegistry actorTypeRegistry(ApplicationContext context) {
-        ActorTypeRegistry registry = new ActorTypeRegistry();
-        // SpringActor extends SpringActorWithContext, so this gets both
-        Map<String, SpringActorWithContext> actorBeans = context.getBeansOfType(SpringActorWithContext.class);
-
-        for (SpringActorWithContext actorBean : actorBeans.values()) {
-            registry.registerInternal(actorBean.getClass(), actorContext -> {
-                try {
-                    return actorBean.create(actorContext);
-                } catch (Exception e) {
-                    throw new RuntimeException(
-                            "Failed to invoke create(id) on "
-                                    + actorBean.getClass().getName(),
-                            e);
+    public BeanPostProcessor actorRegistrationBeanPostProcessor() {
+        return new BeanPostProcessor() {
+            @Override
+            @SuppressWarnings({"rawtypes", "unchecked"})
+            public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
+                if (bean instanceof SpringActorWithContext) {
+                    registerActor((SpringActorWithContext) bean);
                 }
-            });
-        }
+                if (bean instanceof SpringShardedActor) {
+                    registerShardedActor((SpringShardedActor) bean);
+                }
+                return bean;
+            }
 
-        return registry;
+            private void registerActor(SpringActorWithContext actor) {
+                ActorTypeRegistry.registerInternal(actor.getClass(), actorContext -> {
+                    try {
+                        return actor.create(actorContext);
+                    } catch (Exception e) {
+                        throw new RuntimeException(
+                                "Failed to create actor behavior for " + actor.getClass().getName(), e);
+                    }
+                });
+            }
+
+            private void registerShardedActor(SpringShardedActor shardedActor) {
+                ShardedActorRegistry.register(shardedActor);
+            }
+        };
+    }
+
+    // ==================================================================================
+    // PHASE 2: Actor System Construction
+    // ==================================================================================
+
+    /**
+     * Provides configuration properties for the actor system.
+     */
+    @Bean
+    @ConditionalOnMissingBean(ActorProperties.class)
+    public ActorProperties actorProperties(Environment environment) {
+        ActorProperties properties = new ActorProperties();
+        properties.setEnvironment(environment);
+        return properties;
     }
 
     /**
-     * Creates a RootGuardianSupplierWrapper bean that supplies a RootGuardian behavior.
-     *
-     * @param actorTypeRegistry The ActorTypeRegistry to use for creating the RootGuardian
-     * @return A RootGuardianSupplierWrapper
+     * Creates the root guardian that manages all actors.
+     * Uses static {@link ActorTypeRegistry} to avoid circular dependencies.
      */
     @Bean
     @ConditionalOnMissingBean(RootGuardianSupplierWrapper.class)
-    public RootGuardianSupplierWrapper rootGuardianSupplierWrapper(ActorTypeRegistry actorTypeRegistry) {
-        return new RootGuardianSupplierWrapper(() -> RootGuardian.create(actorTypeRegistry));
+    public RootGuardianSupplierWrapper rootGuardianSupplierWrapper() {
+        return new RootGuardianSupplierWrapper(RootGuardian::create);
     }
 
     /**
-     * Creates a ShardedActorRegistry bean and registers all SpringShardedActor beans in the application
-     * context.
+     * Builds the actor system configuration.
      *
-     * @param ctx The Spring application context
-     * @return A ShardedActorRegistry with all SpringShardedActor beans registered
-     */
-    @Bean
-    @ConditionalOnMissingBean(ShardedActorRegistry.class)
-    public ShardedActorRegistry shardedActorRegistry(ApplicationContext ctx) {
-        ShardedActorRegistry registry = new ShardedActorRegistry();
-        Map<String, SpringShardedActor> beans = ctx.getBeansOfType(SpringShardedActor.class);
-        beans.values().forEach(registry::register);
-        return registry;
-    }
-
-    /**
-     * Creates a SpringActorSystemBuilder bean with the given properties, root guardian supplier,
-     * application event publisher, and sharded actor registry.
-     *
-     * @param properties The Pekko properties
-     * @param rootGuardianSupplierWrapper The root guardian supplier wrapper
-     * @param applicationEventPublisher The application event publisher
-     * @param shardedActorRegistry The sharded actor registry
-     * @return A SpringActorSystemBuilder
+     * <p>Dependencies:
+     * <ul>
+     *   <li>{@link ActorProperties} - Pekko configuration</li>
+     *   <li>{@link RootGuardianSupplierWrapper} - Actor hierarchy root</li>
+     *   <li>{@link ApplicationEventPublisher} - Spring event integration</li>
+     * </ul>
      */
     @Bean
     @ConditionalOnMissingBean(SpringActorSystemBuilder.class)
     public SpringActorSystemBuilder actorSystemBuilder(
-            ActorProperties properties,
+            ActorProperties actorProperties,
             RootGuardianSupplierWrapper rootGuardianSupplierWrapper,
-            ApplicationEventPublisher applicationEventPublisher,
-            ShardedActorRegistry shardedActorRegistry) {
+            ApplicationEventPublisher applicationEventPublisher) {
         return new DefaultSpringActorSystemBuilder()
-                .withConfig(properties.getConfig())
+                .withConfig(actorProperties.getConfig())
                 .withRootGuardianSupplier(rootGuardianSupplierWrapper)
-                .withApplicationEventPublisher(applicationEventPublisher)
-                .withShardedActorRegistry(shardedActorRegistry);
+                .withApplicationEventPublisher(applicationEventPublisher);
     }
 
     /**
-     * Creates a SpringActorSystem bean using the given builder.
+     * Creates the main actor system.
      *
-     * @param builder The SpringActorSystemBuilder to use
-     * @return A SpringActorSystem
+     * <p>At this point, actors are registered in static registries
+     * but cluster sharding is not yet initialized.
      */
     @Bean
     @ConditionalOnMissingBean(SpringActorSystem.class)
@@ -110,24 +141,39 @@ public class ActorConfiguration {
         return builder.build();
     }
 
+    // ==================================================================================
+    // PHASE 3: Post-Initialization (SmartInitializingSingleton)
+    // ==================================================================================
+
+    /**
+     * Initializes cluster sharding after all actors are registered.
+     *
+     * <p><b>Why SmartInitializingSingleton?</b>
+     * <ul>
+     *   <li>Runs after ALL singleton beans are created</li>
+     *   <li>Ensures all sharded actors are registered before init</li>
+     *   <li>Perfect timing for cluster sharding setup</li>
+     * </ul>
+     */
+    @Bean
+    public SmartInitializingSingleton clusterShardingInitializer(SpringActorSystem actorSystem) {
+        return () -> {
+            if (actorSystem.isClusterMode()) {
+                actorSystem.initializeClusterSharding();
+            }
+        };
+    }
+
+    // ==================================================================================
+    // Additional Components
+    // ==================================================================================
+
+    /**
+     * Provides pub/sub topic management for actors.
+     */
     @Bean
     @ConditionalOnMissingBean(SpringTopicManager.class)
     public SpringTopicManager topicManager(SpringActorSystem actorSystem) {
         return new SpringTopicManager(actorSystem);
-    }
-
-    /**
-     * Creates a PekkoProperties bean with the given environment. This bean provides configuration
-     * properties for the Pekko actor system.
-     *
-     * @param environment The Spring environment
-     * @return A PekkoProperties instance
-     */
-    @Bean
-    @ConditionalOnMissingBean(ActorProperties.class)
-    public ActorProperties pekkoProperties(Environment environment) {
-        ActorProperties properties = new ActorProperties();
-        properties.setEnvironment(environment); // manually inject Environment
-        return properties;
     }
 }

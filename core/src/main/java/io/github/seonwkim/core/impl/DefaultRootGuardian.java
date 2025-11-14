@@ -1,7 +1,6 @@
 package io.github.seonwkim.core.impl;
 
 import io.github.seonwkim.core.ActorSpawner;
-import io.github.seonwkim.core.ActorTypeRegistry;
 import io.github.seonwkim.core.RootGuardian;
 import io.github.seonwkim.core.SpringActorContext;
 import io.github.seonwkim.core.topic.SpringTopicRef;
@@ -20,12 +19,11 @@ import org.apache.pekko.cluster.typed.ClusterSingleton;
 public class DefaultRootGuardian implements RootGuardian {
 
     /**
-     * Creates a new DefaultRootGuardian behavior with the given actor type registry.
+     * Creates a new DefaultRootGuardian behavior using the static ActorTypeRegistry.
      *
-     * @param registry The ActorTypeRegistry to use for creating actor behaviors
      * @return A behavior for the DefaultRootGuardian
      */
-    public static Behavior<Command> create(ActorTypeRegistry registry) {
+    public static Behavior<Command> create() {
         return Behaviors.setup(ctx -> {
             // Try to get ClusterSingleton if available (cluster mode)
             ClusterSingleton clusterSingleton = null;
@@ -34,28 +32,24 @@ public class DefaultRootGuardian implements RootGuardian {
             } catch (Exception e) {
                 // Not in cluster mode, clusterSingleton will be null
             }
-            return new DefaultRootGuardian(ctx, registry, clusterSingleton).behavior();
+            return new DefaultRootGuardian(ctx, clusterSingleton).behavior();
         });
     }
 
     /** The actor context */
     private final ActorContext<Command> ctx;
-    /** The actor type registry */
-    private final ActorTypeRegistry registry;
     /** The cluster singleton (null in local mode) */
     @Nullable private final ClusterSingleton clusterSingleton;
 
     /**
-     * Creates a new DefaultRootGuardian with the given actor context and actor type registry.
+     * Creates a new DefaultRootGuardian with the given actor context.
+     * Uses the static ActorTypeRegistry for actor creation.
      *
      * @param ctx The actor context
-     * @param registry The actor type registry
      * @param clusterSingleton The cluster singleton (null in local mode)
      */
-    public DefaultRootGuardian(
-            ActorContext<Command> ctx, ActorTypeRegistry registry, @Nullable ClusterSingleton clusterSingleton) {
+    public DefaultRootGuardian(ActorContext<Command> ctx, @Nullable ClusterSingleton clusterSingleton) {
         this.ctx = ctx;
-        this.registry = registry;
         this.clusterSingleton = clusterSingleton;
     }
 
@@ -94,7 +88,6 @@ public class DefaultRootGuardian implements RootGuardian {
 
         ActorRef<?> ref = ActorSpawner.spawnActor(
                 ctx,
-                registry,
                 msg.actorClass,
                 msg.actorContext,
                 key,
@@ -162,14 +155,12 @@ public class DefaultRootGuardian implements RootGuardian {
 
         // Check if topic already exists
         if (ctx.getChild(actorName).isPresent()) {
-            msg.replyTo.tell(TopicCreated.alreadyExists(
-                    String.format("Topic '%s' with message type '%s' already exists",
-                            msg.topicName, msg.messageType.getName())));
+            msg.replyTo.tell(TopicCreated.alreadyExists(String.format(
+                    "Topic '%s' with message type '%s' already exists", msg.topicName, msg.messageType.getName())));
             return Behaviors.same();
         }
 
-        ActorRef<Topic.Command<T>> topicActor =
-                ctx.spawn(Topic.create(msg.messageType, msg.topicName), actorName);
+        ActorRef<Topic.Command<T>> topicActor = ctx.spawn(Topic.create(msg.messageType, msg.topicName), actorName);
         SpringTopicRef<T> topicRef = new SpringTopicRef<>(topicActor, msg.topicName);
 
         msg.replyTo.tell(TopicCreated.success(topicRef));

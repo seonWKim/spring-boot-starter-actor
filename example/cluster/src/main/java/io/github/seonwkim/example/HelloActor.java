@@ -3,6 +3,7 @@ package io.github.seonwkim.example;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.github.seonwkim.core.AskCommand;
+import io.github.seonwkim.core.SpringBehaviorContext;
 import io.github.seonwkim.core.serialization.JsonSerializable;
 import io.github.seonwkim.core.shard.SpringShardedActor;
 import io.github.seonwkim.core.shard.SpringShardedActorBehavior;
@@ -71,10 +72,10 @@ public class HelloActor implements SpringShardedActor<HelloActor.Command> {
      * Behavior handler for hello actor. Holds the entity ID and handles messages.
      */
     private static class HelloActorBehavior {
-        private final ActorContext<Command> ctx;
+        private final SpringBehaviorContext<Command> ctx;
         private final String entityId;
 
-        HelloActorBehavior(ActorContext<Command> ctx, String entityId) {
+        HelloActorBehavior(SpringBehaviorContext<Command> ctx, String entityId) {
             this.ctx = ctx;
             this.entityId = entityId;
         }
@@ -87,7 +88,7 @@ public class HelloActor implements SpringShardedActor<HelloActor.Command> {
          */
         private Behavior<Command> onSayHello(SayHello msg) {
             // Get information about the current node and entity
-            final String nodeAddress = ctx.getSystem().address().toString();
+            final String nodeAddress = ctx.getUnderlying().getSystem().address().toString();
 
             // Create a response message with node and entity information
             final String message = "Received from entity [" + entityId + "] on node [" + nodeAddress + "]";

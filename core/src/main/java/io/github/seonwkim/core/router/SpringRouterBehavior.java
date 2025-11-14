@@ -96,20 +96,13 @@ public final class SpringRouterBehavior<C> {
     public SpringActorBehavior<C> toSpringActorBehavior() {
         // Create the Pekko router behavior
         Behavior<C> routerBehavior = Behaviors.setup(ctx -> {
-            // Get the actor type registry from context
-            ActorTypeRegistry registry = actorContext.registry();
-            if (registry == null) {
-                throw new IllegalStateException(
-                        "ActorTypeRegistry is null. Cannot spawn worker actors without registry.");
-            }
-
             // Create worker context
             SpringActorContext workerContext = new DefaultSpringActorContext("worker-" + UUID.randomUUID());
 
-            // Create worker behavior using the registry
+            // Create worker behavior using the static registry
             @SuppressWarnings("unchecked")
             SpringActorBehavior<C> workerSpringBehavior =
-                    (SpringActorBehavior<C>) registry.createBehavior(workerActorClass, workerContext);
+                    (SpringActorBehavior<C>) ActorTypeRegistry.createBehavior(workerActorClass, workerContext);
             Behavior<C> workerBehavior = workerSpringBehavior.asBehavior();
 
             // Apply supervision strategy if specified

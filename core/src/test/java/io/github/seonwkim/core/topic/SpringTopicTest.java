@@ -371,7 +371,10 @@ class SpringTopicTest {
         // Try to create the same topic again - should fail with TopicAlreadyExistsException
         TopicAlreadyExistsException exception = assertThrows(
                 TopicAlreadyExistsException.class,
-                () -> topicManager.topic(TestMessage.class).withName("duplicate-create-topic").create(),
+                () -> topicManager
+                        .topic(TestMessage.class)
+                        .withName("duplicate-create-topic")
+                        .create(),
                 "Creating the same topic twice should throw TopicAlreadyExistsException");
 
         // Verify exception details

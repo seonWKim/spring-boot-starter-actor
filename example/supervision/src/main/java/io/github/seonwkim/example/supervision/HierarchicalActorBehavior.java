@@ -119,13 +119,6 @@ public class HierarchicalActorBehavior<C> {
         logPublisher.publish(String.format(
                 "[%s] 🚀 Spawning child '%s' with strategy: %s", actorId, msg.childId, strategyDescription));
 
-        // Get the registry and create the child behavior
-        ActorTypeRegistry registry = actorContext.registry();
-        if (registry == null) {
-            msg.reply(new ActorHierarchy.SpawnResult(msg.childId, false, "Registry not available"));
-            return Behaviors.same();
-        }
-
         // Create child context
         SpringActorContext childContext = new SpringActorContext() {
             @Override
@@ -134,9 +127,9 @@ public class HierarchicalActorBehavior<C> {
             }
         };
 
-        // Create behavior and apply supervision
+        // Create behavior using static registry and apply supervision
         Behavior<C> childBehavior = (Behavior<C>)
-                registry.createBehavior(childActorClass, childContext).asBehavior();
+                ActorTypeRegistry.createBehavior(childActorClass, childContext).asBehavior();
         Behavior<C> supervisedBehavior = Behaviors.supervise(childBehavior).onFailure(strategy);
 
         // Spawn the child

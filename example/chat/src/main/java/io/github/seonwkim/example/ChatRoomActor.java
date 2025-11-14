@@ -50,7 +50,7 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
     /** Command to join a chat room. Provides actor ref for subscription. */
     public static class JoinRoom implements Command {
         public final String userId;
-        public final org.apache.pekko.actor.typed.ActorRef<UserActor.Command> userActorRef;
+        public final ActorRef<UserActor.Command> userActorRef;
 
         @JsonCreator
         public JoinRoom(
@@ -64,12 +64,12 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
     /** Command to leave a chat room. Provides actor ref for unsubscription. */
     public static class LeaveRoom implements Command {
         public final String userId;
-        public final org.apache.pekko.actor.typed.ActorRef<UserActor.Command> userActorRef;
+        public final ActorRef<UserActor.Command> userActorRef;
 
         @JsonCreator
         public LeaveRoom(
                 @JsonProperty("userId") String userId,
-                @JsonProperty("userActorRef") org.apache.pekko.actor.typed.ActorRef<UserActor.Command> userActorRef) {
+                @JsonProperty("userActorRef") ActorRef<UserActor.Command> userActorRef) {
             this.userId = userId;
             this.userActorRef = userActorRef;
         }

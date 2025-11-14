@@ -121,13 +121,12 @@ public class SpringActorSpawnBuilder<A extends SpringActorWithContext<C, ?>, C> 
      * <pre>
      * spring:
      *   actor:
-     *     actor:
-     *       my-blocking-dispatcher:
-     *         type: Dispatcher
-     *         executor: "thread-pool-executor"
-     *         thread-pool-executor:
-     *           fixed-pool-size: 16
-     *         throughput: 1
+     *     my-blocking-dispatcher:
+     *       type: Dispatcher
+     *       executor: "thread-pool-executor"
+     *       thread-pool-executor:
+     *         fixed-pool-size: 16
+     *       throughput: 1
      * </pre>
      *
      * @param dispatcherPath The path to the dispatcher configuration (e.g., "my-blocking-dispatcher")
