@@ -3,8 +3,8 @@ package io.github.seonwkim.example;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.github.seonwkim.core.*;
-import io.github.seonwkim.core.shard.SpringShardedActorRef;
 import io.github.seonwkim.core.serialization.JsonSerializable;
+import io.github.seonwkim.core.shard.SpringShardedActorRef;
 import javax.annotation.Nullable;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
@@ -158,7 +158,8 @@ public class UserActor implements SpringActorWithContext<UserActor.Command, User
                 json.append(",\"roomId\":\"").append(escapeJson(currentRoomId)).append("\"");
             });
 
-            roomActor.tell(new ChatRoomActor.JoinRoom(userId, context.getUnderlying().getSelf()));
+            roomActor.tell(
+                    new ChatRoomActor.JoinRoom(userId, context.getUnderlying().getSelf()));
             return Behaviors.same();
         }
 
@@ -173,7 +174,8 @@ public class UserActor implements SpringActorWithContext<UserActor.Command, User
             });
 
             final var roomActor = getRoomActor();
-            roomActor.tell(new ChatRoomActor.LeaveRoom(userId, context.getUnderlying().getSelf()));
+            roomActor.tell(
+                    new ChatRoomActor.LeaveRoom(userId, context.getUnderlying().getSelf()));
 
             return Behaviors.same();
         }

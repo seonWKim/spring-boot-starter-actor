@@ -118,8 +118,7 @@ public class ActorTagsIntegrationTest {
             return SpringActorBehavior.builder(TestCommand.class, actorContext)
                     .onMessage(Ping.class, (ctx, msg) -> {
                         ctx.getLog().info("Received: {}", msg.message);
-                        msg.reply(new Pong(
-                                "Pong: " + msg.message, ctx.path().toString()));
+                        msg.reply(new Pong("Pong: " + msg.message, ctx.path().toString()));
                         return Behaviors.same();
                     })
                     .build();
@@ -132,8 +131,7 @@ public class ActorTagsIntegrationTest {
             return SpringActorBehavior.builder(TestCommand.class, actorContext)
                     .onMessage(Ping.class, (ctx, msg) -> {
                         ctx.getLog().info("Parent received: {}", msg.message);
-                        msg.reply(new Pong(
-                                "Pong: " + msg.message, ctx.path().toString()));
+                        msg.reply(new Pong("Pong: " + msg.message, ctx.path().toString()));
                         return Behaviors.same();
                     })
                     .build();
@@ -146,8 +144,7 @@ public class ActorTagsIntegrationTest {
             return SpringActorBehavior.builder(TestCommand.class, actorContext)
                     .onMessage(Ping.class, (ctx, msg) -> {
                         ctx.getLog().info("Child received: {}", msg.message);
-                        msg.reply(new Pong(
-                                "Pong: " + msg.message, ctx.path().toString()));
+                        msg.reply(new Pong("Pong: " + msg.message, ctx.path().toString()));
                         return Behaviors.same();
                     })
                     .build();

@@ -27,9 +27,7 @@ public class SupervisorActor implements SpringActorWithContext<HierarchicalActor
 
                     String actorId = actorContext.actorId();
                     ctx.getLog().info("Supervisor {} started", actorId);
-                    logPublisher.publish(String.format(
-                            "[%s] Supervisor started (path: %s)",
-                            actorId, ctx.path()));
+                    logPublisher.publish(String.format("[%s] Supervisor started (path: %s)", actorId, ctx.path()));
 
                     return behavior;
                 })

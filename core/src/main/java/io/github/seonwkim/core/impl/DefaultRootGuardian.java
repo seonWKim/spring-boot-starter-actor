@@ -4,11 +4,13 @@ import io.github.seonwkim.core.ActorSpawner;
 import io.github.seonwkim.core.ActorTypeRegistry;
 import io.github.seonwkim.core.RootGuardian;
 import io.github.seonwkim.core.SpringActorContext;
+import io.github.seonwkim.core.topic.SpringTopicRef;
 import javax.annotation.Nullable;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
+import org.apache.pekko.actor.typed.pubsub.Topic;
 import org.apache.pekko.cluster.typed.ClusterSingleton;
 
 /**
@@ -58,7 +60,8 @@ public class DefaultRootGuardian implements RootGuardian {
     }
 
     /**
-     * Creates the behavior for this DefaultRootGuardian. The behavior handles SpawnActor, GetActor, and CheckExists commands.
+     * Creates the behavior for this DefaultRootGuardian. The behavior handles SpawnActor, GetActor, CheckExists,
+     * CreateTopic, and GetOrCreateTopic commands.
      *
      * @return A behavior for this DefaultRootGuardian
      */
@@ -67,6 +70,8 @@ public class DefaultRootGuardian implements RootGuardian {
                 .onMessage(SpawnActor.class, this::handleSpawnActor)
                 .onMessage(GetActor.class, this::handleGetActor)
                 .onMessage(CheckExists.class, this::handleCheckExists)
+                .onMessage(CreateTopic.class, this::handleCreateTopicRaw)
+                .onMessage(GetOrCreateTopic.class, this::handleGetOrCreateTopicRaw)
                 .build());
     }
 
@@ -128,6 +133,138 @@ public class DefaultRootGuardian implements RootGuardian {
         boolean exists = ActorSpawner.actorExists(ctx, msg.actorClass, msg.actorContext.actorId());
         msg.replyTo.tell(new ExistsResponse(exists));
         return Behaviors.same();
+    }
+
+    /**
+     * Handles a CreateTopic command by creating a new Pekko Topic actor (raw handler for type erasure).
+     */
+    @SuppressWarnings("unchecked")
+    public Behavior<RootGuardian.Command> handleCreateTopicRaw(CreateTopic<?> msg) {
+        return handleCreateTopic((CreateTopic<Object>) msg);
+    }
+
+    /**
+     * Handles a CreateTopic command by creating a new Pekko Topic actor.
+     * The topic identity is based on both the message type and topic name, following Pekko's
+     * recommendation. The actor name includes both to ensure uniqueness.
+     *
+     * <p>If a topic with the same name and message type already exists, this will return
+     * an error response. Use GetOrCreateTopic for idempotent topic creation.
+     *
+     * @param msg The CreateTopic command
+     * @return The same behavior
+     */
+    @SuppressWarnings("unchecked")
+    private <T> Behavior<RootGuardian.Command> handleCreateTopic(CreateTopic<T> msg) {
+        // Build actor name that includes both topic name and message type
+        // This ensures topics with same name but different types are distinct
+        String actorName = buildTopicActorName(msg.topicName, msg.messageType);
+
+        // Check if topic already exists
+        if (ctx.getChild(actorName).isPresent()) {
+            msg.replyTo.tell(TopicCreated.alreadyExists(
+                    String.format("Topic '%s' with message type '%s' already exists",
+                            msg.topicName, msg.messageType.getName())));
+            return Behaviors.same();
+        }
+
+        ActorRef<Topic.Command<T>> topicActor =
+                ctx.spawn(Topic.create(msg.messageType, msg.topicName), actorName);
+        SpringTopicRef<T> topicRef = new SpringTopicRef<>(topicActor, msg.topicName);
+
+        msg.replyTo.tell(TopicCreated.success(topicRef));
+        return Behaviors.same();
+    }
+
+    /**
+     * Handles a GetOrCreateTopic command (raw handler for type erasure).
+     */
+    @SuppressWarnings("unchecked")
+    public Behavior<RootGuardian.Command> handleGetOrCreateTopicRaw(GetOrCreateTopic<?> msg) {
+        return handleGetOrCreateTopic((GetOrCreateTopic<Object>) msg);
+    }
+
+    /**
+     * Handles a GetOrCreateTopic command by getting an existing topic or creating a new one.
+     * This operation is idempotent - multiple calls with the same name and type will return the same topic.
+     * The topic identity is based on both the message type and topic name.
+     *
+     * @param msg The GetOrCreateTopic command
+     * @return The same behavior
+     */
+    private <T> Behavior<RootGuardian.Command> handleGetOrCreateTopic(GetOrCreateTopic<T> msg) {
+        String actorName = buildTopicActorName(msg.topicName, msg.messageType);
+        ActorRef<?> existingRef = ctx.getChild(actorName).orElse(null);
+
+        SpringTopicRef<T> topicRef;
+        if (existingRef != null) {
+            // Reuse existing topic - cast is type-safe due to actor name uniqueness
+            topicRef = castToTopicRef(existingRef, msg.topicName);
+        } else {
+            // Create new topic with full identity
+            topicRef = createNewTopic(msg.topicName, msg.messageType, actorName);
+        }
+
+        msg.replyTo.tell(TopicCreated.success(topicRef));
+        return Behaviors.same();
+    }
+
+    /**
+     * Safely casts an existing actor reference to a SpringTopicRef with the correct type.
+     *
+     * <p><b>TYPE SAFETY INVARIANT:</b> This cast is safe because of our actor naming strategy.
+     * The actor name is constructed as: {@code "topic-" + topicName + "-" + messageType.getName()}.
+     * This ensures that:
+     * <ul>
+     *   <li>Each combination of (topicName, messageType) maps to a unique actor name</li>
+     *   <li>When we look up an actor by name, we know exactly what type it was created with</li>
+     *   <li>Two topics with the same name but different types have different actor names</li>
+     * </ul>
+     *
+     * <p>Therefore, when we retrieve an actor using {@code buildTopicActorName(name, type)} and
+     * find an existing actor, we are guaranteed that it was created with the same message type.
+     *
+     * @param actorRef The existing actor reference from getChild()
+     * @param topicName The topic name (for debugging and reference creation)
+     * @param <T> The message type
+     * @return A type-safe SpringTopicRef
+     */
+    @SuppressWarnings("unchecked")
+    private <T> SpringTopicRef<T> castToTopicRef(ActorRef<?> actorRef, String topicName) {
+        // The cast is safe because:
+        // 1. We looked up the actor using buildTopicActorName(topicName, messageType)
+        // 2. That actor name encodes both the topic name AND the message type
+        // 3. Only topics created with messageType would have this actor name
+        // 4. Therefore, the actor must be ActorRef<Topic.Command<T>>
+        ActorRef<Topic.Command<T>> typedRef = (ActorRef<Topic.Command<T>>) actorRef;
+        return new SpringTopicRef<>(typedRef, topicName);
+    }
+
+    /**
+     * Creates a new topic actor with the specified name and message type.
+     *
+     * @param topicName The topic name
+     * @param messageType The message type class
+     * @param actorName The unique actor name (includes both topic name and message type)
+     * @param <T> The message type
+     * @return A SpringTopicRef for the newly created topic
+     */
+    private <T> SpringTopicRef<T> createNewTopic(String topicName, Class<T> messageType, String actorName) {
+        ActorRef<Topic.Command<T>> topicActor = ctx.spawn(Topic.create(messageType, topicName), actorName);
+        return new SpringTopicRef<>(topicActor, topicName);
+    }
+
+    /**
+     * Builds an actor name for a topic that includes both the topic name and message type.
+     * This ensures that topics with the same name but different message types are distinct,
+     * following Pekko's topic identity specification.
+     *
+     * @param topicName The topic name
+     * @param messageType The message type class
+     * @return A unique actor name combining both topic name and message type
+     */
+    private String buildTopicActorName(String topicName, Class<?> messageType) {
+        return "topic-" + topicName + "-" + messageType.getName().replace(".", "_");
     }
 
     private String buildActorKey(Class<?> actorClass, SpringActorContext actorContext) {

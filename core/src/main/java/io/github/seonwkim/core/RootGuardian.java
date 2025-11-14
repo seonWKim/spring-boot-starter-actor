@@ -1,6 +1,7 @@
 package io.github.seonwkim.core;
 
 import io.github.seonwkim.core.impl.DefaultRootGuardian;
+import io.github.seonwkim.core.topic.SpringTopicRef;
 import javax.annotation.Nullable;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
@@ -141,6 +142,84 @@ public interface RootGuardian {
          */
         public Spawned(ActorRef<T> ref) {
             this.ref = ref;
+        }
+    }
+
+    /**
+     * Command to create a new topic.
+     */
+    class CreateTopic<T> implements Command {
+        public final Class<T> messageType;
+        public final String topicName;
+        public final ActorRef<TopicCreated<T>> replyTo;
+
+        public CreateTopic(Class<T> messageType, String topicName, ActorRef<TopicCreated<T>> replyTo) {
+            this.messageType = messageType;
+            this.topicName = topicName;
+            this.replyTo = replyTo;
+        }
+    }
+
+    /**
+     * Command to get or create a topic (idempotent).
+     */
+    class GetOrCreateTopic<T> implements Command {
+        public final Class<T> messageType;
+        public final String topicName;
+        public final ActorRef<TopicCreated<T>> replyTo;
+
+        public GetOrCreateTopic(Class<T> messageType, String topicName, ActorRef<TopicCreated<T>> replyTo) {
+            this.messageType = messageType;
+            this.topicName = topicName;
+            this.replyTo = replyTo;
+        }
+    }
+
+    /**
+     * Response message containing a reference to a created topic.
+     *
+     * @param <T> The type of messages that the topic handles
+     */
+    class TopicCreated<T> {
+        @Nullable public final SpringTopicRef<T> topicRef;
+        @Nullable public final String errorMessage;
+        public final boolean alreadyExists;
+
+        private TopicCreated(@Nullable SpringTopicRef<T> topicRef, @Nullable String errorMessage, boolean alreadyExists) {
+            this.topicRef = topicRef;
+            this.errorMessage = errorMessage;
+            this.alreadyExists = alreadyExists;
+        }
+
+        /**
+         * Creates a success response with a topic reference.
+         *
+         * @param topicRef The created topic reference
+         * @param <T> The message type
+         * @return A success response
+         */
+        public static <T> TopicCreated<T> success(SpringTopicRef<T> topicRef) {
+            return new TopicCreated<>(topicRef, null, false);
+        }
+
+        /**
+         * Creates a failure response indicating the topic already exists.
+         *
+         * @param errorMessage The error message
+         * @param <T> The message type
+         * @return A failure response
+         */
+        public static <T> TopicCreated<T> alreadyExists(String errorMessage) {
+            return new TopicCreated<>(null, errorMessage, true);
+        }
+
+        /**
+         * Checks if the topic creation was successful.
+         *
+         * @return true if successful, false otherwise
+         */
+        public boolean isSuccess() {
+            return topicRef != null && errorMessage == null;
         }
     }
 

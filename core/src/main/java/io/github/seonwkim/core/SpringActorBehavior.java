@@ -104,7 +104,8 @@ public final class SpringActorBehavior<C> {
      * @param <C>          the command type
      * @return a new builder instance with SpringBehaviorContext as the state type
      */
-    public static <C> Builder<C, SpringBehaviorContext<C>> builder(Class<C> commandClass, SpringActorContext actorContext) {
+    public static <C> Builder<C, SpringBehaviorContext<C>> builder(
+            Class<C> commandClass, SpringActorContext actorContext) {
         return new Builder<>(commandClass, actorContext, ctx -> ctx);
     }
 
@@ -130,7 +131,9 @@ public final class SpringActorBehavior<C> {
         @Nullable private Function<C, Map<String, String>> mdcForMessage = null;
 
         private Builder(
-                Class<C> commandClass, SpringActorContext actorContext, Function<SpringBehaviorContext<C>, S> stateFactory) {
+                Class<C> commandClass,
+                SpringActorContext actorContext,
+                Function<SpringBehaviorContext<C>, S> stateFactory) {
             this.commandClass = commandClass;
             this.actorContext = actorContext;
             this.stateFactory = stateFactory;

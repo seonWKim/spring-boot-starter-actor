@@ -8,7 +8,6 @@ import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.SupervisorStrategy;
-import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -85,8 +84,7 @@ class SpringChildActorBuilderTest {
         }
 
         private static class ParentBehavior {
-            ParentBehavior() {
-            }
+            ParentBehavior() {}
 
             private Behavior<Command> onDoNothing(DoNothing msg) {
                 return Behaviors.same();
