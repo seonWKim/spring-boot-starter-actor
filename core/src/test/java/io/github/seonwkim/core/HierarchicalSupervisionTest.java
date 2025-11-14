@@ -93,12 +93,12 @@ class HierarchicalSupervisionTest {
         }
 
         private static class ChildWorkerBehavior {
-            private final ActorContext<Command> ctx;
+            private final SpringBehaviorContext<Command> ctx;
             private final SpringActorContext actorContext;
             private final TaskLogger taskLogger;
             private int tasksCompleted = 0;
 
-            ChildWorkerBehavior(ActorContext<Command> ctx, SpringActorContext actorContext, TaskLogger taskLogger) {
+            ChildWorkerBehavior(SpringBehaviorContext<Command> ctx, SpringActorContext actorContext, TaskLogger taskLogger) {
                 this.ctx = ctx;
                 this.actorContext = actorContext;
                 this.taskLogger = taskLogger;
@@ -189,20 +189,19 @@ class HierarchicalSupervisionTest {
         }
 
         private static class ParentSupervisorBehavior {
-            private final ActorContext<Command> ctx;
+            private final SpringBehaviorContext<Command> ctx;
 
-            ParentSupervisorBehavior(ActorContext<Command> ctx, SpringActorContext actorContext) {
+            ParentSupervisorBehavior(SpringBehaviorContext<Command> ctx, SpringActorContext actorContext) {
                 this.ctx = ctx;
                 ctx.getLog().info("ParentSupervisor {} started", actorContext.actorId());
             }
 
             private Behavior<Command> onDelegateWork(DelegateWork msg) {
                 // Create SpringActorRef to self for child management
-                SpringActorRef<Command> self =
-                        new SpringActorRef<>(ctx.getSystem().scheduler(), ctx.getSelf());
+                SpringActorRef<Command> self = ctx.getSelf();
 
                 // Try to get existing child first
-                ctx.pipeToSelf(
+                ctx.getUnderlying().pipeToSelf(
                         self.child(ChildWorkerActor.class, msg.workerId).get().thenApply(opt -> opt.orElse(null)),
                         (childRef, failure) -> new ChildReady(msg, childRef, failure));
 
@@ -231,11 +230,10 @@ class HierarchicalSupervisionTest {
                 ctx.getLog().info("Spawning new worker {} with strategy {}", msg.workerId, msg.strategy);
 
                 SupervisorStrategy strategy = buildStrategy(msg.strategy);
-                SpringActorRef<Command> self =
-                        new SpringActorRef<>(ctx.getSystem().scheduler(), ctx.getSelf());
+                SpringActorRef<Command> self = ctx.getSelf();
 
                 // Spawn child using SpringActorRef unified API
-                ctx.pipeToSelf(
+                ctx.getUnderlying().pipeToSelf(
                         self.child(ChildWorkerActor.class)
                                 .withId(msg.workerId)
                                 .withSupervisionStrategy(strategy)
@@ -355,7 +353,7 @@ class HierarchicalSupervisionTest {
                                 .info(
                                         "DependencyVerificationActor {} created with injected services",
                                         actorContext.actorId());
-                        return new DependencyVerificationBehavior(ctx, actorContext, verificationService, taskLogger);
+                        return new DependencyVerificationBehavior(actorContext, verificationService, taskLogger);
                     })
                     .onMessage(RegisterSelf.class, DependencyVerificationBehavior::onRegisterSelf)
                     .onMessage(VerifyServices.class, DependencyVerificationBehavior::onVerifyServices)
@@ -363,17 +361,14 @@ class HierarchicalSupervisionTest {
         }
 
         private static class DependencyVerificationBehavior {
-            private final ActorContext<Command> ctx;
             private final SpringActorContext actorContext;
             private final DependencyVerificationService verificationService;
             private final TaskLogger taskLogger;
 
             DependencyVerificationBehavior(
-                    ActorContext<Command> ctx,
                     SpringActorContext actorContext,
                     DependencyVerificationService verificationService,
                     TaskLogger taskLogger) {
-                this.ctx = ctx;
                 this.actorContext = actorContext;
                 this.verificationService = verificationService;
                 this.taskLogger = taskLogger;

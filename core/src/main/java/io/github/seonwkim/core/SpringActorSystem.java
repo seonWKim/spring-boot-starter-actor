@@ -50,9 +50,9 @@ public class SpringActorSystem implements DisposableBean {
 
     @Nullable private final ShardedActorRegistry shardedActorRegistry;
 
-    private final Duration defaultQueryTimeout = ActorConstants.DEFAULT_QUERY_TIMEOUT;
+    private final Duration defaultQueryTimeout = Duration.ofMillis(100);
 
-    private final Duration defaultActorRefTimeout = ActorConstants.DEFAULT_TIMEOUT;
+    private final Duration defaultActorRefTimeout = Duration.ofSeconds(3);
 
     /**
      * Creates a new SpringActorSystem in local mode.
@@ -75,7 +75,7 @@ public class SpringActorSystem implements DisposableBean {
      */
     public SpringActorSystem(
             ActorSystem<RootGuardian.Command> actorSystem,
-            io.github.seonwkim.core.shard.ShardedActorRegistry shardedActorRegistry) {
+            @Nullable ShardedActorRegistry shardedActorRegistry) {
         this.actorSystem = actorSystem;
         this.cluster = null;
         this.clusterSharding = null;
@@ -114,10 +114,10 @@ public class SpringActorSystem implements DisposableBean {
     public SpringActorSystem(
             ActorSystem<RootGuardian.Command> actorSystem,
             Cluster cluster,
-            ClusterSharding clusterSharding,
-            ClusterSingleton clusterSingleton,
+            @Nullable ClusterSharding clusterSharding,
+            @Nullable ClusterSingleton clusterSingleton,
             ApplicationEventPublisher publisher,
-            @Nullable io.github.seonwkim.core.shard.ShardedActorRegistry shardedActorRegistry) {
+            @Nullable ShardedActorRegistry shardedActorRegistry) {
         this.actorSystem = actorSystem;
         this.cluster = cluster;
         this.clusterSharding = clusterSharding;
@@ -165,7 +165,7 @@ public class SpringActorSystem implements DisposableBean {
      *
      * @return The ShardedActorRegistry, or null if not available
      */
-    @Nullable public io.github.seonwkim.core.shard.ShardedActorRegistry getShardedActorRegistry() {
+    @Nullable public ShardedActorRegistry getShardedActorRegistry() {
         return shardedActorRegistry;
     }
 

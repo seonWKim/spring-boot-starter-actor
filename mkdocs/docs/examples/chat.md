@@ -1,15 +1,15 @@
 # Chat Example
 
 ![Chat Demo](../chat.gif)
-This guide demonstrates how to build a real-time chat application using Spring Boot Starter Actor without introducing third-party middleware.
+This guide demonstrates how to build a real-time chat application using Spring Boot Starter Actor's pub/sub topics without introducing third-party middleware.
 
 ## Overview
 
 The chat example shows how to:
 
-- Build a real-time chat application using actors
+- Build a real-time chat application using actors and pub/sub topics
 - Implement WebSocket communication for real-time messaging
-- Create a scalable, clustered chat system
+- Create a scalable, clustered chat system using distributed pub/sub
 - Eliminate the need for external message brokers or middleware
 
 This example demonstrates how Spring Boot Starter Actor can be used to build real-world applications efficiently without relying on additional infrastructure components.
@@ -21,9 +21,9 @@ You can find the complete source code for this example on GitHub:
 
 ## Key Components
 
-### ChatRoomActor
+### ChatRoomActor with Pub/Sub
 
-`ChatRoomActor` is a sharded actor that manages a chat room. Each chat room is a separate entity identified by a room ID. The actor maintains a list of connected users and broadcasts messages to all users in the room:
+`ChatRoomActor` is a sharded actor that manages a chat room using **pub/sub topics**. Each chat room creates a topic for message distribution, and users subscribe to receive messages. This eliminates the need to maintain a list of user actor references:
 
 ```java
 @Component
@@ -35,54 +35,54 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
     /** Base interface for all commands that can be sent to the chat room actor. */
     public interface Command extends JsonSerializable {}
 
-    /** Command to join a chat room. */
+    /** Command to join a chat room. Provides actor ref for subscription. */
     public static class JoinRoom implements Command {
         public final String userId;
-        public final ActorRef<UserActor.Command> userRef;
+        public final ActorRef<UserActor.Command> userActorRef;
 
         @JsonCreator
         public JoinRoom(
                 @JsonProperty("userId") String userId,
-                @JsonProperty("userRef") ActorRef<UserActor.Command> userRef) {
+                @JsonProperty("userActorRef") ActorRef<UserActor.Command> userActorRef) {
             this.userId = userId;
-            this.userRef = userRef;
+            this.userActorRef = userActorRef;
         }
     }
 
-    /** Command to leave a chat room. */
-    public static class LeaveRoom implements Command {
-        public final String userId;
+   /** Command to leave a chat room. */
+   public static class LeaveRoom implements Command {
+      public final String userId;
 
-        @JsonCreator
-        public LeaveRoom(@JsonProperty("userId") String userId) {
-            this.userId = userId;
-        }
-    }
+      @JsonCreator
+      public LeaveRoom(@JsonProperty("userId") String userId) {
+         this.userId = userId;
+      }
+   }
 
-    /** Command to send a message to the chat room. */
-    public static class SendMessage implements Command {
-        public final String userId;
-        public final String message;
+   /** Command to send a message to the chat room. */
+   public static class SendMessage implements Command {
+      public final String userId;
+      public final String message;
 
-        @JsonCreator
-        public SendMessage(
-                @JsonProperty("userId") String userId, @JsonProperty("message") String message) {
-            this.userId = userId;
-            this.message = message;
-        }
-    }
+      @JsonCreator
+      public SendMessage(
+              @JsonProperty("userId") String userId, @JsonProperty("message") String message) {
+         this.userId = userId;
+         this.message = message;
+      }
+   }
 
-    @Override
-    public EntityTypeKey<Command> typeKey() {
-        return TYPE_KEY;
-    }
+   @Override
+   public EntityTypeKey<Command> typeKey() {
+      return TYPE_KEY;
+   }
 
-    @Override
+   @Override
     public SpringShardedActorBehavior<Command> create(SpringShardedActorContext<Command> ctx) {
         final String roomId = ctx.getEntityId();
 
         return SpringShardedActorBehavior.builder(Command.class, ctx)
-                .withState(actorCtx -> new ChatRoomBehavior(actorCtx, roomId))
+                .withState(behaviorCtx -> new ChatRoomBehavior(behaviorCtx, roomId))
                 .onMessage(JoinRoom.class, ChatRoomBehavior::onJoinRoom)
                 .onMessage(LeaveRoom.class, ChatRoomBehavior::onLeaveRoom)
                 .onMessage(SendMessage.class, ChatRoomBehavior::onSendMessage)
@@ -90,160 +90,119 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
     }
 
     /**
-     * Behavior handler for chat room actor. Maintains the state of connected users
-     * and handles room operations.
+     * Behavior handler for chat room actor using pub/sub.
+     * Creates a topic for the room and publishes events to subscribers.
+     *
+     * Note: Since this is a sharded actor that doesn't easily support Spring DI,
+     * we use TopicSpawner directly. For regular actors, use SpringTopicManager
+     * with dependency injection instead.
      */
     private static class ChatRoomBehavior {
-        private final ActorContext<Command> ctx;
+        private final SpringBehaviorContext<Command> ctx;
         private final String roomId;
-        private final Map<String, ActorRef<UserActor.Command>> connectedUsers = new HashMap<>();
+        private final SpringTopicRef<UserActor.Command> roomTopic;
+        private final Map<String, SpringActorRef<UserActor.Command>> connectedUsers =
+                new HashMap<>();
 
-        ChatRoomBehavior(ActorContext<Command> ctx, String roomId) {
+        ChatRoomBehavior(SpringBehaviorContext<Command> ctx, String roomId) {
             this.ctx = ctx;
             this.roomId = roomId;
+            // Create a pub/sub topic for this chat room using TopicSpawner directly
+            // For actors with DI support, use SpringTopicManager instead
+            this.roomTopic = TopicSpawner.createTopic(
+                ctx.getUnderlying(),
+                UserActor.Command.class,
+                "chat-room-" + roomId
+            );
+            ctx.getLog().info("Created pub/sub topic for chat room: {}", roomId);
         }
 
+        /**
+         * Handles JoinRoom commands by subscribing the user to the room topic.
+         */
         private Behavior<Command> onJoinRoom(JoinRoom msg) {
-            // Add the user to the connected users
-            connectedUsers.put(msg.userId, msg.userRef);
+            // Wrap the Pekko ActorRef in SpringActorRef for subscription
+            SpringActorRef<UserActor.Command> springUserRef =
+                new SpringActorRef<>(
+                    ctx.getUnderlying().getSystem().scheduler(),
+                    msg.userActorRef);
+
+            // Track the user ref for unsubscription
+            connectedUsers.put(msg.userId, springUserRef);
+
+            // Subscribe the user to the room topic
+            roomTopic.subscribe(springUserRef);
+
+            ctx.getLog().info("User {} joined room {} (now {} users)",
+                msg.userId, roomId, connectedUsers.size());
 
             // Notify all users that a new user has joined
             UserActor.JoinRoomEvent joinRoomEvent = new UserActor.JoinRoomEvent(msg.userId);
-            broadcastCommand(joinRoomEvent);
-
-            return Behaviors.same();
-        }
-
-        private Behavior<Command> onLeaveRoom(LeaveRoom msg) {
-            // Remove the user from connected users
-            ActorRef<UserActor.Command> userRef = connectedUsers.remove(msg.userId);
-
-            if (userRef != null) {
-                // Notify the user that they left the room
-                UserActor.LeaveRoomEvent leaveRoomEvent = new UserActor.LeaveRoomEvent(msg.userId);
-                userRef.tell(leaveRoomEvent);
-
-                // Notify all remaining users that a user has left
-                broadcastCommand(leaveRoomEvent);
-            }
-
-            return Behaviors.same();
-        }
-
-        private Behavior<Command> onSendMessage(SendMessage msg) {
-            // Create a message received command
-            UserActor.SendMessageEvent receiveMessageCmd =
-                    new UserActor.SendMessageEvent(msg.userId, msg.message);
-
-            // Broadcast the message to all connected users
-            broadcastCommand(receiveMessageCmd);
+            roomTopic.publish(joinRoomEvent);
 
             return Behaviors.same();
         }
 
         /**
-         * Broadcasts a command to all connected users.
-         *
-         * @param command The command to broadcast
+         * Handles LeaveRoom commands by unsubscribing the user from the room topic.
          */
-        private void broadcastCommand(UserActor.Command command) {
-            connectedUsers.values().forEach(userRef -> userRef.tell(command));
-        }
-    }
+        private Behavior<Command> onLeaveRoom(LeaveRoom msg) {
+            // Remove the user and get their ref for unsubscription
+            SpringActorRef<UserActor.Command> userRef = connectedUsers.remove(msg.userId);
 
-    @Override
-    public ShardingMessageExtractor<ShardEnvelope<Command>, Command> extractor() {
-        return new DefaultShardingMessageExtractor<>(3);
+            if (userRef != null) {
+                // Unsubscribe the user from the topic
+                roomTopic.unsubscribe(userRef);
+
+                ctx.getLog().info("User {} left room {} ({} users remaining)",
+                    msg.userId, roomId, connectedUsers.size());
+
+                // Notify all remaining users that a user has left
+                UserActor.LeaveRoomEvent leaveRoomEvent = new UserActor.LeaveRoomEvent(msg.userId);
+                roomTopic.publish(leaveRoomEvent);
+            }
+
+            return Behaviors.same();
+        }
+
+        /**
+         * Handles SendMessage commands by publishing the message to the room topic.
+         */
+        private Behavior<Command> onSendMessage(SendMessage msg) {
+            ctx.getLog().debug("Broadcasting message from {} in room {}", msg.userId, roomId);
+
+            // Create a message event
+            UserActor.SendMessageEvent messageEvent =
+                new UserActor.SendMessageEvent(msg.userId, msg.message);
+
+            // Publish the message to all subscribers via the topic
+            roomTopic.publish(messageEvent);
+
+            return Behaviors.same();
+        }
     }
 }
 ```
 
 ### UserActor
 
-`UserActor` represents a connected user and handles sending messages to the user's WebSocket connection. It's implemented as a SpringActor that interacts with ChatRoomActor:
+`UserActor` represents a connected user. It subscribes to chat room topics and sends messages to the user's WebSocket connection:
 
 ```java
 @Component
-public class UserActor implements SpringActor<UserActor.Command> {
+public class UserActor implements SpringActorWithContext<
+    UserActor.Command, UserActor.UserActorContext> {
 
     public interface Command extends JsonSerializable {}
 
-    public static class Connect implements Command {
-    }
-
-    public static class JoinRoom implements Command {
-        private final String roomId;
-
-        public JoinRoom(String roomId) {this.roomId = roomId;}
-    }
-
-    public static class LeaveRoom implements Command {
-        public LeaveRoom() {}
-    }
-
-    public static class SendMessage implements Command {
-        private final String message;
-
-        public SendMessage(String message) {this.message = message;}
-    }
-
-    public static class JoinRoomEvent implements Command {
-        private final String userId;
-
-        public JoinRoomEvent(String userId) {this.userId = userId;}
-    }
-
-    public static class LeaveRoomEvent implements Command {
-        private final String userId;
-
-        public LeaveRoomEvent(String userId) {this.userId = userId;}
-    }
-
-    public static class SendMessageEvent implements Command {
-        private final String userId;
-        private final String message;
-
-        public SendMessageEvent(String userId, String message) {
-            this.userId = userId;
-            this.message = message;
-        }
-    }
-
-    public static class UserActorContext extends SpringActorContext {
-        private final SpringActorSystem actorSystem;
-        private final ObjectMapper objectMapper;
-        private final WebSocketSession session;
-
-        private final String userId;
-
-        public UserActorContext(SpringActorSystem actorSystem, ObjectMapper objectMapper, String userId,
-                              WebSocketSession session) {
-            this.actorSystem = actorSystem;
-            this.objectMapper = objectMapper;
-            this.userId = userId;
-            this.session = session;
-        }
-
-        @Override
-        public String actorId() {
-            return userId;
-        }
-    }
+    // Command and event classes...
 
     @Override
-    public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
-        if (!(actorContext instanceof UserActorContext userActorContext)) {
-            throw new IllegalStateException("Must be UserActorContext");
-        }
-
+    public SpringActorBehavior<Command> create(UserActorContext actorContext) {
         return SpringActorBehavior.builder(Command.class, actorContext)
-                .withState(context -> new UserActorBehavior(
-                        context,
-                        userActorContext.actorSystem,
-                        userActorContext.objectMapper,
-                        userActorContext.userId,
-                        userActorContext.session
-                ))
+                .withState(ctx -> new UserActorBehavior(
+                        ctx, actorContext.actorSystem, actorContext.userId,
+                        actorContext.messageSink))
                 .onMessage(Connect.class, UserActorBehavior::onConnect)
                 .onMessage(JoinRoom.class, UserActorBehavior::onJoinRoom)
                 .onMessage(LeaveRoom.class, UserActorBehavior::onLeaveRoom)
@@ -255,269 +214,114 @@ public class UserActor implements SpringActor<UserActor.Command> {
     }
 
     public static class UserActorBehavior {
-        private final ActorContext<UserActor.Command> context;
+        private final SpringBehaviorContext<Command> context;
         private final SpringActorSystem actorSystem;
-        private final ObjectMapper objectMapper;
-
         private final String userId;
-        private final WebSocketSession session;
+        private final Sinks.Many<String> messageSink;
 
-        @Nullable
-        private String currentRoomId;
+        @Nullable private String currentRoomId;
 
-        public UserActorBehavior(ActorContext<Command> context, SpringActorSystem actorSystem,
-                               ObjectMapper objectMapper, String userId, WebSocketSession session) {
-            this.context = context;
-            this.actorSystem = actorSystem;
-            this.objectMapper = objectMapper;
-            this.userId = userId;
-            this.session = session;
-        }
-
-        private Behavior<Command> onConnect(Connect connect) {
-            sendEvent(
-                    "connected",
-                    builder -> {
-                        builder.put("userId", userId);
-                    });
-
-            return Behaviors.same();
-        }
-
+        // When joining a room, send the raw Pekko ActorRef (serializable)
         private Behavior<Command> onJoinRoom(JoinRoom command) {
             currentRoomId = command.roomId;
             final var roomActor = getRoomActor();
-            sendEvent(
-                    "joined",
-                    builder -> {
-                        builder.put("roomId", currentRoomId);
-                    });
+            sendEvent("joined", json -> {
+                json.append(",\"roomId\":\"").append(escapeJson(currentRoomId)).append("\"");
+            });
 
-            roomActor.tell(new ChatRoomActor.JoinRoom(userId, context.getSelf()));
+            // Send raw ActorRef for cluster serialization
+            roomActor.tell(new ChatRoomActor.JoinRoom(
+                userId,
+                context.getUnderlying().getSelf()));
             return Behaviors.same();
         }
 
-        private Behavior<Command> onLeaveRoom(LeaveRoom command) {
-            if (currentRoomId == null) {
-                context.getLog().info("{} user has not joined any room.", userId);
-                return Behaviors.same();
-            }
-
-            sendEvent(
-                    "left",
-                    builder -> {
-                        builder.put("roomId", currentRoomId);
-                    });
-
-            final var roomActor = getRoomActor();
-            roomActor.tell(new ChatRoomActor.LeaveRoom(userId));
-
-            return Behaviors.same();
-        }
-
-        private Behavior<Command> onSendMessage(SendMessage command) {
-            if (currentRoomId == null) {
-                context.getLog().info("{} user has not joined any room.", userId);
-                return Behaviors.same();
-            }
-
-            final var roomActor = getRoomActor();
-            roomActor.tell(new ChatRoomActor.SendMessage(userId, command.message));
-
-            return Behaviors.same();
-        }
-
+        // Event handlers receive messages via pub/sub topic
         private Behavior<Command> onJoinRoomEvent(JoinRoomEvent event) {
-            sendEvent(
-                    "user_joined",
-                    builder -> {
-                        builder.put("userId", event.userId);
-                        builder.put("roomId", currentRoomId);
-                    });
-            return Behaviors.same();
-        }
-
-        private Behavior<Command> onLeaveRoomEvent(LeaveRoomEvent event) {
-            sendEvent(
-                    "user_left",
-                    builder -> {
-                        builder.put("userId", event.userId);
-                        builder.put("roomId", currentRoomId);
-                    });
+            sendEvent("user_joined", json -> {
+                json.append(",\"userId\":\"").append(escapeJson(event.userId)).append("\"");
+                json.append(",\"roomId\":\"").append(escapeJson(currentRoomId)).append("\"");
+            });
             return Behaviors.same();
         }
 
         private Behavior<Command> onSendMessageEvent(SendMessageEvent event) {
-            sendEvent(
-                    "message",
-                    builder -> {
-                        builder.put("userId", event.userId);
-                        builder.put("message", event.message);
-                        builder.put("roomId", currentRoomId);
-                    });
+            sendEvent("message", json -> {
+                json.append(",\"userId\":\"").append(escapeJson(event.userId)).append("\"");
+                json.append(",\"message\":\"").append(escapeJson(event.message)).append("\"");
+                json.append(",\"roomId\":\"").append(escapeJson(currentRoomId)).append("\"");
+            });
             return Behaviors.same();
         }
 
         private SpringShardedActorRef<ChatRoomActor.Command> getRoomActor() {
-            return actorSystem.sharded(ChatRoomActor.class).withId(currentRoomId).get(); 
-        }
-
-        private void sendEvent(String type, EventBuilder builder) {
-            try {
-                ObjectNode eventNode = objectMapper.createObjectNode();
-                eventNode.put("type", type);
-                builder.build(eventNode);
-
-                if (session.isOpen()) {
-                    session.sendMessage(new TextMessage(objectMapper.writeValueAsString(eventNode)));
-                }
-            } catch (IOException e) {
-                context.getLog().error("Failed to send message to WebSocket", e);
-            }
-        }
-
-        @FunctionalInterface
-        private interface EventBuilder {
-            void build(ObjectNode node);
+            return actorSystem
+                    .sharded(ChatRoomActor.class)
+                    .withId(currentRoomId)
+                    .get();
         }
     }
 }
 ```
 
-### ChatWebSocketHandler
+## Architecture with Pub/Sub
 
-`ChatWebSocketHandler` handles WebSocket connections and messages:
+### Benefits of Pub/Sub Approach
+
+The pub/sub implementation provides several advantages:
+
+1. **Simplified State Management**: No need to maintain a list of user actor references
+2. **Automatic Cleanup**: Users are automatically unsubscribed when their actors terminate
+3. **Scalability**: Topics work seamlessly across cluster nodes
+4. **Decoupled Communication**: Publishers don't need to know about subscribers
+5. **Location Transparency**: Works the same whether actors are local or distributed
+
+### Message Flow
+
+```
+1. User connects → UserActor created
+2. User joins room → UserActor tells ChatRoomActor
+3. ChatRoomActor subscribes UserActor to room topic
+4. User sends message → ChatRoomActor publishes to topic
+5. All subscribed UserActors receive message via topic
+6. UserActors forward to WebSocket clients
+```
+
+### Cluster Serialization
+
+**Important**: When sending actor references across cluster boundaries, use raw Pekko `ActorRef` instead of `SpringActorRef`:
 
 ```java
-@Component
-public class ChatWebSocketHandler extends TextWebSocketHandler {
+// ✅ Correct: Raw ActorRef is serializable
+roomActor.tell(new ChatRoomActor.JoinRoom(userId, context.getUnderlying().getSelf()));
 
-    private final ObjectMapper objectMapper;
-    private final SpringActorSystem actorSystem;
-    private final ConcurrentMap<String, SpringActorRef<UserActor.Command>> userActors =
-            new ConcurrentHashMap<>();
-
-    public ChatWebSocketHandler(
-            ObjectMapper objectMapper, SpringActorSystem actorSystem) {
-        this.objectMapper = objectMapper;
-        this.actorSystem = actorSystem;
-    }
-
-    @Override
-    public void afterConnectionEstablished(WebSocketSession session) {
-        String userId = UUID.randomUUID().toString();
-        session.getAttributes().put("userId", userId);
-        UserActor.UserActorContext userActorContext =
-                new UserActor.UserActorContext(actorSystem, objectMapper, userId, session);
-
-        actorSystem.actor(UserActor.class)
-                   .withContext(userActorContext)
-                   .spawn()
-                   .thenAccept(userActor -> {
-                       userActors.put(userId, userActor);
-                       userActor.tell(new Connect());
-                   });
-    }
-                       userActor.tell(new Connect());
-                   });
-    }
-
-    @Override
-    protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
-        String userId = (String) session.getAttributes().get("userId");
-        JsonNode payload = objectMapper.readTree(message.getPayload());
-        String type = payload.get("type").asText();
-
-        switch (type) {
-            case "join":
-                handleJoinRoom(userId, payload);
-                break;
-            case "leave":
-                handleLeaveRoom(userId);
-                break;
-            case "message":
-                handleChatMessage(userId, payload);
-                break;
-            default:
-                sendErrorMessage(session, "Unknown message type: " + type);
-        }
-    }
-
-    @Override
-    public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
-        final String userId = (String) session.getAttributes().get("userId");
-        final var userActor = getUserActor(userId);
-        if (userId != null && userActor != null) {
-            userActor.stop();
-            userActors.remove(userId);
-        }
-    }
-
-    private void handleJoinRoom(String userId, JsonNode payload) {
-        String roomId = payload.get("roomId").asText();
-        final var userActor = getUserActor(userId);
-        if (roomId != null && userActor != null) {
-            userActor.tell(new JoinRoom(roomId));
-        }
-    }
-
-    private void handleLeaveRoom(String userId) {
-        final var userActor = getUserActor(userId);
-        if (userActor != null) {
-            userActor.tell(new LeaveRoom());
-        }
-    }
-
-    private void handleChatMessage(String userId, JsonNode payload) {
-        final var userActor = getUserActor(userId);
-        String messageText = payload.get("message").asText();
-        if (userActor != null && messageText != null) {
-            userActor.tell(new SendMessage(messageText));
-        }
-    }
-
-    private SpringActorRef<UserActor.Command> getUserActor(String userId) {
-        if (userId == null) {
-            return null;
-        }
-
-        return userActors.get(userId);
-    }
-
-    private void sendErrorMessage(WebSocketSession session, String errorMessage) {
-        try {
-            if (session.isOpen()) {
-                ObjectNode response = objectMapper.createObjectNode();
-                response.put("type", "error");
-                response.put("message", errorMessage);
-                session.sendMessage(new TextMessage(objectMapper.writeValueAsString(response)));
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-}
+// ❌ Wrong: SpringActorRef contains non-serializable Scheduler
+roomActor.tell(new ChatRoomActor.JoinRoom(userId, context.getSelf()));
 ```
+
+`SpringActorRef` is a local convenience wrapper only. For cluster messages, always use the raw Pekko `ActorRef`.
 
 ## Running the Application
 
 ### Local Cluster Setup
 
-You can run multiple instances of the application locally using the provided `cluster-start.sh` script:
+You can run multiple instances of the application locally using Gradle:
 
 ```bash
-./cluster-start.sh chat io.github.seonwkim.example.SpringPekkoApplication 8080 2551 3
+# Terminal 1 - Node on port 8080
+SERVER_PORT=8080 PEKKO_PORT=2551 PEKKO_MGMT_PORT=7626 ./gradlew :example:chat:bootRun
+
+# Terminal 2 - Node on port 8081
+SERVER_PORT=8081 PEKKO_PORT=2552 PEKKO_MGMT_PORT=7627 ./gradlew :example:chat:bootRun
+
+# Terminal 3 - Node on port 8082
+SERVER_PORT=8082 PEKKO_PORT=2553 PEKKO_MGMT_PORT=7628 ./gradlew :example:chat:bootRun
 ```
 
-This will start 3 instances of the application with the following configuration:
-- Instance 1: HTTP port 8080, Pekko port 2551
-- Instance 2: HTTP port 8081, Pekko port 2552
-- Instance 3: HTTP port 8082, Pekko port 2553
-
-To stop the cluster:
-```bash
-./cluster-stop.sh
-```
+The nodes will automatically form a cluster. Access the web UI at:
+- Node 1: http://localhost:8080
+- Node 2: http://localhost:8081
+- Node 3: http://localhost:8082
 
 ### Docker Deployment
 
@@ -555,19 +359,32 @@ To stop the Docker deployment:
 docker-compose down
 ```
 
-The Docker deployment uses the same application code but configures it to run in a containerized environment, making it easier to deploy and scale in production scenarios.
+## Testing Message Distribution
+
+To verify that messages properly distribute across the cluster:
+
+1. Open chat UI on different nodes (e.g., http://localhost:8080 and http://localhost:8081)
+2. Join the same room from both browsers
+3. Send messages from either browser
+4. All connected users should receive messages regardless of which node they're connected to
+
+This demonstrates the power of distributed pub/sub topics working seamlessly across the cluster.
 
 ## Architecture Benefits
 
 This architecture eliminates the need for third-party middleware by leveraging:
 
+- **Distributed pub/sub topics** for message distribution
+- **Sharded actors** for scalability and fault tolerance
 - Built-in message routing between actors
 - Natural state management within actors
-- Scalability through sharded actors
 - Real-time communication via WebSockets
-- Fault tolerance provided by the actor system
+- Automatic cleanup and lifecycle management
 
 ## Key Takeaways
 
-- The actor model provides an effective way to handle real-time communication
-- WebSockets combined with actors create an efficient messaging system
+- Pub/sub topics provide a clean abstraction for one-to-many communication
+- The actor model combined with pub/sub creates an efficient, scalable messaging system
+- WebSockets and actors work together seamlessly for real-time applications
+- No external message broker required - everything is built into the framework
+- Cluster-aware topics distribute messages automatically across nodes

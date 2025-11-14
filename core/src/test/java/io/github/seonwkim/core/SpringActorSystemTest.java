@@ -52,7 +52,7 @@ class SpringActorSystemTest {
             return SpringActorBehavior.builder(Command.class, id)
                     .onMessage(GetDispatcherName.class, (ctx, msg) -> {
                         // Get the dispatcher name from the execution context
-                        String dispatcherName = ctx.getExecutionContext().toString();
+                        String dispatcherName = ctx.getUnderlying().getExecutionContext().toString();
                         msg.reply(dispatcherName);
                         return Behaviors.same();
                     })

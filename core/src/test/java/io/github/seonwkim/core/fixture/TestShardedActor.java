@@ -3,6 +3,7 @@ package io.github.seonwkim.core.fixture;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.github.seonwkim.core.AskCommand;
+import io.github.seonwkim.core.SpringBehaviorContext;
 import io.github.seonwkim.core.serialization.JsonSerializable;
 import io.github.seonwkim.core.shard.DefaultShardingMessageExtractor;
 import io.github.seonwkim.core.shard.ShardEnvelope;
@@ -10,7 +11,6 @@ import io.github.seonwkim.core.shard.SpringShardedActor;
 import io.github.seonwkim.core.shard.SpringShardedActorBehavior;
 import io.github.seonwkim.core.shard.SpringShardedActorContext;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.apache.pekko.cluster.sharding.typed.ShardingMessageExtractor;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
@@ -69,11 +69,11 @@ public class TestShardedActor implements SpringShardedActor<TestShardedActor.Com
     }
 
     private static class ActorState {
-        private final ActorContext<Command> context;
+        private final SpringBehaviorContext<Command> context;
         private final String entityId;
         private final AtomicInteger counter;
 
-        ActorState(ActorContext<Command> context, String entityId) {
+        ActorState(SpringBehaviorContext<Command> context, String entityId) {
             this.context = context;
             this.entityId = entityId;
             this.counter = new AtomicInteger();

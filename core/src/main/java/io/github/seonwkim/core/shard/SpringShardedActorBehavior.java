@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+
+import io.github.seonwkim.core.SpringBehaviorContext;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.Signal;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
@@ -64,15 +66,15 @@ public final class SpringShardedActorBehavior<T> {
     /**
      * Creates a new builder for constructing a SpringShardedActorBehavior.
      *
-     * <p>The builder starts with ActorContext as the default state type. Use {@link Builder#withState(Function)}
+     * <p>The builder starts with SpringBehaviorContext as the default state type. Use {@link Builder#withState(Function)}
      * to evolve the builder to use a custom state type that will be passed to message handlers.
      *
      * @param commandClass         the command class
      * @param shardedActorContext the sharded actor context
      * @param <T>                  the message type
-     * @return a new builder instance with ActorContext as the state type
+     * @return a new builder instance with SpringBehaviorContext as the state type
      */
-    public static <T> Builder<T, ActorContext<T>> builder(
+    public static <T> Builder<T, SpringBehaviorContext<T>> builder(
             Class<T> commandClass, SpringShardedActorContext<T> shardedActorContext) {
         return new Builder<>(commandClass, shardedActorContext, ctx -> ctx);
     }
@@ -84,19 +86,19 @@ public final class SpringShardedActorBehavior<T> {
      * The state type parameter {@code S} represents the type of object passed to message handlers.
      *
      * @param <T> the message type
-     * @param <S> the state type passed to message handlers (defaults to ActorContext&lt;T&gt;)
+     * @param <S> the state type passed to message handlers (defaults to SpringBehaviorContext&lt;T&gt;)
      */
     public static final class Builder<T, S> {
         private final SpringShardedActorContext<T> shardedActorContext;
         private final Class<T> commandClass;
-        private final Function<ActorContext<T>, S> stateFactory;
+        private final Function<SpringBehaviorContext<T>, S> stateFactory;
         private final List<MessageHandler<T, S, ?>> messageHandlers = new ArrayList<>();
         private final List<SignalHandler<T, S, ?>> signalHandlers = new ArrayList<>();
 
         private Builder(
                 Class<T> commandClass,
                 SpringShardedActorContext<T> shardedActorContext,
-                Function<ActorContext<T>, S> stateFactory) {
+                Function<SpringBehaviorContext<T>, S> stateFactory) {
             this.commandClass = commandClass;
             this.shardedActorContext = shardedActorContext;
             this.stateFactory = stateFactory;
@@ -119,11 +121,11 @@ public final class SpringShardedActorBehavior<T> {
          * }
          * </pre>
          *
-         * @param stateFactory the function that creates the state object from ActorContext
+         * @param stateFactory the function that creates the state object from SpringBehaviorContext
          * @param <NewS> the new state type
          * @return a new builder with the evolved state type
          */
-        public <NewS> Builder<T, NewS> withState(Function<ActorContext<T>, NewS> stateFactory) {
+        public <NewS> Builder<T, NewS> withState(Function<SpringBehaviorContext<T>, NewS> stateFactory) {
             return new Builder<>(commandClass, shardedActorContext, stateFactory);
         }
 
@@ -150,8 +152,10 @@ public final class SpringShardedActorBehavior<T> {
          */
         public SpringShardedActorBehavior<T> build() {
             Behavior<T> userBehavior = Behaviors.setup(ctx -> {
+                // Wrap ActorContext with SpringBehaviorContext
+                SpringBehaviorContext<T> springCtx = new SpringBehaviorContext<>(ctx);
                 // Create the state object
-                S state = stateFactory.apply(ctx);
+                S state = stateFactory.apply(springCtx);
 
                 BehaviorBuilder<T> builder = Behaviors.receive(commandClass);
 
