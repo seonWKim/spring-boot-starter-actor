@@ -92,6 +92,10 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
     /**
      * Behavior handler for chat room actor using pub/sub.
      * Creates a topic for the room and publishes events to subscribers.
+     *
+     * Note: Since this is a sharded actor that doesn't easily support Spring DI,
+     * we use TopicSpawner directly. For regular actors, use SpringTopicManager
+     * with dependency injection instead.
      */
     private static class ChatRoomBehavior {
         private final SpringBehaviorContext<Command> ctx;
@@ -103,8 +107,13 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
         ChatRoomBehavior(SpringBehaviorContext<Command> ctx, String roomId) {
             this.ctx = ctx;
             this.roomId = roomId;
-            // Create a pub/sub topic for this chat room
-            this.roomTopic = ctx.createTopic(UserActor.Command.class, "chat-room-" + roomId);
+            // Create a pub/sub topic for this chat room using TopicSpawner directly
+            // For actors with DI support, use SpringTopicManager instead
+            this.roomTopic = TopicSpawner.createTopic(
+                ctx.getUnderlying(),
+                UserActor.Command.class,
+                "chat-room-" + roomId
+            );
             ctx.getLog().info("Created pub/sub topic for chat room: {}", roomId);
         }
 

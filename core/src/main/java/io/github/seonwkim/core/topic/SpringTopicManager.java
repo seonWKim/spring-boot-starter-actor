@@ -1,20 +1,25 @@
 package io.github.seonwkim.core.topic;
 
+import io.github.seonwkim.core.SpringActorRef;
 import io.github.seonwkim.core.SpringActorSystem;
-import io.github.seonwkim.core.SpringBehaviorContext;
+import org.apache.pekko.actor.typed.SupervisorStrategy;
 
 import javax.annotation.Nullable;
+import java.time.Duration;
 
 /**
  * Service for managing pub/sub topics with Spring DI.
- * Topics can be unbounded (system-wide) or bounded to a specific actor.
+ * All topics are managed by SpringTopicSpawnActor.
  */
 public class SpringTopicManager {
 
-    private final SpringActorSystem actorSystem;
+    private final SpringActorRef<SpringTopicSpawnActor.Command> spawnerActorRef;
 
     public SpringTopicManager(SpringActorSystem actorSystem) {
-        this.actorSystem = actorSystem;
+        spawnerActorRef = actorSystem.actor(SpringTopicSpawnActor.class)
+                .withId("spring-topic-spawner")
+                .withSupervisionStrategy(SupervisorStrategy.restart())
+                .spawnAndWait();
     }
 
     /**
@@ -24,7 +29,7 @@ public class SpringTopicManager {
      * @return A builder for configuring the topic
      */
     public <T> TopicBuilder<T> topic(Class<T> messageType) {
-        return new TopicBuilder<>(messageType, actorSystem);
+        return new TopicBuilder<>(messageType, spawnerActorRef);
     }
 
     /**
@@ -32,17 +37,14 @@ public class SpringTopicManager {
      */
     public static class TopicBuilder<T> {
         private final Class<T> messageType;
-        private final SpringActorSystem actorSystem;
+        private final SpringActorRef<SpringTopicSpawnActor.Command> spawnerActorRef;
         @Nullable
         private String name;
-        @Nullable
-        private SpringBehaviorContext<?> ownerContext;
 
-        TopicBuilder(Class<T> messageType, SpringActorSystem actorSystem) {
+        TopicBuilder(Class<T> messageType, SpringActorRef<SpringTopicSpawnActor.Command> spawnerActorRef) {
             this.messageType = messageType;
-            this.actorSystem = actorSystem;
+            this.spawnerActorRef = spawnerActorRef;
             this.name = null;
-            this.ownerContext = null;
         }
 
         /**
@@ -57,21 +59,7 @@ public class SpringTopicManager {
         }
 
         /**
-         * Binds this topic to an actor's lifecycle.
-         * The topic will be stopped when the owning actor stops.
-         *
-         * @param ctx The behavior context of the owning actor
-         * @return This builder
-         */
-        public TopicBuilder<T> ownedBy(SpringBehaviorContext<?> ctx) {
-            this.ownerContext = ctx;
-            return this;
-        }
-
-        /**
          * Creates the topic.
-         * If ownedBy() was called, topic is bounded to that actor.
-         * Otherwise, topic is unbounded (system-wide).
          *
          * @return Reference to the created topic
          */
@@ -80,19 +68,20 @@ public class SpringTopicManager {
                 throw new IllegalArgumentException("Topic name must be specified");
             }
 
-            if (ownerContext != null) {
-                // Bounded topic - spawn as child of the owning actor
-                return TopicSpawner.createTopic(ownerContext.getUnderlying(), messageType, name);
-            } else {
-                // Unbounded topic - create at system level
-                return TopicSpawner.createTopic(actorSystem.getRaw(), messageType, name);
+            try {
+                return spawnerActorRef
+                        .ask(new SpringTopicSpawnActor.CreateTopic<>(messageType, name))
+                        .withTimeout(Duration.ofSeconds(5))
+                        .execute()
+                        .toCompletableFuture()
+                        .get();
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to create topic: " + name, e);
             }
         }
 
         /**
          * Gets or creates the topic with idempotent semantics.
-         * If ownedBy() was called, uses that actor's context.
-         * Otherwise, uses the actor system.
          *
          * @return Reference to the topic
          */
@@ -101,12 +90,15 @@ public class SpringTopicManager {
                 throw new IllegalArgumentException("Topic name must be specified");
             }
 
-            if (ownerContext != null) {
-                // Bounded topic - get or create in the owning actor's context
-                return TopicSpawner.getOrCreateTopic(ownerContext.getUnderlying(), messageType, name);
-            } else {
-                // Unbounded topic - create at system level (no getOrCreate for system level)
-                return TopicSpawner.createTopic(actorSystem.getRaw(), messageType, name);
+            try {
+                return spawnerActorRef
+                        .ask(new SpringTopicSpawnActor.GetOrCreateTopic<>(messageType, name))
+                        .withTimeout(Duration.ofSeconds(5))
+                        .execute()
+                        .toCompletableFuture()
+                        .get();
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to get or create topic: " + name, e);
             }
         }
     }

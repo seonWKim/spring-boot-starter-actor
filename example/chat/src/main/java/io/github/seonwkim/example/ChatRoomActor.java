@@ -4,12 +4,13 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.github.seonwkim.core.SpringActorRef;
 import io.github.seonwkim.core.SpringBehaviorContext;
+import io.github.seonwkim.core.topic.SpringTopicManager;
 import io.github.seonwkim.core.topic.SpringTopicRef;
-import io.github.seonwkim.core.topic.TopicSpawner;
 import io.github.seonwkim.core.serialization.JsonSerializable;
 import io.github.seonwkim.core.shard.SpringShardedActor;
 import io.github.seonwkim.core.shard.SpringShardedActorBehavior;
 import io.github.seonwkim.core.shard.SpringShardedActorContext;
+import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
@@ -37,6 +38,12 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
 
     public static final EntityTypeKey<Command> TYPE_KEY = EntityTypeKey.create(Command.class, "ChatRoomActor");
 
+    private final SpringTopicManager topicManager;
+
+    public ChatRoomActor(SpringTopicManager topicManager) {
+        this.topicManager = topicManager;
+    }
+
     /** Base interface for all commands that can be sent to the chat room actor. */
     public interface Command extends JsonSerializable {}
 
@@ -48,7 +55,7 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
         @JsonCreator
         public JoinRoom(
                 @JsonProperty("userId") String userId,
-                @JsonProperty("userActorRef") org.apache.pekko.actor.typed.ActorRef<UserActor.Command> userActorRef) {
+                @JsonProperty("userActorRef") ActorRef<UserActor.Command> userActorRef) {
             this.userId = userId;
             this.userActorRef = userActorRef;
         }
@@ -88,9 +95,11 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
     @Override
     public SpringShardedActorBehavior<Command> create(SpringShardedActorContext<Command> ctx) {
         final String roomId = ctx.getEntityId();
+        final SpringTopicRef<UserActor.Command> roomTopic =
+                topicManager.topic(UserActor.Command.class).withName("chat-room-" + roomId).create();
 
         return SpringShardedActorBehavior.builder(Command.class, ctx)
-                .withState(behaviorCtx -> new ChatRoomBehavior(behaviorCtx, roomId))
+                .withState(behaviorCtx -> new ChatRoomBehavior(behaviorCtx, roomId, roomTopic))
                 .onMessage(JoinRoom.class, ChatRoomBehavior::onJoinRoom)
                 .onMessage(LeaveRoom.class, ChatRoomBehavior::onLeaveRoom)
                 .onMessage(SendMessage.class, ChatRoomBehavior::onSendMessage)
@@ -99,27 +108,17 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
 
     /**
      * Behavior handler for chat room actor using pub/sub.
-     * Creates a topic owned by this actor.
-     *
-     * <p>Note: Since this is a sharded actor that doesn't easily support DI,
-     * we use TopicSpawner directly. For regular actors, use SpringTopicManager
-     * with dependency injection instead.
+     * Creates a topic owned by this actor using SpringTopicManager.
      */
     private static class ChatRoomBehavior {
         private final SpringBehaviorContext<Command> ctx;
         private final String roomId;
         private final SpringTopicRef<UserActor.Command> roomTopic;
 
-        ChatRoomBehavior(SpringBehaviorContext<Command> ctx, String roomId) {
+        ChatRoomBehavior(SpringBehaviorContext<Command> ctx, String roomId, SpringTopicRef<UserActor.Command> roomTopic) {
             this.ctx = ctx;
             this.roomId = roomId;
-            // Create a pub/sub topic owned by this actor using TopicSpawner directly
-            // Topic will be stopped when this chat room actor stops
-            this.roomTopic = TopicSpawner.createTopic(
-                ctx.getUnderlying(),
-                UserActor.Command.class,
-                "chat-room-" + roomId
-            );
+            this.roomTopic = roomTopic;
             ctx.getLog().info("Created pub/sub topic for chat room: {}", roomId);
         }
 

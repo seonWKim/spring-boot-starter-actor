@@ -11,10 +11,71 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.core.env.Environment;
 
 @Configuration
 public class ActorConfiguration {
+
+    /**
+     * Creates an ActorTypeRegistry bean and registers all SpringActorWithContext beans in the
+     * application context. This includes both SpringActor and SpringActorWithContext implementations.
+     *
+     * @param context The Spring application context
+     * @return An ActorTypeRegistry with all SpringActorWithContext beans registered
+     */
+    @Bean
+    @ConditionalOnMissingBean(ActorTypeRegistry.class)
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    public ActorTypeRegistry actorTypeRegistry(ApplicationContext context) {
+        ActorTypeRegistry registry = new ActorTypeRegistry();
+        // SpringActor extends SpringActorWithContext, so this gets both
+        Map<String, SpringActorWithContext> actorBeans = context.getBeansOfType(SpringActorWithContext.class);
+
+        for (SpringActorWithContext actorBean : actorBeans.values()) {
+            registry.registerInternal(actorBean.getClass(), actorContext -> {
+                try {
+                    return actorBean.create(actorContext);
+                } catch (Exception e) {
+                    throw new RuntimeException(
+                            "Failed to invoke create(id) on "
+                                    + actorBean.getClass().getName(),
+                            e);
+                }
+            });
+        }
+
+        return registry;
+    }
+
+    /**
+     * Creates a RootGuardianSupplierWrapper bean that supplies a RootGuardian behavior.
+     *
+     * @param actorTypeRegistry The ActorTypeRegistry to use for creating the RootGuardian
+     * @return A RootGuardianSupplierWrapper
+     */
+    @Bean
+    @ConditionalOnMissingBean(RootGuardianSupplierWrapper.class)
+    public RootGuardianSupplierWrapper rootGuardianSupplierWrapper(ActorTypeRegistry actorTypeRegistry) {
+        return new RootGuardianSupplierWrapper(() -> RootGuardian.create(actorTypeRegistry));
+    }
+
+    /**
+     * Creates a ShardedActorRegistry bean and registers all SpringShardedActor beans in the application
+     * context.
+     *
+     * @param ctx The Spring application context
+     * @return A ShardedActorRegistry with all SpringShardedActor beans registered
+     */
+    @Bean
+    @ConditionalOnMissingBean(ShardedActorRegistry.class)
+    public ShardedActorRegistry shardedActorRegistry(ApplicationContext ctx) {
+        ShardedActorRegistry registry = new ShardedActorRegistry();
+        Map<String, SpringShardedActor> beans = ctx.getBeansOfType(SpringShardedActor.class);
+        beans.values().forEach(registry::register);
+        return registry;
+    }
+
     /**
      * Creates a SpringActorSystemBuilder bean with the given properties, root guardian supplier,
      * application event publisher, and sharded actor registry.
@@ -55,65 +116,6 @@ public class ActorConfiguration {
     @ConditionalOnMissingBean(SpringTopicManager.class)
     public SpringTopicManager topicManager(SpringActorSystem actorSystem) {
         return new SpringTopicManager(actorSystem);
-    }
-
-    /**
-     * Creates a RootGuardianSupplierWrapper bean that supplies a RootGuardian behavior.
-     *
-     * @param actorTypeRegistry The ActorTypeRegistry to use for creating the RootGuardian
-     * @return A RootGuardianSupplierWrapper
-     */
-    @Bean
-    @ConditionalOnMissingBean(RootGuardianSupplierWrapper.class)
-    public RootGuardianSupplierWrapper rootGuardianSupplierWrapper(ActorTypeRegistry actorTypeRegistry) {
-        return new RootGuardianSupplierWrapper(() -> RootGuardian.create(actorTypeRegistry));
-    }
-
-    /**
-     * Creates an ActorTypeRegistry bean and registers all SpringActorWithContext beans in the
-     * application context. This includes both SpringActor and SpringActorWithContext implementations.
-     *
-     * @param context The Spring application context
-     * @return An ActorTypeRegistry with all SpringActorWithContext beans registered
-     */
-    @Bean
-    @ConditionalOnMissingBean(ActorTypeRegistry.class)
-    @SuppressWarnings({"rawtypes", "unchecked"})
-    public ActorTypeRegistry actorTypeRegistry(ApplicationContext context) {
-        ActorTypeRegistry registry = new ActorTypeRegistry();
-        // SpringActor extends SpringActorWithContext, so this gets both
-        Map<String, SpringActorWithContext> actorBeans = context.getBeansOfType(SpringActorWithContext.class);
-
-        for (SpringActorWithContext actorBean : actorBeans.values()) {
-            registry.registerInternal(actorBean.getClass(), actorContext -> {
-                try {
-                    return actorBean.create(actorContext);
-                } catch (Exception e) {
-                    throw new RuntimeException(
-                            "Failed to invoke create(id) on "
-                                    + actorBean.getClass().getName(),
-                            e);
-                }
-            });
-        }
-
-        return registry;
-    }
-
-    /**
-     * Creates a ShardedActorRegistry bean and registers all SpringShardedActor beans in the application
-     * context.
-     *
-     * @param ctx The Spring application context
-     * @return A ShardedActorRegistry with all SpringShardedActor beans registered
-     */
-    @Bean
-    @ConditionalOnMissingBean(ShardedActorRegistry.class)
-    public ShardedActorRegistry shardedActorRegistry(ApplicationContext ctx) {
-        ShardedActorRegistry registry = new ShardedActorRegistry();
-        Map<String, SpringShardedActor> beans = ctx.getBeansOfType(SpringShardedActor.class);
-        beans.values().forEach(registry::register);
-        return registry;
     }
 
     /**
