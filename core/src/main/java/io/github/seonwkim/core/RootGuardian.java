@@ -1,6 +1,7 @@
 package io.github.seonwkim.core;
 
 import io.github.seonwkim.core.impl.DefaultRootGuardian;
+import io.github.seonwkim.core.topic.SpringTopicRef;
 import javax.annotation.Nullable;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
@@ -141,6 +142,49 @@ public interface RootGuardian {
          */
         public Spawned(ActorRef<T> ref) {
             this.ref = ref;
+        }
+    }
+
+    /**
+     * Command to create a new topic.
+     */
+    class CreateTopic<T> implements Command {
+        public final Class<T> messageType;
+        public final String topicName;
+        public final ActorRef<TopicCreated<T>> replyTo;
+
+        public CreateTopic(Class<T> messageType, String topicName, ActorRef<TopicCreated<T>> replyTo) {
+            this.messageType = messageType;
+            this.topicName = topicName;
+            this.replyTo = replyTo;
+        }
+    }
+
+    /**
+     * Command to get or create a topic (idempotent).
+     */
+    class GetOrCreateTopic<T> implements Command {
+        public final Class<T> messageType;
+        public final String topicName;
+        public final ActorRef<TopicCreated<T>> replyTo;
+
+        public GetOrCreateTopic(Class<T> messageType, String topicName, ActorRef<TopicCreated<T>> replyTo) {
+            this.messageType = messageType;
+            this.topicName = topicName;
+            this.replyTo = replyTo;
+        }
+    }
+
+    /**
+     * Response message containing a reference to a created topic.
+     *
+     * @param <T> The type of messages that the topic handles
+     */
+    class TopicCreated<T> {
+        public final SpringTopicRef<T> topicRef;
+
+        public TopicCreated(SpringTopicRef<T> topicRef) {
+            this.topicRef = topicRef;
         }
     }
 

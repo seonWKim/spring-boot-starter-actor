@@ -4,11 +4,13 @@ import io.github.seonwkim.core.ActorSpawner;
 import io.github.seonwkim.core.ActorTypeRegistry;
 import io.github.seonwkim.core.RootGuardian;
 import io.github.seonwkim.core.SpringActorContext;
+import io.github.seonwkim.core.topic.SpringTopicRef;
 import javax.annotation.Nullable;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
+import org.apache.pekko.actor.typed.pubsub.Topic;
 import org.apache.pekko.cluster.typed.ClusterSingleton;
 
 /**
@@ -58,7 +60,8 @@ public class DefaultRootGuardian implements RootGuardian {
     }
 
     /**
-     * Creates the behavior for this DefaultRootGuardian. The behavior handles SpawnActor, GetActor, and CheckExists commands.
+     * Creates the behavior for this DefaultRootGuardian. The behavior handles SpawnActor, GetActor, CheckExists,
+     * CreateTopic, and GetOrCreateTopic commands.
      *
      * @return A behavior for this DefaultRootGuardian
      */
@@ -67,6 +70,8 @@ public class DefaultRootGuardian implements RootGuardian {
                 .onMessage(SpawnActor.class, this::handleSpawnActor)
                 .onMessage(GetActor.class, this::handleGetActor)
                 .onMessage(CheckExists.class, this::handleCheckExists)
+                .onMessage(CreateTopic.class, this::handleCreateTopicRaw)
+                .onMessage(GetOrCreateTopic.class, this::handleGetOrCreateTopicRaw)
                 .build());
     }
 
@@ -127,6 +132,71 @@ public class DefaultRootGuardian implements RootGuardian {
     public Behavior<RootGuardian.Command> handleCheckExists(CheckExists msg) {
         boolean exists = ActorSpawner.actorExists(ctx, msg.actorClass, msg.actorContext.actorId());
         msg.replyTo.tell(new ExistsResponse(exists));
+        return Behaviors.same();
+    }
+
+    /**
+     * Handles a CreateTopic command by creating a new Pekko Topic actor (raw handler for type erasure).
+     */
+    @SuppressWarnings("unchecked")
+    public Behavior<RootGuardian.Command> handleCreateTopicRaw(CreateTopic<?> msg) {
+        return handleCreateTopic((CreateTopic<Object>) msg);
+    }
+
+    /**
+     * Handles a CreateTopic command by creating a new Pekko Topic actor.
+     * If a topic with the same name already exists, Pekko will throw an InvalidActorNameException.
+     *
+     * @param msg The CreateTopic command
+     * @return The same behavior
+     */
+    @SuppressWarnings("unchecked")
+    private <T> Behavior<RootGuardian.Command> handleCreateTopic(CreateTopic<T> msg) {
+        ActorRef<Topic.Command<Object>> topicActor = ctx.spawn(
+                Topic.create((Class<Object>) msg.messageType, msg.topicName),
+                msg.topicName
+        );
+        SpringTopicRef<Object> topicRef = new SpringTopicRef<>(topicActor, msg.topicName);
+        
+        // Cast is safe because we're creating the topic with the correct type
+        ((ActorRef<TopicCreated<Object>>) (ActorRef<?>) msg.replyTo).tell(new TopicCreated<>(topicRef));
+        return Behaviors.same();
+    }
+
+    /**
+     * Handles a GetOrCreateTopic command (raw handler for type erasure).
+     */
+    @SuppressWarnings("unchecked")
+    public Behavior<RootGuardian.Command> handleGetOrCreateTopicRaw(GetOrCreateTopic<?> msg) {
+        return handleGetOrCreateTopic((GetOrCreateTopic<Object>) msg);
+    }
+
+    /**
+     * Handles a GetOrCreateTopic command by getting an existing topic or creating a new one.
+     * This operation is idempotent - multiple calls with the same name will return the same topic.
+     *
+     * @param msg The GetOrCreateTopic command
+     * @return The same behavior
+     */
+    @SuppressWarnings("unchecked")
+    private <T> Behavior<RootGuardian.Command> handleGetOrCreateTopic(GetOrCreateTopic<T> msg) {
+        // Try to get existing topic
+        SpringTopicRef<Object> topicRef;
+        
+        ActorRef<?> existingRef = ctx.getChild(msg.topicName).orElse(null);
+        
+        if (existingRef != null) {
+            topicRef = new SpringTopicRef<>((ActorRef<Topic.Command<Object>>) existingRef, msg.topicName);
+        } else {
+            // Create new topic
+            ActorRef<Topic.Command<Object>> topicActor = ctx.spawn(
+                    Topic.create((Class<Object>) msg.messageType, msg.topicName),
+                    msg.topicName
+            );
+            topicRef = new SpringTopicRef<>(topicActor, msg.topicName);
+        }
+        
+        ((ActorRef<TopicCreated<Object>>) (ActorRef<?>) msg.replyTo).tell(new TopicCreated<>(topicRef));
         return Behaviors.same();
     }
 
