@@ -22,8 +22,8 @@ import org.apache.pekko.actor.typed.pubsub.Topic;
  *
  * <p><b>Example Usage:</b>
  * <pre>{@code
- * // Get a topic reference
- * SpringTopicRef<ChatEvent> chatTopic = actorSystem
+ * // Get a topic reference (inject SpringTopicManager)
+ * SpringTopicRef<ChatEvent> chatTopic = topicManager
  *     .topic(ChatEvent.class)
  *     .withName("chat-room-1")
  *     .getOrCreate();

@@ -1,5 +1,7 @@
 package io.github.seonwkim.core.topic;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.github.seonwkim.core.AskCommand;
 import io.github.seonwkim.core.SpringActor;
 import io.github.seonwkim.core.SpringActorBehavior;
@@ -24,7 +26,10 @@ public class SpringTopicSpawnActor implements SpringActor<SpringTopicSpawnActor.
         public final Class<M> messageType;
         public final String topicName;
 
-        public CreateTopic(Class<M> messageType, String topicName) {
+        @JsonCreator
+        public CreateTopic(
+                @JsonProperty("messageType") Class<M> messageType,
+                @JsonProperty("topicName") String topicName) {
             this.messageType = messageType;
             this.topicName = topicName;
         }
@@ -35,7 +40,10 @@ public class SpringTopicSpawnActor implements SpringActor<SpringTopicSpawnActor.
         public final Class<M> messageType;
         public final String topicName;
 
-        public GetOrCreateTopic(Class<M> messageType, String topicName) {
+        @JsonCreator
+        public GetOrCreateTopic(
+                @JsonProperty("messageType") Class<M> messageType,
+                @JsonProperty("topicName") String topicName) {
             this.messageType = messageType;
             this.topicName = topicName;
         }

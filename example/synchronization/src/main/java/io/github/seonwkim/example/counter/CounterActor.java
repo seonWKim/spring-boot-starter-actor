@@ -7,7 +7,6 @@ import io.github.seonwkim.core.shard.SpringShardedActor;
 import io.github.seonwkim.core.shard.SpringShardedActorBehavior;
 import io.github.seonwkim.core.shard.SpringShardedActorContext;
 import org.apache.pekko.actor.typed.Behavior;
-import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
 import org.slf4j.Logger;
@@ -61,9 +60,9 @@ public class CounterActor implements SpringShardedActor<CounterActor.Command> {
     @Override
     public SpringShardedActorBehavior<Command> create(SpringShardedActorContext<Command> ctx) {
         return SpringShardedActorBehavior.builder(Command.class, ctx)
-                .withState(context -> new CounterActorBehavior(context, ctx.getEntityId()))
-                .onMessage(Increment.class, (behaviorHandler, msg) -> behaviorHandler.onIncrement(msg))
-                .onMessage(GetValue.class, (behaviorHandler, msg) -> behaviorHandler.onGetValue(msg))
+                .withState(context -> new CounterActorBehavior(ctx.getEntityId()))
+                .onMessage(Increment.class, CounterActorBehavior::onIncrement)
+                .onMessage(GetValue.class, CounterActorBehavior::onGetValue)
                 .build();
     }
 
@@ -72,18 +71,13 @@ public class CounterActor implements SpringShardedActor<CounterActor.Command> {
      * from its interface.
      */
     private static class CounterActorBehavior {
-        private final ActorContext<Command> ctx;
         private final String counterId;
         private long value = 0;
 
         /**
          * Creates a new behavior with the given context and counter ID.
-         *
-         * @param ctx The actor context
-         * @param counterId The ID of the counter
          */
-        CounterActorBehavior(ActorContext<Command> ctx, String counterId) {
-            this.ctx = ctx;
+        CounterActorBehavior(String counterId) {
             this.counterId = counterId;
             logger.debug("Created counter actor for ID: {}", counterId);
         }
