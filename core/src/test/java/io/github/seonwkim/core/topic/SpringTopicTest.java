@@ -53,6 +53,16 @@ class SpringTopicTest {
         }
     }
 
+    // Another test message type with different structure
+    public static class AnotherMessage implements JsonSerializable {
+        public final int value;
+
+        @JsonCreator
+        public AnotherMessage(@JsonProperty("value") int value) {
+            this.value = value;
+        }
+    }
+
     // ========== Basic Pub/Sub Tests ==========
 
     @Test
@@ -322,6 +332,38 @@ class SpringTopicTest {
         assertTrue(latchB.await(5, TimeUnit.SECONDS));
         assertEquals(1, countA.get());
         assertEquals(1, countB.get());
+    }
+
+    @Test
+    void getOrCreateWithSameNameButDifferentTypesReturnsExisting() throws Exception {
+        // When using getOrCreate, topics with the same name are considered the same
+        // regardless of type parameter, because the underlying actor name is the same.
+        // The first type that creates the topic wins.
+        //
+        // Note: Users should use getOrCreate() instead of create() when working with topics
+        // to avoid actor name conflicts. Topics with the same name but different type parameters
+        // will share the same underlying topic actor.
+
+        // Create first topic with TestMessage type
+        SpringTopicRef<TestMessage> topic1 = topicManager
+                .topic(TestMessage.class)
+                .withName("shared-name-topic")
+                .getOrCreate();
+        assertNotNull(topic1);
+
+        // Try to getOrCreate with same name but different type
+        // This should return the existing topic actor (not fail)
+        SpringTopicRef<AnotherMessage> topic2 = topicManager
+                .topic(AnotherMessage.class)
+                .withName("shared-name-topic")
+                .getOrCreate();
+        assertNotNull(topic2);
+
+        // Both should reference the same underlying actor
+        assertEquals(
+                topic1.getUnderlying().path(),
+                topic2.getUnderlying().path(),
+                "Topics with same name should share the same underlying actor regardless of type parameter");
     }
 
     // ========== Test Actor Implementations ==========
