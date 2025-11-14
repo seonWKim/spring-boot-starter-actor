@@ -1,0 +1,6 @@
+spring:
+  actor:
+    pekko:
+      coordinated:
+        shutdown:
+          run-by-jvm-shutdown-hook: off
