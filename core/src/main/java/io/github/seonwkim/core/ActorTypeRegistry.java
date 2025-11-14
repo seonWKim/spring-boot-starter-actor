@@ -5,10 +5,11 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
 
 /**
- * Static registry for actor types. This class maintains thread-safe mappings between actor classes
- * and their corresponding behavior factories. All methods are static and use concurrent maps for thread-safety.
+ * Static registry for actor types. Maintains thread-safe mappings between actor classes
+ * and their behavior factories. All operations are thread-safe via {@link ConcurrentHashMap}.
  *
- * <p>This is a pure utility class - not managed by Spring. Actors self-register via @PostConstruct.
+ * <p>Pure utility class - not managed by Spring. Actors are automatically registered by
+ * {@link ActorConfiguration#actorRegistrationBeanPostProcessor()}.
  */
 public final class ActorTypeRegistry {
 
@@ -21,13 +22,10 @@ public final class ActorTypeRegistry {
     }
 
     /**
-     * Registers a factory for creating actor behaviors for the given actor class. The factory
-     * produces behaviors for actors that handle commands of type C. Thread-safe.
+     * Registers an actor behavior factory.
      *
-     * @param actorClass The actor class to register
-     * @param factory The factory for creating actor behaviors
-     * @param <C> The type of commands the actor handles
-     * @param <CTX> The type of context the actor requires
+     * @param actorClass Actor class to register
+     * @param factory Factory for creating actor behaviors
      */
     public static <C, CTX extends SpringActorContext> void register(
             Class<? extends SpringActorWithContext<C, CTX>> actorClass,
@@ -40,11 +38,8 @@ public final class ActorTypeRegistry {
     }
 
     /**
-     * Internal method for registering actors with raw types. Used by the framework when
-     * dealing with Spring beans where exact types are unknown at compile time. Thread-safe.
-     *
-     * @param actorClass The actor class to register
-     * @param factory The factory for creating actor behaviors
+     * Internal registration method used by {@link ActorConfiguration}.
+     * Not for application use.
      */
     @SuppressWarnings({"rawtypes", "unchecked"})
     static void registerInternal(Class<?> actorClass, Function<SpringActorContext, SpringActorBehavior<?>> factory) {
@@ -52,8 +47,7 @@ public final class ActorTypeRegistry {
     }
 
     /**
-     * Creates a behavior for the given actor class and context with type safety. This method provides
-     * compile-time type checking for registered actors. Thread-safe.
+     * Creates a behavior with compile-time type checking.
      */
     @SuppressWarnings("unchecked")
     public static <C, CTX extends SpringActorContext> SpringActorBehavior<C> createTypedBehavior(
@@ -63,13 +57,12 @@ public final class ActorTypeRegistry {
     }
 
     /**
-     * Creates a behavior for the given actor class and context. This method is used internally when
-     * the exact type parameters are unknown at compile time. Thread-safe.
+     * Creates a behavior for the given actor class and context.
      *
-     * @param actorClass The actor class to create a behavior for
-     * @param actorContext The context to use for creating the behavior
-     * @return A SpringActorBehavior for the given actor class and context
-     * @throws IllegalArgumentException If no factory is registered for the given actor class
+     * @param actorClass Actor class to create behavior for
+     * @param actorContext Context for creating the behavior
+     * @return Actor behavior instance
+     * @throws IllegalArgumentException if no factory is registered for the actor class
      */
     public static SpringActorBehavior<?> createBehavior(Class<?> actorClass, SpringActorContext actorContext) {
         final Function<SpringActorContext, SpringActorBehavior<?>> factory = classToFactory.get(actorClass);

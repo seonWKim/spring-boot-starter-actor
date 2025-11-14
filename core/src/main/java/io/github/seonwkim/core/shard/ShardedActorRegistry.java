@@ -4,13 +4,16 @@ import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import javax.annotation.Nullable;
+
+import io.github.seonwkim.core.ActorConfiguration;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
 
 /**
- * Static registry for sharded actors. This class maintains thread-safe mappings between entity type keys
- * and their corresponding sharded actors. All methods are static and use concurrent maps for thread-safety.
+ * Static registry for sharded actors. Maintains thread-safe mappings between entity type keys
+ * and sharded actor instances. All operations are thread-safe via {@link ConcurrentHashMap}.
  *
- * <p>This is a pure utility class - not managed by Spring. Actors self-register via @PostConstruct.
+ * <p>Pure utility class - not managed by Spring. Actors are automatically registered by
+ * {@link ActorConfiguration#actorRegistrationBeanPostProcessor()}.
  */
 public final class ShardedActorRegistry {
 
@@ -23,11 +26,9 @@ public final class ShardedActorRegistry {
     }
 
     /**
-     * Registers a sharded actor with the registry. The actor is indexed by both its entity type key
-     * and its class for fast lookups. Thread-safe.
+     * Registers a sharded actor, indexed by both type key and class.
      *
-     * @param actor The sharded actor to register
-     * @param <T> The type of messages that the actor can handle
+     * @param actor Sharded actor to register
      */
     public static <T> void register(SpringShardedActor<T> actor) {
         registry.put(actor.typeKey(), actor);
@@ -35,11 +36,10 @@ public final class ShardedActorRegistry {
     }
 
     /**
-     * Retrieves a sharded actor by its entity type key. Thread-safe.
+     * Retrieves a sharded actor by its entity type key.
      *
-     * @param typeKey The entity type key of the actor
-     * @param <T> The type of messages that the actor can handle
-     * @return The sharded actor with the given entity type key, or null if not found
+     * @param typeKey Entity type key of the actor
+     * @return Sharded actor, or null if not found
      */
     @Nullable @SuppressWarnings("unchecked")
     public static <T> SpringShardedActor<T> get(EntityTypeKey<T> typeKey) {
@@ -48,11 +48,10 @@ public final class ShardedActorRegistry {
     }
 
     /**
-     * Retrieves a sharded actor by its class. Thread-safe.
+     * Retrieves a sharded actor by its class.
      *
-     * @param actorClass The class of the sharded actor
-     * @param <T> The type of messages that the actor can handle
-     * @return The sharded actor with the given class, or null if not found
+     * @param actorClass Class of the sharded actor
+     * @return Sharded actor, or null if not found
      */
     @Nullable @SuppressWarnings("unchecked")
     public static <T> SpringShardedActor<T> getByClass(Class<? extends SpringShardedActor<T>> actorClass) {
@@ -60,9 +59,7 @@ public final class ShardedActorRegistry {
     }
 
     /**
-     * Returns all registered sharded actors. Thread-safe.
-     *
-     * @return A collection of all registered sharded actors
+     * Returns all registered sharded actors.
      */
     public static Collection<SpringShardedActor<?>> getAll() {
         return registry.values();

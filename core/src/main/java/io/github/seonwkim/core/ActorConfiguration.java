@@ -17,14 +17,8 @@ import org.springframework.core.env.Environment;
 public class ActorConfiguration {
 
     /**
-     * BeanPostProcessor that automatically registers actors in static registries.
-     * This runs after each bean is initialized, detecting and registering:
-     * - SpringActorWithContext beans in ActorTypeRegistry
-     * - SpringShardedActor beans in ShardedActorRegistry
-     *
-     * <p>This approach eliminates circular dependencies by:
-     * 1. Using static registries (no Spring bean dependencies)
-     * 2. Automatic registration via BeanPostProcessor (no explicit bean wiring)
+     * Automatically registers actor beans in static registries after initialization.
+     * Eliminates circular dependencies by using static registries instead of bean wiring.
      */
     @Bean
     public BeanPostProcessor actorRegistrationBeanPostProcessor() {
@@ -59,10 +53,7 @@ public class ActorConfiguration {
     }
 
     /**
-     * Creates a RootGuardianSupplierWrapper bean that supplies a RootGuardian behavior.
-     * Uses the static ActorTypeRegistry which is populated by the BeanPostProcessor.
-     *
-     * @return A RootGuardianSupplierWrapper
+     * Creates the root guardian supplier using the static ActorTypeRegistry.
      */
     @Bean
     @ConditionalOnMissingBean(RootGuardianSupplierWrapper.class)
@@ -71,13 +62,7 @@ public class ActorConfiguration {
     }
 
     /**
-     * Creates a SpringActorSystemBuilder bean with the given properties, root guardian supplier,
-     * and application event publisher. Registries are now static and populated by BeanPostProcessor.
-     *
-     * @param properties The Pekko properties
-     * @param rootGuardianSupplierWrapper The root guardian supplier wrapper
-     * @param applicationEventPublisher The application event publisher
-     * @return A SpringActorSystemBuilder
+     * Creates a SpringActorSystemBuilder with configuration and event publishing support.
      */
     @Bean
     @ConditionalOnMissingBean(SpringActorSystemBuilder.class)
@@ -92,10 +77,7 @@ public class ActorConfiguration {
     }
 
     /**
-     * Creates a SpringActorSystem bean using the given builder.
-     *
-     * @param builder The SpringActorSystemBuilder to use
-     * @return A SpringActorSystem
+     * Creates the main SpringActorSystem from the builder.
      */
     @Bean
     @ConditionalOnMissingBean(SpringActorSystem.class)
@@ -104,9 +86,7 @@ public class ActorConfiguration {
     }
 
     /**
-     * Initializes cluster sharding after all singleton beans are created.
-     * This ensures all sharded actor beans are registered in the static registry
-     * before cluster sharding tries to initialize them.
+     * Initializes cluster sharding after all actors are registered.
      */
     @Bean
     public SmartInitializingSingleton clusterShardingInitializer(SpringActorSystem actorSystem) {
@@ -117,6 +97,9 @@ public class ActorConfiguration {
         };
     }
 
+    /**
+     * Creates the topic manager for pub/sub messaging.
+     */
     @Bean
     @ConditionalOnMissingBean(SpringTopicManager.class)
     public SpringTopicManager topicManager(SpringActorSystem actorSystem) {
@@ -124,11 +107,7 @@ public class ActorConfiguration {
     }
 
     /**
-     * Creates a PekkoProperties bean with the given environment. This bean provides configuration
-     * properties for the Pekko actor system.
-     *
-     * @param environment The Spring environment
-     * @return A PekkoProperties instance
+     * Creates actor configuration properties from Spring environment.
      */
     @Bean
     @ConditionalOnMissingBean(ActorProperties.class)
