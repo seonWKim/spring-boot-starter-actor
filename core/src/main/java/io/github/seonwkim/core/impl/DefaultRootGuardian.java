@@ -157,12 +157,12 @@ public class DefaultRootGuardian implements RootGuardian {
         // This ensures topics with same name but different types are distinct
         String actorName = buildTopicActorName(msg.topicName, msg.messageType);
 
-        ActorRef<Topic.Command<Object>> topicActor =
-                ctx.spawn(Topic.create((Class<Object>) msg.messageType, msg.topicName), actorName);
-        SpringTopicRef<Object> topicRef = new SpringTopicRef<>(topicActor, msg.topicName);
+        ActorRef<Topic.Command<T>> topicActor =
+                ctx.spawn(Topic.create(msg.messageType, msg.topicName), actorName);
+        SpringTopicRef<T> topicRef = new SpringTopicRef<>(topicActor, msg.topicName);
 
         // Cast is safe because we're creating the topic with the correct type
-        ((ActorRef<TopicCreated<Object>>) (ActorRef<?>) msg.replyTo).tell(new TopicCreated<>(topicRef));
+        msg.replyTo.tell(new TopicCreated<>(topicRef));
         return Behaviors.same();
     }
 

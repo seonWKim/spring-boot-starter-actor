@@ -14,7 +14,6 @@ import org.apache.pekko.actor.typed.javadsl.AskPattern;
 public class SpringTopicManager {
 
     private final SpringActorSystem actorSystem;
-    private final Duration defaultTimeout = Duration.ofSeconds(5);
 
     public SpringTopicManager(SpringActorSystem actorSystem) {
         this.actorSystem = actorSystem;
