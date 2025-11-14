@@ -1,9 +1,6 @@
 package io.github.seonwkim.example.persistence;
 
-import io.github.seonwkim.core.AskCommand;
-import io.github.seonwkim.core.SpringActor;
-import io.github.seonwkim.core.SpringActorBehavior;
-import io.github.seonwkim.core.SpringActorContext;
+import io.github.seonwkim.core.*;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
@@ -108,13 +105,13 @@ public class OrderActor implements SpringActor<OrderActor.Command> {
     }
 
     private static class OrderActorBehavior {
-        private final ActorContext<Command> ctx;
+        private final SpringBehaviorContext<Command> ctx;
         private final SpringActorContext actorContext;
         private final OrderRepository orderRepository;
         private Order currentOrder;
 
         OrderActorBehavior(
-                ActorContext<Command> ctx,
+                SpringBehaviorContext<Command> ctx,
                 SpringActorContext actorContext,
                 OrderRepository orderRepository,
                 Order currentOrder) {

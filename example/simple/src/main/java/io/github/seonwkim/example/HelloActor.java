@@ -1,9 +1,7 @@
 package io.github.seonwkim.example;
 
-import io.github.seonwkim.core.AskCommand;
-import io.github.seonwkim.core.SpringActor;
-import io.github.seonwkim.core.SpringActorBehavior;
-import io.github.seonwkim.core.SpringActorContext;
+import io.github.seonwkim.core.*;
+
 import java.time.Duration;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.PostStop;
@@ -70,7 +68,7 @@ public class HelloActor implements SpringActor<HelloActor.Command> {
      * from its interface.
      */
     private static class HelloActorBehavior {
-        private final ActorContext<Command> ctx;
+        private final SpringBehaviorContext<Command> ctx;
         private final SpringActorContext actorContext;
 
         /**
@@ -79,7 +77,7 @@ public class HelloActor implements SpringActor<HelloActor.Command> {
          * @param ctx The actor context
          * @param actorContext The context of the actor
          */
-        HelloActorBehavior(ActorContext<Command> ctx, SpringActorContext actorContext) {
+        HelloActorBehavior(SpringBehaviorContext<Command> ctx, SpringActorContext actorContext) {
             this.ctx = ctx;
             this.actorContext = actorContext;
         }
