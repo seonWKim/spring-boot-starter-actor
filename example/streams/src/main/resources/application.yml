@@ -1,0 +1,99 @@
+spring:
+  application:
+    name: streams-example
+
+# Actor system configuration
+pekko:
+  actor:
+    # Configure the actor system
+    provider: local
+    
+  # Stream configuration
+  stream:
+    # Materializer settings
+    materializer:
+      # Initial input buffer size
+      initial-input-buffer-size: 4
+      # Maximum input buffer size
+      max-input-buffer-size: 16
+      
+      # Subscription timeout
+      subscription-timeout: 5s
+      
+      # Debug logging for streams
+      debug-logging: false
+      
+      # Output burst limit
+      output-burst-limit: 1000
+      
+    # IO settings
+    io:
+      tcp:
+        # TCP stream settings
+        write-buffer-size: 16k
+        
+    # Blocking IO dispatcher
+    blocking-io-dispatcher:
+      type: Dispatcher
+      executor: "thread-pool-executor"
+      thread-pool-executor:
+        core-pool-size-min: 2
+        core-pool-size-factor: 2.0
+        core-pool-size-max: 16
+      throughput: 1
+
+# Logging configuration
+logging:
+  level:
+    root: INFO
+    io.github.seonwkim: DEBUG
+    org.apache.pekko: INFO
+    org.apache.pekko.stream: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# Application-specific stream configuration examples
+streams:
+  # File processing configuration
+  file-processing:
+    parallelism: 10
+    timeout-seconds: 5
+    max-line-length: 1024
+    
+  # Data pipeline configuration
+  data-pipeline:
+    simple-parallelism: 5
+    advanced-parallelism: 10
+    batch-size: 10
+    
+  # Backpressure configuration
+  backpressure:
+    buffer-size: 1000
+    slow-processor-delay-ms: 100
+    
+  # Throttling configuration
+  throttling:
+    # API rate limiting
+    api:
+      calls-per-minute: 60
+      burst-size: 10
+      
+    # File processing rate
+    file-processing:
+      elements-per-second: 100
+      
+    # General purpose rate limits
+    default:
+      elements-per-second: 50
+      burst-size: 20
+      
+  # Actor processing configuration
+  actor-processing:
+    # Default timeout for actor asks
+    ask-timeout-seconds: 5
+    
+    # Default parallelism for actor processing
+    default-parallelism: 5
+    
+    # Maximum parallelism
+    max-parallelism: 20
