@@ -181,10 +181,45 @@ public interface RootGuardian {
      * @param <T> The type of messages that the topic handles
      */
     class TopicCreated<T> {
-        public final SpringTopicRef<T> topicRef;
+        @Nullable public final SpringTopicRef<T> topicRef;
+        @Nullable public final String errorMessage;
+        public final boolean alreadyExists;
 
-        public TopicCreated(SpringTopicRef<T> topicRef) {
+        private TopicCreated(@Nullable SpringTopicRef<T> topicRef, @Nullable String errorMessage, boolean alreadyExists) {
             this.topicRef = topicRef;
+            this.errorMessage = errorMessage;
+            this.alreadyExists = alreadyExists;
+        }
+
+        /**
+         * Creates a success response with a topic reference.
+         *
+         * @param topicRef The created topic reference
+         * @param <T> The message type
+         * @return A success response
+         */
+        public static <T> TopicCreated<T> success(SpringTopicRef<T> topicRef) {
+            return new TopicCreated<>(topicRef, null, false);
+        }
+
+        /**
+         * Creates a failure response indicating the topic already exists.
+         *
+         * @param errorMessage The error message
+         * @param <T> The message type
+         * @return A failure response
+         */
+        public static <T> TopicCreated<T> alreadyExists(String errorMessage) {
+            return new TopicCreated<>(null, errorMessage, true);
+        }
+
+        /**
+         * Checks if the topic creation was successful.
+         *
+         * @return true if successful, false otherwise
+         */
+        public boolean isSuccess() {
+            return topicRef != null && errorMessage == null;
         }
     }
 

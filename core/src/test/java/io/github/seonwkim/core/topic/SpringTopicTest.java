@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.github.seonwkim.core.*;
+import io.github.seonwkim.core.exception.TopicAlreadyExistsException;
 import io.github.seonwkim.core.serialization.JsonSerializable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -356,6 +357,28 @@ class SpringTopicTest {
                 topic1.getUnderlying().path(),
                 topic2.getUnderlying().path(),
                 "Topics with same name but different message types should be different");
+    }
+
+    @Test
+    void createCalledTwiceThrowsTopicAlreadyExistsException() {
+        // Create a topic for the first time
+        SpringTopicRef<TestMessage> topic1 = topicManager
+                .topic(TestMessage.class)
+                .withName("duplicate-create-topic")
+                .create();
+        assertNotNull(topic1);
+
+        // Try to create the same topic again - should fail with TopicAlreadyExistsException
+        TopicAlreadyExistsException exception = assertThrows(
+                TopicAlreadyExistsException.class,
+                () -> topicManager.topic(TestMessage.class).withName("duplicate-create-topic").create(),
+                "Creating the same topic twice should throw TopicAlreadyExistsException");
+
+        // Verify exception details
+        assertEquals("duplicate-create-topic", exception.getTopicName());
+        assertEquals(TestMessage.class, exception.getMessageType());
+        assertTrue(exception.getMessage().contains("duplicate-create-topic"));
+        assertTrue(exception.getMessage().contains("TestMessage"));
     }
 
     // ========== Test Actor Implementations ==========
