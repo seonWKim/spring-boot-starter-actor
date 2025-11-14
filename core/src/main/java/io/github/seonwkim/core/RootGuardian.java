@@ -224,12 +224,11 @@ public interface RootGuardian {
     }
 
     /**
-     * Creates the default RootGuardian behavior using the given actor type registry.
+     * Creates the default RootGuardian behavior using the static ActorTypeRegistry.
      *
-     * @param registry The ActorTypeRegistry to use for creating actor behaviors
      * @return A behavior for the RootGuardian
      */
-    static Behavior<Command> create(ActorTypeRegistry registry) {
-        return DefaultRootGuardian.create(registry);
+    static Behavior<Command> create() {
+        return DefaultRootGuardian.create();
     }
 }

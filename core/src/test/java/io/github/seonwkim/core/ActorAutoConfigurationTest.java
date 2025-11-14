@@ -60,13 +60,9 @@ public class ActorAutoConfigurationTest {
     class SpringActorDiscoveryTest {
         @Test
         void shouldRegisterSpringActors(ApplicationContext context) {
-            assertTrue(context.containsBean("actorTypeRegistry"));
-
-            ActorTypeRegistry registry = context.getBean(ActorTypeRegistry.class);
-
             // Should be able to create the behavior by command class
             SpringActorBehavior<TestHelloActor.Command> behavior =
-                    registry.createTypedBehavior(TestHelloActor.class, new DefaultSpringActorContext("test-id"));
+                    ActorTypeRegistry.createTypedBehavior(TestHelloActor.class, new DefaultSpringActorContext("test-id"));
 
             assertNotNull(behavior, "Behavior for TestHelloActor should be registered and non-null");
         }

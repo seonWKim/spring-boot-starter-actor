@@ -22,20 +22,19 @@ public class ActorTypeRegistryTest {
         }
     }
 
-    private ActorTypeRegistry registry;
-
     @BeforeEach
     public void setUp() {
-        registry = new ActorTypeRegistry();
+        // Clear static registry before each test to ensure test isolation
+        ActorTypeRegistry.clear();
     }
 
     @Test
     public void testRegisterAndRetrieveByClass() {
-        registry.register(DummyActor.class, (id) -> SpringActorBehavior.builder(Command.class, id)
+        ActorTypeRegistry.register(DummyActor.class, (id) -> SpringActorBehavior.builder(Command.class, id)
                 .onMessage(Command.class, (ctx, msg) -> Behaviors.same())
                 .build());
 
-        SpringActorBehavior<DummyActor.Command> behavior = registry.createTypedBehavior(
+        SpringActorBehavior<DummyActor.Command> behavior = ActorTypeRegistry.createTypedBehavior(
                 DummyActor.class,
                 new DefaultSpringActorContext(UUID.randomUUID().toString()));
         assertNotNull(behavior);
@@ -43,12 +42,12 @@ public class ActorTypeRegistryTest {
 
     @Test
     public void testRegisterAndRetrieveByStringKey() {
-        registry.register(DummyActor.class, (id) -> SpringActorBehavior.builder(Command.class, id)
+        ActorTypeRegistry.register(DummyActor.class, (id) -> SpringActorBehavior.builder(Command.class, id)
                 .onMessage(Command.class, (a, b) -> Behaviors.same())
                 .build());
 
         SpringActorBehavior<DummyActor.Command> behavior =
-                registry.createTypedBehavior(DummyActor.class, new DefaultSpringActorContext("custom-id"));
+                ActorTypeRegistry.createTypedBehavior(DummyActor.class, new DefaultSpringActorContext("custom-id"));
 
         assertNotNull(behavior);
     }
@@ -57,6 +56,6 @@ public class ActorTypeRegistryTest {
     public void testThrowsOnMissingClassKey() {
         assertThrows(
                 IllegalArgumentException.class,
-                () -> registry.createTypedBehavior(DummyActor.class, new DefaultSpringActorContext("missing")));
+                () -> ActorTypeRegistry.createTypedBehavior(DummyActor.class, new DefaultSpringActorContext("missing")));
     }
 }

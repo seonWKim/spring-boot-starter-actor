@@ -1,12 +1,14 @@
 package io.github.seonwkim.core;
 
-import io.github.seonwkim.core.shard.ShardedActorRegistry;
 import java.util.Map;
 import org.springframework.context.ApplicationEventPublisher;
 
 /**
  * Builder interface for creating SpringActorSystem instances. This interface provides methods for
  * configuring the actor system before building it.
+ *
+ * <p>Actor registries (ActorTypeRegistry and ShardedActorRegistry) are now static utilities
+ * and are automatically populated via BeanPostProcessor, so they no longer need to be passed to the builder.
  */
 public interface SpringActorSystemBuilder {
 
@@ -36,16 +38,8 @@ public interface SpringActorSystemBuilder {
     SpringActorSystemBuilder withApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher);
 
     /**
-     * Sets the sharded actor registry for the actor system. This is used in cluster mode to register
-     * sharded actors.
-     *
-     * @param shardedActorRegistry The sharded actor registry
-     * @return This builder for method chaining
-     */
-    SpringActorSystemBuilder withShardedActorRegistry(ShardedActorRegistry shardedActorRegistry);
-
-    /**
      * Builds a SpringActorSystem with the configured settings.
+     * Uses the static ShardedActorRegistry which is populated by BeanPostProcessor.
      *
      * @return A new SpringActorSystem
      */
