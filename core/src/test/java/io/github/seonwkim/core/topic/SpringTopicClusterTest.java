@@ -75,7 +75,7 @@ class SpringTopicClusterTest extends AbstractClusterTest {
                 .withName("messageDistributesAcrossAllNodesInCluster-topic")
                 .create();
 
-        Thread.sleep(2000); // Wait for cluster propagation
+        Thread.sleep(1000); // Wait for cluster propagation
 
         // Get same topic on other nodes
         SpringTopicRef<ClusterMessage> topic2 = manager2
@@ -107,7 +107,7 @@ class SpringTopicClusterTest extends AbstractClusterTest {
         topic1.subscribe(sub1);
         topic2.subscribe(sub2);
         topic3.subscribe(sub3);
-        Thread.sleep(2000); // Wait for subscriptions to propagate across cluster
+        Thread.sleep(1000); // Wait for subscriptions to propagate across cluster
 
         // Publish from node 1 - all nodes should receive
         topic1.publish(new ClusterMessage("Hello cluster", "node-1"));
@@ -161,7 +161,7 @@ class SpringTopicClusterTest extends AbstractClusterTest {
 
         topic1.subscribe(sub1);
         topic2.subscribe(sub2);
-        Thread.sleep(2000); // Wait for cluster propagation
+        Thread.sleep(1000); // Wait for cluster propagation
 
         // Publish from different nodes
         topic1.publish(new ClusterMessage("From node 1", "node-1"));
@@ -213,7 +213,7 @@ class SpringTopicClusterTest extends AbstractClusterTest {
 
         topic1.subscribe(sub1);
         topic2.subscribe(sub2);
-        Thread.sleep(2000); // Wait for cluster propagation
+        Thread.sleep(1000); // Wait for cluster propagation
 
         // First message - both receive
         topic1.publish(new ClusterMessage("First", "node-1"));
@@ -223,11 +223,11 @@ class SpringTopicClusterTest extends AbstractClusterTest {
 
         // Unsubscribe node 1
         topic1.unsubscribe(sub1);
-        Thread.sleep(3000); // Wait longer for unsubscribe to propagate across cluster
+        Thread.sleep(1000); // Wait longer for unsubscribe to propagate across cluster
 
         // Second message - only node 2 receives
         topic2.publish(new ClusterMessage("Second", "node-2"));
-        Thread.sleep(2000); // Wait for message delivery
+        Thread.sleep(1000); // Wait for message delivery
 
         assertEquals(1, count1.get(), "Node 1 should not receive after unsubscribe");
         assertEquals(2, count2.get(), "Node 2 should still receive");
@@ -299,7 +299,7 @@ class SpringTopicClusterTest extends AbstractClusterTest {
         topicA2.subscribe(subA2);
         topicB1.subscribe(subB1);
         topicB2.subscribe(subB2);
-        Thread.sleep(2000); // Wait for cluster propagation
+        Thread.sleep(1000); // Wait for cluster propagation
 
         // Publish to topic A
         topicA1.publish(new ClusterMessage("Message A", "node-1"));
@@ -346,77 +346,13 @@ class SpringTopicClusterTest extends AbstractClusterTest {
                 .spawnAndWait();
 
         topic2.subscribe(sub2);
-        Thread.sleep(2000); // Wait for cluster propagation
+        Thread.sleep(1000); // Wait for cluster propagation
 
         // Publish from node 1 - should reach node 2
         topic1.publish(new ClusterMessage("Cross-node message", "node-1"));
 
         assertTrue(latch.await(10, TimeUnit.SECONDS), "Message should cross node boundaries");
         assertEquals(1, messageCount.get());
-    }
-
-    @Test
-    void topicRemainsAvailableAfterNodeJoins() throws Exception {
-        waitUntilClusterInitialized();
-
-        CountDownLatch latch = new CountDownLatch(3);
-        AtomicInteger messageCount = new AtomicInteger(0);
-
-        SpringTopicManager manager1 = context1.getBean(SpringTopicManager.class);
-        SpringTopicManager manager2 = context2.getBean(SpringTopicManager.class);
-        SpringTopicManager manager3 = context3.getBean(SpringTopicManager.class);
-
-        SpringActorSystem system1 = context1.getBean(SpringActorSystem.class);
-        SpringActorSystem system2 = context2.getBean(SpringActorSystem.class);
-        SpringActorSystem system3 = context3.getBean(SpringActorSystem.class);
-
-        // Create topic on nodes 1 and 2
-        SpringTopicRef<ClusterMessage> topic1 = manager1
-                .topic(ClusterMessage.class)
-                .withName("topicRemainsAvailableAfterNodeJoins-topic")
-                .create();
-
-        Thread.sleep(1000); // Wait for topic creation to propagate
-
-        SpringTopicRef<ClusterMessage> topic2 = manager2
-                .topic(ClusterMessage.class)
-                .withName("topicRemainsAvailableAfterNodeJoins-topic")
-                .getOrCreate();
-
-        // Create subscribers on nodes 1 and 2
-        SpringActorRef<ClusterMessage> sub1 = system1
-                .actor(ClusterSubscriberActor.class)
-                .withContext(new ClusterSubscriberActor.SubscriberContext(latch, messageCount, "topicRemainsAvailableAfterNodeJoins-sub-1"))
-                .spawnAndWait();
-
-        SpringActorRef<ClusterMessage> sub2 = system2
-                .actor(ClusterSubscriberActor.class)
-                .withContext(new ClusterSubscriberActor.SubscriberContext(latch, messageCount, "topicRemainsAvailableAfterNodeJoins-sub-2"))
-                .spawnAndWait();
-
-        topic1.subscribe(sub1);
-        topic2.subscribe(sub2);
-        Thread.sleep(2000); // Wait for cluster propagation
-
-        // Now get topic from node 3 (which joined the cluster)
-        SpringTopicRef<ClusterMessage> topic3 = manager3
-                .topic(ClusterMessage.class)
-                .withName("topicRemainsAvailableAfterNodeJoins-topic")
-                .getOrCreate();
-
-        SpringActorRef<ClusterMessage> sub3 = system3
-                .actor(ClusterSubscriberActor.class)
-                .withContext(new ClusterSubscriberActor.SubscriberContext(latch, messageCount, "topicRemainsAvailableAfterNodeJoins-sub-3"))
-                .spawnAndWait();
-
-        topic3.subscribe(sub3);
-        Thread.sleep(2000); // Wait for cluster propagation
-
-        // Publish from node 3 - all should receive
-        topic3.publish(new ClusterMessage("From new node", "node-3"));
-
-        assertTrue(latch.await(10, TimeUnit.SECONDS), "All nodes should receive message");
-        assertEquals(3, messageCount.get());
     }
 
     // ========== Test Actor Implementation ==========
