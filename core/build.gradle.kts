@@ -40,6 +40,7 @@ dependencies {
 
 	implementation("com.google.code.findbugs:jsr305")
 	implementation("org.springframework.boot:spring-boot-starter")
+	implementation("org.yaml:snakeyaml")
 
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testImplementation("org.apache.pekko:pekko-actor-testkit-typed_3")
