@@ -13,13 +13,26 @@ import java.time.Duration;
  */
 public class SpringTopicManager {
 
-    private final SpringActorRef<SpringTopicSpawnActor.Command> spawnerActorRef;
+    private final SpringActorSystem actorSystem;
+    @Nullable
+    private volatile SpringActorRef<SpringTopicSpawnActor.Command> spawnerActorRef;
 
     public SpringTopicManager(SpringActorSystem actorSystem) {
-        spawnerActorRef = actorSystem.actor(SpringTopicSpawnActor.class)
-                .withId("spring-topic-spawner")
-                .withSupervisionStrategy(SupervisorStrategy.restart())
-                .spawnAndWait();
+        this.actorSystem = actorSystem;
+    }
+
+    private SpringActorRef<SpringTopicSpawnActor.Command> getOrCreateSpawner() {
+        if (spawnerActorRef == null) {
+            synchronized (this) {
+                if (spawnerActorRef == null) {
+                    spawnerActorRef = actorSystem.actor(SpringTopicSpawnActor.class)
+                            .withId("spring-topic-spawner")
+                            .withSupervisionStrategy(SupervisorStrategy.restart())
+                            .spawnAndWait();
+                }
+            }
+        }
+        return spawnerActorRef;
     }
 
     /**
@@ -29,7 +42,7 @@ public class SpringTopicManager {
      * @return A builder for configuring the topic
      */
     public <T> TopicBuilder<T> topic(Class<T> messageType) {
-        return new TopicBuilder<>(messageType, spawnerActorRef);
+        return new TopicBuilder<>(messageType, getOrCreateSpawner());
     }
 
     /**
