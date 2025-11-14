@@ -28,6 +28,18 @@ public final class ShardedActorRegistry {
     /**
      * Registers a sharded actor, indexed by both type key and class.
      *
+     * <p><b>Note:</b> In most cases, you don't need to call this method directly.
+     * Sharded actors implementing {@link SpringShardedActor} and annotated with
+     * {@code @Component} are automatically registered by the framework.
+     *
+     * <p>Manual registration may be useful for:
+     * <ul>
+     *   <li>Registering actors programmatically outside of Spring's component scanning</li>
+     *   <li>Advanced testing scenarios where you need fine-grained control</li>
+     *   <li>Dynamic actor types generated at runtime</li>
+     * </ul>
+     *
+     * @param <T> The command type that the sharded actor handles
      * @param actor Sharded actor to register
      */
     public static <T> void register(SpringShardedActor<T> actor) {
@@ -38,6 +50,7 @@ public final class ShardedActorRegistry {
     /**
      * Retrieves a sharded actor by its entity type key.
      *
+     * @param <T> The command type that the sharded actor handles
      * @param typeKey Entity type key of the actor
      * @return Sharded actor, or null if not found
      */
@@ -50,6 +63,7 @@ public final class ShardedActorRegistry {
     /**
      * Retrieves a sharded actor by its class.
      *
+     * @param <T> The command type that the sharded actor handles
      * @param actorClass Class of the sharded actor
      * @return Sharded actor, or null if not found
      */
@@ -66,7 +80,18 @@ public final class ShardedActorRegistry {
     }
 
     /**
-     * Clears all registrations. Primarily for testing.
+     * Clears all registrations. <b>For testing use only.</b>
+     *
+     * <p>This method is provided to ensure test isolation by clearing the static registry
+     * between test runs. It should not be used in production code.
+     *
+     * <p>Typical usage in tests:
+     * <pre>{@code
+     * @BeforeEach
+     * public void setUp() {
+     *     ShardedActorRegistry.clear();
+     * }
+     * }</pre>
      */
     public static void clear() {
         registry.clear();

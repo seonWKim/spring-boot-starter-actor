@@ -24,6 +24,19 @@ public final class ActorTypeRegistry {
     /**
      * Registers an actor behavior factory.
      *
+     * <p><b>Note:</b> In most cases, you don't need to call this method directly.
+     * Actors implementing {@link SpringActor} or {@link SpringActorWithContext} and
+     * annotated with {@code @Component} are automatically registered by the framework.
+     *
+     * <p>Manual registration may be useful for:
+     * <ul>
+     *   <li>Registering actors programmatically outside of Spring's component scanning</li>
+     *   <li>Advanced testing scenarios where you need fine-grained control</li>
+     *   <li>Dynamic actor types generated at runtime</li>
+     * </ul>
+     *
+     * @param <C> The command type that the actor handles
+     * @param <CTX> The context type that the actor requires
      * @param actorClass Actor class to register
      * @param factory Factory for creating actor behaviors
      */
@@ -48,6 +61,12 @@ public final class ActorTypeRegistry {
 
     /**
      * Creates a behavior with compile-time type checking.
+     *
+     * @param <C> The command type that the actor handles
+     * @param <CTX> The context type that the actor requires
+     * @param actorClass Actor class to create behavior for
+     * @param actorContext Context for creating the behavior
+     * @return Actor behavior instance with proper type information
      */
     @SuppressWarnings("unchecked")
     public static <C, CTX extends SpringActorContext> SpringActorBehavior<C> createTypedBehavior(
@@ -74,7 +93,18 @@ public final class ActorTypeRegistry {
     }
 
     /**
-     * Clears all registrations. Primarily for testing.
+     * Clears all registrations. <b>For testing use only.</b>
+     *
+     * <p>This method is provided to ensure test isolation by clearing the static registry
+     * between test runs. It should not be used in production code.
+     *
+     * <p>Typical usage in tests:
+     * <pre>{@code
+     * @BeforeEach
+     * public void setUp() {
+     *     ActorTypeRegistry.clear();
+     * }
+     * }</pre>
      */
     public static void clear() {
         classToFactory.clear();

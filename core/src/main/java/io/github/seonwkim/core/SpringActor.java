@@ -25,8 +25,8 @@ package io.github.seonwkim.core;
  * public class HelloActor implements SpringActor&lt;HelloActor.Command&gt; {
  *     &#64;Override
  *     public SpringActorBehavior&lt;Command&gt; create(SpringActorContext actorContext) {
- *         return SpringActorBehavior.builder(actorContext)
- *             .setup(ctx -&gt; ...)
+ *         return SpringActorBehavior.builder(Command.class, actorContext)
+ *             .onMessage(Command.class, (ctx, msg) -&gt; Behaviors.same())
  *             .build();
  *     }
  * }
