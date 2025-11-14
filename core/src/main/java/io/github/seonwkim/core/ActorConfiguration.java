@@ -40,7 +40,9 @@ public class ActorConfiguration {
                             return actor.create(actorContext);
                         } catch (Exception e) {
                             throw new RuntimeException(
-                                    "Failed to invoke create() on " + actor.getClass().getName(), e);
+                                    "Failed to invoke create() on "
+                                            + actor.getClass().getName(),
+                                    e);
                         }
                     });
                 }

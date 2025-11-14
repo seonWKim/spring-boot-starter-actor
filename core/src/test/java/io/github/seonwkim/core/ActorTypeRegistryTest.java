@@ -56,6 +56,7 @@ public class ActorTypeRegistryTest {
     public void testThrowsOnMissingClassKey() {
         assertThrows(
                 IllegalArgumentException.class,
-                () -> ActorTypeRegistry.createTypedBehavior(DummyActor.class, new DefaultSpringActorContext("missing")));
+                () -> ActorTypeRegistry.createTypedBehavior(
+                        DummyActor.class, new DefaultSpringActorContext("missing")));
     }
 }

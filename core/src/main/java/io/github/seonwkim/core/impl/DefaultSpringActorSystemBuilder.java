@@ -109,11 +109,7 @@ public class DefaultSpringActorSystemBuilder implements SpringActorSystemBuilder
         // after all actor beans are registered in the static registry
 
         return new SpringActorSystem(
-                actorSystem,
-                cluster,
-                clusterSharding,
-                clusterSingleton,
-                applicationEventPublisher);
+                actorSystem, cluster, clusterSharding, clusterSingleton, applicationEventPublisher);
     }
 
     /**

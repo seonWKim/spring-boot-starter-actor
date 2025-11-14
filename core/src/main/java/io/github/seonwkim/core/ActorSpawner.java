@@ -106,7 +106,8 @@ public final class ActorSpawner {
             boolean isClusterSingleton) {
 
         // Create behavior from static registry using Spring DI
-        Behavior<?> behavior = ActorTypeRegistry.createBehavior(actorClass, actorContext).asBehavior();
+        Behavior<?> behavior =
+                ActorTypeRegistry.createBehavior(actorClass, actorContext).asBehavior();
 
         if (supervisorStrategy != null) {
             behavior = Behaviors.supervise(behavior).onFailure(supervisorStrategy);

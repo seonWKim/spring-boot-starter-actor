@@ -1,7 +1,5 @@
 package io.github.seonwkim.core;
 
-import javax.annotation.Nullable;
-
 /**
  * Represents the context for an actor in the Spring Actor system.
  *

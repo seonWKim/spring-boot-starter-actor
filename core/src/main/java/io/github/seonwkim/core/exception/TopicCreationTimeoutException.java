@@ -38,8 +38,7 @@ public class TopicCreationTimeoutException extends RuntimeException {
      * @param timeout The timeout duration that was exceeded
      * @param cause The underlying cause
      */
-    public TopicCreationTimeoutException(
-            String topicName, Class<?> messageType, Duration timeout, Throwable cause) {
+    public TopicCreationTimeoutException(String topicName, Class<?> messageType, Duration timeout, Throwable cause) {
         super(
                 String.format(
                         "Topic creation timed out after %s for topic '%s' with message type '%s'",

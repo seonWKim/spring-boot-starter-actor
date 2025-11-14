@@ -1,7 +1,6 @@
 package io.github.seonwkim.core.impl;
 
 import io.github.seonwkim.core.ActorSpawner;
-import io.github.seonwkim.core.ActorTypeRegistry;
 import io.github.seonwkim.core.RootGuardian;
 import io.github.seonwkim.core.SpringActorContext;
 import io.github.seonwkim.core.topic.SpringTopicRef;
@@ -156,14 +155,12 @@ public class DefaultRootGuardian implements RootGuardian {
 
         // Check if topic already exists
         if (ctx.getChild(actorName).isPresent()) {
-            msg.replyTo.tell(TopicCreated.alreadyExists(
-                    String.format("Topic '%s' with message type '%s' already exists",
-                            msg.topicName, msg.messageType.getName())));
+            msg.replyTo.tell(TopicCreated.alreadyExists(String.format(
+                    "Topic '%s' with message type '%s' already exists", msg.topicName, msg.messageType.getName())));
             return Behaviors.same();
         }
 
-        ActorRef<Topic.Command<T>> topicActor =
-                ctx.spawn(Topic.create(msg.messageType, msg.topicName), actorName);
+        ActorRef<Topic.Command<T>> topicActor = ctx.spawn(Topic.create(msg.messageType, msg.topicName), actorName);
         SpringTopicRef<T> topicRef = new SpringTopicRef<>(topicActor, msg.topicName);
 
         msg.replyTo.tell(TopicCreated.success(topicRef));

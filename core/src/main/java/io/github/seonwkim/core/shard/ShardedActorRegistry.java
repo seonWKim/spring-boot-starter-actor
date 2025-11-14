@@ -41,8 +41,7 @@ public final class ShardedActorRegistry {
      * @param <T> The type of messages that the actor can handle
      * @return The sharded actor with the given entity type key, or null if not found
      */
-    @Nullable
-    @SuppressWarnings("unchecked")
+    @Nullable @SuppressWarnings("unchecked")
     public static <T> SpringShardedActor<T> get(EntityTypeKey<T> typeKey) {
         // Safe cast: registry maintains T type consistency between key and value
         return (SpringShardedActor<T>) registry.get(typeKey);
@@ -55,8 +54,7 @@ public final class ShardedActorRegistry {
      * @param <T> The type of messages that the actor can handle
      * @return The sharded actor with the given class, or null if not found
      */
-    @Nullable
-    @SuppressWarnings("unchecked")
+    @Nullable @SuppressWarnings("unchecked")
     public static <T> SpringShardedActor<T> getByClass(Class<? extends SpringShardedActor<T>> actorClass) {
         return (SpringShardedActor<T>) classIndex.get(actorClass);
     }

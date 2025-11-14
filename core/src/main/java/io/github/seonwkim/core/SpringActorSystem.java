@@ -390,7 +390,8 @@ public class SpringActorSystem implements DisposableBean {
         Entity<T, ShardEnvelope<T>> entity = Entity.of(actor.typeKey(), entityCtx -> {
                     var shardedActorContext = actor.createContext(entityCtx);
                     return actor.create(shardedActorContext).asBehavior();
-                }).withMessageExtractor(actor.extractor());
+                })
+                .withMessageExtractor(actor.extractor());
         clusterSharding.init(entity);
     }
 

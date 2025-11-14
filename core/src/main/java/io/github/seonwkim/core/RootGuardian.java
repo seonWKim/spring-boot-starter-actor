@@ -182,10 +182,13 @@ public interface RootGuardian {
      */
     class TopicCreated<T> {
         @Nullable public final SpringTopicRef<T> topicRef;
+
         @Nullable public final String errorMessage;
+
         public final boolean alreadyExists;
 
-        private TopicCreated(@Nullable SpringTopicRef<T> topicRef, @Nullable String errorMessage, boolean alreadyExists) {
+        private TopicCreated(
+                @Nullable SpringTopicRef<T> topicRef, @Nullable String errorMessage, boolean alreadyExists) {
             this.topicRef = topicRef;
             this.errorMessage = errorMessage;
             this.alreadyExists = alreadyExists;

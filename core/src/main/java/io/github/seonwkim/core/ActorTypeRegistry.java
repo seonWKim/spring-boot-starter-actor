@@ -12,7 +12,8 @@ import java.util.function.Function;
  */
 public final class ActorTypeRegistry {
 
-    private static final ConcurrentMap<Class<?>, Function<SpringActorContext, SpringActorBehavior<?>>> classToFactory = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<Class<?>, Function<SpringActorContext, SpringActorBehavior<?>>> classToFactory =
+            new ConcurrentHashMap<>();
 
     // Prevent instantiation
     private ActorTypeRegistry() {
