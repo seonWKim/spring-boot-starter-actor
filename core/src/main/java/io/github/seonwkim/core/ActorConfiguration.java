@@ -4,6 +4,8 @@ import io.github.seonwkim.core.impl.DefaultSpringActorSystemBuilder;
 import io.github.seonwkim.core.shard.ShardedActorRegistry;
 import io.github.seonwkim.core.shard.SpringShardedActor;
 import java.util.Map;
+import javax.annotation.Nullable;
+import javax.annotation.PreDestroy;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationEventPublisher;
@@ -13,6 +15,8 @@ import org.springframework.core.env.Environment;
 
 @Configuration
 public class ActorConfiguration {
+
+    @Nullable private SpringActorSystem actorSystem;
     /**
      * Creates a SpringActorSystemBuilder bean with the given properties, root guardian supplier,
      * application event publisher, and sharded actor registry.
@@ -46,7 +50,20 @@ public class ActorConfiguration {
     @Bean
     @ConditionalOnMissingBean(SpringActorSystem.class)
     public SpringActorSystem actorSystem(SpringActorSystemBuilder builder) {
-        return builder.build();
+        this.actorSystem = builder.build();
+        return this.actorSystem;
+    }
+
+    /**
+     * Ensures the actor system is properly terminated before Spring context shutdown.
+     * This method is called by Spring's lifecycle management to ensure orderly shutdown
+     * and prevent race conditions with JVM shutdown hooks.
+     */
+    @PreDestroy
+    public void shutdownActorSystem() {
+        if (actorSystem != null) {
+            actorSystem.destroy();
+        }
     }
 
     /**

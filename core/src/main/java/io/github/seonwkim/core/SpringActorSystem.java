@@ -54,6 +54,8 @@ public class SpringActorSystem implements DisposableBean {
 
     private final Duration defaultActorRefTimeout = ActorConstants.DEFAULT_TIMEOUT;
 
+    private volatile boolean shutdownInitiated = false;
+
     /**
      * Creates a new SpringActorSystem in local mode.
      *
@@ -393,11 +395,18 @@ public class SpringActorSystem implements DisposableBean {
 
     /**
      * Terminates the actor system and waits for it to terminate. This method is called by Spring when
-     * the application context is closed.
+     * the application context is closed. It is idempotent and safe to call multiple times.
      */
     @Override
     public void destroy() {
-        actorSystem.terminate();
-        actorSystem.getWhenTerminated().toCompletableFuture().join();
+        if (!shutdownInitiated && !actorSystem.getWhenTerminated().toCompletableFuture().isDone()) {
+            synchronized (this) {
+                if (!shutdownInitiated) {
+                    shutdownInitiated = true;
+                    actorSystem.terminate();
+                    actorSystem.getWhenTerminated().toCompletableFuture().join();
+                }
+            }
+        }
     }
 }
