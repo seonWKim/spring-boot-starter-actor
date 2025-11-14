@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: receptionist-example
+  actor:
+    pekko:
+      loglevel: INFO
+      actor:
+        provider: local
+      log-dead-letters: off
+
+server:
+  port: 8080
+
+logging:
+  level:
+    io.github.seonwkim.example.receptionist: INFO
+    org.apache.pekko: WARN
