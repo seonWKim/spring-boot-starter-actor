@@ -36,6 +36,7 @@ nav:
     - getting-started.md
   - Guides:
     - Actor Registration and Messaging: guides/actor-registration-messaging.md
+    - Pub/Sub Topics: guides/pub-sub-topics.md
     - Routers: guides/routers.md
     - Dispatchers: guides/dispatchers.md
     - Logging with MDC and Tags: guides/logging.md
