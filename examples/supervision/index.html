@@ -1,0 +1,1758 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://seonwkim.github.io/spring-boot-starter-actor/examples/supervision/">
+      
+      
+        <link rel="prev" href="../chat/">
+      
+      
+        <link rel="next" href="../monitoring/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../logo.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.0">
+    
+    
+      
+        <title>Supervision - spring-boot-starter-actor</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.618322db.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="green" data-md-color-accent="green">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#supervision-and-restart-strategies" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="spring-boot-starter-actor" class="md-header__button md-logo" aria-label="spring-boot-starter-actor" data-md-component="logo">
+      
+  <img src="../../logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            spring-boot-starter-actor
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Supervision
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/seonWKim/spring-boot-starter-actor" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../.." class="md-tabs__link">
+          
+  
+  
+  Home
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../guides/actor-registration-messaging/" class="md-tabs__link">
+          
+  
+  
+  Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../" class="md-tabs__link">
+          
+  
+  
+  Examples
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="spring-boot-starter-actor" class="md-nav__button md-logo" aria-label="spring-boot-starter-actor" data-md-component="logo">
+      
+  <img src="../../logo.png" alt="logo">
+
+    </a>
+    spring-boot-starter-actor
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/seonWKim/spring-boot-starter-actor" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Home
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Introduction
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/actor-registration-messaging/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Actor Registration and Messaging
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/pub-sub-topics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pub/Sub Topics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/routers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Routers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/dispatchers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dispatchers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/logging/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Logging with MDC and Tags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/sharded-actors/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sharded Actors
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/persistence-spring-boot/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Persistence with Spring Boot
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Examples
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Examples
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../simple/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Simple
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cluster/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cluster
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../synchronization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Synchronization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../chat/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chat
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Supervision
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Supervision
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#demo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Demo
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#source-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Source Code
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#supervision-strategies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Supervision Strategies
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Supervision Strategies">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-restart-unlimited" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Restart (Unlimited)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-restart-limited" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Restart (Limited)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-stop" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Stop
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-resume" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Resume
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#choosing-the-right-strategy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Choosing the Right Strategy
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#strategy-comparison" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Strategy Comparison
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#interactive-demo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interactive Demo
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Interactive Demo">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#starting-the-application" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Starting the Application
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#using-the-web-interface" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Using the Web Interface
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#state-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        State Management
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#architecture-benefits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Architecture Benefits
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#best-practices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Best Practices
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#common-pitfalls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common Pitfalls
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../monitoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Monitoring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#demo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Demo
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#source-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Source Code
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#supervision-strategies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Supervision Strategies
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Supervision Strategies">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-restart-unlimited" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Restart (Unlimited)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-restart-limited" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Restart (Limited)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-stop" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Stop
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-resume" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Resume
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#choosing-the-right-strategy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Choosing the Right Strategy
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#strategy-comparison" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Strategy Comparison
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#interactive-demo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interactive Demo
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Interactive Demo">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#starting-the-application" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Starting the Application
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#using-the-web-interface" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Using the Web Interface
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#state-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        State Management
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#architecture-benefits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Architecture Benefits
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#best-practices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Best Practices
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#common-pitfalls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common Pitfalls
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="supervision-and-restart-strategies">Supervision and Restart Strategies</h1>
+<p>This guide demonstrates how to use supervision and restart strategies in Spring Boot Starter Actor to build
+fault-tolerant, self-healing applications.</p>
+<h2 id="overview">Overview</h2>
+<p>Supervision is a core concept in the actor model where parent actors monitor and respond to failures in their child
+actors. Spring Boot Starter Actor supports multiple supervision strategies that determine how the system handles
+failures.</p>
+<p>The supervision example provides:</p>
+<ul>
+<li><strong>Interactive visualization</strong> of actor hierarchies and supervision behavior</li>
+<li><strong>Real-time failure tracking</strong> with visual indicators</li>
+<li><strong>Hands-on testing</strong> of different supervision strategies</li>
+<li><strong>Multi-level hierarchies</strong> demonstrating supervision at arbitrary depth</li>
+</ul>
+<h2 id="demo">Demo</h2>
+<div style="border: 2px solid #ccc; display: inline-block; border-radius: 8px; overflow: hidden; margin: 20px 0;">
+  <img src="../supervision.png" alt="Supervision Interactive Demo - Actor Hierarchy Visualization"/>
+</div>
+
+<h2 id="source-code">Source Code</h2>
+<p>Complete source
+code: <a href="https://github.com/seonWKim/spring-boot-starter-actor/tree/main/example/supervision">https://github.com/seonWKim/spring-boot-starter-actor/tree/main/example/supervision</a></p>
+<h2 id="supervision-strategies">Supervision Strategies</h2>
+<p>Spring Boot Starter Actor provides four supervision strategies for handling child actor failures:</p>
+<h3 id="1-restart-unlimited">1. Restart (Unlimited)</h3>
+<p><strong>Strategy:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">SupervisorStrategy</span><span class="p">.</span><span class="na">restart</span><span class="p">()</span>
+</code></pre></div>
+<p><strong>Behavior:</strong></p>
+<ul>
+<li>Child actor is stopped when it fails</li>
+<li>New instance is immediately created with fresh state</li>
+<li>No limit on number of restarts</li>
+<li>Failure continues to be tracked across restarts</li>
+</ul>
+<p><strong>When to use:</strong></p>
+<ul>
+<li>Transient failures that are likely to succeed on retry</li>
+<li>Stateless actors where losing state is acceptable</li>
+<li>Services that connect to external resources (databases, APIs)</li>
+<li>Worker actors processing independent tasks</li>
+</ul>
+<p><strong>Example scenario:</strong> A worker actor fetching data from an external API fails due to network timeout. Restarting gives
+it another chance to succeed.</p>
+<h3 id="2-restart-limited">2. Restart (Limited)</h3>
+<p><strong>Strategy:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">SupervisorStrategy</span><span class="p">.</span><span class="na">restart</span><span class="p">().</span><span class="na">withLimit</span><span class="p">(</span><span class="n">maxRetries</span><span class="p">,</span><span class="w"> </span><span class="n">duration</span><span class="p">)</span>
+</code></pre></div>
+<p><strong>Common configurations:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1">// Restart up to 3 times within 1 minute</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">SupervisorStrategy</span><span class="p">.</span><span class="na">restart</span><span class="p">().</span><span class="na">withLimit</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="n">Duration</span><span class="p">.</span><span class="na">ofMinutes</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="c1">// Restart up to 10 times within 1 hour</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="n">SupervisorStrategy</span><span class="p">.</span><span class="na">restart</span><span class="p">().</span><span class="na">withLimit</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span><span class="n">Duration</span><span class="p">.</span><span class="na">ofHours</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="c1">// Restart up to 5 times within 30 seconds</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="n">SupervisorStrategy</span><span class="p">.</span><span class="na">restart</span><span class="p">().</span><span class="na">withLimit</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span><span class="n">Duration</span><span class="p">.</span><span class="na">ofSeconds</span><span class="p">(</span><span class="mi">30</span><span class="p">))</span>
+</code></pre></div>
+<p><strong>Behavior:</strong></p>
+<ul>
+<li>Child actor restarts after failure, but only up to the specified limit</li>
+<li>If limit is exceeded within the time window, the child is stopped permanently</li>
+<li>Counter resets after the time window expires</li>
+<li>Prevents infinite restart loops</li>
+</ul>
+<p><strong>When to use:</strong></p>
+<ul>
+<li>Preventing resource exhaustion from failing actors</li>
+<li>Distinguishing between transient and persistent failures</li>
+<li>Production systems where infinite retries could cause problems</li>
+<li>Critical actors where repeated failures indicate serious issues</li>
+</ul>
+<p><strong>Example scenario:</strong> A payment processing actor should retry a few times for network issues, but stop permanently if
+consistently failing (indicating a configuration or system problem).</p>
+<h3 id="3-stop">3. Stop</h3>
+<p><strong>Strategy:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">SupervisorStrategy</span><span class="p">.</span><span class="na">stop</span><span class="p">()</span>
+</code></pre></div>
+<p><strong>Behavior:</strong></p>
+<ul>
+<li>Child actor is stopped immediately on failure</li>
+<li>No restart attempted</li>
+<li>Parent is notified of termination</li>
+<li>Resources are cleaned up</li>
+</ul>
+<p><strong>When to use:</strong></p>
+<ul>
+<li>Fatal errors that cannot be recovered by restart</li>
+<li>Validation failures indicating bad configuration</li>
+<li>Actors that should fail fast</li>
+<li>Development/testing to catch errors early</li>
+</ul>
+<p><strong>Example scenario:</strong> An actor receives invalid configuration at startup. There's no point restarting - the
+configuration must be fixed first.</p>
+<h3 id="4-resume">4. Resume</h3>
+<p><strong>Strategy:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">SupervisorStrategy</span><span class="p">.</span><span class="na">resume</span><span class="p">()</span>
+</code></pre></div>
+<p><strong>Behavior:</strong></p>
+<ul>
+<li>Exception is logged but ignored</li>
+<li>Actor continues processing next message</li>
+<li>Current state is preserved</li>
+<li>No restart occurs</li>
+</ul>
+<p><strong>When to use:</strong></p>
+<ul>
+<li>Non-critical failures that shouldn't disrupt operation</li>
+<li>Actors processing independent messages where one failure shouldn't stop others</li>
+<li>Logging/monitoring actors</li>
+<li>Best-effort processing scenarios</li>
+</ul>
+<p><strong>Example scenario:</strong> A logging actor fails to write one log entry to a remote service. It should continue processing
+other log entries rather than stopping.</p>
+<h2 id="choosing-the-right-strategy">Choosing the Right Strategy</h2>
+<p>Use this decision tree to select an appropriate strategy:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>Is the failure recoverable?
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>├─ NO → Stop
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>└─ YES
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>   └─ Should we retry?
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>      ├─ NO → Resume (log and continue)
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>      └─ YES
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>         └─ Could infinite retries cause problems?
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>            ├─ YES → Restart (Limited)
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>            └─ NO → Restart (Unlimited)
+</code></pre></div>
+<h2 id="strategy-comparison">Strategy Comparison</h2>
+<table>
+<thead>
+<tr>
+<th>Strategy</th>
+<th>State After Failure</th>
+<th>Continues Processing</th>
+<th>Automatic Retry</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Restart (Unlimited)</strong></td>
+<td>Reset</td>
+<td>✅ (new instance)</td>
+<td>✅ Infinite</td>
+<td>Transient failures, stateless workers</td>
+</tr>
+<tr>
+<td><strong>Restart (Limited)</strong></td>
+<td>Reset</td>
+<td>✅ (until limit)</td>
+<td>✅ Limited</td>
+<td>Production systems, prevent loops</td>
+</tr>
+<tr>
+<td><strong>Stop</strong></td>
+<td>Lost</td>
+<td>❌</td>
+<td>❌</td>
+<td>Fatal errors, fail fast</td>
+</tr>
+<tr>
+<td><strong>Resume</strong></td>
+<td>Preserved</td>
+<td>✅ (same instance)</td>
+<td>❌</td>
+<td>Non-critical failures, best effort</td>
+</tr>
+</tbody>
+</table>
+<h2 id="interactive-demo">Interactive Demo</h2>
+<h3 id="starting-the-application">Starting the Application</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nb">cd</span><span class="w"> </span>example/supervision
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>./gradlew<span class="w"> </span>bootRun
+</code></pre></div>
+<p>Open your browser to: <strong>http://localhost:8080</strong></p>
+<h3 id="using-the-web-interface">Using the Web Interface</h3>
+<p>The interactive UI provides:</p>
+<ol>
+<li>
+<p><strong>Visual Hierarchy Tree</strong></p>
+<ul>
+<li>Green circles represent actors</li>
+<li>Darker green = supervisors (manage children only)</li>
+<li>Lighter green = workers (can process tasks and supervise)</li>
+</ul>
+</li>
+<li>
+<p><strong>Failure Count Badges</strong></p>
+<ul>
+<li>Red badges show how many times each worker has failed</li>
+<li>Updated in real-time</li>
+<li>Persists across restarts</li>
+</ul>
+</li>
+<li>
+<p><strong>Interactive Actions</strong></p>
+<ul>
+<li><strong>Add Child</strong>: Create a child actor with chosen strategy</li>
+<li><strong>Send Work</strong>: Test the actor processes messages correctly</li>
+<li><strong>Trigger Failure</strong>: Deliberately fail the actor to test supervision</li>
+<li><strong>Stop</strong>: Manually terminate an actor</li>
+</ul>
+</li>
+<li>
+<p><strong>Live Event Log</strong></p>
+<ul>
+<li>Real-time stream of all actor events</li>
+<li>Shows spawns, failures, restarts, and stops</li>
+<li>Helps understand supervision behavior</li>
+</ul>
+</li>
+</ol>
+<h2 id="state-management">State Management</h2>
+<p>Understanding how state behaves across supervision actions:</p>
+<table>
+<thead>
+<tr>
+<th>Strategy</th>
+<th>Actor Instance</th>
+<th>Actor State</th>
+<th>Message Mailbox</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Restart</strong></td>
+<td>New instance created</td>
+<td>Lost (reset to initial)</td>
+<td>Preserved (old messages reprocessed)</td>
+</tr>
+<tr>
+<td><strong>Stop</strong></td>
+<td>Terminated</td>
+<td>Lost</td>
+<td>Lost</td>
+</tr>
+<tr>
+<td><strong>Resume</strong></td>
+<td>Same instance</td>
+<td>Preserved</td>
+<td>Preserved (continues from next message)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Important:</strong> If you need to preserve state across restarts, consider:</p>
+<ul>
+<li>Persisting state to external storage (database, etc.)</li>
+<li>Using event sourcing patterns</li>
+<li>Implementing custom snapshot/recovery logic</li>
+</ul>
+<h2 id="architecture-benefits">Architecture Benefits</h2>
+<p>Supervision provides:</p>
+<p>✅ <strong>Fault Isolation</strong> - Failures don't cascade to unrelated actors
+✅ <strong>Self-Healing</strong> - Automatic recovery without manual intervention
+✅ <strong>Graceful Degradation</strong> - System continues operating despite component failures
+✅ <strong>Clear Error Boundaries</strong> - Supervision hierarchy defines failure domains
+✅ <strong>Observability</strong> - Real-time visibility into system health</p>
+<h2 id="best-practices">Best Practices</h2>
+<ol>
+<li><strong>Choose strategies per actor type</strong>, not globally</li>
+<li><strong>Use limited restart in production</strong> to prevent resource exhaustion</li>
+<li><strong>Monitor restart rates</strong> to detect systemic issues</li>
+<li><strong>Design for restart</strong> - assume actors can restart anytime</li>
+<li><strong>Keep critical state external</strong> to survive restarts</li>
+<li><strong>Use hierarchy for isolation</strong> - group related actors under supervisors</li>
+<li><strong>Test failure scenarios</strong> before production deployment</li>
+</ol>
+<h2 id="common-pitfalls">Common Pitfalls</h2>
+<p>❌ <strong>Using unlimited restart everywhere</strong> - Can hide persistent problems
+❌ <strong>Using resume for critical failures</strong> - May continue with corrupted state
+❌ <strong>Not monitoring failure rates</strong> - Miss signs of systemic issues
+❌ <strong>Storing critical state in-memory only</strong> - Lost on restart
+❌ <strong>Flat hierarchies</strong> - No fault isolation</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.code.copy"], "search": "../../assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.e71a0d61.min.js"></script>
+      
+    
+  </body>
+</html>
