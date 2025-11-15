@@ -5,17 +5,20 @@ Pub/Sub topics enable one-to-many messaging where publishers broadcast messages 
 ## Overview
 
 **Key Features:**
+
 - Distributed across cluster nodes
 - Decoupled publishers and subscribers
 - Automatic subscriber management
 - Works in both local and cluster modes
 
 **Use Cases:**
+
 - Broadcasting events (chat rooms, notifications)
 - Real-time updates to multiple actors
 - Event-driven architectures
 
 **Not Suitable For:**
+
 - Point-to-point messaging (use direct actor references)
 - Guaranteed delivery (topics are at-most-once)
 - Request-response patterns (use ask)
@@ -43,8 +46,12 @@ public class ChatService {
 ```
 
 **Methods:**
-- `getOrCreate()` - Recommended. Creates if doesn't exist, returns existing if it does
+
+- `getOrCreate()` - **Recommended**. Creates if doesn't exist, returns existing if it does
 - `create()` - Throws exception if topic already exists
+
+!!! tip "Idempotent Creation"
+    Always prefer `getOrCreate()` over `create()` to make your code idempotent and avoid exceptions when the topic already exists.
 
 **Message Requirements:**
 
@@ -77,8 +84,12 @@ topic.publish(new ChatMessage("user123", "Hello everyone!"));
 ```
 
 **Notes:**
+
 - Fire-and-forget, at-most-once delivery
 - Safe to publish even if no subscribers exist
+
+!!! warning "At-Most-Once Delivery"
+    Pub/sub topics provide at-most-once delivery semantics. Messages are not guaranteed to be delivered if subscribers are temporarily unavailable.
 
 ## Subscribing to Topics
 
@@ -115,6 +126,7 @@ public class ChatService {
 ```
 
 **Notes:**
+
 - Actors must handle the message type published to the topic
 - Actors are automatically unsubscribed when they terminate
 - Duplicate subscriptions are deduplicated
@@ -190,15 +202,18 @@ public class ChatRoomActor implements SpringShardedActor<Command> {
 
 ## Best Practices
 
-1. Use `getOrCreate()` for idempotent topic creation
-2. Cache topic references in service fields
-3. Use descriptive, hierarchical names (e.g., `chat-room-lobby`, `notifications-user-123`)
-4. Keep messages immutable and small
-5. Use `JsonSerializable` or `CborSerializable` for cluster compatibility
-6. Don't rely on topics for critical guaranteed-delivery messages
+1. **Use `getOrCreate()`** for idempotent topic creation
+2. **Cache topic references** in service fields
+3. **Use descriptive, hierarchical names** (e.g., `chat-room-lobby`, `notifications-user-123`)
+4. **Keep messages immutable and small**
+5. **Use `JsonSerializable` or `CborSerializable`** for cluster compatibility
+6. **Don't rely on topics for critical guaranteed-delivery messages**
+
+!!! tip "Topic Naming"
+    Use hierarchical naming conventions like `service-domain-entity` to organize topics logically and make debugging easier.
 
 ## Next Steps
 
-- [Sharded Actors](sharded-actors.md) - Distributed entity management
-- [Chat Example](../examples/chat.md) - Real-world pub/sub usage
-- [Actor Registration](actor-registration-messaging.md) - Core actor concepts
+- [Sharded Actors](sharded-actors.md) - Distributed entity management in clusters
+- [Chat Example](../examples/chat.md) - Real-world pub/sub usage in a chat application
+- [Actor Registration](actor-registration-messaging.md) - Core actor concepts and messaging patterns
