@@ -6,7 +6,8 @@ This guide explains how to use MDC (Mapped Diagnostic Context) and actor tags to
 
 MDC (Mapped Diagnostic Context) is a mechanism for adding contextual information to log entries. It allows you to attach key-value pairs to logs, making it easier to trace requests, correlate events, and filter logs in production environments.
 
-Common use cases for MDC include:
+**Common use cases for MDC include:**
+
 - Request and correlation IDs for distributed tracing
 - User identifiers for auditing
 - Session IDs for tracking user sessions
@@ -15,10 +16,14 @@ Common use cases for MDC include:
 ## What are Actor Tags?
 
 Actor tags are labels that you can attach to actors for categorization and filtering. Tags appear in the `pekkoTags` MDC property and are particularly useful for:
+
 - Grouping actors by role (worker, supervisor, coordinator)
 - Identifying workload characteristics (cpu-intensive, io-bound)
 - Categorizing by service (order-service, payment-service)
 - Marking priority levels (critical, high-priority, low-priority)
+
+!!! tip "Tag Usage"
+    Use tags liberally to categorize actors. They're lightweight and make filtering logs much easier in production.
 
 ## Automatic MDC Values
 
@@ -64,9 +69,13 @@ public class OrderService {
 ```
 
 All log entries from this actor will include the static MDC values:
+
 ```
 [INFO] [userId=user-123] [sessionId=session-abc] [service=order-service] Processing order
 ```
+
+!!! note "Static vs Dynamic"
+    Use static MDC for values that remain constant throughout the actor's lifetime. For per-message values, use dynamic MDC instead.
 
 ## Using Dynamic MDC
 
@@ -114,9 +123,13 @@ public class OrderActor implements SpringActor<OrderActor.Command> {
 ```
 
 Log output includes dynamic values:
+
 ```
 [INFO] [orderId=order-456] [userId=cust-789] Processing order
 ```
+
+!!! tip "Dynamic MDC Pattern"
+    Dynamic MDC is perfect for per-message context like request IDs, order IDs, or any data that varies with each message.
 
 ## Combining Static and Dynamic MDC
 
@@ -390,12 +403,16 @@ Map.of("userId", userId, "transactionId", transactionId)
 ### 6. Use Async Logging in Production
 
 Always use async appenders to prevent logging from blocking actor processing:
+
 ```xml
 <appender name="ASYNC" class="ch.qos.logback.classic.AsyncAppender">
     <queueSize>1024</queueSize>
     <appender-ref ref="FILE"/>
 </appender>
 ```
+
+!!! warning "Blocking Logging"
+    Synchronous logging can significantly impact actor throughput. Always use async appenders in production.
 
 ### 7. Filter Logs by Tags
 
@@ -552,7 +569,14 @@ Use async appenders and appropriate queue sizes:
 ## More Information
 
 For more information about logging and observability:
+
 - [Actor Registration and Messaging](actor-registration-messaging.md) - Learn how to create and spawn actors
 - [Dispatchers](dispatchers.md) - Configure thread execution for your actors
 - [Pekko Typed Logging Documentation](https://pekko.apache.org/docs/pekko/current/typed/logging.html)
 - [Logback Configuration](http://logback.qos.ch/manual/configuration.html)
+
+## Next Steps
+
+- [Sharded Actors](sharded-actors.md) - Learn about distributed entity management in clusters
+- [Persistence with Spring Boot](persistence-spring-boot.md) - Integrate actors with Spring Data
+- [Supervision](../examples/supervision.md) - Build fault-tolerant systems

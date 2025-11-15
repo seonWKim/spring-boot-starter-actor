@@ -6,6 +6,9 @@ How to leverage spring-boot-starter-actor with Spring Boot's ecosystem.
 
 Actors are **just Spring components**. They use dependency injection, configuration, and all standard Spring Boot features—no special setup required.
 
+!!! success "Spring-Native"
+    The library is designed to feel like native Spring Boot. If you know Spring Boot, you already know how to use actors.
+
 ## Quick Start
 
 ### 1. Enable Actor Support
@@ -205,7 +208,7 @@ public class OrderController {
     public CompletionStage<OrderResponse> createOrder(@PathVariable String orderId, ...) {
         return actorSystem.actor(OrderActor.class)
             .withId(orderId)
-            .withDispatcher(DispatcherConfig.blocking())  // Configure dispatcher here
+            .withBlockingDispatcher()  // Configure dispatcher here
             .spawn()
             .thenCompose(ref -> ref.ask(new CreateOrder(...))
                 .withTimeout(Duration.ofSeconds(5))
@@ -213,6 +216,9 @@ public class OrderController {
     }
 }
 ```
+
+!!! danger "Thread Starvation"
+    Never run blocking database operations on the default dispatcher. Always use a blocking dispatcher or configure a custom thread pool.
 
 See the [Dispatchers guide](dispatchers.md) for detailed configuration and best practices.
 
@@ -338,6 +344,14 @@ public class OrderActor implements SpringActor<Command> {
 
 See `example/persistence` for a complete working example demonstrating:
 
+- JPA integration with actors
+- Transaction management
+- Blocking dispatcher configuration
+- State loading and persistence
+
+!!! info "Example Code"
+    The persistence example shows a complete implementation of actors with Spring Data JPA integration.
+
 ## Summary
 
 Spring Boot integration is seamless:
@@ -348,4 +362,11 @@ Spring Boot integration is seamless:
 4. **Standard Spring Boot features work** - Configuration, profiles, actuator, testing
 5. **CompletionStage integrates with Spring MVC/WebFlux** - Async responses just work
 
-No special setup. No custom infrastructure. Just Spring Boot + actors.
+!!! success "No Special Setup"
+    No special setup. No custom infrastructure. Just Spring Boot + actors.
+
+## Next Steps
+
+- [Dispatchers](dispatchers.md) - Configure thread execution for blocking operations
+- [Sharded Actors](sharded-actors.md) - Distribute actors across a cluster
+- [Logging with MDC](logging.md) - Add observability to your actors

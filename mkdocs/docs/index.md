@@ -1,18 +1,14 @@
 # Introduction
 
-Spring Boot Starter Actor is a library that integrates Spring Boot with the actor model using [Pekko](https://pekko.apache.org/) (an
-open-source, community-driven fork of Akka).
+Spring Boot Starter Actor is a library that integrates Spring Boot with the actor model using [Pekko](https://pekko.apache.org/) (an open-source, community-driven fork of Akka).
 
 ## What is this project about?
 
-This project bridges the gap between Spring Boot and the actor model, allowing developers to integrate actors to
-their applications using familiar Spring Boot patterns with ease.
+This project bridges the gap between Spring Boot and the actor model, allowing developers to integrate actors into their applications using familiar Spring Boot patterns with ease.
 
 ## Why?
 
-Many use Java with Spring (usually Spring Boot). Modern programming guides recommend building stateless
-architectures. But sometimes, stateful features are needed, such as in chat applications where the server needs
-to know where clients in the same chatroom are located.
+Many developers use Java with Spring (usually Spring Boot). Modern programming guides recommend building stateless architectures. However, sometimes stateful features are needed, such as in chat applications where the server needs to know where clients in the same chatroom are located.
 
 The actor model is a well-known programming model suited for stateful applications:
 
@@ -34,8 +30,7 @@ This project aims to bring together the best of both worlds:
 
 ## Getting Started
 
-Check out the [Getting Started](getting-started.md) guide to begin using Spring Boot Starter Actor in your
-projects.
+Check out the [Getting Started](getting-started.md) guide to begin using Spring Boot Starter Actor in your projects.
 
 ## Examples
 

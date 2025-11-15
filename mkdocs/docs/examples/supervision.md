@@ -24,8 +24,10 @@ The supervision example provides:
 
 ## Source Code
 
-Complete source
-code: [https://github.com/seonWKim/spring-boot-starter-actor/tree/main/example/supervision](https://github.com/seonWKim/spring-boot-starter-actor/tree/main/example/supervision)
+Complete source code: [Supervision Example](https://github.com/seonWKim/spring-boot-starter-actor/tree/main/example/supervision)
+
+!!! tip "Interactive Demo"
+    This example includes an interactive web UI for visualizing actor hierarchies and testing supervision strategies in real-time.
 
 ## Supervision Strategies
 
@@ -68,14 +70,17 @@ SupervisorStrategy.restart().withLimit(maxRetries, duration)
 
 ```java
 // Restart up to 3 times within 1 minute
-SupervisorStrategy.restart().withLimit(3,Duration.ofMinutes(1))
+SupervisorStrategy.restart().withLimit(3, Duration.ofMinutes(1))
 
 // Restart up to 10 times within 1 hour
-SupervisorStrategy.restart().withLimit(10,Duration.ofHours(1))
+SupervisorStrategy.restart().withLimit(10, Duration.ofHours(1))
 
 // Restart up to 5 times within 30 seconds
-SupervisorStrategy.restart().withLimit(5,Duration.ofSeconds(30))
+SupervisorStrategy.restart().withLimit(5, Duration.ofSeconds(30))
 ```
+
+!!! warning "Production Best Practice"
+    Always use limited restart in production to prevent resource exhaustion from failing actors.
 
 **Behavior:**
 
@@ -160,6 +165,9 @@ Is the failure recoverable?
             └─ NO → Restart (Unlimited)
 ```
 
+!!! tip "Strategy Selection"
+    Start with limited restart for most actors. Use unlimited restart only for non-critical actors where failures are rare.
+
 ## Strategy Comparison
 
 | Strategy                | State After Failure | Continues Processing | Automatic Retry | Use Case                              |
@@ -225,11 +233,14 @@ Understanding how state behaves across supervision actions:
 
 Supervision provides:
 
-✅ **Fault Isolation** - Failures don't cascade to unrelated actors
-✅ **Self-Healing** - Automatic recovery without manual intervention
-✅ **Graceful Degradation** - System continues operating despite component failures
-✅ **Clear Error Boundaries** - Supervision hierarchy defines failure domains
-✅ **Observability** - Real-time visibility into system health
+- ✅ **Fault Isolation** - Failures don't cascade to unrelated actors
+- ✅ **Self-Healing** - Automatic recovery without manual intervention
+- ✅ **Graceful Degradation** - System continues operating despite component failures
+- ✅ **Clear Error Boundaries** - Supervision hierarchy defines failure domains
+- ✅ **Observability** - Real-time visibility into system health
+
+!!! success "Resilience by Design"
+    Supervision strategies make fault tolerance a built-in feature rather than an afterthought.
 
 ## Best Practices
 
@@ -241,10 +252,19 @@ Supervision provides:
 6. **Use hierarchy for isolation** - group related actors under supervisors
 7. **Test failure scenarios** before production deployment
 
+!!! warning "Common Mistakes"
+    Don't use unlimited restart everywhere - it can hide persistent problems and lead to resource exhaustion.
+
 ## Common Pitfalls
 
-❌ **Using unlimited restart everywhere** - Can hide persistent problems
-❌ **Using resume for critical failures** - May continue with corrupted state
-❌ **Not monitoring failure rates** - Miss signs of systemic issues
-❌ **Storing critical state in-memory only** - Lost on restart
-❌ **Flat hierarchies** - No fault isolation
+- ❌ **Using unlimited restart everywhere** - Can hide persistent problems
+- ❌ **Using resume for critical failures** - May continue with corrupted state
+- ❌ **Not monitoring failure rates** - Miss signs of systemic issues
+- ❌ **Storing critical state in-memory only** - Lost on restart
+- ❌ **Flat hierarchies** - No fault isolation
+
+## Next Steps
+
+- [Actor Registration Guide](../guides/actor-registration-messaging.md) - Learn about child actors and supervision
+- [Sharded Actors](../guides/sharded-actors.md) - Apply supervision to distributed actors
+- [Simple Example](simple.md) - See basic supervision in action
