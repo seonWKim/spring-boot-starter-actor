@@ -1,24 +1,23 @@
 # Sharded Actors
 
-This guide explains how to create and use sharded actors in a clustered environment using Spring Boot Starter
-Actor.
+This guide explains how to create and use sharded actors in a clustered environment using Spring Boot Starter Actor.
 
 ## What are Sharded Actors?
 
-Sharded actors are actors that are distributed across multiple nodes in a cluster. Each actor instance (entity)
-is responsible for a specific entity ID, and the cluster ensures that only one instance of an entity exists
-across the entire cluster at any given time.
+Sharded actors are actors that are distributed across multiple nodes in a cluster. Each actor instance (entity) is responsible for a specific entity ID, and the cluster ensures that only one instance of an entity exists across the entire cluster at any given time.
 
-Sharding is useful when:
+**Sharding is useful when:**
 
 - You need to distribute actor instances across multiple nodes
 - You have a large number of actors that would be too much for a single node
 - You want automatic rebalancing of actors when nodes join or leave the cluster
 
+!!! info "Cluster Sharding"
+    Cluster sharding provides location transparency - you can send messages to entities without knowing which node they're on.
+
 ## Setting Up a Cluster
 
-Before you can use sharded actors, you need to set up a Pekko cluster. Add the following configuration to your
-`application.yaml` file:
+Before you can use sharded actors, you need to set up a Pekko cluster. Add the following configuration to your `application.yml` file:
 
 ```yaml 
 spring:
@@ -48,7 +47,10 @@ server:
   port: 8080
 ```
 
-Make sure to adjust the hostname, port, and seed-nodes according to your environment.
+!!! note "Configuration Notes"
+    - Adjust the hostname, port, and seed-nodes according to your environment
+    - For production, use proper hostnames and DNS instead of localhost
+    - The downing provider handles split-brain scenarios
 
 ## Creating a Sharded Actor
 
@@ -131,7 +133,7 @@ public class HelloActor implements SpringShardedActor<HelloActor.Command> {
 }
 ```
 
-Key differences from a regular actor:
+**Key differences from a regular actor:**
 
 1. Implement `SpringShardedActor<T>` instead of `SpringActor<T>`
 2. Commands must implement `JsonSerializable` (or `CborSerializable`) for serialization across the network
@@ -141,6 +143,9 @@ Key differences from a regular actor:
 6. Use `SpringShardedActorBehavior.builder()` instead of `SpringActorBehavior.builder()`
 7. Override `extractor()` to provide a sharding message extractor
 8. Use Jackson annotations (`@JsonCreator`, `@JsonProperty`) for message serialization
+
+!!! tip "Serialization"
+    Always use `JsonSerializable` or `CborSerializable` for sharded actor messages to ensure they can be sent across the cluster.
 
 ## Interacting with Sharded Actors
 
@@ -223,6 +228,9 @@ SpringShardedActorRef<Command> actor = actorSystem
     .get();
 ```
 
+!!! success "Automatic Lifecycle"
+    Sharded actors don't require explicit `start()` or lifecycle management. Simply get a reference and send messages - the entity is created automatically on first message.
+
 ## Using Sharded Actors in a REST Controller
 
 Here's an example of how to use the sharded actor service in a REST controller:
@@ -246,16 +254,17 @@ public class HelloController {
 
 ## Entity ID Strategies
 
-The entity ID is a crucial part of sharding. It determines which shard an entity belongs to, and therefore which
-node in the cluster will host the entity. Here are some strategies for choosing entity IDs:
+The entity ID is a crucial part of sharding. It determines which shard an entity belongs to, and therefore which node in the cluster will host the entity.
 
-1. **Natural Keys**: Use existing business identifiers (e.g., user IDs, order numbers)
-2. **Composite Keys**: Combine multiple fields to form a unique identifier
-3. **Hash-Based Keys**: Generate a hash from the entity's data
-4. **UUID**: Generate a random UUID for each entity
+**Common strategies for choosing entity IDs:**
 
-Choose a strategy that ensures even distribution of entities across shards while maintaining the ability to
-locate entities when needed.
+1. **Natural Keys** - Use existing business identifiers (e.g., user IDs, order numbers)
+2. **Composite Keys** - Combine multiple fields to form a unique identifier
+3. **Hash-Based Keys** - Generate a hash from the entity's data
+4. **UUID** - Generate a random UUID for each entity
+
+!!! tip "ID Selection"
+    Choose a strategy that ensures even distribution of entities across shards while maintaining the ability to locate entities when needed.
 
 ## Sharding Configuration
 
@@ -274,14 +283,17 @@ allow for finer-grained distribution but increase overhead.
 
 ## Best Practices for Sharded Actors
 
-1. **Don't Cache References**: Get references on each request - they're lightweight and don't create entities
-2. **Use ask**: Always use `ask()` with timeout and error handling for production code
-3. **Design for Idempotency**: Messages may be redelivered during rebalancing, so design handlers to be idempotent
-4. **Choose Entity IDs Wisely**: Use natural business keys for even distribution across shards
-5. **Avoid Cross-Entity Dependencies**: Minimize communication between entities to reduce network overhead
-6. **Monitor Shard Distribution**: Use built-in metrics to ensure entities are evenly distributed
-7. **Configure Passivation**: Tune idle timeout based on your use case to balance memory and startup costs
-8. **Use JSON Serialization**: Prefer `JsonSerializable` over Java serialization for better performance and compatibility
+1. **Don't Cache References** - Get references on each request; they're lightweight and don't create entities
+2. **Use ask** - Always use `ask()` with timeout and error handling for production code
+3. **Design for Idempotency** - Messages may be redelivered during rebalancing, so design handlers to be idempotent
+4. **Choose Entity IDs Wisely** - Use natural business keys for even distribution across shards
+5. **Avoid Cross-Entity Dependencies** - Minimize communication between entities to reduce network overhead
+6. **Monitor Shard Distribution** - Use built-in metrics to ensure entities are evenly distributed
+7. **Configure Passivation** - Tune idle timeout based on your use case to balance memory and startup costs
+8. **Use JSON Serialization** - Prefer `JsonSerializable` over Java serialization for better performance and compatibility
+
+!!! warning "Cross-Entity Communication"
+    Minimize dependencies between sharded entities. Each cross-entity message incurs network overhead and can impact performance.
 
 ## Comparison: Regular vs Sharded Actors
 
@@ -299,4 +311,6 @@ allow for finer-grained distribution but increase overhead.
 
 Now that you know how to create and use sharded actors, you can:
 
-1. Learn about advanced topics like persistence, event sourcing, and cluster singleton actors
+1. [Explore the Cluster Example](../examples/cluster.md) - See sharded actors in action
+2. [Learn about Persistence](persistence-spring-boot.md) - Add state persistence to your actors
+3. [Set up Monitoring](../examples/monitoring.md) - Track cluster health and performance

@@ -4,8 +4,7 @@ This guide explains how to register actors, spawn them, and send messages using 
 
 ## Registering Actors
 
-In Spring Boot Starter Actor, actors are registered as Spring components. This allows them to be automatically
-discovered and managed by the Spring container.
+In Spring Boot Starter Actor, actors are registered as Spring components. This allows them to be automatically discovered and managed by the Spring container.
 
 ### Creating a Simple Actor
 
@@ -91,6 +90,9 @@ public class HelloService {
 }
 ```
 
+!!! tip "When to use getOrSpawn"
+    Use `getOrSpawn()` for most cases as it simplifies actor lifecycle management and reduces boilerplate code.
+
 ### Advanced: Explicit Spawning with Builder API
 
 For advanced scenarios requiring custom configuration (supervision strategies, dispatchers, mailboxes), use the fluent builder API:
@@ -161,6 +163,7 @@ SpringActorRef<HelloActor.Command> actor = springActorSystem
 ```
 
 **Learn more about dispatchers:**
+
 - See the [Dispatchers Guide](dispatchers.md) for detailed information about thread management and dispatcher configuration
 
 ## Sending Messages to Actors
@@ -199,8 +202,11 @@ You can gracefully stop actors when they are no longer needed:
 ### Simplified Stop API
 
 ```java
-actorRef.stop(); 
+actorRef.stop();
 ```
+
+!!! warning "Actor Termination"
+    Stopping an actor is permanent. You'll need to spawn a new instance if you need the actor again.
 
 ## Actor Lifecycle Operations
 
@@ -458,19 +464,21 @@ self.child(LoggerActor.class)
 
 ## Best Practices
 
-1. **Use getOrSpawn**: For most cases, use `getOrSpawn()` instead of manually checking exists/get/spawn - it's simpler and reduces boilerplate.
-2. **Lazy Initialization**: Use lazy initialization to avoid blocking application startup. For simple cases, use `getOrSpawn` directly; for high-frequency access, add caching with `AtomicReference`.
-3. **Actor Hierarchy**: Organize actors in a hierarchy to manage their lifecycle and supervision.
-4. **Choose Appropriate Supervision**: Select supervision strategies based on the child actor's role and failure characteristics.
-5. **Use Framework Commands**: Make your Command interface extend `FrameworkCommand` when building parent actors that need to spawn children. Framework command handling is automatically enabled.
-6. **Message Immutability**: Ensure that messages sent to actors are immutable to prevent concurrency issues.
-7. **Timeout Handling**: Always specify reasonable timeouts for ask operations and handle timeout exceptions using `ask().onTimeout()`.
-8. **Non-Blocking Operations**: Avoid blocking operations inside actors, as they can lead to thread starvation.
-9. **Actor Naming**: Use meaningful and unique names for actors to make debugging easier.
-10. **Use Fluent API for Advanced Cases**: For advanced scenarios requiring custom configuration (supervision, dispatchers, mailboxes), use the fluent builder API with `.actor()`. For simple cases, prefer `getOrSpawn()`.
+1. **Use getOrSpawn**: For most cases, use `getOrSpawn()` instead of manually checking exists/get/spawn - it's simpler and reduces boilerplate
+2. **Lazy Initialization**: Use lazy initialization to avoid blocking application startup. For simple cases, use `getOrSpawn` directly; for high-frequency access, add caching with `AtomicReference`
+3. **Actor Hierarchy**: Organize actors in a hierarchy to manage their lifecycle and supervision
+4. **Choose Appropriate Supervision**: Select supervision strategies based on the child actor's role and failure characteristics
+5. **Use Framework Commands**: Make your Command interface extend `FrameworkCommand` when building parent actors that need to spawn children. Framework command handling is automatically enabled
+6. **Message Immutability**: Ensure that messages sent to actors are immutable to prevent concurrency issues
+7. **Timeout Handling**: Always specify reasonable timeouts for ask operations and handle timeout exceptions using `ask().onTimeout()`
+8. **Non-Blocking Operations**: Avoid blocking operations inside actors, as they can lead to thread starvation
+9. **Actor Naming**: Use meaningful and unique names for actors to make debugging easier
+10. **Use Fluent API for Advanced Cases**: For advanced scenarios requiring custom configuration (supervision, dispatchers, mailboxes), use the fluent builder API with `.actor()`. For simple cases, prefer `getOrSpawn()`
 
 ## Next Steps
 
 Now that you know how to register actors, spawn them, and send messages, you can:
 
-1. [Learn how to create sharded actors](sharded-actors.md) for clustered environments
+1. [Learn how to use pub/sub topics for distributed messaging](pub-sub-topics.md)
+2. [Explore routers for load balancing and parallel processing](routers.md)
+3. [Create sharded actors for clustered environments](sharded-actors.md)
