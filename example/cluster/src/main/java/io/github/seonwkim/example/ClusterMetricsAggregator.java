@@ -1,7 +1,5 @@
 package io.github.seonwkim.example;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import io.github.seonwkim.core.*;
 import io.github.seonwkim.core.serialization.JsonSerializable;
 import java.util.HashMap;
@@ -43,12 +41,7 @@ public class ClusterMetricsAggregator
         public final long value;
         public final long timestamp;
 
-        @JsonCreator
-        public RecordMetric(
-                @JsonProperty("nodeAddress") String nodeAddress,
-                @JsonProperty("metricName") String metricName,
-                @JsonProperty("value") long value,
-                @JsonProperty("timestamp") long timestamp) {
+        public RecordMetric(String nodeAddress, String metricName, long value, long timestamp) {
             this.nodeAddress = nodeAddress;
             this.metricName = metricName;
             this.value = value;
@@ -65,8 +58,7 @@ public class ClusterMetricsAggregator
     public static class GetNodeMetrics extends AskCommand<MetricsResponse> implements Command {
         public final String nodeAddress;
 
-        @JsonCreator
-        public GetNodeMetrics(@JsonProperty("nodeAddress") String nodeAddress) {
+        public GetNodeMetrics(String nodeAddress) {
             this.nodeAddress = nodeAddress;
         }
     }
@@ -81,10 +73,8 @@ public class ClusterMetricsAggregator
         public final Map<String, Map<String, MetricData>> metrics;
         public final String singletonNodeAddress;
 
-        @JsonCreator
         public MetricsResponse(
-                @JsonProperty("metrics") Map<String, Map<String, MetricData>> metrics,
-                @JsonProperty("singletonNodeAddress") String singletonNodeAddress) {
+                Map<String, Map<String, MetricData>> metrics, String singletonNodeAddress) {
             this.metrics = metrics;
             this.singletonNodeAddress = singletonNodeAddress;
         }
@@ -95,8 +85,7 @@ public class ClusterMetricsAggregator
         public final long value;
         public final long timestamp;
 
-        @JsonCreator
-        public MetricData(@JsonProperty("value") long value, @JsonProperty("timestamp") long timestamp) {
+        public MetricData(long value, long timestamp) {
             this.value = value;
             this.timestamp = timestamp;
         }

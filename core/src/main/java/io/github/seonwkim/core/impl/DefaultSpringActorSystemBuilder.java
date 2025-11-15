@@ -7,8 +7,10 @@ import io.github.seonwkim.core.RootGuardian;
 import io.github.seonwkim.core.RootGuardianSupplierWrapper;
 import io.github.seonwkim.core.SpringActorSystem;
 import io.github.seonwkim.core.SpringActorSystemBuilder;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import javax.annotation.Nullable;
@@ -115,7 +117,8 @@ public class DefaultSpringActorSystemBuilder implements SpringActorSystemBuilder
     /**
      * Applies default serializers to the configuration map. This method adds Jackson JSON and CBOR
      * serializers to the configuration if they are not already present. It also adds default
-     * serialization bindings for JsonSerializable and CborSerializable interfaces.
+     * serialization bindings for JsonSerializable and CborSerializable interfaces. Additionally,
+     * it configures the ParameterNamesModule to enable serialization without @JsonProperty annotations.
      *
      * @param configMap The original configuration map
      * @return A new configuration map with default serializers applied
@@ -126,6 +129,7 @@ public class DefaultSpringActorSystemBuilder implements SpringActorSystemBuilder
 
         final String jacksonJsonSerializerName = "jackson-json";
         final String jacksonCborSerializerName = "jackson-cbor";
+        final String parameterNamesModule = "com.fasterxml.jackson.module.paramnames.ParameterNamesModule";
 
         // Default serializers
         final Map<String, Object> defaultSerializers = new HashMap<>();
@@ -146,6 +150,30 @@ public class DefaultSpringActorSystemBuilder implements SpringActorSystemBuilder
                 (Map<String, Object>) actor.computeIfAbsent("serializers", k -> new HashMap<>());
         Map<String, Object> bindings =
                 (Map<String, Object>) actor.computeIfAbsent("serialization-bindings", k -> new HashMap<>());
+
+        // Configure Jackson modules for parameter name inference
+        Map<String, Object> serialization =
+                (Map<String, Object>) pekko.computeIfAbsent("serialization", k -> new HashMap<>());
+        Map<String, Object> jackson =
+                (Map<String, Object>) serialization.computeIfAbsent("jackson", k -> new HashMap<>());
+
+        // Configure jackson-json modules
+        Map<String, Object> jacksonJson =
+                (Map<String, Object>) jackson.computeIfAbsent(jacksonJsonSerializerName, k -> new HashMap<>());
+        List<String> jsonModules =
+                (List<String>) jacksonJson.computeIfAbsent("jackson-modules", k -> new ArrayList<>());
+        if (!jsonModules.contains(parameterNamesModule)) {
+            jsonModules.add(parameterNamesModule);
+        }
+
+        // Configure jackson-cbor modules
+        Map<String, Object> jacksonCbor =
+                (Map<String, Object>) jackson.computeIfAbsent(jacksonCborSerializerName, k -> new HashMap<>());
+        List<String> cborModules =
+                (List<String>) jacksonCbor.computeIfAbsent("jackson-modules", k -> new ArrayList<>());
+        if (!cborModules.contains(parameterNamesModule)) {
+            cborModules.add(parameterNamesModule);
+        }
 
         // Merge without overwriting existing entries
         defaultSerializers.forEach(serializers::putIfAbsent);

@@ -96,6 +96,12 @@ subprojects {
         testImplementation("org.awaitility:awaitility:4.3.0")
     }
 
+    // Configure Java compilation to retain parameter names in bytecode
+    // This is required for Jackson ParameterNamesModule to work without @JsonProperty annotations
+    tasks.withType<JavaCompile> {
+        options.compilerArgs.add("-parameters")
+    }
+
     tasks.withType<Test> {
         useJUnitPlatform()
         dependsOn("spotlessCheck")

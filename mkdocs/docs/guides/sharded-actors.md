@@ -68,8 +68,7 @@ public class HelloActor implements SpringShardedActor<HelloActor.Command> {
     public static class SayHello extends AskCommand<String> implements Command {
         public final String message;
 
-        @JsonCreator
-        public SayHello(@JsonProperty("message") String message) {
+        public SayHello(String message) {
             this.message = message;
         }
     }
@@ -140,7 +139,6 @@ Key differences from a regular actor:
 5. Override `create(SpringShardedActorContext<T>)` to return `SpringShardedActorBehavior<T>` instead of `SpringActorBehavior<T>`
 6. Use `SpringShardedActorBehavior.builder()` instead of `SpringActorBehavior.builder()`
 7. Override `extractor()` to provide a sharding message extractor
-8. Use Jackson annotations (`@JsonCreator`, `@JsonProperty`) for message serialization
 
 ## Interacting with Sharded Actors
 
