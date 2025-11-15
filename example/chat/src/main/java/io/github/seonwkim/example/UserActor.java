@@ -1,7 +1,5 @@
 package io.github.seonwkim.example;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import io.github.seonwkim.core.*;
 import io.github.seonwkim.core.serialization.JsonSerializable;
 import io.github.seonwkim.core.shard.SpringShardedActorRef;
@@ -17,15 +15,15 @@ public class UserActor implements SpringActorWithContext<UserActor.Command, User
     public interface Command extends JsonSerializable {}
 
     public static class Connect implements Command {
-        @JsonCreator
+        
         public Connect() {}
     }
 
     public static class JoinRoom implements Command {
         private final String roomId;
 
-        @JsonCreator
-        public JoinRoom(@JsonProperty("roomId") String roomId) {
+        
+        public JoinRoom( String roomId) {
             this.roomId = roomId;
         }
 
@@ -35,15 +33,15 @@ public class UserActor implements SpringActorWithContext<UserActor.Command, User
     }
 
     public static class LeaveRoom implements Command {
-        @JsonCreator
+        
         public LeaveRoom() {}
     }
 
     public static class SendMessage implements Command {
         private final String message;
 
-        @JsonCreator
-        public SendMessage(@JsonProperty("message") String message) {
+        
+        public SendMessage( String message) {
             this.message = message;
         }
 
@@ -55,8 +53,8 @@ public class UserActor implements SpringActorWithContext<UserActor.Command, User
     public static class JoinRoomEvent implements Command {
         private final String userId;
 
-        @JsonCreator
-        public JoinRoomEvent(@JsonProperty("userId") String userId) {
+        
+        public JoinRoomEvent( String userId) {
             this.userId = userId;
         }
 
@@ -68,8 +66,8 @@ public class UserActor implements SpringActorWithContext<UserActor.Command, User
     public static class LeaveRoomEvent implements Command {
         private final String userId;
 
-        @JsonCreator
-        public LeaveRoomEvent(@JsonProperty("userId") String userId) {
+        
+        public LeaveRoomEvent( String userId) {
             this.userId = userId;
         }
 
@@ -82,8 +80,8 @@ public class UserActor implements SpringActorWithContext<UserActor.Command, User
         private final String userId;
         private final String message;
 
-        @JsonCreator
-        public SendMessageEvent(@JsonProperty("userId") String userId, @JsonProperty("message") String message) {
+        
+        public SendMessageEvent( String userId,  String message) {
             this.userId = userId;
             this.message = message;
         }

@@ -1,7 +1,5 @@
 package io.github.seonwkim.example;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import io.github.seonwkim.core.SpringActorRef;
 import io.github.seonwkim.core.SpringBehaviorContext;
 import io.github.seonwkim.core.serialization.JsonSerializable;
@@ -52,10 +50,7 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
         public final String userId;
         public final ActorRef<UserActor.Command> userActorRef;
 
-        @JsonCreator
-        public JoinRoom(
-                @JsonProperty("userId") String userId,
-                @JsonProperty("userActorRef") ActorRef<UserActor.Command> userActorRef) {
+        public JoinRoom(String userId, ActorRef<UserActor.Command> userActorRef) {
             this.userId = userId;
             this.userActorRef = userActorRef;
         }
@@ -66,10 +61,7 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
         public final String userId;
         public final ActorRef<UserActor.Command> userActorRef;
 
-        @JsonCreator
-        public LeaveRoom(
-                @JsonProperty("userId") String userId,
-                @JsonProperty("userActorRef") ActorRef<UserActor.Command> userActorRef) {
+        public LeaveRoom(String userId, ActorRef<UserActor.Command> userActorRef) {
             this.userId = userId;
             this.userActorRef = userActorRef;
         }
@@ -80,8 +72,7 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
         public final String userId;
         public final String message;
 
-        @JsonCreator
-        public SendMessage(@JsonProperty("userId") String userId, @JsonProperty("message") String message) {
+        public SendMessage(String userId, String message) {
             this.userId = userId;
             this.message = message;
         }

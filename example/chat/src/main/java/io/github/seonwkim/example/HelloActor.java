@@ -1,7 +1,5 @@
 package io.github.seonwkim.example;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import io.github.seonwkim.core.AskCommand;
 import io.github.seonwkim.core.serialization.JsonSerializable;
 import io.github.seonwkim.core.shard.SpringShardedActor;
@@ -28,8 +26,7 @@ public class HelloActor implements SpringShardedActor<HelloActor.Command> {
     public static class SayHello extends AskCommand<String> implements Command {
         public final String message;
 
-        @JsonCreator
-        public SayHello(@JsonProperty("message") String message) {
+        public SayHello(String message) {
             this.message = message;
         }
     }
