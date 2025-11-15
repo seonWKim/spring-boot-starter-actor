@@ -14,7 +14,10 @@ The monitoring example shows how to:
 - Track message processing times and throughput
 - Monitor cluster health and resource usage
 
-Spring Boot Starter Actor provides comprehensive monitoring capabilities without requiring complex configuration or third-party services.
+This example provides insights into how Spring Boot Starter Actor can be used to observe and optimize your application's performance without complex configuration.
+
+!!! info "Complete Monitoring Stack"
+    The example includes a pre-configured Prometheus + Grafana stack ready to use with Docker Compose.
 
 ## Key Components
 
@@ -22,10 +25,13 @@ Spring Boot Starter Actor provides comprehensive monitoring capabilities without
 
 The Metrics module provides instrumentation for Pekko actors to collect performance metrics. It uses a Java agent to intercept method calls and capture timing information.
 
-```java
-// Include the Java agent when starting your application
+```bash
+# Include the Java agent when starting your application
 java -javaagent:metrics-{version}-agent.jar -jar your-application.jar
 ```
+
+!!! warning "Java Agent Required"
+    The metrics module requires running with the Java agent to collect actor performance metrics.
 
 ### ActorInstrumentationEventListener
 
@@ -122,8 +128,12 @@ docker-compose up -d
 ```
 
 This will start:
-- Prometheus at http://localhost:9090
-- Grafana at http://localhost:3000
+
+- **Prometheus** at `http://localhost:9090`
+- **Grafana** at `http://localhost:3000`
+
+!!! tip "Default Credentials"
+    Grafana default credentials are `admin/admin`. You'll be prompted to change the password on first login.
 
 ### 2. Configure Your Application
 
@@ -144,7 +154,10 @@ management:
 
 ### 3. Access the Dashboards
 
-Open Grafana at http://localhost:3000 (default credentials: admin/admin) to view the pre-configured dashboards.
+Open Grafana at `http://localhost:3000` (default credentials: `admin/admin`) to view the pre-configured dashboards.
+
+!!! success "Pre-Configured Dashboards"
+    The monitoring stack includes pre-built dashboards for actor metrics, showing message processing times, throughput, and more.
 
 ### 4. Shutdown When Done
 
@@ -153,7 +166,21 @@ cd scripts/monitoring
 docker-compose down -v
 ```
 
+!!! warning "Data Persistence"
+    Using `-v` flag removes volumes, which deletes all metrics data. Omit `-v` if you want to preserve data between restarts.
+
 ## Summary
 
-- Collect performance data with the metrics module
-- Visualize with Prometheus and Grafana
+- **Collect performance data** with the metrics module and Java agent
+- **Visualize with Prometheus and Grafana** using pre-configured dashboards
+- **Monitor actor performance** including message processing times and throughput
+- **Track cluster health** and resource usage across all nodes
+
+!!! success "Production Monitoring"
+    This monitoring setup is production-ready and can be adapted to your specific infrastructure needs.
+
+## Next Steps
+
+- [Chat Example](chat.md) - See monitoring in action with a real application
+- [Cluster Example](cluster.md) - Monitor distributed actor systems
+- [Logging Guide](../guides/logging.md) - Add MDC logging for better observability

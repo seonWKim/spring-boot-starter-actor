@@ -1,6 +1,7 @@
 # Chat Example
 
 ![Chat Demo](../chat.gif)
+
 This guide demonstrates how to build a real-time chat application using Spring Boot Starter Actor's pub/sub topics without introducing third-party middleware.
 
 ## Overview
@@ -14,10 +15,17 @@ The chat example shows how to:
 
 This example demonstrates how Spring Boot Starter Actor can be used to build real-world applications efficiently without relying on additional infrastructure components.
 
+!!! success "No External Dependencies"
+    No Redis, RabbitMQ, or Kafka required! The actor system provides everything needed for distributed messaging.
+
 ## Source Code
 
 You can find the complete source code for this example on GitHub:
-[https://github.com/seonWKim/spring-boot-starter-actor/tree/main/example/chat](https://github.com/seonWKim/spring-boot-starter-actor/tree/main/example/chat)
+
+[Chat Example Source Code](https://github.com/seonWKim/spring-boot-starter-actor/tree/main/example/chat)
+
+!!! tip "Real-World Application"
+    This example demonstrates patterns applicable to many real-time applications beyond chat.
 
 ## Key Components
 
@@ -270,11 +278,14 @@ public class UserActor implements SpringActorWithContext<
 
 The pub/sub implementation provides several advantages:
 
-1. **Simplified State Management**: No need to maintain a list of user actor references
-2. **Automatic Cleanup**: Users are automatically unsubscribed when their actors terminate
-3. **Scalability**: Topics work seamlessly across cluster nodes
-4. **Decoupled Communication**: Publishers don't need to know about subscribers
-5. **Location Transparency**: Works the same whether actors are local or distributed
+1. **Simplified State Management** - No need to maintain a list of user actor references
+2. **Automatic Cleanup** - Users are automatically unsubscribed when their actors terminate
+3. **Scalability** - Topics work seamlessly across cluster nodes
+4. **Decoupled Communication** - Publishers don't need to know about subscribers
+5. **Location Transparency** - Works the same whether actors are local or distributed
+
+!!! info "Pub/Sub vs Direct Messaging"
+    Pub/sub is ideal for one-to-many communication patterns. For point-to-point messaging, use direct actor references instead.
 
 ### Message Flow
 
@@ -299,7 +310,10 @@ roomActor.tell(new ChatRoomActor.JoinRoom(userId, context.getUnderlying().getSel
 roomActor.tell(new ChatRoomActor.JoinRoom(userId, context.getSelf()));
 ```
 
-`SpringActorRef` is a local convenience wrapper only. For cluster messages, always use the raw Pekko `ActorRef`.
+!!! warning "Serialization"
+    `SpringActorRef` is a local convenience wrapper only. For cluster messages, always use the raw Pekko `ActorRef`.
+
+`SpringActorRef` is a local convenience wrapper that contains a non-serializable scheduler. For cluster messages, always use the raw Pekko `ActorRef` from `context.getUnderlying().getSelf()`.
 
 ## Running the Application
 
@@ -363,12 +377,15 @@ docker-compose down
 
 To verify that messages properly distribute across the cluster:
 
-1. Open chat UI on different nodes (e.g., http://localhost:8080 and http://localhost:8081)
+1. Open chat UI on different nodes (e.g., `http://localhost:8080` and `http://localhost:8081`)
 2. Join the same room from both browsers
 3. Send messages from either browser
 4. All connected users should receive messages regardless of which node they're connected to
 
 This demonstrates the power of distributed pub/sub topics working seamlessly across the cluster.
+
+!!! tip "Testing Cluster Distribution"
+    Try connecting users to different nodes and watch messages propagate across the entire cluster in real-time.
 
 ## Architecture Benefits
 
@@ -376,10 +393,13 @@ This architecture eliminates the need for third-party middleware by leveraging:
 
 - **Distributed pub/sub topics** for message distribution
 - **Sharded actors** for scalability and fault tolerance
-- Built-in message routing between actors
-- Natural state management within actors
-- Real-time communication via WebSockets
-- Automatic cleanup and lifecycle management
+- **Built-in message routing** between actors
+- **Natural state management** within actors
+- **Real-time communication** via WebSockets
+- **Automatic cleanup** and lifecycle management
+
+!!! success "Production Ready"
+    This architecture is production-ready and can scale to thousands of concurrent users across multiple nodes.
 
 ## Key Takeaways
 
@@ -388,3 +408,9 @@ This architecture eliminates the need for third-party middleware by leveraging:
 - WebSockets and actors work together seamlessly for real-time applications
 - No external message broker required - everything is built into the framework
 - Cluster-aware topics distribute messages automatically across nodes
+
+## Next Steps
+
+- [Pub/Sub Topics Guide](../guides/pub-sub-topics.md) - Deep dive into pub/sub concepts
+- [Cluster Example](cluster.md) - Learn about cluster sharding
+- [Supervision Example](supervision.md) - Build fault-tolerant systems
