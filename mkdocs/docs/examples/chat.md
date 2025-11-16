@@ -320,70 +320,13 @@ roomActor.tell(new ChatRoomActor.JoinRoom(userId, context.getSelf()));
 You can run multiple instances of the application locally using Gradle:
 
 ```bash
-# Terminal 1 - Node on port 8080
-SERVER_PORT=8080 PEKKO_PORT=2551 PEKKO_MGMT_PORT=7626 ./gradlew :example:chat:bootRun
+# Run the server app 
+sh cluster-start.sh chat io.github.seonwkim.example.SpringPekkoApplication 8080 2551 3
 
-# Terminal 2 - Node on port 8081
-SERVER_PORT=8081 PEKKO_PORT=2552 PEKKO_MGMT_PORT=7627 ./gradlew :example:chat:bootRun
-
-# Terminal 3 - Node on port 8082
-SERVER_PORT=8082 PEKKO_PORT=2553 PEKKO_MGMT_PORT=7628 ./gradlew :example:chat:bootRun
+# Run the frontend app  
+cd example/chat/frontend 
+npm run dev 
 ```
-
-The nodes will automatically form a cluster. Access the web UI at:
-- Node 1: http://localhost:8080
-- Node 2: http://localhost:8081
-- Node 3: http://localhost:8082
-
-### Docker Deployment
-
-You can also deploy the chat application as a clusterized app using Docker:
-
-```bash
-# Navigate to the chat example directory
-cd example/chat
-
-# Run the init-local-docker.sh script to build and deploy the application
-sh init-local-docker.sh
-```
-
-This script will:
-
-1. Build the chat application JAR file
-2. Build a Docker image for the application
-3. Deploy a 3-node Pekko cluster using Docker Compose
-4. Each node will be accessible at:
-   - Node 1: http://localhost:8080
-   - Node 2: http://localhost:8081
-   - Node 3: http://localhost:8082
-
-#### Viewing Logs
-
-To view logs for a specific node:
-```bash
-docker-compose logs -f chat-app-0
-```
-
-#### Stopping the Deployment
-
-To stop the Docker deployment:
-```bash
-docker-compose down
-```
-
-## Testing Message Distribution
-
-To verify that messages properly distribute across the cluster:
-
-1. Open chat UI on different nodes (e.g., `http://localhost:8080` and `http://localhost:8081`)
-2. Join the same room from both browsers
-3. Send messages from either browser
-4. All connected users should receive messages regardless of which node they're connected to
-
-This demonstrates the power of distributed pub/sub topics working seamlessly across the cluster.
-
-!!! tip "Testing Cluster Distribution"
-    Try connecting users to different nodes and watch messages propagate across the entire cluster in real-time.
 
 ## Architecture Benefits
 
