@@ -311,9 +311,7 @@ roomActor.tell(new ChatRoomActor.JoinRoom(userId, context.getSelf()));
 ```
 
 !!! warning "Serialization"
-    `SpringActorRef` is a local convenience wrapper only. For cluster messages, always use the raw Pekko `ActorRef`.
-
-`SpringActorRef` is a local convenience wrapper that contains a non-serializable scheduler. For cluster messages, always use the raw Pekko `ActorRef` from `context.getUnderlying().getSelf()`.
+    `SpringActorRef` is a local convenience wrapper that contains a non-serializable scheduler. For cluster messages, always use the raw Pekko `ActorRef` from `context.getUnderlying().getSelf()`.
 
 ## Running the Application
 
