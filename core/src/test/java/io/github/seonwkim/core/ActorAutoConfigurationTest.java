@@ -149,7 +149,8 @@ public class ActorAutoConfigurationTest {
 
         private final SpringActorSystem actorSystem;
 
-        public static final EntityTypeKey<Command> TYPE_KEY = EntityTypeKey.create(Command.class, "ShardedActorWithSystemInjection");
+        public static final EntityTypeKey<Command> TYPE_KEY =
+                EntityTypeKey.create(Command.class, "ShardedActorWithSystemInjection");
 
         public ShardedActorWithSystemInjection(SpringActorSystem actorSystem) {
             this.actorSystem = actorSystem;
@@ -175,8 +176,7 @@ public class ActorAutoConfigurationTest {
         }
 
         @Override
-        public ShardingMessageExtractor<ShardEnvelope<Command>, Command>
-                extractor() {
+        public ShardingMessageExtractor<ShardEnvelope<Command>, Command> extractor() {
             return new DefaultShardingMessageExtractor<>(5);
         }
 
@@ -211,9 +211,8 @@ public class ActorAutoConfigurationTest {
             assertEquals(systemBean, actor.getActorSystem(), "Should be the same SpringActorSystem instance");
 
             // Verify actor was registered in the static registry
-            SpringActorBehavior<ActorWithSystemInjection.Command> behavior =
-                    ActorTypeRegistry.createTypedBehavior(
-                            ActorWithSystemInjection.class, new DefaultSpringActorContext("test-actor"));
+            SpringActorBehavior<ActorWithSystemInjection.Command> behavior = ActorTypeRegistry.createTypedBehavior(
+                    ActorWithSystemInjection.class, new DefaultSpringActorContext("test-actor"));
             assertNotNull(behavior, "Actor should be registered in ActorTypeRegistry");
         }
 

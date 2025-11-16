@@ -1,13 +1,11 @@
 package io.github.seonwkim.example;
 
 import io.github.seonwkim.core.*;
-
 import java.time.Duration;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.PostStop;
 import org.apache.pekko.actor.typed.PreRestart;
 import org.apache.pekko.actor.typed.SupervisorStrategy;
-import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.springframework.stereotype.Component;
 

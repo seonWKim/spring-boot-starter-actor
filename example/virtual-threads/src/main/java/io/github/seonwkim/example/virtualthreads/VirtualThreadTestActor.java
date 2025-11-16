@@ -14,8 +14,7 @@ public class VirtualThreadTestActor
         implements SpringActorWithContext<VirtualThreadTestActor.Command, SpringActorContext> {
 
     // Commands
-    public interface Command extends FrameworkCommand {
-    }
+    public interface Command extends FrameworkCommand {}
 
     public static class CheckThread implements Command {
         public final String taskName;
@@ -32,8 +31,7 @@ public class VirtualThreadTestActor
                 .build();
     }
 
-    private Behavior<Command> onCheckThread(
-            SpringBehaviorContext<Command> context, CheckThread command) {
+    private Behavior<Command> onCheckThread(SpringBehaviorContext<Command> context, CheckThread command) {
         Thread currentThread = Thread.currentThread();
         boolean isVirtual = currentThread.isVirtual();
 

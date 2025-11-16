@@ -1,11 +1,10 @@
 package io.github.seonwkim.core.shard;
 
+import io.github.seonwkim.core.ActorConfiguration;
 import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import javax.annotation.Nullable;
-
-import io.github.seonwkim.core.ActorConfiguration;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
 
 /**
