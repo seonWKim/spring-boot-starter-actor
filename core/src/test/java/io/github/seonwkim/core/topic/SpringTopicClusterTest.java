@@ -42,8 +42,7 @@ class SpringTopicClusterTest extends AbstractClusterTest {
         public final String content;
         public final String nodeId;
 
-        @JsonCreator
-        public ClusterMessage(@JsonProperty("content") String content, @JsonProperty("nodeId") String nodeId) {
+        public ClusterMessage(String content, String nodeId) {
             this.content = content;
             this.nodeId = nodeId;
         }

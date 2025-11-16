@@ -62,10 +62,7 @@ public static class ChatMessage implements JsonSerializable {
     public final String userId;
     public final String content;
 
-    @JsonCreator
-    public ChatMessage(
-        @JsonProperty("userId") String userId,
-        @JsonProperty("content") String content) {
+    public ChatMessage(String userId, String content) {
         this.userId = userId;
         this.content = content;
     }

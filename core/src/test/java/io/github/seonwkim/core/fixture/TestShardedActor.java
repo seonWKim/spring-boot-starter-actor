@@ -24,13 +24,12 @@ public class TestShardedActor implements SpringShardedActor<TestShardedActor.Com
         public final String message;
 
         @JsonCreator
-        public Ping(@JsonProperty("message") String message) {
+        public Ping(String message) {
             this.message = message;
         }
     }
 
     public static class GetState extends AskCommand<State> implements Command {
-        @JsonCreator
         public GetState() {}
     }
 
@@ -38,7 +37,7 @@ public class TestShardedActor implements SpringShardedActor<TestShardedActor.Com
         private final int messageCount;
 
         @JsonCreator
-        public State(@JsonProperty("messageCount") int messageCount) {
+        public State(int messageCount) {
             this.messageCount = messageCount;
         }
 

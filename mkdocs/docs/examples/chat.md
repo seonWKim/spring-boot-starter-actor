@@ -48,10 +48,7 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
         public final String userId;
         public final ActorRef<UserActor.Command> userActorRef;
 
-        @JsonCreator
-        public JoinRoom(
-                @JsonProperty("userId") String userId,
-                @JsonProperty("userActorRef") ActorRef<UserActor.Command> userActorRef) {
+        public JoinRoom(String userId, ActorRef<UserActor.Command> userActorRef) {
             this.userId = userId;
             this.userActorRef = userActorRef;
         }
@@ -61,8 +58,7 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
    public static class LeaveRoom implements Command {
       public final String userId;
 
-      @JsonCreator
-      public LeaveRoom(@JsonProperty("userId") String userId) {
+      public LeaveRoom( String userId) {
          this.userId = userId;
       }
    }
@@ -72,9 +68,7 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
       public final String userId;
       public final String message;
 
-      @JsonCreator
-      public SendMessage(
-              @JsonProperty("userId") String userId, @JsonProperty("message") String message) {
+      public SendMessage(String userId, String message) {
          this.userId = userId;
          this.message = message;
       }

@@ -177,13 +177,10 @@ public class CounterActor implements SpringShardedActor<CounterActor.Command> {
     public interface Command extends JsonSerializable {}
 
     public static class Increment implements Command {
-
-        @JsonCreator
         public Increment() {}
     }
 
     public static class GetValue extends AskCommand<Long> implements Command {
-        @JsonCreator
         public GetValue() {}
     }
 
