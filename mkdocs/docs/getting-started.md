@@ -4,13 +4,14 @@ This guide will help you get started with Spring Boot Starter Actor in your Spri
 
 ## Prerequisites
 
-- Java 11 or higher
+- Java 11 or higher (Java 21+ recommended for virtual thread support)
 - Spring Boot 2.x or 3.x
 
 ## Installation
 
 Add the dependency to your project:
 
+### Gradle 
 ```gradle
 // Manually overwrite spring managed jackson dependency 
 dependencyManagement {
@@ -27,6 +28,7 @@ implementation 'io.github.seonwkim:spring-boot-starter-actor:0.3.0'
 implementation 'io.github.seonwkim:spring-boot-starter-actor_3:0.3.0'
 ```
 
+### Maven 
 ```xml
 <dependencyManagement>
   <dependencies>
@@ -60,9 +62,12 @@ To view the latest versions, refer to the following:
 - [spring-boot-starter-actor](https://central.sonatype.com/artifact/io.github.seonwkim/spring-boot-starter-actor)
 - [spring-boot-starter-actor_3](https://central.sonatype.com/artifact/io.github.seonwkim/spring-boot-starter-actor_3)
 
+!!! note
+    The library requires Jackson 2.17.3 or later. Ensure you override Spring Boot's managed Jackson dependency as shown above.
+
 ## Basic Configuration
 
-Spring Boot Starter Actor uses Spring Boot's auto-configuration to set up the actor system. By default, it will create a local actor system with sensible defaults.
+Spring Boot Starter Actor uses Spring Boot's auto-configuration to set up the actor system. By default, it creates a local actor system with sensible defaults.
 
 ### Enable Actor Support
 
@@ -98,4 +103,5 @@ spring:
 Now that you have set up Spring Boot Starter Actor in your project, you can:
 
 1. [Learn how to register actors and send messages](guides/actor-registration-messaging.md)
-2. [Create sharded actors for clustered environments](guides/sharded-actors.md)
+2. [Explore pub/sub topics for distributed messaging](guides/pub-sub-topics.md)
+3. [Create sharded actors for clustered environments](guides/sharded-actors.md)

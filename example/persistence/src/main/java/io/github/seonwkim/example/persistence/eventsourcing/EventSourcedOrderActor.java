@@ -6,7 +6,6 @@ import io.github.seonwkim.example.persistence.OrderStatus;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.pekko.actor.typed.Behavior;
-import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.springframework.stereotype.Component;
 

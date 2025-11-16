@@ -71,7 +71,9 @@ public class ActorConfiguration {
                         return actor.create(actorContext);
                     } catch (Exception e) {
                         throw new RuntimeException(
-                                "Failed to create actor behavior for " + actor.getClass().getName(), e);
+                                "Failed to create actor behavior for "
+                                        + actor.getClass().getName(),
+                                e);
                     }
                 });
             }

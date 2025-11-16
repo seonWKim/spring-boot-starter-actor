@@ -9,7 +9,6 @@ import io.github.seonwkim.core.shard.SpringShardedActor;
 import io.github.seonwkim.core.shard.SpringShardedActorBehavior;
 import io.github.seonwkim.core.shard.SpringShardedActorContext;
 import org.apache.pekko.actor.typed.Behavior;
-import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
 import org.springframework.stereotype.Component;

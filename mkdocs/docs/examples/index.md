@@ -8,6 +8,9 @@ Spring Boot Starter Actor is a library that integrates the Apache Pekko (formerl
 
 These examples demonstrate how to use Spring Boot Starter Actor in different scenarios, from simple applications to complex, real-world use cases.
 
+!!! info "Learning Path"
+    Start with the Simple Example if you're new to the library, then progress through the other examples as you become more comfortable.
+
 ## Available Examples
 
 ### [Simple Example](simple.md)
@@ -18,16 +21,18 @@ The Simple Example demonstrates the basic usage of Spring Boot Starter Actor in 
 - Send messages to actors and receive responses
 - Integrate actors with a REST API
 
-This is a great starting point for understanding the core concepts of the library.
+**Best for:** Beginners learning the basics of the actor model and Spring Boot integration.
 
 ### [Cluster Example](cluster.md)
 
-The Cluster Example shows how to use Spring Boot Starter Actor in a clustered environment, focusing on how entities can be easily used with the library. It demonstrates:
+The Cluster Example shows how to use Spring Boot Starter Actor in a clustered environment, focusing on sharded actors. It demonstrates:
 
 - Creating and using sharded actors across a cluster
 - Distributing actor instances across multiple nodes
 - Sending messages to specific entity instances
 - Handling entity state in a distributed environment
+
+**Best for:** Understanding distributed actor systems and cluster sharding.
 
 ### [Synchronization Example](synchronization.md)
 
@@ -40,16 +45,20 @@ The Synchronization Example demonstrates how to implement efficient synchronizat
 
 This example explains why using actors for synchronization is cheap and efficient compared to other approaches.
 
+**Best for:** Understanding performance benefits of actor-based concurrency.
+
 ### [Chat Example](chat.md)
 
-The Chat Example demonstrates how to build a real-time chat application using Spring Boot Starter Actor without introducing third-party middleware. It shows:
+The Chat Example demonstrates how to build a real-time chat application using Spring Boot Starter Actor with pub/sub topics. It shows:
 
-- Building a real-time chat application using actors
+- Building a real-time chat application using actors and pub/sub
 - Implementing WebSocket communication for real-time messaging
 - Creating a scalable, clustered chat system
 - Eliminating the need for external message brokers or middleware
 
 This example demonstrates how Spring Boot Starter Actor can be used to build real-world applications efficiently without relying on additional infrastructure components.
+
+**Best for:** Building real-time applications with WebSockets and pub/sub.
 
 ### [Supervision Example](supervision.md)
 
@@ -63,7 +72,9 @@ The Supervision Example demonstrates how to build hierarchical actor supervision
 
 This example provides insights into how supervision trees can be used to build resilient, self-healing systems with clear failure boundaries.
 
-### [Monitoring](monitoring.md)
+**Best for:** Understanding fault tolerance and building resilient systems.
+
+### [Monitoring Example](monitoring.md)
 
 The Monitoring example demonstrates how to monitor and analyze your actor system's performance. It shows:
 
@@ -75,13 +86,18 @@ The Monitoring example demonstrates how to monitor and analyze your actor system
 
 This example provides insights into how Spring Boot Starter Actor can be used to observe and optimize your application's performance without complex configuration.
 
+**Best for:** Production monitoring and performance optimization.
+
 ## Getting Started
 
 To run these examples:
 
-1. Clone the repository
-2. Navigate to the example directory you want to run
+1. Clone the repository: `git clone https://github.com/seonwkim/spring-boot-starter-actor.git`
+2. Navigate to the example directory you want to run: `cd example/<example-name>`
 3. Follow the instructions in the corresponding documentation file
+
+!!! tip "Running Examples"
+    Each example includes a README with specific instructions for building and running the application.
 
 ## Additional Resources
 

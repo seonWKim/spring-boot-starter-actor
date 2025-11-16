@@ -9,13 +9,21 @@ The simple example shows how to:
 - Create and register actors in a Spring Boot application
 - Send messages to actors and receive responses
 - Integrate actors with a REST API
+- Use lifecycle hooks (PreStart, PreRestart, PostStop)
 
 This example is a great starting point for understanding the core concepts of the actor model and how Spring Boot Starter Actor makes it easy to use actors in your Spring applications.
+
+!!! tip "For Beginners"
+    Start here if you're new to the actor model or Spring Boot Starter Actor.
 
 ## Source Code
 
 You can find the complete source code for this example on GitHub:
-[https://github.com/seonWKim/spring-boot-starter-actor/tree/main/example/simple](https://github.com/seonWKim/spring-boot-starter-actor/tree/main/example/simple)
+
+[Simple Example Source Code](https://github.com/seonWKim/spring-boot-starter-actor/tree/main/example/simple)
+
+!!! info "Example Structure"
+    The example includes actors, services, controllers, and configuration demonstrating best practices.
 
 ## Key Components
 
@@ -216,15 +224,20 @@ public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
 ```
 
 This supervision strategy:
+
 - **Restarts** the actor when any exception is thrown
 - Limits restarts to **10 times within 1 minute** to prevent infinite restart loops
 - Enables the **PreRestart signal** to be triggered before restart
 
-Common supervision strategies:
-- **`restart()`**: Restart the actor, discarding its state
-- **`resume()`**: Resume processing, keeping the actor's state
-- **`stop()`**: Stop the actor permanently (default behavior)
-- **`restartWithBackoff()`**: Restart with exponential backoff delays
+!!! warning "Default Behavior"
+    Without a supervision strategy, actors stop permanently on failure. Always configure a strategy for production use.
+
+**Common supervision strategies:**
+
+- **`restart()`** - Restart the actor, discarding its state
+- **`resume()`** - Resume processing, keeping the actor's state
+- **`stop()`** - Stop the actor permanently (default behavior)
+- **`restartWithBackoff()`** - Restart with exponential backoff delays
 
 ### PreRestart Signal
 
@@ -301,26 +314,37 @@ The signal handlers should return `Behaviors.same()` to indicate that the actor 
 The simple example provides API endpoints to test each lifecycle hook:
 
 #### 1. Test PreStart Hook
+
 ```bash
 curl http://localhost:8080/hello
 ```
+
 Check the logs for: `PreStart hook for id=hello-actor`
 
 #### 2. Test PreRestart Signal
+
 ```bash
 curl http://localhost:8080/hello/restart
 ```
+
 This triggers an intentional failure. Check the logs for:
+
 - `Triggering failure for actor hello-actor`
-- `Actor hello-actor is being restarted due to failure` (PreRestart)
+- `Actor hello-actor is being restarted` (PreRestart)
 - `PreStart hook for id=hello-actor` (actor restarts and PreStart is called again)
 
 #### 3. Test PostStop Signal
+
 ```bash
 curl http://localhost:8080/hello/stop
 ```
+
 This stops the actor using `SpringActorRef.stop()`. Check the logs for:
-- `Actor hello-actor is stopping. Performing cleanup...` (PostStop)
+
+- `Actor hello-actor is stopping` (PostStop)
+
+!!! tip "Testing Tips"
+    Watch the logs in your terminal when testing these endpoints to see the lifecycle hooks in action.
 
 ## Configuration
 
@@ -340,12 +364,35 @@ spring:
 
 To run the simple example:
 
-1. Start the application using Gradle or Maven
-2. Access the `/hello` endpoint to send a message to the actor
-3. Observe the response from the actor
+1. Navigate to the example directory:
+```bash
+cd example/simple
+```
+
+2. Start the application using Gradle:
+```bash
+./gradlew bootRun
+```
+
+3. Access the `/hello` endpoint to send a message to the actor:
+```bash
+curl http://localhost:8080/hello
+```
+
+4. Observe the response from the actor in the terminal
+
+!!! success "Expected Output"
+    You should see `Hello from actor hello-actor` as the response.
 
 ## Key Points
 
-- Easy integration with Spring Boot
-- Simple concurrency handling
-- Reactive programming support
+- **Easy integration with Spring Boot** - Actors work naturally with Spring's dependency injection
+- **Simple concurrency handling** - Message-based processing eliminates need for locks
+- **Reactive programming support** - Integrates seamlessly with Spring WebFlux and Mono/Flux
+- **Lifecycle management** - Control actor initialization and cleanup with lifecycle hooks
+
+## Next Steps
+
+- [Cluster Example](cluster.md) - Learn about distributed actors and cluster sharding
+- [Supervision Example](supervision.md) - Explore fault tolerance and supervision strategies
+- [Chat Example](chat.md) - Build a real-world application with pub/sub topics

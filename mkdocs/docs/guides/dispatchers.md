@@ -40,7 +40,8 @@ SpringActorRef<DatabaseActor.Command> dbActor = actorSystem
     .spawnAndWait();
 ```
 
-**When to use:**
+### When to use:
+
 - Database operations
 - File I/O
 - Network calls (blocking APIs)
@@ -76,9 +77,15 @@ SpringActorRef<ChildActor.Command> child = parentRef
 
 The default dispatcher is used when no specific dispatcher is configured. It uses a fork-join-executor by default and provides excellent performance for non-blocking operations.
 
+!!! info "Fork-Join Executor"
+    The fork-join executor is a work-stealing thread pool that provides efficient CPU utilization for non-blocking workloads.
+
 ### PinnedDispatcher
 
 A PinnedDispatcher dedicates a unique thread for each actor using it. This can be useful for actors that need thread-local state or for bulkheading critical actors.
+
+!!! warning "Resource Usage"
+    PinnedDispatcher creates one thread per actor, which can lead to high resource consumption. Use sparingly and only when necessary.
 
 ## Configuring Custom Dispatchers
 
@@ -148,10 +155,14 @@ spring:
 If you're running on Java 21 or later, you can use Pekko's built-in virtual thread executor for actors performing blocking I/O operations. Virtual threads are lightweight threads that provide excellent scalability for blocking operations.
 
 **Benefits of Virtual Threads:**
+
 - Very low memory overhead (~1KB per thread vs ~1MB for platform threads)
 - Can handle millions of concurrent operations
 - Ideal for blocking I/O (database calls, HTTP requests, file operations)
 - No need for reactive programming patterns
+
+!!! note "Java 21+ Required"
+    Virtual thread support requires Java 21 or later. If you're on Java 11-17, use thread-pool-executor instead.
 
 **Configuration:**
 
@@ -180,6 +191,9 @@ You can further configure virtual threads using JVM system properties:
 - `jdk.virtualThreadScheduler.maxPoolSize` - Maximum pool size for virtual thread scheduler
 - `jdk.unparker.maxPoolSize` - Maximum pool size for unparking virtual threads
 
+!!! tip "When to Tune"
+    Most applications don't need to tune these settings. Only adjust if you've identified specific bottlenecks through profiling.
+
 **Requirements:**
 - Java 21 or later
 - Suitable for blocking I/O operations only (not CPU-intensive tasks)
@@ -200,9 +214,16 @@ You can further configure virtual threads using JVM system properties:
 
 The most important reason to use a separate dispatcher is to isolate blocking operations from the default dispatcher.
 
-**Problem:** If you have blocking operations (such as blocking I/O, database calls, or expensive computations) and run them on the default dispatcher, it will block threads that are needed for other actors to process their messages. This can cause your application to become unresponsive.
+**Problem:**
 
-**Solution:** Always use a separate dispatcher with a thread pool executor for actors that perform blocking operations. Use `.withBlockingDispatcher()` or a custom dispatcher with a thread-pool-executor.
+If you have blocking operations (such as blocking I/O, database calls, or expensive computations) and run them on the default dispatcher, it will block threads that are needed for other actors to process their messages. This can cause your application to become unresponsive.
+
+**Solution:**
+
+Always use a separate dispatcher with a thread pool executor for actors that perform blocking operations. Use `.withBlockingDispatcher()` or a custom dispatcher with a thread-pool-executor.
+
+!!! danger "Thread Starvation"
+    Running blocking operations on the default dispatcher can lead to thread starvation, where all threads are blocked waiting for I/O, preventing other actors from processing messages.
 
 Example configuration for blocking operations:
 
@@ -226,3 +247,9 @@ Higher throughput values can improve performance by reducing the number of conte
 ## More Information
 
 For more detailed information about dispatchers, refer to the [Pekko Dispatcher Documentation](https://pekko.apache.org/docs/pekko/1.0/typed/dispatchers.html).
+
+## Next Steps
+
+- [Actor Registration](actor-registration-messaging.md) - Learn how to create and spawn actors
+- [Routers](routers.md) - Use routers for load balancing and parallel processing
+- [Logging with MDC](logging.md) - Enhance observability with MDC and tags

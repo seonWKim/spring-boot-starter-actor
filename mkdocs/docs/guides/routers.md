@@ -6,7 +6,8 @@ This guide explains how to use routers to distribute messages across multiple wo
 
 A router is a special actor that distributes incoming messages across a pool of worker actors. Instead of sending messages directly to a single actor, you send them to the router, which forwards them to one of its workers based on a routing strategy.
 
-Routers are ideal for:
+**Routers are ideal for:**
+
 - **Load balancing** - Distributing work evenly across multiple workers
 - **Parallel processing** - Processing messages concurrently
 - **Scalability** - Easily scale by increasing the pool size
@@ -112,12 +113,14 @@ return SpringRouterBehavior.builder(Command.class, ctx)
 ```
 
 **Message distribution:**
+
 - Message 1 → Worker 1
 - Message 2 → Worker 2
 - Message 3 → Worker 3
 - Message 4 → Worker 1 (cycles back)
 
 **Best for:**
+
 - Equal distribution of work
 - Predictable load balancing
 - Tasks with similar processing time
@@ -135,6 +138,7 @@ return SpringRouterBehavior.builder(Command.class, ctx)
 ```
 
 **Best for:**
+
 - Simple distribution without state tracking
 - Non-critical workloads
 - Avoiding ordering effects
@@ -151,15 +155,18 @@ return SpringRouterBehavior.builder(Command.class, ctx)
     .build();
 ```
 
-**Important:** Message volume increases by pool size factor (10 messages × 5 workers = 50 total messages processed).
+!!! warning "Message Multiplication"
+    Message volume increases by pool size factor (10 messages × 5 workers = 50 total messages processed).
 
 **Best for:**
+
 - Cache invalidation across all workers
 - Configuration updates
 - Notifications that all workers need to receive
 - Coordinated state updates
 
-**Use sparingly** for high-volume systems due to the message multiplication effect.
+!!! caution "Performance Impact"
+    Use sparingly for high-volume systems due to the message multiplication effect.
 
 ### Consistent Hashing
 
@@ -208,9 +215,11 @@ return SpringRouterBehavior.builder(Command.class, ctx)
 - Lower values (1-5) = less memory, potential hotspots
 
 **Messages without ConsistentHashable:**
+
 If your message doesn't implement `ConsistentHashable`, the router uses `toString()` as the hash key.
 
 **Best for:**
+
 - User session management (same userId → same worker)
 - Entity-based processing (same orderId → same worker)
 - Stateful message processing
@@ -230,6 +239,7 @@ return SpringRouterBehavior.builder(Command.class, ctx)
 ```
 
 **Available strategies:**
+
 - `restart()` - Restart the worker (default)
 - `stop()` - Stop the worker permanently
 - `resume()` - Resume processing, ignoring the failure
@@ -398,3 +408,9 @@ public class OrderService {
 ## More Information
 
 For more details about Pekko routers, see the [Pekko Typed Routers Documentation](https://pekko.apache.org/docs/pekko/current/typed/routers.html).
+
+## Next Steps
+
+- [Dispatchers](dispatchers.md) - Configure thread execution for your actors
+- [Actor Registration](actor-registration-messaging.md) - Learn how to create and spawn actors
+- [Sharded Actors](sharded-actors.md) - Distributed entity management in clusters

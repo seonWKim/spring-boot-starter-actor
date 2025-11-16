@@ -1,6 +1,6 @@
 # Cluster Example
 
-This guide demonstrates how to use Spring Boot Starter Actor in a clustered environment, focusing on how entities can be easily used with the library.
+This guide demonstrates how to use Spring Boot Starter Actor in a clustered environment, focusing on sharded actors.
 
 ## Overview
 
@@ -13,10 +13,17 @@ The cluster example shows how to:
 
 This example demonstrates the power of the actor model for building scalable, distributed applications with Spring Boot.
 
+!!! info "Cluster Sharding"
+    Cluster sharding automatically distributes entities across nodes and provides location transparency for messaging.
+
 ## Source Code
 
 You can find the complete source code for this example on GitHub:
-[https://github.com/seonWKim/spring-boot-starter-actor/tree/main/example/cluster](https://github.com/seonWKim/spring-boot-starter-actor/tree/main/example/cluster)
+
+[Cluster Example Source Code](https://github.com/seonWKim/spring-boot-starter-actor/tree/main/example/cluster)
+
+!!! tip "Prerequisites"
+    Familiarity with the [Simple Example](simple.md) is recommended before diving into cluster concepts.
 
 ## Key Components
 
@@ -188,21 +195,49 @@ server:
   port: 8080
 ```
 
+!!! warning "Serialization"
+    Java serialization is disabled for security and performance. Always use `JsonSerializable` or `CborSerializable` for cluster messages.
+
 ## Running the Example
 
 To run the cluster example:
 
-1. Start multiple instances of the application with different ports
-2. Access the `/hello` endpoint with a message and entity ID
-3. Observe how the same entity ID always routes to the same node
-4. Try different entity IDs to see how they are distributed across the cluster
+1. **Start multiple instances** with different ports:
+```bash
+sh cluster-start.sh cluster io.github.seonwkim.example.SpringPekkoApplication 8080 2551 3
+```
+
+2. **Send messages** to test entity distribution:
+```bash
+# Try different entity IDs to see distribution
+curl "http://localhost:8080/hello?message=test&entityId=entity-1"
+curl "http://localhost:8081/hello?message=test&entityId=entity-2"
+curl "http://localhost:8082/hello?message=test&entityId=entity-3"
+```
+
+3. **Observe behavior:**
+- The same entity ID always routes to the same node
+- Different entity IDs are distributed across the cluster
+- Try sending the same entity ID to different nodes to verify routing
+
+!!! tip "Entity Affinity"
+    Notice that regardless of which node receives the HTTP request, messages for the same entity ID always go to the same actor instance in the cluster.
 
 ## Entity Benefits
 
 Entities in Spring Boot Starter Actor provide:
 
-- Automatic distribution across the cluster
-- Location transparency for messaging
-- Scalability with cluster expansion
-- Fault tolerance with automatic recreation
-- Simplified state management
+- **Automatic distribution** across the cluster
+- **Location transparency** for messaging - send messages without knowing which node hosts the entity
+- **Scalability** with cluster expansion - add nodes to increase capacity
+- **Fault tolerance** with automatic recreation - entities restart on different nodes if a node fails
+- **Simplified state management** - each entity maintains its own isolated state
+
+!!! success "Scalability"
+    Simply add more nodes to the cluster to increase capacity. The system automatically rebalances entities across all nodes.
+
+## Next Steps
+
+- [Sharded Actors Guide](../guides/sharded-actors.md) - Deep dive into cluster sharding concepts
+- [Chat Example](chat.md) - Build a distributed real-time chat application
+- [Synchronization Example](synchronization.md) - Compare actor-based vs traditional synchronization

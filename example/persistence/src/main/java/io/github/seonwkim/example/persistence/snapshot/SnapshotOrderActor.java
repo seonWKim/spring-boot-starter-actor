@@ -8,7 +8,6 @@ import io.github.seonwkim.example.persistence.OrderStatus;
 import java.time.Instant;
 import java.util.Optional;
 import org.apache.pekko.actor.typed.Behavior;
-import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.springframework.stereotype.Component;
 
