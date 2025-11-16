@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: virtual-threads-example
+  actor:
+    pekko:
+      name: virtual-threads-example
+      actor:
+        provider: local
+        allow-java-serialization: off
+        warn-about-java-serializer-usage: on
+      # Custom dispatcher using virtual threads
+    virtual-threads-dispatcher:
+      executor: virtual-thread-executor
+
+server:
+  port: 8080
+
+logging:
+  level:
+    org.apache.pekko: INFO
+    io.github.seonwkim: DEBUG
