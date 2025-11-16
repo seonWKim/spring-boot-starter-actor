@@ -10,6 +10,9 @@
 </tr>
 </table>
 
+[![Discord](https://img.shields.io/badge/Discord-Join%20Us-7289DA?style=flat&logo=discord&logoColor=white)](https://discord.com/channels/1439734161614045205/1439734162100846655)
+[![Documentation](https://img.shields.io/badge/docs-latest-blue)](https://seonwkim.github.io/spring-boot-starter-actor/)
+
 ## Why spring-boot-starter-actor?
 
 Build scalable, concurrent systems—real-time chat, IoT platforms, event processing—using the actor model with familiar Spring patterns.
@@ -469,6 +472,14 @@ Access:
 ## Documentation
 
 Full documentation: [https://seonwkim.github.io/spring-boot-starter-actor/](https://seonwkim.github.io/spring-boot-starter-actor/)
+
+## Community & Support
+
+Join our community to ask questions, share ideas, and get help:
+
+- **Discord**: [Join our Discord server](https://discord.com/channels/1439734161614045205/1439734162100846655) - Real-time chat with the community
+- **Issues**: [GitHub Issues](https://github.com/seonwkim/spring-boot-starter-actor/issues) - Bug reports and feature requests
+- **Discussions**: [GitHub Discussions](https://github.com/seonwkim/spring-boot-starter-actor/discussions) - Q&A and general discussions
 
 ## Contributing
 
