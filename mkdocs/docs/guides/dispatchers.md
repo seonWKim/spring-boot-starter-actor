@@ -193,6 +193,9 @@ You can further configure virtual threads using JVM system properties:
 | CPU-intensive tasks | Fork-Join Executor (default) |
 | Non-blocking operations | Default Dispatcher |
 
+!!! example "Virtual Threads Example"
+    See the [virtual-threads example](https://github.com/seonwkim/spring-boot-starter-actor/tree/main/example/virtual-threads) for a complete working demonstration of virtual threads with actors.
+
 ## Blocking Operations
 
 The most important reason to use a separate dispatcher is to isolate blocking operations from the default dispatcher.
