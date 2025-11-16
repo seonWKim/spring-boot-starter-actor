@@ -28,14 +28,12 @@ public class SimpleShardedActorWithoutWithState
     public static class Echo extends AskCommand<String> implements Command {
         public final String message;
 
-        @JsonCreator
-        public Echo(@JsonProperty("message") String message) {
+        public Echo(String message) {
             this.message = message;
         }
     }
 
     public static class GetEntityId extends AskCommand<Object> implements Command {
-        @JsonCreator
         public GetEntityId() {}
     }
 

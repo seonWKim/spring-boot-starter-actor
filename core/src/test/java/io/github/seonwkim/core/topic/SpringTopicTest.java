@@ -48,8 +48,7 @@ class SpringTopicTest {
     public static class TestMessage implements JsonSerializable {
         public final String content;
 
-        @JsonCreator
-        public TestMessage(@JsonProperty("content") String content) {
+        public TestMessage(String content) {
             this.content = content;
         }
     }
@@ -58,8 +57,7 @@ class SpringTopicTest {
     public static class AnotherMessage implements JsonSerializable {
         public final int value;
 
-        @JsonCreator
-        public AnotherMessage(@JsonProperty("value") int value) {
+        public AnotherMessage(int value) {
             this.value = value;
         }
     }

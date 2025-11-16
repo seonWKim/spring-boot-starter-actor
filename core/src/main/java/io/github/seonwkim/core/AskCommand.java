@@ -1,7 +1,11 @@
 package io.github.seonwkim.core;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import javax.annotation.Nullable;
 import org.apache.pekko.actor.typed.ActorRef;
+import org.apache.pekko.serialization.jackson.PekkoSerializationDeserializer;
+import org.apache.pekko.serialization.jackson.PekkoSerializationSerializer;
 
 /**
  * Base class for commands that expect a reply from the actor.
@@ -35,7 +39,10 @@ import org.apache.pekko.actor.typed.ActorRef;
  */
 public abstract class AskCommand<RES> {
 
-    @Nullable private ActorRef<RES> replyTo;
+    @JsonSerialize(using = PekkoSerializationSerializer.class)
+    @JsonDeserialize(using = PekkoSerializationDeserializer.class)
+    @Nullable
+    private ActorRef<RES> replyTo;
 
     /**
      * Gets the ActorRef that should receive the reply.

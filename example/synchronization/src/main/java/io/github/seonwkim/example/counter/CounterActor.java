@@ -41,14 +41,11 @@ public class CounterActor implements SpringShardedActor<CounterActor.Command> {
 
     /** Command to increment the counter and get the new value. */
     public static class Increment implements Command {
-
-        @JsonCreator
         public Increment() {}
     }
 
     /** Command to get the current value of the counter. */
     public static class GetValue extends AskCommand<Long> implements Command {
-        @JsonCreator
         public GetValue() {}
     }
 
