@@ -203,29 +203,22 @@ server:
 To run the cluster example:
 
 1. **Start multiple instances** with different ports:
-   ```bash
-   # Terminal 1 - First node
-   SERVER_PORT=8080 PEKKO_PORT=2551 ./gradlew :example:cluster:bootRun
-   
-   # Terminal 2 - Second node
-   SERVER_PORT=8081 PEKKO_PORT=2552 ./gradlew :example:cluster:bootRun
-   
-   # Terminal 3 - Third node
-   SERVER_PORT=8082 PEKKO_PORT=2553 ./gradlew :example:cluster:bootRun
-   ```
+```bash
+sh cluster-start.sh cluster io.github.seonwkim.example.SpringPekkoApplication 8080 2551 3
+```
 
 2. **Send messages** to test entity distribution:
-   ```bash
-   # Try different entity IDs to see distribution
-   curl "http://localhost:8080/hello?message=test&entityId=entity-1"
-   curl "http://localhost:8081/hello?message=test&entityId=entity-2"
-   curl "http://localhost:8082/hello?message=test&entityId=entity-3"
-   ```
+```bash
+# Try different entity IDs to see distribution
+curl "http://localhost:8080/hello?message=test&entityId=entity-1"
+curl "http://localhost:8081/hello?message=test&entityId=entity-2"
+curl "http://localhost:8082/hello?message=test&entityId=entity-3"
+```
 
 3. **Observe behavior:**
-   - The same entity ID always routes to the same node
-   - Different entity IDs are distributed across the cluster
-   - Try sending the same entity ID to different nodes to verify routing
+- The same entity ID always routes to the same node
+- Different entity IDs are distributed across the cluster
+- Try sending the same entity ID to different nodes to verify routing
 
 !!! tip "Entity Affinity"
     Notice that regardless of which node receives the HTTP request, messages for the same entity ID always go to the same actor instance in the cluster.

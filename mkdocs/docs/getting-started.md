@@ -11,9 +11,8 @@ This guide will help you get started with Spring Boot Starter Actor in your Spri
 
 Add the dependency to your project:
 
-=== "Gradle"
-
-    ```gradle
+### Gradle 
+```gradle
 // Manually overwrite spring managed jackson dependency 
 dependencyManagement {
     imports {
@@ -27,11 +26,10 @@ implementation 'io.github.seonwkim:spring-boot-starter-actor:0.3.0'
 
 // Gradle(spring boot 3.2.x)
 implementation 'io.github.seonwkim:spring-boot-starter-actor_3:0.3.0'
-    ```
+```
 
-=== "Maven"
-
-    ```xml
+### Maven 
+```xml
 <dependencyManagement>
   <dependencies>
     <!-- Override Spring Boot's jackson-bom with 2.17.3 -->
@@ -58,7 +56,7 @@ implementation 'io.github.seonwkim:spring-boot-starter-actor_3:0.3.0'
   <artifactId>spring-boot-starter-actor_3</artifactId>
   <version>0.3.0</version>
 </dependency>
-    ```
+```
 
 To view the latest versions, refer to the following:
 - [spring-boot-starter-actor](https://central.sonatype.com/artifact/io.github.seonwkim/spring-boot-starter-actor)

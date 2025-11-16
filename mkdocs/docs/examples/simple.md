@@ -365,19 +365,19 @@ spring:
 To run the simple example:
 
 1. Navigate to the example directory:
-   ```bash
-   cd example/simple
-   ```
+```bash
+cd example/simple
+```
 
 2. Start the application using Gradle:
-   ```bash
-   ./gradlew bootRun
-   ```
+```bash
+./gradlew bootRun
+```
 
 3. Access the `/hello` endpoint to send a message to the actor:
-   ```bash
-   curl http://localhost:8080/hello
-   ```
+```bash
+curl http://localhost:8080/hello
+```
 
 4. Observe the response from the actor in the terminal
 

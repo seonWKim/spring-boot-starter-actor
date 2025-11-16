@@ -20,7 +20,6 @@ The Simple Example demonstrates the basic usage of Spring Boot Starter Actor in 
 - Create and register actors in a Spring Boot application
 - Send messages to actors and receive responses
 - Integrate actors with a REST API
-- Use lifecycle hooks for actor startup and shutdown
 
 **Best for:** Beginners learning the basics of the actor model and Spring Boot integration.
 
