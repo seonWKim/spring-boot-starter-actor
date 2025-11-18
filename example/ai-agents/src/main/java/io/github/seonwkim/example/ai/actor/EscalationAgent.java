@@ -1,9 +1,10 @@
 package io.github.seonwkim.example.ai.actor;
 
+import io.github.seonwkim.core.AskCommand;
 import io.github.seonwkim.core.SpringActor;
 import io.github.seonwkim.core.SpringActorBehavior;
 import io.github.seonwkim.core.SpringActorContext;
-import io.github.seonwkim.core.AskCommand;
+import io.github.seonwkim.core.SpringBehaviorContext;
 import io.github.seonwkim.example.ai.config.AIConfiguration;
 import io.github.seonwkim.example.ai.model.Sentiment;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
@@ -42,60 +43,73 @@ public class EscalationAgent implements SpringActor<EscalationAgent.Command> {
     @Override
     public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
         return SpringActorBehavior.builder(Command.class, actorContext)
-                .onMessage(EscalateIssue.class, this::handleEscalate)
+                .withState(ctx -> new EscalationBehavior(ctx, aiConfig))
+                .onMessage(EscalateIssue.class, EscalationBehavior::handleEscalate)
                 .build();
     }
 
-    private org.apache.pekko.actor.typed.Behavior<Command> handleEscalate(
-            SpringActorContext context, EscalateIssue msg) {
+    private static class EscalationBehavior {
+        private final SpringBehaviorContext<Command> ctx;
+        private final AIConfiguration aiConfig;
 
-        context.getLog()
-                .warn(
-                        "Escalating issue for user {} with sentiment: {}",
-                        msg.userId,
-                        msg.sentiment);
+        EscalationBehavior(SpringBehaviorContext<Command> ctx, AIConfiguration aiConfig) {
+            this.ctx = ctx;
+            this.aiConfig = aiConfig;
+        }
 
-        // Generate ticket ID
-        String ticketId = generateTicketId();
+        private org.apache.pekko.actor.typed.Behavior<Command> handleEscalate(
+                EscalateIssue msg) {
 
-        // Determine priority based on sentiment
-        String priority =
-                (msg.sentiment == Sentiment.NEGATIVE) ? "HIGH" : "NORMAL";
+            ctx.getLog()
+                    .warn(
+                            "Escalating issue for user {} with sentiment: {}",
+                            msg.userId,
+                            msg.sentiment);
 
-        // In a real system, this would:
-        // 1. Create ticket in support system (e.g., Zendesk, JIRA)
-        // 2. Notify human agents (e.g., Slack, email)
-        // 3. Store ticket details in database
-        context.getLog()
-                .info("Created {} priority ticket: {} for user: {}", priority, ticketId, msg.userId);
+            // Generate ticket ID
+            String ticketId = generateTicketId();
 
-        // Build response message
-        String response =
-                buildEscalationResponse(ticketId, priority);
+            // Determine priority based on sentiment
+            String priority = (msg.sentiment == Sentiment.NEGATIVE) ? "HIGH" : "NORMAL";
 
-        msg.reply(response);
-        return Behaviors.same();
-    }
+            // In a real system, this would:
+            // 1. Create ticket in support system (e.g., Zendesk, JIRA)
+            // 2. Notify human agents (e.g., Slack, email)
+            // 3. Store ticket details in database
+            ctx.getLog()
+                    .info(
+                            "Created {} priority ticket: {} for user: {}",
+                            priority,
+                            ticketId,
+                            msg.userId);
 
-    private String generateTicketId() {
-        // Simple ticket ID generation: TICK-XXXXX
-        long timestamp = System.currentTimeMillis();
-        int random = (int) (timestamp % 100000);
-        return String.format("TICK-%05d", random);
-    }
+            // Build response message
+            String response = buildEscalationResponse(ticketId, priority);
 
-    private String buildEscalationResponse(String ticketId, String priority) {
-        String baseMessage = aiConfig.getFallback().getEscalationMessage();
+            msg.reply(response);
+            return Behaviors.same();
+        }
 
-        return String.format(
-                "%s\n\n"
-                        + "📋 Ticket ID: %s\n"
-                        + "⏱️ Priority: %s\n"
-                        + "⏳ Expected response: %s\n\n"
-                        + "You'll receive an email confirmation shortly with ticket details.",
-                baseMessage,
-                ticketId,
-                priority,
-                priority.equals("HIGH") ? "within 15 minutes" : "within 2 hours");
+        private String generateTicketId() {
+            // Simple ticket ID generation: TICK-XXXXX
+            long timestamp = System.currentTimeMillis();
+            int random = (int) (timestamp % 100000);
+            return String.format("TICK-%05d", random);
+        }
+
+        private String buildEscalationResponse(String ticketId, String priority) {
+            String baseMessage = aiConfig.getFallback().getEscalationMessage();
+
+            return String.format(
+                    "%s\n\n"
+                            + "📋 Ticket ID: %s\n"
+                            + "⏱️ Priority: %s\n"
+                            + "⏳ Expected response: %s\n\n"
+                            + "You'll receive an email confirmation shortly with ticket details.",
+                    baseMessage,
+                    ticketId,
+                    priority,
+                    priority.equals("HIGH") ? "within 15 minutes" : "within 2 hours");
+        }
     }
 }

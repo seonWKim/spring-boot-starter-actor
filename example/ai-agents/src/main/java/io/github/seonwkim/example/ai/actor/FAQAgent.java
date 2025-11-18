@@ -1,9 +1,10 @@
 package io.github.seonwkim.example.ai.actor;
 
+import io.github.seonwkim.core.AskCommand;
 import io.github.seonwkim.core.SpringActor;
 import io.github.seonwkim.core.SpringActorBehavior;
 import io.github.seonwkim.core.SpringActorContext;
-import io.github.seonwkim.core.AskCommand;
+import io.github.seonwkim.core.SpringBehaviorContext;
 import io.github.seonwkim.example.ai.client.LLMClient;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.springframework.stereotype.Component;
@@ -37,17 +38,27 @@ public class FAQAgent implements SpringActor<FAQAgent.Command> {
     @Override
     public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
         return SpringActorBehavior.builder(Command.class, actorContext)
-                .onMessage(AnswerQuestion.class, this::handleAnswer)
+                .withState(ctx -> new FAQBehavior(ctx, llmClient))
+                .onMessage(AnswerQuestion.class, FAQBehavior::handleAnswer)
                 .build();
     }
 
-    private org.apache.pekko.actor.typed.Behavior<Command> handleAnswer(
-            SpringActorContext context, AnswerQuestion msg) {
+    private static class FAQBehavior {
+        private final SpringBehaviorContext<Command> ctx;
+        private final LLMClient llmClient;
 
-        context.getLog().info("FAQ Agent answering: {}", truncate(msg.question));
+        FAQBehavior(SpringBehaviorContext<Command> ctx, LLMClient llmClient) {
+            this.ctx = ctx;
+            this.llmClient = llmClient;
+        }
 
-        String systemPrompt =
-                """
+        private org.apache.pekko.actor.typed.Behavior<Command> handleAnswer(
+                AnswerQuestion msg) {
+
+            ctx.getLog().info("FAQ Agent answering: {}", truncate(msg.question));
+
+            String systemPrompt =
+                    """
                 You are a helpful customer support agent with access to the FAQ knowledge base.
 
                 Common FAQs:
@@ -60,26 +71,27 @@ public class FAQAgent implements SpringActor<FAQAgent.Command> {
                 Provide a helpful, concise answer (2-3 sentences). Be friendly and offer to help further.
                 """;
 
-        llmClient
-                .chat(systemPrompt, msg.question)
-                .thenAccept(
-                        response -> {
-                            context.getLog().debug("FAQ response generated: {}", truncate(response));
-                            msg.reply(response);
-                        })
-                .exceptionally(
-                        error -> {
-                            context.getLog().error("FAQ agent failed: {}", error.getMessage());
-                            msg.reply(
-                                    "I apologize, but I'm having trouble accessing our FAQ database right now. "
-                                            + "Please try again in a moment or contact support@example.com.");
-                            return null;
-                        });
+            llmClient
+                    .chat(systemPrompt, msg.question)
+                    .thenAccept(
+                            response -> {
+                                ctx.getLog().debug("FAQ response generated: {}", truncate(response));
+                                msg.reply(response);
+                            })
+                    .exceptionally(
+                            error -> {
+                                ctx.getLog().error("FAQ agent failed: {}", error.getMessage());
+                                msg.reply(
+                                        "I apologize, but I'm having trouble accessing our FAQ database right now. "
+                                                + "Please try again in a moment or contact support@example.com.");
+                                return null;
+                            });
 
-        return Behaviors.same();
-    }
+            return Behaviors.same();
+        }
 
-    private String truncate(String text) {
-        return text.length() > 50 ? text.substring(0, 50) + "..." : text;
+        private String truncate(String text) {
+            return text.length() > 50 ? text.substring(0, 50) + "..." : text;
+        }
     }
 }

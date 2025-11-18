@@ -232,8 +232,8 @@ public class CustomerSessionActor
                                                                                 new ClassifierAgent.ClassifyMessage(
                                                                                         msg.message))
                                                                         .withTimeout(Duration.ofSeconds(10))
-                                                                        .execute()
-                                                                        .toCompletableFuture());
+                                                                        .execute())
+                                                .toCompletableFuture();
 
                                 CompletableFuture<Sentiment> sentimentFuture =
                                         actorSystem
@@ -244,8 +244,8 @@ public class CustomerSessionActor
                                                                                 new SentimentAgent.AnalyzeSentiment(
                                                                                         msg.message))
                                                                         .withTimeout(Duration.ofSeconds(10))
-                                                                        .execute()
-                                                                        .toCompletableFuture());
+                                                                        .execute())
+                                                .toCompletableFuture();
 
                                 return CompletableFuture.allOf(classificationFuture, sentimentFuture)
                                         .thenApply(
