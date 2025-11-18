@@ -4,6 +4,7 @@ include(":core")
 include(":core-boot3")
 include(":metrics")
 
+include(":example:ai-agents")
 include(":example:chat")
 include(":example:cluster")
 include(":example:kubernetes")
