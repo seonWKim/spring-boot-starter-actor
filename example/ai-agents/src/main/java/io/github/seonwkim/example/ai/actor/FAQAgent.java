@@ -6,6 +6,7 @@ import io.github.seonwkim.core.SpringActorBehavior;
 import io.github.seonwkim.core.SpringActorContext;
 import io.github.seonwkim.core.SpringBehaviorContext;
 import io.github.seonwkim.example.ai.client.LLMClient;
+import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.springframework.stereotype.Component;
 
@@ -52,7 +53,7 @@ public class FAQAgent implements SpringActor<FAQAgent.Command> {
             this.llmClient = llmClient;
         }
 
-        private org.apache.pekko.actor.typed.Behavior<Command> handleAnswer(
+        private Behavior<Command> handleAnswer(
                 AnswerQuestion msg) {
 
             ctx.getLog().info("FAQ Agent answering: {}", truncate(msg.question));

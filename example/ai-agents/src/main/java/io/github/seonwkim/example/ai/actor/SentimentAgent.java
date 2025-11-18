@@ -7,6 +7,7 @@ import io.github.seonwkim.core.SpringActorContext;
 import io.github.seonwkim.core.SpringBehaviorContext;
 import io.github.seonwkim.example.ai.client.LLMClient;
 import io.github.seonwkim.example.ai.model.Sentiment;
+import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.springframework.stereotype.Component;
 
@@ -53,7 +54,7 @@ public class SentimentAgent implements SpringActor<SentimentAgent.Command> {
             this.llmClient = llmClient;
         }
 
-        private org.apache.pekko.actor.typed.Behavior<Command> handleAnalyze(
+        private Behavior<Command> handleAnalyze(
                 AnalyzeSentiment msg) {
 
             ctx.getLog().debug("Analyzing sentiment: {}", msg.message);

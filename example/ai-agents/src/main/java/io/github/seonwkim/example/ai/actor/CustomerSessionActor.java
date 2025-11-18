@@ -2,6 +2,7 @@ package io.github.seonwkim.example.ai.actor;
 
 import io.github.seonwkim.core.SpringActorSystem;
 import io.github.seonwkim.core.AskCommand;
+import io.github.seonwkim.core.SpringBehaviorContext;
 import io.github.seonwkim.core.serialization.JsonSerializable;
 import io.github.seonwkim.core.shard.SpringShardedActor;
 import io.github.seonwkim.core.shard.SpringShardedActorBehavior;
@@ -110,7 +111,7 @@ public class CustomerSessionActor
      * Session state and behavior
      */
     private class SessionBehavior {
-        private final io.github.seonwkim.core.SpringBehaviorContext<Command> ctx;
+        private final SpringBehaviorContext<Command> ctx;
         private final String sessionId;
         private final UserTier userTier;
         private final AIConfiguration.RateLimitConfig rateLimitConfig;
@@ -123,7 +124,7 @@ public class CustomerSessionActor
         private int totalMessagesProcessed;
 
         SessionBehavior(
-                io.github.seonwkim.core.SpringBehaviorContext<Command> ctx,
+                SpringBehaviorContext<Command> ctx,
                 String sessionId,
                 UserTier tier,
                 AIConfiguration.RateLimitConfig config,

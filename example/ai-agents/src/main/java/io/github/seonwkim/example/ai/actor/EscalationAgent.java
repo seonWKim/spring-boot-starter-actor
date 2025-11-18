@@ -7,6 +7,7 @@ import io.github.seonwkim.core.SpringActorContext;
 import io.github.seonwkim.core.SpringBehaviorContext;
 import io.github.seonwkim.example.ai.config.AIConfiguration;
 import io.github.seonwkim.example.ai.model.Sentiment;
+import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.springframework.stereotype.Component;
 
@@ -57,7 +58,7 @@ public class EscalationAgent implements SpringActor<EscalationAgent.Command> {
             this.aiConfig = aiConfig;
         }
 
-        private org.apache.pekko.actor.typed.Behavior<Command> handleEscalate(
+        private Behavior<Command> handleEscalate(
                 EscalateIssue msg) {
 
             ctx.getLog()
