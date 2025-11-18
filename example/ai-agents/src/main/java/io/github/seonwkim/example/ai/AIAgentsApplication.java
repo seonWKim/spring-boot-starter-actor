@@ -1,6 +1,6 @@
 package io.github.seonwkim.example.ai;
 
-import io.github.seonwkim.autoconfigure.EnableActorSupport;
+import io.github.seonwkim.core.EnableActorSupport;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;

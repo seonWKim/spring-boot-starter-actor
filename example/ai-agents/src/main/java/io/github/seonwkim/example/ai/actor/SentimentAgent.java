@@ -3,7 +3,7 @@ package io.github.seonwkim.example.ai.actor;
 import io.github.seonwkim.core.SpringActor;
 import io.github.seonwkim.core.SpringActorBehavior;
 import io.github.seonwkim.core.SpringActorContext;
-import io.github.seonwkim.core.command.AskCommand;
+import io.github.seonwkim.core.AskCommand;
 import io.github.seonwkim.example.ai.client.LLMClient;
 import io.github.seonwkim.example.ai.model.Sentiment;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;

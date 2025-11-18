@@ -1,7 +1,7 @@
 package io.github.seonwkim.example.ai.actor;
 
 import io.github.seonwkim.core.SpringActorSystem;
-import io.github.seonwkim.core.command.AskCommand;
+import io.github.seonwkim.core.AskCommand;
 import io.github.seonwkim.core.serialization.JsonSerializable;
 import io.github.seonwkim.core.shard.SpringShardedActor;
 import io.github.seonwkim.core.shard.SpringShardedActorBehavior;
