@@ -61,7 +61,14 @@ public class ActorInstrumentation {
         }
 
         @Advice.OnMethodExit(onThrowable = Throwable.class)
-        public static void onExit(@Advice.Local("envelopRef") Object envelopeRef, @Advice.Enter long startTime) {
+        public static void onExit(
+                @Advice.Local("envelopRef") Object envelopeRef,
+                @Advice.Enter long startTime,
+                @Advice.Thrown Throwable throwable) {
+            if (throwable != null) {
+                InvokeAdviceEventInterceptorsHolder.invokeAdviceOnError(
+                        envelopeRef, startTime, throwable);
+            }
             InvokeAdviceEventInterceptorsHolder.invokeAdviceOnExit(envelopeRef, startTime);
         }
     }
