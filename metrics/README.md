@@ -123,63 +123,6 @@ Available modules:
 | Instrumentation | `ACTOR_METRICS_INSTRUMENT_*=false` | JVM startup | Zero (no bytecode changes) |
 | Collection | `ACTOR_METRICS_MODULE_*_ENABLED=false` | Runtime | Minimal (instrumented but not recorded) |
 
-## Custom Modules
-
-Create your own instrumentation by implementing `InstrumentationModule` and registering via ServiceLoader:
-
-**1. Implement the module:**
-```java
-public class SupervisionModule implements InstrumentationModule {
-    @Override
-    public String moduleId() { return "supervision"; }
-
-    @Override
-    public String description() { return "Supervision failures"; }
-
-    @Override
-    public void initialize(MetricsRegistry registry) { }
-
-    @Override
-    public void shutdown() { }
-
-    public static AgentBuilder instrument(AgentBuilder builder) {
-        return builder
-            .type(named("org.apache.pekko.actor.ActorCell"))
-            .transform((b, type, loader, module) ->
-                b.visit(Advice.to(SupervisionAdvice.class)
-                    .on(named("handleInvokeFailure"))));
-    }
-
-    public static class SupervisionAdvice {
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        public static void onEnter(@Advice.This Object actorCell, @Advice.Argument(1) Throwable cause) {
-            MetricsRegistry reg = MetricsAgent.getRegistry();
-            if (reg == null) return;
-
-            ActorContext context = ActorContext.from(actorCell);
-            if (!reg.shouldInstrument(context)) return;
-
-            Tags tags = context.toTags()
-                .and("error.type", cause.getClass().getSimpleName())
-                .and(reg.getGlobalTags());
-
-            reg.getBackend().counter("actor.supervision.failures", tags).increment();
-        }
-    }
-}
-```
-
-**2. Register via SPI:**
-```
-META-INF/services/io.github.seonwkim.metrics.api.InstrumentationModule
-com.yourcompany.SupervisionModule
-```
-
-**3. Add to classpath:**
-```bash
-java -javaagent:metrics-agent.jar -cp your-module.jar:app.jar Main
-```
-
 ## Example
 
 See [ActorMetricsConfiguration.java](../example/chat/src/main/java/io/github/seonwkim/example/config/ActorMetricsConfiguration.java) for a complete working example.
