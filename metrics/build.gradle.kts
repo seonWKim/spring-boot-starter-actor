@@ -17,6 +17,9 @@ dependencies {
 
     compileOnly("com.google.code.findbugs:jsr305:3.0.2")
 
+    // Micrometer support (optional - users bring their own registry)
+    compileOnly("io.micrometer:micrometer-core:1.11.0")
+
     testImplementation("org.apache.pekko:pekko-actor-typed_3")
     testImplementation("org.apache.pekko:pekko-cluster-typed_3")
     testImplementation("org.apache.pekko:pekko-cluster-sharding-typed_3")
@@ -24,7 +27,10 @@ dependencies {
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.10.2")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.10.2")
-    
+
+    // Micrometer for testing
+    testImplementation("io.micrometer:micrometer-core:1.11.0")
+
     // Add SLF4J Simple binding for tests
     testRuntimeOnly("org.slf4j:slf4j-simple:2.0.17")
 }

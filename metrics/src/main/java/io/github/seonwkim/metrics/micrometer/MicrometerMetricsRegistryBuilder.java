@@ -27,7 +27,7 @@ import org.slf4j.LoggerFactory;
  * <pre>{@code
  * @Bean
  * public MetricsRegistry actorMetricsRegistry(MeterRegistry meterRegistry) {
- *     return MicrometerMetricsRegistryBuilder.fromEnvironment(meterRegistry);
+ *     return MicrometerMetricsRegistryBuilder.fromEnvironment(meterRegistry).build();
  * }
  * }</pre>
  */
