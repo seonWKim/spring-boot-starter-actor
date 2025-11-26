@@ -37,16 +37,23 @@ public class MetricsAgent {
      * The registry must be set later via setRegistry() once the application
      * framework (e.g., Spring) has initialized.
      * <p>
-     * Users can control which modules to instrument via environment variables:
-     * - ACTOR_METRICS_INSTRUMENT_ACTOR_LIFECYCLE=false (disable lifecycle instrumentation)
-     * - ACTOR_METRICS_INSTRUMENT_MAILBOX=false (disable mailbox instrumentation)
-     * - ACTOR_METRICS_INSTRUMENT_MESSAGE_PROCESSING=false (disable message processing instrumentation)
+     * Users can control instrumentation via environment variables:
+     * - ACTOR_METRICS_ENABLED=false (disable all instrumentation)
+     * - ACTOR_METRICS_INSTRUMENT_ACTOR_LIFECYCLE=false (disable specific module instrumentation)
+     * - ACTOR_METRICS_INSTRUMENT_MAILBOX=false (disable specific module instrumentation)
+     * - ACTOR_METRICS_INSTRUMENT_MESSAGE_PROCESSING=false (disable specific module instrumentation)
      *
      * @param arguments Agent arguments
      * @param instrumentation Instrumentation instance
      */
     public static void premain(String arguments, Instrumentation instrumentation) {
         logger.info("[MetricsAgent] Starting metrics agent initialization");
+
+        // Check global enabled flag first
+        if (!isMetricsEnabled()) {
+            logger.info("[MetricsAgent] Metrics disabled via ACTOR_METRICS_ENABLED=false. Skipping all instrumentation.");
+            return;
+        }
 
         try {
             // Apply bytecode instrumentation (registry will be set later)
@@ -89,6 +96,27 @@ public class MetricsAgent {
         } catch (Exception e) {
             logger.error("[MetricsAgent] Failed to initialize metrics agent", e);
         }
+    }
+
+    /**
+     * Check if metrics are globally enabled.
+     * <p>
+     * Environment variable: ACTOR_METRICS_ENABLED (default: true)
+     * <p>
+     * If false, skips ALL instrumentation to avoid any overhead.
+     */
+    private static boolean isMetricsEnabled() {
+        String value = System.getenv("ACTOR_METRICS_ENABLED");
+        if (value == null) {
+            value = System.getProperty("ACTOR_METRICS_ENABLED");
+        }
+
+        // Default to true if not specified
+        if (value == null) {
+            return true;
+        }
+
+        return Boolean.parseBoolean(value);
     }
 
     /**

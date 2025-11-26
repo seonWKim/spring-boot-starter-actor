@@ -54,9 +54,18 @@ public class ActorMetricsConfiguration {
      * - Creates Micrometer backend
      * - Auto-discovers and registers modules via ServiceLoader
      * - Wires registry to MetricsAgent
+     * <p>
+     * Set ACTOR_METRICS_ENABLED=false to skip all metrics initialization.
      */
     @EventListener(ApplicationReadyEvent.class)
     public void initializeMetrics() {
+        // Check if metrics are enabled
+        String enabled = getEnv("ACTOR_METRICS_ENABLED", "true");
+        if (!Boolean.parseBoolean(enabled)) {
+            logger.info("[ActorMetrics] Metrics disabled via ACTOR_METRICS_ENABLED=false. Skipping initialization.");
+            return;
+        }
+
         logger.info("[ActorMetrics] Initializing metrics registry");
 
         // Build and configure metrics registry from environment variables
@@ -67,5 +76,16 @@ public class ActorMetricsConfiguration {
                         + "Registered {} modules, backend: {}",
                 registry.getModules().size(),
                 registry.getBackend().getBackendType());
+    }
+
+    /**
+     * Get environment variable or system property with fallback.
+     */
+    private String getEnv(String key, String defaultValue) {
+        String value = System.getenv(key);
+        if (value == null) {
+            value = System.getProperty(key);
+        }
+        return value != null ? value : defaultValue;
     }
 }

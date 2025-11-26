@@ -4,22 +4,27 @@ ByteBuddy-based instrumentation for Pekko actors. Tracks lifecycle, mailbox, and
 
 ## Quick Start
 
+> **Important:** This module requires **BOTH** the Java agent (for bytecode instrumentation) AND the Spring Boot dependency (for metrics collection). Neither works without the other.
+
 ### 1. Add Dependency
 
 ```gradle
 dependencies {
+    // Provides Micrometer backend and builder
     // Includes metrics core module transitively
     implementation 'io.github.seonwkim:spring-boot-starter-actor-metrics-micrometer:{version}'
 }
 ```
 
-### 2. Start with Java Agent
+### 2. Start with Java Agent (Required!)
 
 ```bash
+# The agent applies bytecode instrumentation at JVM startup
+# Without this, no metrics will be collected even if you have the dependency
 java -javaagent:metrics-{version}-agent.jar -jar your-app.jar
 ```
 
-### 3. Configure Spring Bean (Required for Spring Boot)
+### 3. Configure Spring Bean (Required!)
 
 ```java
 @Configuration
@@ -39,7 +44,20 @@ That's it! The builder automatically:
 - Auto-discovers and registers all modules via ServiceLoader
 - Wires the registry to the agent
 
-> **Why is the Spring bean required?** The agent runs at JVM startup before Spring's `MeterRegistry` exists. The agent applies bytecode instrumentation but can't collect metrics yet. This bean creates the backend later and wires it to the agent.
+## How It Works: Two-Phase Initialization
+
+1. **Phase 1 - JVM Startup (Agent)**:
+   - Agent applies bytecode instrumentation to Pekko actor classes
+   - Inserts metric collection code into methods like `invoke()`, `newActor()`, etc.
+   - Waits for application to provide MetricsRegistry
+
+2. **Phase 2 - Spring Ready (Your Bean)**:
+   - Spring creates `MeterRegistry` bean
+   - Your configuration creates `MetricsRegistry` with Micrometer backend
+   - Wires registry to agent via `MetricsAgent.setRegistry()`
+   - Instrumented code now records metrics to Micrometer
+
+> **Why two phases?** The agent runs at JVM startup before Spring's `MeterRegistry` exists. The agent instruments the code but can't collect metrics yet. Your Spring bean creates the backend and wires it to the agent once Spring is ready.
 
 **Advanced usage:**
 
@@ -85,28 +103,32 @@ See full example: [ActorMetricsConfiguration.java](../example/chat/src/main/java
 Control metrics behavior without code changes:
 
 ```bash
-# Enable/disable metrics collection
-ACTOR_METRICS_ENABLED=true
+# Master switch: disable ALL metrics (skips instrumentation and collection)
+ACTOR_METRICS_ENABLED=false  # Default: true
 
-# Global tags
+# Global tags (only applies if ACTOR_METRICS_ENABLED=true)
 ACTOR_METRICS_TAG_APPLICATION=my-app
 ACTOR_METRICS_TAG_ENVIRONMENT=prod
 
 # Sampling rate (0.0 to 1.0)
 ACTOR_METRICS_SAMPLING_RATE=0.1
 
-# Bytecode instrumentation control (JVM startup)
+# Per-module instrumentation control (JVM startup, fine-grained)
 ACTOR_METRICS_INSTRUMENT_MAILBOX=false              # Don't instrument mailbox code
 ACTOR_METRICS_INSTRUMENT_MESSAGE_PROCESSING=false   # Don't instrument message processing code
 
-# Metrics collection control (runtime)
+# Per-module collection control (runtime, fine-grained)
 ACTOR_METRICS_MODULE_MAILBOX_ENABLED=false          # Don't collect mailbox metrics
 ACTOR_METRICS_MODULE_MESSAGE_PROCESSING_ENABLED=false  # Don't collect message metrics
 
 java -javaagent:metrics-agent.jar -jar app.jar
 ```
 
-**Tip:** Use `ACTOR_METRICS_INSTRUMENT_*=false` in production if you never need specific metrics (zero overhead). Use `ACTOR_METRICS_MODULE_*_ENABLED=false` for temporary disabling.
+**Configuration Levels (in order of precedence):**
+
+1. **`ACTOR_METRICS_ENABLED=false`** - Disables everything (zero overhead, no instrumentation)
+2. **`ACTOR_METRICS_INSTRUMENT_*=false`** - Disables specific module instrumentation (use if you never need those metrics)
+3. **`ACTOR_METRICS_MODULE_*_ENABLED=false`** - Disables specific module collection at runtime (temporary disable)
 
 ### Via Code
 

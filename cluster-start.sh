@@ -3,9 +3,6 @@
 # Usage: sh cluster-start.sh <module> <mainClass> <basePort> <basePekkoPort> <instanceCount>
 # e.g. sh cluster-start.sh chat io.github.seonwkim.example.SpringPekkoApplication 8080 2551 3
 
-# building metrics jar first
-./gradlew :metrics:agentJar
-
 set -e
 
 MODULE=$1
@@ -19,12 +16,18 @@ if [[ -z "$MODULE" || -z "$MAIN_CLASS" || -z "$BASE_PORT" || -z "$BASE_PEKKO_POR
   exit 1
 fi
 
+echo "Building metrics agent and $MODULE module..."
+./gradlew :metrics:agentJar :example:${MODULE}:classes
+
 run_application() {
   local instance=$1
   local port=$((BASE_PORT + instance))
   local pekko_port=$((BASE_PEKKO_PORT + instance))
 
   echo "Starting instance $instance: port=${port}, pekko_port=${pekko_port}"
+
+  # to disable metrics
+  # export ACTOR_METRICS_ENABLED=false
 
   ./gradlew example:${MODULE}:bootRun \
     --args="--server.port=${port} \
