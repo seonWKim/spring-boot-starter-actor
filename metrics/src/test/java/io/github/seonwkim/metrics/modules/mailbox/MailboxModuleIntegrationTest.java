@@ -1,5 +1,6 @@
 package io.github.seonwkim.metrics.modules.mailbox;
 
+import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.*;
 
 import io.github.seonwkim.metrics.agent.MetricsAgent;
@@ -146,13 +147,17 @@ class MailboxModuleIntegrationTest {
         actor1.tell(new TestMessage("msg2"), ActorRef.noSender());
         actor2.tell(new TestMessage("msg3"), ActorRef.noSender());
 
-        Thread.sleep(200);
-
-        // Should have gauge registered for 2 different actor classes
-        int gaugeCount = metricsBackend.gaugeCount();
-        assertTrue(
-                gaugeCount >= 2,
-                String.format("Should have at least 2 mailbox gauges (one per actor class), got: %d", gaugeCount));
+        // Wait for gauges to be registered using Awaitility
+        await().atMost(3, TimeUnit.SECONDS)
+                .pollInterval(100, TimeUnit.MILLISECONDS)
+                .untilAsserted(() -> {
+                    int gaugeCount = metricsBackend.gaugeCount();
+                    assertTrue(
+                            gaugeCount >= 2,
+                            String.format(
+                                    "Should have at least 2 mailbox gauges (one per actor class), got: %d",
+                                    gaugeCount));
+                });
     }
 
     @Test
