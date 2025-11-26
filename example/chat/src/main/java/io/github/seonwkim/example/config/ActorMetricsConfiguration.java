@@ -1,5 +1,8 @@
 package io.github.seonwkim.example.config;
 
+import io.github.seonwkim.metrics.core.MetricsConfiguration.FilterConfig;
+import io.github.seonwkim.metrics.core.MetricsConfiguration.ModuleConfig;
+import io.github.seonwkim.metrics.core.MetricsConfiguration.SamplingConfig;
 import io.github.seonwkim.metrics.core.MetricsRegistry;
 import io.github.seonwkim.metrics.micrometer.MicrometerMetricsRegistryBuilder;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -50,7 +53,7 @@ public class ActorMetricsConfiguration {
      * java -javaagent:metrics-{version}-agent.jar -jar app.jar
      * <p>
      * The builder automatically:
-     * - Reads configuration from environment variables
+     * - Reads configuration from environment variables (or uses programmatic config)
      * - Creates Micrometer backend
      * - Auto-discovers and registers modules via ServiceLoader
      * - Wires registry to MetricsAgent
@@ -68,8 +71,55 @@ public class ActorMetricsConfiguration {
 
         logger.info("[ActorMetrics] Initializing metrics registry");
 
-        // Build and configure metrics registry from environment variables
+        // Choose one of the following configuration approaches:
+
+        // ==================== APPROACH 1: Environment Variables (Recommended) ====================
+        // Reads all configuration from environment variables.
+        // Set ACTOR_METRICS_TAG_APPLICATION, ACTOR_METRICS_SAMPLING_RATE, etc.
         MetricsRegistry registry = MicrometerMetricsRegistryBuilder.fromEnvironment(meterRegistry).build();
+
+        // ==================== APPROACH 2: Programmatic Configuration ====================
+        // Override or supplement environment variables with programmatic configuration.
+        // Uncomment to use:
+        /*
+        MetricsRegistry registry = MicrometerMetricsRegistryBuilder.fromEnvironment(meterRegistry)
+                .tag("service.name", "chat-service")           // Add custom tags
+                .tag("region", "us-east-1")
+                .sampling(SamplingConfig.rateBased(0.1))       // 10% sampling
+                .module("mailbox", ModuleConfig.disabled())    // Disable mailbox metrics
+                .build();
+        */
+
+        // ==================== APPROACH 3: Full Programmatic (No Environment) ====================
+        // Start from scratch without reading environment variables.
+        // Uncomment to use:
+        /*
+        MetricsRegistry registry = MicrometerMetricsRegistryBuilder.create(meterRegistry)
+                .tag("application", "chat-example")
+                .tag("environment", "production")
+                .sampling(SamplingConfig.rateBased(0.5))
+                .filters(FilterConfig.builder()
+                        .excludeActors("io.github.seonwkim.example.actor.HealthCheckActor")
+                        .excludeMessages("Ping", "HealthCheck")
+                        .build())
+                .module("message-processing", ModuleConfig.enabled())
+                .module("actor-lifecycle", ModuleConfig.enabled())
+                .module("mailbox", ModuleConfig.disabled())
+                .build();
+        */
+
+        // ==================== APPROACH 4: Adaptive Sampling ====================
+        // Use adaptive sampling to automatically adjust sampling rate based on throughput.
+        // Uncomment to use:
+        /*
+        MetricsRegistry registry = MicrometerMetricsRegistryBuilder.fromEnvironment(meterRegistry)
+                .sampling(SamplingConfig.adaptive(
+                        1000,    // Target: 1000 samples per second
+                        0.01,    // Min sampling rate: 1%
+                        1.0      // Max sampling rate: 100%
+                ))
+                .build();
+        */
 
         logger.info(
                 "[ActorMetrics] Metrics configured successfully. "
