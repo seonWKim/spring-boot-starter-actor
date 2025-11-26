@@ -381,6 +381,8 @@ public class SpringActorSystem implements DisposableBean {
 
     /**
      * Initializes a single sharded actor with cluster sharding.
+     * If the actor specifies a role, the entity will only be created on nodes with that role.
+     * On nodes without the role, a proxy will be created to forward messages.
      */
     private <T> void initShardedActor(SpringShardedActor<T> actor) {
         if (clusterSharding == null) {
@@ -392,6 +394,12 @@ public class SpringActorSystem implements DisposableBean {
                     return actor.create(shardedActorContext).asBehavior();
                 })
                 .withMessageExtractor(actor.extractor());
+
+        // Apply role if specified - Entity.withRole() returns a new Entity object
+        if (actor.role().isPresent()) {
+            entity = entity.withRole(actor.role().get());
+        }
+
         clusterSharding.init(entity);
     }
 

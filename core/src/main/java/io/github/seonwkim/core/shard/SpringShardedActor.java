@@ -1,5 +1,6 @@
 package io.github.seonwkim.core.shard;
 
+import java.util.Optional;
 import org.apache.pekko.cluster.sharding.typed.ShardingMessageExtractor;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityContext;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
@@ -85,5 +86,38 @@ public interface SpringShardedActor<T> {
      */
     default ShardingMessageExtractor<ShardEnvelope<T>, T> extractor() {
         return new DefaultShardingMessageExtractor<>();
+    }
+
+    /**
+     * Returns the cluster role for this actor type. When specified, this actor will only be
+     * created on nodes with a matching role.
+     *
+     * <p>This is useful for:
+     * <ul>
+     *   <li>Separating compute-intensive actors to specific node types (e.g., "worker" nodes)</li>
+     *   <li>Isolating stateful actors to nodes with persistent storage</li>
+     *   <li>Creating dedicated actor pools for different workload types</li>
+     * </ul>
+     *
+     * <p>Example usage:
+     * <pre>
+     * &#64;Component
+     * public class HeavyProcessingActor implements SpringShardedActor&lt;Command&gt; {
+     *     &#64;Override
+     *     public Optional&lt;String&gt; role() {
+     *         return Optional.of("worker");
+     *     }
+     * }
+     * </pre>
+     *
+     * <p><b>Note:</b> Cluster nodes must be configured with roles in application.conf:
+     * <pre>
+     * pekko.cluster.roles = ["worker"]
+     * </pre>
+     *
+     * @return The cluster role for this actor type, or empty if no specific role is required
+     */
+    default Optional<String> role() {
+        return Optional.empty();
     }
 }

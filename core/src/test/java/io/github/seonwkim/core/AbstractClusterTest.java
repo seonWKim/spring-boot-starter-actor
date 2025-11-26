@@ -92,6 +92,36 @@ public abstract class AbstractClusterTest {
     }
 
     /**
+     * Returns the cluster roles for node 1.
+     * Override this method to assign specific roles to node 1.
+     *
+     * @return Array of role names, or empty array for no roles
+     */
+    protected String[] getNode1Roles() {
+        return new String[0];
+    }
+
+    /**
+     * Returns the cluster roles for node 2.
+     * Override this method to assign specific roles to node 2.
+     *
+     * @return Array of role names, or empty array for no roles
+     */
+    protected String[] getNode2Roles() {
+        return new String[0];
+    }
+
+    /**
+     * Returns the cluster roles for node 3.
+     * Override this method to assign specific roles to node 3.
+     *
+     * @return Array of role names, or empty array for no roles
+     */
+    protected String[] getNode3Roles() {
+        return new String[0];
+    }
+
+    /**
      * Sets up a 3-node cluster before each test.
      * Automatically finds available ports to avoid conflicts.
      */
@@ -110,9 +140,9 @@ public abstract class AbstractClusterTest {
                 getActorSystemName(),
                 arteryPorts[2]);
 
-        context1 = startContext(httpPorts[0], arteryPorts[0], seedNodes);
-        context2 = startContext(httpPorts[1], arteryPorts[1], seedNodes);
-        context3 = startContext(httpPorts[2], arteryPorts[2], seedNodes);
+        context1 = startContext(httpPorts[0], arteryPorts[0], seedNodes, getNode1Roles());
+        context2 = startContext(httpPorts[1], arteryPorts[1], seedNodes, getNode2Roles());
+        context3 = startContext(httpPorts[2], arteryPorts[2], seedNodes, getNode3Roles());
     }
 
     /**
@@ -139,12 +169,14 @@ public abstract class AbstractClusterTest {
      * @param httpPort The HTTP port for this node
      * @param arteryPort The Pekko remoting (Artery) port for this node
      * @param seedNodes The comma-separated list of seed nodes
+     * @param roles The cluster roles for this node
      * @return The Spring application context for this node
      */
-    private ConfigurableApplicationContext startContext(int httpPort, int arteryPort, String seedNodes) {
+    private ConfigurableApplicationContext startContext(int httpPort, int arteryPort, String seedNodes, String[] roles) {
         // Base properties required for cluster mode
         String[] baseProperties = {
             "server.port=" + httpPort,
+            "spring.main.allow-bean-definition-overriding=true",
             "spring.actor.pekko.name=" + getActorSystemName(),
             "spring.actor.pekko.actor.provider=cluster",
             "spring.actor.pekko.remote.artery.canonical.hostname=127.0.0.1",
@@ -156,11 +188,22 @@ public abstract class AbstractClusterTest {
             "spring.actor.pekko.actor.warn-about-java-serializer-usage=on"
         };
 
-        // Merge with additional properties from subclass
+        // Merge base properties, roles, and additional properties
         String[] additionalProps = getAdditionalProperties();
-        String[] allProperties = new String[baseProperties.length + additionalProps.length];
+        int totalSize = baseProperties.length + roles.length + additionalProps.length;
+        String[] allProperties = new String[totalSize];
+
         System.arraycopy(baseProperties, 0, allProperties, 0, baseProperties.length);
-        System.arraycopy(additionalProps, 0, allProperties, baseProperties.length, additionalProps.length);
+
+        // Add role properties as array elements (Pekko expects a list)
+        int offset = baseProperties.length;
+        for (int i = 0; i < roles.length; i++) {
+            allProperties[offset + i] = "spring.actor.pekko.cluster.roles[" + i + "]=" + roles[i];
+        }
+
+        // Add additional properties
+        offset += roles.length;
+        System.arraycopy(additionalProps, 0, allProperties, offset, additionalProps.length);
 
         return new SpringApplicationBuilder(getApplicationClass())
                 .web(WebApplicationType.NONE)
