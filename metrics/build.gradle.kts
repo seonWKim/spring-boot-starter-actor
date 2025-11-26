@@ -22,8 +22,8 @@ dependencies {
     // Users bring their own Pekko at runtime
     compileOnly("org.apache.pekko:pekko-actor-typed_3:${pekkoVersion}")
 
-    // Micrometer support (optional - users bring their own registry)
-    compileOnly("io.micrometer:micrometer-core:1.11.0")
+    // Micrometer support - bundled in agent JAR for java -jar usage
+    implementation("io.micrometer:micrometer-core:1.11.0")
 
     testImplementation("org.apache.pekko:pekko-actor-typed_3:${pekkoVersion}")
     testImplementation("org.apache.pekko:pekko-cluster-typed_3:${pekkoVersion}")
