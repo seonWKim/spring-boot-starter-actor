@@ -5,9 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import io.github.seonwkim.core.serialization.CborSerializable;
 import io.github.seonwkim.core.serialization.JsonSerializable;
 import io.github.seonwkim.core.shard.*;
-
 import java.time.Duration;
-
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.apache.pekko.cluster.sharding.typed.ShardingMessageExtractor;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
@@ -40,8 +38,7 @@ public class SerializationClusterTest extends AbstractClusterTest {
                 EntityTypeKey.create(SerializationTestActor.Command.class, "SerializationTestActor");
 
         // Base command interface
-        public interface Command {
-        }
+        public interface Command {}
 
         // ========== JSON Serializable Messages ==========
 
@@ -57,7 +54,8 @@ public class SerializationClusterTest extends AbstractClusterTest {
         }
 
         /** JSON message with ActorRef (using Ask pattern) */
-        public static class JsonMessageWithRef extends AskCommand<SerializationTestActor.JsonResponse> implements SerializationTestActor.Command, JsonSerializable {
+        public static class JsonMessageWithRef extends AskCommand<SerializationTestActor.JsonResponse>
+                implements SerializationTestActor.Command, JsonSerializable {
             public final String data;
             public final int value;
 
@@ -92,7 +90,8 @@ public class SerializationClusterTest extends AbstractClusterTest {
         }
 
         /** CBOR message with ActorRef (using Ask pattern) */
-        public static class CborMessageWithRef extends AskCommand<SerializationTestActor.CborResponse> implements SerializationTestActor.Command, CborSerializable {
+        public static class CborMessageWithRef extends AskCommand<SerializationTestActor.CborResponse>
+                implements SerializationTestActor.Command, CborSerializable {
             public final String data;
             public final int value;
 
@@ -133,7 +132,8 @@ public class SerializationClusterTest extends AbstractClusterTest {
         }
 
         @Override
-        public SpringShardedActorBehavior<SerializationTestActor.Command> create(SpringShardedActorContext<SerializationTestActor.Command> ctx) {
+        public SpringShardedActorBehavior<SerializationTestActor.Command> create(
+                SpringShardedActorContext<SerializationTestActor.Command> ctx) {
             return SpringShardedActorBehavior.builder(SerializationTestActor.Command.class, ctx)
                     .withState(context -> new SerializationTestActor.ActorState(context, ctx.getEntityId()))
                     .onMessage(SerializationTestActor.JsonMessageWithoutRef.class, (state, msg) -> {
@@ -192,11 +192,11 @@ public class SerializationClusterTest extends AbstractClusterTest {
         }
 
         @Override
-        public ShardingMessageExtractor<ShardEnvelope<SerializationTestActor.Command>, SerializationTestActor.Command> extractor() {
+        public ShardingMessageExtractor<ShardEnvelope<SerializationTestActor.Command>, SerializationTestActor.Command>
+                extractor() {
             return new DefaultShardingMessageExtractor<>(5);
         }
     }
-
 
     @SpringBootApplication(scanBasePackages = "io.github.seonwkim.core")
     public static class SerializationTestApp {
@@ -220,18 +220,15 @@ public class SerializationClusterTest extends AbstractClusterTest {
         waitUntilClusterInitialized();
 
         // ========== Test 1: JSON Serializer without ActorRef ==========
-        SpringShardedActorRef<SerializationTestActor.Command> jsonActor1 = system1.sharded(
-                        SerializationTestActor.class)
+        SpringShardedActorRef<SerializationTestActor.Command> jsonActor1 = system1.sharded(SerializationTestActor.class)
                 .withId("json-entity-1")
                 .get();
 
-        SpringShardedActorRef<SerializationTestActor.Command> jsonActor2 = system2.sharded(
-                        SerializationTestActor.class)
+        SpringShardedActorRef<SerializationTestActor.Command> jsonActor2 = system2.sharded(SerializationTestActor.class)
                 .withId("json-entity-2")
                 .get();
 
-        SpringShardedActorRef<SerializationTestActor.Command> jsonActor3 = system3.sharded(
-                        SerializationTestActor.class)
+        SpringShardedActorRef<SerializationTestActor.Command> jsonActor3 = system3.sharded(SerializationTestActor.class)
                 .withId("json-entity-3")
                 .get();
 
@@ -289,18 +286,15 @@ public class SerializationClusterTest extends AbstractClusterTest {
         assertEquals(600, jsonResp3.processedValue);
 
         // ========== Test 3: CBOR Serializer without ActorRef ==========
-        SpringShardedActorRef<SerializationTestActor.Command> cborActor1 = system1.sharded(
-                        SerializationTestActor.class)
+        SpringShardedActorRef<SerializationTestActor.Command> cborActor1 = system1.sharded(SerializationTestActor.class)
                 .withId("cbor-entity-1")
                 .get();
 
-        SpringShardedActorRef<SerializationTestActor.Command> cborActor2 = system2.sharded(
-                        SerializationTestActor.class)
+        SpringShardedActorRef<SerializationTestActor.Command> cborActor2 = system2.sharded(SerializationTestActor.class)
                 .withId("cbor-entity-2")
                 .get();
 
-        SpringShardedActorRef<SerializationTestActor.Command> cborActor3 = system3.sharded(
-                        SerializationTestActor.class)
+        SpringShardedActorRef<SerializationTestActor.Command> cborActor3 = system3.sharded(SerializationTestActor.class)
                 .withId("cbor-entity-3")
                 .get();
 

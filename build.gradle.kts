@@ -25,7 +25,6 @@ subprojects {
     apply(plugin = "java")
     apply(plugin = "java-library")
     apply(plugin = "com.diffplug.spotless")
-    apply(plugin = "com.vanniktech.maven.publish")
 
     // Only apply error-prone to core modules, not examples
     if (!project.path.startsWith(":example")) {
@@ -36,54 +35,66 @@ subprojects {
         mavenCentral()
     }
 
-    mavenPublishing {
-        val isBoot3 = project.name.endsWith("boot3")
-        coordinates(
-            groupId = project.findProperty("group") as String,
-            artifactId = (if (isBoot3) project.findProperty("artifactId-boot3") else project.findProperty("artifactId")) as String,
-            version = project.findProperty("version") as String
-        )
+    // Only configure Maven publishing for modules that have properties defined
+    // (i.e., not example modules)
+    val artifactIdKey = "artifactId.${project.name}"
+    if (project.findProperty(artifactIdKey) != null) {
+        apply(plugin = "com.vanniktech.maven.publish")
 
-        pom {
-            packaging = "jar"
-            name.set(project.findProperty("pomName") as String)
-            description.set(project.findProperty("pomDescription") as String)
-            url.set(project.findProperty("pomUrl") as String)
-            inceptionYear.set("2025")
+        mavenPublishing {
+            val pomNameKey = "pomName.${project.name}"
+            val pomDescriptionKey = "pomDescription.${project.name}"
 
-            licenses {
-                license {
-                    name.set("The Apache License, Version 2.0")
-                    url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
-                }
-            }
+            coordinates(
+                groupId = project.findProperty("group") as String,
+                artifactId = project.findProperty(artifactIdKey) as String,
+                version = project.findProperty("version") as String
+            )
 
-            developers {
-                developer {
-                    id.set(project.findProperty("pomDeveloperId") as String)
-                    name.set(project.findProperty("pomDeveloperName") as String)
-                    email.set(project.findProperty("pomDeveloperEmail") as String)
-                }
-            }
-
-            scm {
-                connection.set("scm:git:git://github.com/seonwkim/spring-boot-starter-actor.git")
-                developerConnection.set("scm:git:ssh://github.com/seonwkim/spring-boot-starter-actor.git")
+            pom {
+                packaging = "jar"
+                name.set(project.findProperty(pomNameKey) as String)
+                description.set(project.findProperty(pomDescriptionKey) as String)
                 url.set(project.findProperty("pomUrl") as String)
-            }
-        }
+                inceptionYear.set("2025")
 
-        publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
-        signAllPublications()
+                licenses {
+                    license {
+                        name.set("The Apache License, Version 2.0")
+                        url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
+                    }
+                }
+
+                developers {
+                    developer {
+                        id.set(project.findProperty("pomDeveloperId") as String)
+                        name.set(project.findProperty("pomDeveloperName") as String)
+                        email.set(project.findProperty("pomDeveloperEmail") as String)
+                    }
+                }
+
+                scm {
+                    connection.set("scm:git:git://github.com/seonwkim/spring-boot-starter-actor.git")
+                    developerConnection.set("scm:git:ssh://github.com/seonwkim/spring-boot-starter-actor.git")
+                    url.set(project.findProperty("pomUrl") as String)
+                }
+            }
+
+            publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
+            signAllPublications()
+        }
     }
 
     val pekkoVersion: String by project
 
     dependencies {
-        implementation("org.apache.pekko:pekko-actor-typed_3:${pekkoVersion}")
-        implementation("org.apache.pekko:pekko-cluster-typed_3:${pekkoVersion}")
-        implementation("org.apache.pekko:pekko-cluster-sharding-typed_3:${pekkoVersion}")
-        implementation("org.apache.pekko:pekko-serialization-jackson_3:${pekkoVersion}")
+        // Only add Pekko dependencies to non-metrics modules
+        if (!project.path.startsWith(":metrics")) {
+            implementation("org.apache.pekko:pekko-actor-typed_3:${pekkoVersion}")
+            implementation("org.apache.pekko:pekko-cluster-typed_3:${pekkoVersion}")
+            implementation("org.apache.pekko:pekko-cluster-sharding-typed_3:${pekkoVersion}")
+            implementation("org.apache.pekko:pekko-serialization-jackson_3:${pekkoVersion}")
+        }
         implementation("com.google.code.findbugs:jsr305:3.0.2")
 
         // Only add error-prone dependencies for non-example projects
@@ -92,7 +103,10 @@ subprojects {
             errorprone("com.google.errorprone:error_prone_core:2.10.0")
         }
 
-        testImplementation("org.apache.pekko:pekko-actor-testkit-typed_3:$pekkoVersion")
+        // Only add Pekko testkit to non-metrics modules
+        if (!project.path.startsWith(":metrics")) {
+            testImplementation("org.apache.pekko:pekko-actor-testkit-typed_3:$pekkoVersion")
+        }
         testImplementation("org.awaitility:awaitility:4.3.0")
     }
 

@@ -41,8 +41,7 @@ public abstract class AskCommand<RES> {
 
     @JsonSerialize(using = PekkoSerializationSerializer.class)
     @JsonDeserialize(using = PekkoSerializationDeserializer.class)
-    @Nullable
-    private ActorRef<RES> replyTo;
+    @Nullable private ActorRef<RES> replyTo;
 
     /**
      * Gets the ActorRef that should receive the reply.

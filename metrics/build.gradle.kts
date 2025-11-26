@@ -9,6 +9,7 @@ java {
 }
 
 val bytebuddyVersion: String by project
+val pekkoVersion: String by project
 
 dependencies {
     implementation("net.bytebuddy:byte-buddy:${bytebuddyVersion}")
@@ -17,14 +18,24 @@ dependencies {
 
     compileOnly("com.google.code.findbugs:jsr305:3.0.2")
 
-    testImplementation("org.apache.pekko:pekko-actor-typed_3")
-    testImplementation("org.apache.pekko:pekko-cluster-typed_3")
-    testImplementation("org.apache.pekko:pekko-cluster-sharding-typed_3")
-    testImplementation("org.apache.pekko:pekko-serialization-jackson_3")
+    // Pekko for compilation only (instrumentation needs Pekko classes)
+    // Users bring their own Pekko at runtime
+    compileOnly("org.apache.pekko:pekko-actor-typed_3:${pekkoVersion}")
+
+    // Micrometer support (optional - users bring their own registry)
+    compileOnly("io.micrometer:micrometer-core:1.11.0")
+
+    testImplementation("org.apache.pekko:pekko-actor-typed_3:${pekkoVersion}")
+    testImplementation("org.apache.pekko:pekko-cluster-typed_3:${pekkoVersion}")
+    testImplementation("org.apache.pekko:pekko-cluster-sharding-typed_3:${pekkoVersion}")
+    testImplementation("org.apache.pekko:pekko-serialization-jackson_3:${pekkoVersion}")
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.10.2")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.10.2")
-    
+
+    // Micrometer for testing
+    testImplementation("io.micrometer:micrometer-core:1.11.0")
+
     // Add SLF4J Simple binding for tests
     testRuntimeOnly("org.slf4j:slf4j-simple:2.0.17")
 }
@@ -35,8 +46,8 @@ tasks.register<Jar>("agentJar") {
 
     manifest {
         attributes(
-            "Premain-Class" to "io.github.seonwkim.metrics.MetricsAgent",
-            "Agent-Class" to "io.github.seonwkim.metrics.MetricsAgent",
+            "Premain-Class" to "io.github.seonwkim.metrics.agent.MetricsAgent",
+            "Agent-Class" to "io.github.seonwkim.metrics.agent.MetricsAgent",
             "Can-Redefine-Classes" to "true",
             "Can-Retransform-Classes" to "true",
             "Implementation-Title" to "Actor Metrics Agent",

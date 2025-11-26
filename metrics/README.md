@@ -1,57 +1,128 @@
-# Metrics Module
+# Actor Metrics
 
-The Metrics module provides instrumentation for Pekko actors to collect performance metrics. It uses Java agent to intercept method calls.
+ByteBuddy-based instrumentation for Pekko actors. Tracks lifecycle, mailbox, and message processing metrics using Micrometer.
 
-## Usage
+## Quick Start
 
-### 1. Include the Agent
+### 1. Add Dependencies
 
-To use the metrics module, you need to include the Java agent when starting your application:
+**For development:**
+```gradle
+dependencies {
+    implementation 'io.github.seonwkim:metrics:{version}'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'  // Includes micrometer-core
+}
+```
+
+**For production (add your monitoring system):**
+```gradle
+dependencies {
+    implementation 'io.github.seonwkim:metrics:{version}'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'io.micrometer:micrometer-registry-prometheus'  // For Prometheus/Grafana
+    // OR
+    // implementation 'io.micrometer:micrometer-registry-datadog'  // For DataDog
+    // implementation 'io.micrometer:micrometer-registry-graphite'  // For Graphite
+}
+```
+
+### 2. Run with Agent
 
 ```bash
-java -javaagent:metrics-{version}-agent.jar -jar your-application.jar
+java -javaagent:metrics-{version}-agent.jar -jar your-app.jar
 ```
 
-### 2. Implement Event Interceptors
+> **Important:** You need **BOTH** the agent (for instrumentation) AND the dependency (for metrics collection).
 
-Create interceptors to process the metrics events:
+### 3. Configure Spring Bean
 
 ```java
-import io.github.seonwkim.metrics.ActorInstrumentationEventInterceptor;
-import io.github.seonwkim.metrics.ActorInstrumentationEventInterceptor.InvokeAdviceEventInterceptor;
-
-// Register a interceptor for regular actor messages
-ActorInstrumentationEventInterceptor.register(new InvokeAdviceEventInterceptor() {
-    @Override
-    public void onEnter(Envelope envelope) {
-        // Called when a message is about to be processed
+@Configuration
+public class ActorMetricsConfiguration {
+    @Bean
+    public MetricsRegistry actorMetricsRegistry(MeterRegistry meterRegistry) {
+        return MicrometerMetricsRegistryBuilder.fromEnvironment(meterRegistry).build();
     }
-
-    @Override
-    public void onExit(Envelope envelope, long startTime, Throwable throwable) {
-        // Called when message processing is complete
-        // Calculate duration: System.nanoTime() - startTime
-    }
-});
+}
 ```
 
-### 3. Export Metrics
+Done! Metrics are automatically:
+- Read from environment variables
+- Instrumented via the agent
+- Exported to your chosen registry (Prometheus, Grafana, etc.)
 
-Export the collected metrics to your monitoring system. The example chat application demonstrates integration with Micrometer and Prometheus:
+## Available Metrics
+
+| Metric | Type | Tags | Description |
+|--------|------|------|-------------|
+| `actor.lifecycle.created` | Counter | `actor.class` | Actors created |
+| `actor.lifecycle.terminated` | Counter | `actor.class` | Actors terminated |
+| `actor.lifecycle.active` | Gauge | - | Active actors |
+| `actor.mailbox.size` | Gauge | `actor.class` | Mailbox queue size |
+| `actor.mailbox.time` | Timer | `actor.class`, `message.type` | Time message spends in mailbox |
+| `actor.message.processed` | Counter | `actor.class`, `message.type` | Messages processed |
+| `actor.message.processing.time` | Timer | `actor.class`, `message.type` | Message processing duration |
+
+## Configuration
+
+### Environment Variables
+
+```bash
+# Master switch (disables all metrics)
+ACTOR_METRICS_ENABLED=false
+
+# Global tags
+ACTOR_METRICS_TAG_APPLICATION=my-app
+ACTOR_METRICS_TAG_ENVIRONMENT=prod
+
+# Sampling (0.0 to 1.0)
+ACTOR_METRICS_SAMPLING_RATE=0.1
+
+# Disable specific modules at JVM startup (zero overhead)
+ACTOR_METRICS_INSTRUMENT_MAILBOX=false
+
+# Disable specific modules at runtime (minimal overhead)
+ACTOR_METRICS_MODULE_MAILBOX_ENABLED=false
+```
+
+### Programmatic Configuration
 
 ```java
-// See ActorClusterMetricsExporter in the example chat application
+@Bean
+public MetricsRegistry actorMetricsRegistry(MeterRegistry meterRegistry) {
+    return MicrometerMetricsRegistryBuilder.fromEnvironment(meterRegistry)
+        .tag("custom-tag", "value")
+        .sampling(SamplingConfig.rateBased(0.1))
+        .module("mailbox", ModuleConfig.disabled())
+        .build();
+}
 ```
 
-## Integration with Monitoring
+## How It Works
 
-This module is designed to work with the monitoring setup provided in the `scripts/monitoring` directory, which includes:
+**Two-Phase Initialization:**
 
-- Prometheus for metrics collection
-- Grafana for metrics visualization
+1. **JVM Startup (Agent):** Instruments Pekko actor classes with ByteBuddy
+2. **Spring Ready (Your Bean):** Creates Micrometer backend and wires to agent
 
-See the main README.md for instructions on how to start the monitoring stack.
+**Filtering:**
+- System actors (`/system/*`) and temporary actors (`/temp/*`, `$`) are automatically excluded
+- Low-cardinality tags (`actor.class` instead of `actor.path`) prevent metric explosion
+
+## Module Control
+
+Available modules:
+- `actor-lifecycle` - Creation, termination, active count
+- `mailbox` - Queue size, wait time
+- `message-processing` - Processing count, duration
+
+**Two levels of control:**
+
+| Level | Env Var | When Applied | Overhead if Disabled |
+|-------|---------|--------------|---------------------|
+| Instrumentation | `ACTOR_METRICS_INSTRUMENT_*=false` | JVM startup | Zero (no bytecode changes) |
+| Collection | `ACTOR_METRICS_MODULE_*_ENABLED=false` | Runtime | Minimal (instrumented but not recorded) |
 
 ## Example
 
-For a complete example of how to use this module, see the `ActorClusterMetricsExporter` class in the example chat application.
+See [ActorMetricsConfiguration.java](../example/chat/src/main/java/io/github/seonwkim/example/config/ActorMetricsConfiguration.java) for a complete working example.

@@ -29,7 +29,10 @@ management:
   metrics:
     tags:
       application: spring-pekko-example
+    export:
+      prometheus:
+        enabled: true
   endpoints:
     web:
       exposure:
-        include: prometheus, actor-cluster-state
+        include: prometheus, actor-cluster-state, health, info

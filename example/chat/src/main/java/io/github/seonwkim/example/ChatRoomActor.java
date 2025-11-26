@@ -89,7 +89,7 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
         final SpringTopicRef<UserActor.Command> roomTopic = topicManager
                 .topic(UserActor.Command.class)
                 .withName("chat-room-" + roomId)
-                .create();
+                .getOrCreate();
 
         return SpringShardedActorBehavior.builder(Command.class, ctx)
                 .withState(behaviorCtx -> new ChatRoomBehavior(behaviorCtx, roomId, roomTopic))

@@ -29,7 +29,7 @@ dependencies {
 
 	implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
 	implementation("org.springframework.boot:spring-boot-starter-actuator")
-	implementation("io.micrometer:micrometer-registry-prometheus")
+	implementation("io.micrometer:micrometer-registry-prometheus")  // Brings micrometer-core transitively
 	implementation("com.fasterxml.jackson.core:jackson-databind")
 
 	// BlockHound for detecting blocking calls

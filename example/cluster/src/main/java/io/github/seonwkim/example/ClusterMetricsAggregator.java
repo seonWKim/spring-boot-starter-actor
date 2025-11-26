@@ -73,8 +73,7 @@ public class ClusterMetricsAggregator
         public final Map<String, Map<String, MetricData>> metrics;
         public final String singletonNodeAddress;
 
-        public MetricsResponse(
-                Map<String, Map<String, MetricData>> metrics, String singletonNodeAddress) {
+        public MetricsResponse(Map<String, Map<String, MetricData>> metrics, String singletonNodeAddress) {
             this.metrics = metrics;
             this.singletonNodeAddress = singletonNodeAddress;
         }

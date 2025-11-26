@@ -2,8 +2,6 @@ package io.github.seonwkim.core.topic;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import io.github.seonwkim.core.*;
 import io.github.seonwkim.core.exception.TopicAlreadyExistsException;
 import io.github.seonwkim.core.serialization.JsonSerializable;

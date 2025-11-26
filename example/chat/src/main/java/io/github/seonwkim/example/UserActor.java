@@ -1,5 +1,6 @@
 package io.github.seonwkim.example;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import io.github.seonwkim.core.*;
 import io.github.seonwkim.core.serialization.JsonSerializable;
 import io.github.seonwkim.core.shard.SpringShardedActorRef;
@@ -15,15 +16,15 @@ public class UserActor implements SpringActorWithContext<UserActor.Command, User
     public interface Command extends JsonSerializable {}
 
     public static class Connect implements Command {
-        
+
         public Connect() {}
     }
 
     public static class JoinRoom implements Command {
         private final String roomId;
 
-        
-        public JoinRoom( String roomId) {
+        @JsonCreator
+        public JoinRoom(String roomId) {
             this.roomId = roomId;
         }
 
@@ -33,15 +34,15 @@ public class UserActor implements SpringActorWithContext<UserActor.Command, User
     }
 
     public static class LeaveRoom implements Command {
-        
+
         public LeaveRoom() {}
     }
 
     public static class SendMessage implements Command {
         private final String message;
 
-        
-        public SendMessage( String message) {
+        @JsonCreator
+        public SendMessage(String message) {
             this.message = message;
         }
 
@@ -53,8 +54,8 @@ public class UserActor implements SpringActorWithContext<UserActor.Command, User
     public static class JoinRoomEvent implements Command {
         private final String userId;
 
-        
-        public JoinRoomEvent( String userId) {
+        @JsonCreator
+        public JoinRoomEvent(String userId) {
             this.userId = userId;
         }
 
@@ -66,8 +67,8 @@ public class UserActor implements SpringActorWithContext<UserActor.Command, User
     public static class LeaveRoomEvent implements Command {
         private final String userId;
 
-        
-        public LeaveRoomEvent( String userId) {
+        @JsonCreator
+        public LeaveRoomEvent(String userId) {
             this.userId = userId;
         }
 
@@ -80,10 +81,18 @@ public class UserActor implements SpringActorWithContext<UserActor.Command, User
         private final String userId;
         private final String message;
 
-        
-        public SendMessageEvent( String userId,  String message) {
+        @JsonCreator
+        public SendMessageEvent(String userId, String message) {
             this.userId = userId;
             this.message = message;
+        }
+
+        public String getUserId() {
+            return userId;
+        }
+
+        public String getMessage() {
+            return message;
         }
     }
 
@@ -150,7 +159,7 @@ public class UserActor implements SpringActorWithContext<UserActor.Command, User
         }
 
         private Behavior<Command> onJoinRoom(JoinRoom command) {
-            currentRoomId = command.roomId;
+            currentRoomId = command.getRoomId();
             final var roomActor = getRoomActor();
             sendEvent("joined", json -> {
                 json.append(",\"roomId\":\"").append(escapeJson(currentRoomId)).append("\"");
@@ -185,14 +194,16 @@ public class UserActor implements SpringActorWithContext<UserActor.Command, User
             }
 
             final var roomActor = getRoomActor();
-            roomActor.tell(new ChatRoomActor.SendMessage(userId, command.message));
+            roomActor.tell(new ChatRoomActor.SendMessage(userId, command.getMessage()));
 
             return Behaviors.same();
         }
 
         private Behavior<Command> onJoinRoomEvent(JoinRoomEvent event) {
             sendEvent("user_joined", json -> {
-                json.append(",\"userId\":\"").append(escapeJson(event.userId)).append("\"");
+                json.append(",\"userId\":\"")
+                        .append(escapeJson(event.getUserId()))
+                        .append("\"");
                 json.append(",\"roomId\":\"").append(escapeJson(currentRoomId)).append("\"");
             });
             return Behaviors.same();
@@ -200,7 +211,9 @@ public class UserActor implements SpringActorWithContext<UserActor.Command, User
 
         private Behavior<Command> onLeaveRoomEvent(LeaveRoomEvent event) {
             sendEvent("user_left", json -> {
-                json.append(",\"userId\":\"").append(escapeJson(event.userId)).append("\"");
+                json.append(",\"userId\":\"")
+                        .append(escapeJson(event.getUserId()))
+                        .append("\"");
                 json.append(",\"roomId\":\"").append(escapeJson(currentRoomId)).append("\"");
             });
             return Behaviors.same();
@@ -208,8 +221,12 @@ public class UserActor implements SpringActorWithContext<UserActor.Command, User
 
         private Behavior<Command> onSendMessageEvent(SendMessageEvent event) {
             sendEvent("message", json -> {
-                json.append(",\"userId\":\"").append(escapeJson(event.userId)).append("\"");
-                json.append(",\"message\":\"").append(escapeJson(event.message)).append("\"");
+                json.append(",\"userId\":\"")
+                        .append(escapeJson(event.getUserId()))
+                        .append("\"");
+                json.append(",\"message\":\"")
+                        .append(escapeJson(event.getMessage()))
+                        .append("\"");
                 json.append(",\"roomId\":\"").append(escapeJson(currentRoomId)).append("\"");
             });
             return Behaviors.same();
