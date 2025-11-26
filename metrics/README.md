@@ -85,22 +85,28 @@ See full example: [ActorMetricsConfiguration.java](../example/chat/src/main/java
 Control metrics behavior without code changes:
 
 ```bash
-# Enable/disable metrics
-METRICS_ENABLED=true
+# Enable/disable metrics collection
+ACTOR_METRICS_ENABLED=true
 
 # Global tags
-METRICS_TAG_APPLICATION=my-app
-METRICS_TAG_ENVIRONMENT=prod
+ACTOR_METRICS_TAG_APPLICATION=my-app
+ACTOR_METRICS_TAG_ENVIRONMENT=prod
 
 # Sampling rate (0.0 to 1.0)
-METRICS_SAMPLING_RATE=0.1
+ACTOR_METRICS_SAMPLING_RATE=0.1
 
-# Disable specific modules
-METRICS_MODULE_MAILBOX_ENABLED=false
-METRICS_MODULE_MESSAGE_PROCESSING_ENABLED=false
+# Bytecode instrumentation control (JVM startup)
+ACTOR_METRICS_INSTRUMENT_MAILBOX=false              # Don't instrument mailbox code
+ACTOR_METRICS_INSTRUMENT_MESSAGE_PROCESSING=false   # Don't instrument message processing code
+
+# Metrics collection control (runtime)
+ACTOR_METRICS_MODULE_MAILBOX_ENABLED=false          # Don't collect mailbox metrics
+ACTOR_METRICS_MODULE_MESSAGE_PROCESSING_ENABLED=false  # Don't collect message metrics
 
 java -javaagent:metrics-agent.jar -jar app.jar
 ```
+
+**Tip:** Use `ACTOR_METRICS_INSTRUMENT_*=false` in production if you never need specific metrics (zero overhead). Use `ACTOR_METRICS_MODULE_*_ENABLED=false` for temporary disabling.
 
 ### Via Code
 
@@ -110,29 +116,50 @@ MetricsConfiguration config = MetricsConfiguration.builder()
     .tag("environment", "prod")
     .sampling(MetricsConfiguration.SamplingConfig.rateBased(0.1))  // Sample 10%
     .filters(MetricsConfiguration.FilterConfig.builder()
-        .includeActors("**/user/**")
-        .excludeActors("**/system/**")
+        .includeActors("**/user/my-service/**")  // Only specific actors
+        .excludeActors("**/user/debug/**")       // Exclude debug actors
         .build())
     .module("mailbox", MetricsConfiguration.ModuleConfig.disabled())
     .build();
 ```
 
+> **Note:** System actors (`/system/*`) and temporary actors (`/temp/*` or with `$` in path) are automatically excluded - no need to configure filters for them.
+
 ## Module Selection
 
-All modules are **auto-discovered via ServiceLoader** and registered by default. You can opt-out specific modules:
+All modules are **auto-discovered via ServiceLoader**. You have **two levels of control**:
 
-### Via Environment Variables (Recommended)
+### Level 1: Bytecode Instrumentation (Agent Startup)
+
+Control which modules instrument bytecode at JVM startup:
+
 ```bash
-# Disable mailbox metrics in production
-METRICS_MODULE_MAILBOX_ENABLED=false java -javaagent:metrics-agent.jar -jar app.jar
+# Disable mailbox instrumentation entirely (no bytecode transformation)
+ACTOR_METRICS_INSTRUMENT_MAILBOX=false java -javaagent:metrics-agent.jar -jar app.jar
 
 # Disable multiple modules
-METRICS_MODULE_MAILBOX_ENABLED=false \
-METRICS_MODULE_MESSAGE_PROCESSING_ENABLED=false \
+ACTOR_METRICS_INSTRUMENT_MAILBOX=false \
+ACTOR_METRICS_INSTRUMENT_MESSAGE_PROCESSING=false \
 java -javaagent:metrics-agent.jar -jar app.jar
 ```
 
-### Via Configuration Code
+**Why use this?** Zero overhead - if a module isn't instrumented, there's no bytecode transformation at all.
+
+**Environment variables:**
+- `ACTOR_METRICS_INSTRUMENT_ACTOR_LIFECYCLE=false` - Skip lifecycle instrumentation
+- `ACTOR_METRICS_INSTRUMENT_MAILBOX=false` - Skip mailbox instrumentation
+- `ACTOR_METRICS_INSTRUMENT_MESSAGE_PROCESSING=false` - Skip message processing instrumentation
+
+### Level 2: Metrics Collection (Runtime)
+
+Control which modules collect metrics (even if instrumented):
+
+```bash
+# Bytecode is instrumented but metrics aren't collected
+ACTOR_METRICS_MODULE_MAILBOX_ENABLED=false java -javaagent:metrics-agent.jar -jar app.jar
+```
+
+**Or via configuration code:**
 ```java
 MetricsConfiguration config = MetricsConfiguration.builder()
     .enabled(true)
@@ -140,6 +167,15 @@ MetricsConfiguration config = MetricsConfiguration.builder()
     .module("message-processing", ModuleConfig.disabled())
     .build();
 ```
+
+**Why use this?** Temporarily disable metrics without restarting the JVM.
+
+### Comparison
+
+| Level | When Applied | Overhead if Disabled | Use Case |
+|-------|-------------|----------------------|----------|
+| Instrumentation (`ACTOR_METRICS_INSTRUMENT_*`) | JVM startup (agent premain) | Zero (no bytecode changes) | Production: never need these metrics |
+| Collection (`ACTOR_METRICS_MODULE_*_ENABLED`) | Runtime (application ready) | Minimal (instrumented but no recording) | Temporarily disable for debugging |
 
 **Available Module IDs:**
 - `actor-lifecycle` - Lifecycle metrics (created, terminated, active)

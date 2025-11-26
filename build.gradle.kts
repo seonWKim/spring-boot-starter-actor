@@ -25,7 +25,6 @@ subprojects {
     apply(plugin = "java")
     apply(plugin = "java-library")
     apply(plugin = "com.diffplug.spotless")
-    apply(plugin = "com.vanniktech.maven.publish")
 
     // Only apply error-prone to core modules, not examples
     if (!project.path.startsWith(":example")) {
@@ -36,45 +35,54 @@ subprojects {
         mavenCentral()
     }
 
-    mavenPublishing {
-        val isBoot3 = project.name.endsWith("boot3")
-        coordinates(
-            groupId = project.findProperty("group") as String,
-            artifactId = (if (isBoot3) project.findProperty("artifactId-boot3") else project.findProperty("artifactId")) as String,
-            version = project.findProperty("version") as String
-        )
+    // Only configure Maven publishing for modules that have properties defined
+    // (i.e., not example modules)
+    val artifactIdKey = "artifactId.${project.name}"
+    if (project.findProperty(artifactIdKey) != null) {
+        apply(plugin = "com.vanniktech.maven.publish")
 
-        pom {
-            packaging = "jar"
-            name.set(project.findProperty("pomName") as String)
-            description.set(project.findProperty("pomDescription") as String)
-            url.set(project.findProperty("pomUrl") as String)
-            inceptionYear.set("2025")
+        mavenPublishing {
+            val pomNameKey = "pomName.${project.name}"
+            val pomDescriptionKey = "pomDescription.${project.name}"
 
-            licenses {
-                license {
-                    name.set("The Apache License, Version 2.0")
-                    url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
-                }
-            }
+            coordinates(
+                groupId = project.findProperty("group") as String,
+                artifactId = project.findProperty(artifactIdKey) as String,
+                version = project.findProperty("version") as String
+            )
 
-            developers {
-                developer {
-                    id.set(project.findProperty("pomDeveloperId") as String)
-                    name.set(project.findProperty("pomDeveloperName") as String)
-                    email.set(project.findProperty("pomDeveloperEmail") as String)
-                }
-            }
-
-            scm {
-                connection.set("scm:git:git://github.com/seonwkim/spring-boot-starter-actor.git")
-                developerConnection.set("scm:git:ssh://github.com/seonwkim/spring-boot-starter-actor.git")
+            pom {
+                packaging = "jar"
+                name.set(project.findProperty(pomNameKey) as String)
+                description.set(project.findProperty(pomDescriptionKey) as String)
                 url.set(project.findProperty("pomUrl") as String)
-            }
-        }
+                inceptionYear.set("2025")
 
-        publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
-        signAllPublications()
+                licenses {
+                    license {
+                        name.set("The Apache License, Version 2.0")
+                        url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
+                    }
+                }
+
+                developers {
+                    developer {
+                        id.set(project.findProperty("pomDeveloperId") as String)
+                        name.set(project.findProperty("pomDeveloperName") as String)
+                        email.set(project.findProperty("pomDeveloperEmail") as String)
+                    }
+                }
+
+                scm {
+                    connection.set("scm:git:git://github.com/seonwkim/spring-boot-starter-actor.git")
+                    developerConnection.set("scm:git:ssh://github.com/seonwkim/spring-boot-starter-actor.git")
+                    url.set(project.findProperty("pomUrl") as String)
+                }
+            }
+
+            publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
+            signAllPublications()
+        }
     }
 
     val pekkoVersion: String by project
@@ -200,8 +208,8 @@ subprojects {
         }
     }
 
-    // Apply NullAway only to :core, :core-boot3, and :metrics subprojects
-    if (project.name == "core" || project.name == "core-boot3" || project.name == "metrics") {
+    // Apply NullAway only to :core, :core-boot3, :metrics, and :metrics-micrometer subprojects
+    if (project.name == "core" || project.name == "core-boot3" || project.name == "metrics" || project.name == "metrics-micrometer") {
         tasks.withType<JavaCompile> {
             options.errorprone {
                 // Let's select which checks to perform. NullAway is enough for now.

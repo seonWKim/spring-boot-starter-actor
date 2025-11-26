@@ -1,7 +1,5 @@
 package io.github.seonwkim.core.fixture;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import io.github.seonwkim.core.AskCommand;
 import io.github.seonwkim.core.serialization.JsonSerializable;
 import io.github.seonwkim.core.shard.DefaultShardingMessageExtractor;

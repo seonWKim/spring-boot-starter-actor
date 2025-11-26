@@ -124,22 +124,18 @@ public final class ActorSpawner {
             SingletonActor<?> singletonActor = SingletonActor.of(behavior, actorName);
 
             // Build Props with dispatcher, mailbox, and tags
-            Props props = buildProps(dispatcherConfig, mailboxConfig, tagsConfig);
+            Props props = buildProps(actorClass, dispatcherConfig, mailboxConfig, tagsConfig);
             if (props != Props.empty()) {
                 singletonActor = singletonActor.withProps(props);
             }
 
             ref = clusterSingleton.init(singletonActor);
         } else {
-            // Build Props with dispatcher, mailbox, and tags
-            Props props = buildProps(dispatcherConfig, mailboxConfig, tagsConfig);
+            // Build Props with dispatcher, mailbox, and tags (including automatic actor.class tag)
+            Props props = buildProps(actorClass, dispatcherConfig, mailboxConfig, tagsConfig);
 
-            if (props != Props.empty()) {
-                ref = ctx.spawn(behavior, actorName, props);
-            } else {
-                // If no props needed, use mailbox selector (more efficient)
-                ref = ctx.spawn(behavior, actorName, mailboxConfig.toMailboxSelector());
-            }
+            // Always use props now because we add the actor.class tag
+            ref = ctx.spawn(behavior, actorName, props);
         }
 
         @SuppressWarnings("unchecked")
@@ -154,13 +150,17 @@ public final class ActorSpawner {
      * <p>Props are combined using the {@code withNext()} method, allowing multiple
      * configurations to be applied together (e.g., dispatcher + mailbox + tags).
      *
+     * @param actorClass The actor class (unused, kept for API consistency)
      * @param dispatcherConfig The dispatcher configuration
      * @param mailboxConfig The mailbox configuration
      * @param tagsConfig The tags configuration
      * @return Combined Props or Props.empty()
      */
     private static Props buildProps(
-            DispatcherConfig dispatcherConfig, MailboxConfig mailboxConfig, TagsConfig tagsConfig) {
+            Class<?> actorClass,
+            DispatcherConfig dispatcherConfig,
+            MailboxConfig mailboxConfig,
+            TagsConfig tagsConfig) {
 
         // Start with either dispatcher props or empty props
         Props props = dispatcherConfig.shouldUseProps() ? dispatcherConfig.toProps() : Props.empty();

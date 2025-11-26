@@ -1,6 +1,5 @@
 package io.github.seonwkim.example.counter;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
 import io.github.seonwkim.core.AskCommand;
 import io.github.seonwkim.core.serialization.JsonSerializable;
 import io.github.seonwkim.core.shard.SpringShardedActor;
