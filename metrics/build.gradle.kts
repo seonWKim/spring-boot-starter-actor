@@ -42,6 +42,7 @@ dependencies {
 
 // Create a fat JAR with all dependencies
 tasks.register<Jar>("agentJar") {
+    archiveBaseName.set("spring-boot-starter-actor-metrics")
     archiveClassifier.set("agent")
 
     manifest {

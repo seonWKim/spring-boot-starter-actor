@@ -288,19 +288,13 @@ jobs:
 
             ### Metrics Agent
 
-            Download the agent JAR below and run your application with:
+            Download the `spring-boot-starter-actor-metrics-${{ needs.bump-version.outputs.version }}-agent.jar` file below and run your application with:
 
             ```bash
             java -javaagent:spring-boot-starter-actor-metrics-${{ needs.bump-version.outputs.version }}-agent.jar -jar your-app.jar
             ```
 
-            Or use the Gradle task:
-
-            ```bash
-            ./gradlew downloadMetricsAgent
-            ```
-
-            See [Metrics Documentation](https://github.com/seonwkim/spring-boot-starter-actor/blob/main/metrics/README.md) for more details.
+            See [Metrics Documentation](https://github.com/seonwkim/spring-boot-starter-actor/blob/main/metrics/README.md) for detailed setup instructions.
           files: |
             ${{ env.AGENT_JAR_PATH }}
           draft: false
