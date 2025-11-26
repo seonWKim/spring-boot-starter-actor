@@ -26,15 +26,58 @@ dependencies {
 }
 ```
 
-### 2. Run with Agent
+### 2. Download the Agent JAR
+
+**Option A: Download from GitHub Releases (Recommended)**
 
 ```bash
-java -javaagent:metrics-{version}-agent.jar -jar your-app.jar
+# Download the latest agent JAR from GitHub releases
+./gradlew downloadMetricsAgent
+
+# Or download manually:
+# https://github.com/seonwkim/spring-boot-starter-actor/releases/latest
+```
+
+**Option B: Use from Maven Local (For Development)**
+
+```bash
+# Build and install to Maven local repository
+./gradlew :metrics:agentJar :metrics:publishToMavenLocal
+```
+
+The agent JAR will be available at:
+- **GitHub download**: `./build/agent/spring-boot-starter-actor-metrics-{version}-agent.jar`
+- **Maven local**: `~/.m2/repository/io/github/seonwkim/spring-boot-starter-actor-metrics/{version}/spring-boot-starter-actor-metrics-{version}-agent.jar`
+
+### 3. Run with Agent
+
+**For development with Gradle:**
+
+```bash
+# Option 1: Configure JVM args in build.gradle.kts
+tasks.named<org.springframework.boot.gradle.tasks.run.BootRun>("bootRun") {
+    jvmArgs = listOf("-javaagent:build/agent/spring-boot-starter-actor-metrics-{version}-agent.jar")
+}
+
+./gradlew bootRun
+
+# Option 2: Pass as command line argument
+./gradlew bootRun -Dagent.path=build/agent/spring-boot-starter-actor-metrics-{version}-agent.jar
+```
+
+**For production with java -jar:**
+
+```bash
+# Build the JAR
+./gradlew bootJar
+
+# Run with agent
+java -javaagent:build/agent/spring-boot-starter-actor-metrics-{version}-agent.jar -jar build/libs/your-app.jar
 ```
 
 > **Important:** You need **BOTH** the agent (for instrumentation) AND the dependency (for metrics collection).
 
-### 3. Configure Spring Bean
+### 4. Configure Spring Bean
 
 ```java
 @Configuration

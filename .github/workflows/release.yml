@@ -239,3 +239,71 @@ jobs:
           ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_SECRET_KEY }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
+
+  create-github-release:
+    runs-on: ubuntu-latest
+    needs: [prepare, publish-core, publish-boot3, publish-metrics]
+    if: always()
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ needs.prepare.outputs.tag }}
+
+      - name: ☕ Set up Java 17
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: 17
+          cache: gradle
+
+      - name: 📦 Build metrics agent JAR
+        run: |
+          echo "🔨 Building metrics agent JAR..."
+          ./gradlew :metrics:agentJar
+
+          # Find the agent JAR
+          AGENT_JAR=$(find metrics/build/libs -name "*-agent.jar" | head -n 1)
+          echo "✅ Agent JAR built: $AGENT_JAR"
+          echo "AGENT_JAR_PATH=$AGENT_JAR" >> $GITHUB_ENV
+
+      - name: 📝 Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ needs.prepare.outputs.tag }}
+          name: Release ${{ needs.prepare.outputs.tag }}
+          body: |
+            ## Spring Boot Starter Actor ${{ needs.prepare.outputs.tag }}
+
+            ### Maven Dependency
+
+            ```gradle
+            dependencies {
+                implementation 'io.github.seonwkim:spring-boot-starter-actor:${{ needs.bump-version.outputs.version }}'
+                implementation 'io.github.seonwkim:spring-boot-starter-actor-metrics:${{ needs.bump-version.outputs.version }}'
+            }
+            ```
+
+            ### Metrics Agent
+
+            Download the agent JAR below and run your application with:
+
+            ```bash
+            java -javaagent:spring-boot-starter-actor-metrics-${{ needs.bump-version.outputs.version }}-agent.jar -jar your-app.jar
+            ```
+
+            Or use the Gradle task:
+
+            ```bash
+            ./gradlew downloadMetricsAgent
+            ```
+
+            See [Metrics Documentation](https://github.com/seonwkim/spring-boot-starter-actor/blob/main/metrics/README.md) for more details.
+          files: |
+            ${{ env.AGENT_JAR_PATH }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
