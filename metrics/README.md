@@ -28,17 +28,13 @@ dependencies {
 
 ### 2. Download the Agent JAR
 
-**Option A: Download from GitHub Releases (Recommended)**
+Download the agent JAR from GitHub releases:
 
-```bash
-# Download the latest agent JAR from GitHub releases
-./gradlew downloadMetricsAgent
+**Manual download:**
+- Go to [GitHub Releases](https://github.com/seonwkim/spring-boot-starter-actor/releases/latest)
+- Download `spring-boot-starter-actor-metrics-{version}-agent.jar`
 
-# Or download manually:
-# https://github.com/seonwkim/spring-boot-starter-actor/releases/latest
-```
-
-**Option B: Use from Maven Local (For Development)**
+**Or build locally for development:**
 
 ```bash
 # Build and install to Maven local repository
@@ -46,7 +42,7 @@ dependencies {
 ```
 
 The agent JAR will be available at:
-- **GitHub download**: `./build/agent/spring-boot-starter-actor-metrics-{version}-agent.jar`
+- **GitHub release**: `spring-boot-starter-actor-metrics-{version}-agent.jar`
 - **Maven local**: `~/.m2/repository/io/github/seonwkim/spring-boot-starter-actor-metrics/{version}/spring-boot-starter-actor-metrics-{version}-agent.jar`
 
 ### 3. Run with Agent
