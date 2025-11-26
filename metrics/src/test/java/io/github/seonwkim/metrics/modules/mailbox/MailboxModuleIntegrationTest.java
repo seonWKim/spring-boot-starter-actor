@@ -150,7 +150,9 @@ class MailboxModuleIntegrationTest {
 
         // Should have gauge registered for 2 different actor classes
         int gaugeCount = metricsBackend.gaugeCount();
-        assertTrue(gaugeCount >= 2, String.format("Should have at least 2 mailbox gauges (one per actor class), got: %d", gaugeCount));
+        assertTrue(
+                gaugeCount >= 2,
+                String.format("Should have at least 2 mailbox gauges (one per actor class), got: %d", gaugeCount));
     }
 
     @Test

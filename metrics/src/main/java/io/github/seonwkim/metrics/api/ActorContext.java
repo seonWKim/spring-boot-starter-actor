@@ -1,9 +1,7 @@
 package io.github.seonwkim.metrics.api;
 
-import org.apache.pekko.actor.Actor;
-import org.apache.pekko.actor.ActorCell;
-
 import java.util.Objects;
+import org.apache.pekko.actor.ActorCell;
 
 /**
  * Represents the context of an actor for filtering and tagging purposes.

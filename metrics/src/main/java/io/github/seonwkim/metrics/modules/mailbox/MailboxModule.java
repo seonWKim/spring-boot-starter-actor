@@ -229,7 +229,8 @@ public class MailboxModule implements InstrumentationModule {
                     }
 
                     // Use low cardinality tags: actor.class and message.type
-                    Tags tags = context.toTags().and("message.type", messageType).and(reg.getGlobalTags());
+                    Tags tags =
+                            context.toTags().and("message.type", messageType).and(reg.getGlobalTags());
 
                     Timer mailboxTimer = reg.getBackend().timer(METRIC_MAILBOX_TIME, tags);
                     mailboxTimer.record(mailboxTimeNanos, TimeUnit.NANOSECONDS);

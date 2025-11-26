@@ -1,8 +1,5 @@
 package io.github.seonwkim.example.config;
 
-import io.github.seonwkim.metrics.core.MetricsConfiguration.FilterConfig;
-import io.github.seonwkim.metrics.core.MetricsConfiguration.ModuleConfig;
-import io.github.seonwkim.metrics.core.MetricsConfiguration.SamplingConfig;
 import io.github.seonwkim.metrics.core.MetricsRegistry;
 import io.github.seonwkim.metrics.micrometer.MicrometerMetricsRegistryBuilder;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -76,7 +73,8 @@ public class ActorMetricsConfiguration {
         // ==================== APPROACH 1: Environment Variables (Recommended) ====================
         // Reads all configuration from environment variables.
         // Set ACTOR_METRICS_TAG_APPLICATION, ACTOR_METRICS_SAMPLING_RATE, etc.
-        MetricsRegistry registry = MicrometerMetricsRegistryBuilder.fromEnvironment(meterRegistry).build();
+        MetricsRegistry registry =
+                MicrometerMetricsRegistryBuilder.fromEnvironment(meterRegistry).build();
 
         // ==================== APPROACH 2: Programmatic Configuration ====================
         // Override or supplement environment variables with programmatic configuration.
@@ -122,8 +120,7 @@ public class ActorMetricsConfiguration {
         */
 
         logger.info(
-                "[ActorMetrics] Metrics configured successfully. "
-                        + "Registered {} modules, backend: {}",
+                "[ActorMetrics] Metrics configured successfully. " + "Registered {} modules, backend: {}",
                 registry.getModules().size(),
                 registry.getBackend().getBackendType());
     }

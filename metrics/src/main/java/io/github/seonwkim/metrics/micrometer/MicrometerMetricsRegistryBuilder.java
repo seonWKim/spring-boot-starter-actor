@@ -79,7 +79,8 @@ public class MicrometerMetricsRegistryBuilder {
         // Global tags - scan all env vars starting with METRICS_TAG_
         System.getenv().forEach((key, value) -> {
             if (key.startsWith(ENV_TAG_PREFIX)) {
-                String tagName = key.substring(ENV_TAG_PREFIX.length()).toLowerCase().replace('_', '.');
+                String tagName =
+                        key.substring(ENV_TAG_PREFIX.length()).toLowerCase().replace('_', '.');
                 configBuilder.tag(tagName, value);
                 logger.info("[MicrometerMetrics] Added tag from env: {}={}", tagName, value);
             }
@@ -169,10 +170,8 @@ public class MicrometerMetricsRegistryBuilder {
         MetricsConfiguration config = configBuilder.build();
 
         // Create registry
-        MetricsRegistry registry = MetricsRegistry.builder()
-                .configuration(config)
-                .backend(backend)
-                .build();
+        MetricsRegistry registry =
+                MetricsRegistry.builder().configuration(config).backend(backend).build();
 
         // Auto-discover and register modules via ServiceLoader
         ServiceLoader<InstrumentationModule> moduleLoader = ServiceLoader.load(InstrumentationModule.class);
@@ -187,8 +186,7 @@ public class MicrometerMetricsRegistryBuilder {
         MetricsAgent.setRegistry(registry);
 
         logger.info(
-                "[MicrometerMetrics] MetricsRegistry configured successfully. "
-                        + "Registered {} modules, backend: {}",
+                "[MicrometerMetrics] MetricsRegistry configured successfully. " + "Registered {} modules, backend: {}",
                 moduleCount,
                 backend.getBackendType());
 
@@ -198,8 +196,7 @@ public class MicrometerMetricsRegistryBuilder {
     /**
      * Get environment variable or system property (returns null if not found).
      */
-    @Nullable
-    private String getEnvOrNull(String key) {
+    @Nullable private String getEnvOrNull(String key) {
         String value = System.getenv(key);
         if (value == null) {
             value = System.getProperty(key);

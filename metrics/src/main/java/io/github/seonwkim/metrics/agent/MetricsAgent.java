@@ -51,7 +51,8 @@ public class MetricsAgent {
 
         // Check global enabled flag first
         if (!isMetricsEnabled()) {
-            logger.info("[MetricsAgent] Metrics disabled via ACTOR_METRICS_ENABLED=false. Skipping all instrumentation.");
+            logger.info(
+                    "[MetricsAgent] Metrics disabled via ACTOR_METRICS_ENABLED=false. Skipping all instrumentation.");
             return;
         }
 
@@ -70,7 +71,8 @@ public class MetricsAgent {
             for (InstrumentationModule module : moduleLoader) {
                 // Check if this module should be instrumented
                 if (!shouldInstrumentModule(module.moduleId())) {
-                    logger.info("[MetricsAgent] Skipping instrumentation for module: {} (disabled via environment)",
+                    logger.info(
+                            "[MetricsAgent] Skipping instrumentation for module: {} (disabled via environment)",
                             module.moduleId());
                     skippedCount++;
                     continue;
@@ -89,8 +91,10 @@ public class MetricsAgent {
 
             agentBuilder.installOn(instrumentation);
 
-            logger.info("[MetricsAgent] Metrics agent installed successfully. Instrumented {} modules, skipped {}.",
-                    instrumentedCount, skippedCount);
+            logger.info(
+                    "[MetricsAgent] Metrics agent installed successfully. Instrumented {} modules, skipped {}.",
+                    instrumentedCount,
+                    skippedCount);
             logger.info("[MetricsAgent] Waiting for application to set MetricsRegistry via setRegistry()...");
 
         } catch (Exception e) {
@@ -158,8 +162,7 @@ public class MetricsAgent {
      * Returns null until the application calls setRegistry().
      * Instrumented code checks this before recording metrics.
      */
-    @Nullable
-    public static MetricsRegistry getRegistry() {
+    @Nullable public static MetricsRegistry getRegistry() {
         return registry;
     }
 

@@ -309,9 +309,7 @@ class ActorLifecycleModuleIntegrationTest {
 
         } finally {
             typedSystem.terminate();
-            Await.result(
-                    typedSystem.whenTerminated(),
-                    scala.concurrent.duration.Duration.apply(5, TimeUnit.SECONDS));
+            Await.result(typedSystem.whenTerminated(), scala.concurrent.duration.Duration.apply(5, TimeUnit.SECONDS));
         }
     }
 
