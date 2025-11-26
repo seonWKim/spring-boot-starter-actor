@@ -88,10 +88,13 @@ subprojects {
     val pekkoVersion: String by project
 
     dependencies {
-        implementation("org.apache.pekko:pekko-actor-typed_3:${pekkoVersion}")
-        implementation("org.apache.pekko:pekko-cluster-typed_3:${pekkoVersion}")
-        implementation("org.apache.pekko:pekko-cluster-sharding-typed_3:${pekkoVersion}")
-        implementation("org.apache.pekko:pekko-serialization-jackson_3:${pekkoVersion}")
+        // Only add Pekko dependencies to non-metrics modules
+        if (!project.path.startsWith(":metrics")) {
+            implementation("org.apache.pekko:pekko-actor-typed_3:${pekkoVersion}")
+            implementation("org.apache.pekko:pekko-cluster-typed_3:${pekkoVersion}")
+            implementation("org.apache.pekko:pekko-cluster-sharding-typed_3:${pekkoVersion}")
+            implementation("org.apache.pekko:pekko-serialization-jackson_3:${pekkoVersion}")
+        }
         implementation("com.google.code.findbugs:jsr305:3.0.2")
 
         // Only add error-prone dependencies for non-example projects
@@ -100,7 +103,10 @@ subprojects {
             errorprone("com.google.errorprone:error_prone_core:2.10.0")
         }
 
-        testImplementation("org.apache.pekko:pekko-actor-testkit-typed_3:$pekkoVersion")
+        // Only add Pekko testkit to non-metrics modules
+        if (!project.path.startsWith(":metrics")) {
+            testImplementation("org.apache.pekko:pekko-actor-testkit-typed_3:$pekkoVersion")
+        }
         testImplementation("org.awaitility:awaitility:4.3.0")
     }
 
@@ -208,8 +214,8 @@ subprojects {
         }
     }
 
-    // Apply NullAway only to :core, :core-boot3, :metrics, and :metrics-micrometer subprojects
-    if (project.name == "core" || project.name == "core-boot3" || project.name == "metrics" || project.name == "metrics-micrometer") {
+    // Apply NullAway only to :core, :core-boot3, and :metrics subprojects
+    if (project.name == "core" || project.name == "core-boot3" || project.name == "metrics") {
         tasks.withType<JavaCompile> {
             options.errorprone {
                 // Let's select which checks to perform. NullAway is enough for now.

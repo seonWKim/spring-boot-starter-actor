@@ -9,6 +9,7 @@ java {
 }
 
 val bytebuddyVersion: String by project
+val pekkoVersion: String by project
 
 dependencies {
     implementation("net.bytebuddy:byte-buddy:${bytebuddyVersion}")
@@ -17,13 +18,17 @@ dependencies {
 
     compileOnly("com.google.code.findbugs:jsr305:3.0.2")
 
+    // Pekko for compilation only (instrumentation needs Pekko classes)
+    // Users bring their own Pekko at runtime
+    compileOnly("org.apache.pekko:pekko-actor-typed_3:${pekkoVersion}")
+
     // Micrometer support (optional - users bring their own registry)
     compileOnly("io.micrometer:micrometer-core:1.11.0")
 
-    testImplementation("org.apache.pekko:pekko-actor-typed_3")
-    testImplementation("org.apache.pekko:pekko-cluster-typed_3")
-    testImplementation("org.apache.pekko:pekko-cluster-sharding-typed_3")
-    testImplementation("org.apache.pekko:pekko-serialization-jackson_3")
+    testImplementation("org.apache.pekko:pekko-actor-typed_3:${pekkoVersion}")
+    testImplementation("org.apache.pekko:pekko-cluster-typed_3:${pekkoVersion}")
+    testImplementation("org.apache.pekko:pekko-cluster-sharding-typed_3:${pekkoVersion}")
+    testImplementation("org.apache.pekko:pekko-serialization-jackson_3:${pekkoVersion}")
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.10.2")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.10.2")
