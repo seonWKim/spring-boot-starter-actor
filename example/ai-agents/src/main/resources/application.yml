@@ -1,0 +1,67 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: ai-agents-example
+  actor:
+    pekko:
+      actor:
+        provider: local  # Use 'cluster' for distributed deployment
+
+# AI Configuration
+app:
+  ai:
+    # OpenAI Configuration
+    # Set OPENAI_API_KEY environment variable or replace 'not-set' with your API key
+    openai:
+      api-key: ${OPENAI_API_KEY:not-set}
+      base-url: https://api.openai.com/v1
+      model: gpt-3.5-turbo
+      temperature: 0.7
+      max-tokens: 500
+      timeout: 30s
+
+    # Rate Limiting by User Tier
+    rate-limit:
+      free:
+        requests-per-minute: 5      # 5 requests per minute
+        burst-capacity: 2            # Allow 2 burst requests
+        daily-limit: 50              # 50 requests per day
+      premium:
+        requests-per-minute: 20     # 20 requests per minute
+        burst-capacity: 5            # Allow 5 burst requests
+        daily-limit: 500             # 500 requests per day
+      enterprise:
+        requests-per-minute: 100    # 100 requests per minute
+        burst-capacity: 20           # Allow 20 burst requests
+        daily-limit: -1              # Unlimited (-1 disables daily limit)
+
+    # Agent Configuration
+    agents:
+      classifier:
+        pool-size: 5
+        timeout: 10s
+      sentiment:
+        pool-size: 3
+        timeout: 5s
+      faq:
+        pool-size: 10
+        timeout: 15s
+      escalation:
+        pool-size: 2
+        timeout: 10s
+
+    # Fallback Messages
+    fallback:
+      rate-limit-message: "⚠️ Rate limit exceeded. Please try again in a moment."
+      error-message: "Sorry, I'm having trouble processing your request. Please try again."
+      escalation-message: "I'm transferring you to a human agent who can better assist you."
+
+# Logging
+logging:
+  level:
+    root: INFO
+    io.github.seonwkim.example.ai: DEBUG
+    io.github.seonwkim.core: INFO
+    org.apache.pekko: WARN
