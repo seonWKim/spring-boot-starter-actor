@@ -165,6 +165,9 @@ public class UserActor implements SpringActorWithContext<UserActor.Command, User
                 json.append(",\"roomId\":\"").append(escapeJson(currentRoomId)).append("\"");
             });
 
+            // TODO: how can we send SpringActorRef across the clusters?
+            // currently we have schedulers as field under the ref, that's why it's hard to send it across the cluster
+            // because we now have to serde scheduler which isn't possible(and shouldn't be)
             roomActor.tell(
                     new ChatRoomActor.JoinRoom(userId, context.getUnderlying().getSelf()));
             return Behaviors.same();
