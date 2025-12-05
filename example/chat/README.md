@@ -2,64 +2,48 @@
 
 This is a sample chat application built with Spring Boot and Pekko (a fork of Akka) for actor-based programming. It demonstrates how to use the Spring Boot Starter Actor library to build a reactive, clustered application.
 
-## Architecture 
+## Architecture
 
 ```mermaid
-graph TD
-    subgraph "Cluster"
-        subgraph "Node 1"
-            WSH1[ChatWebSocketHandler]
-            UA1_1[UserActor]
-        end
-
-        subgraph "Node 2"
-            WSH2[ChatWebSocketHandler]
-            UA2_1[UserActor]
-        end
-
-        subgraph "Node 3"
-            WSH3[ChatWebSocketHandler]
-            UA3_1[UserActor]
-        end
-
-        CRA[ChatRoomActor]
+graph TB
+    subgraph "Node 1"
+        U1[UserActor 1]
+        CR[ChatRoomActor<br/>📋 Manages Topic]
     end
 
-    %% Relationships
-    WS1 <-->|"1:1"| WSH1
-    WS2 <-->|"1:1"| WSH2
-    WS3 <-->|"1:1"| WSH3
+    subgraph "Node 2"
+        U2[UserActor 2]
+    end
 
-    WSH1 -->|"creates 1:1"| UA1_1
-    WSH2 -->|"creates 1:1"| UA2_1
-    WSH3 -->|"creates 1:1"| UA3_1
+    subgraph "Node 3"
+        U3[UserActor 3]
+    end
 
-    UA1_1 -->|"N:1"| CRA
-    UA2_1 -->|"N:1"| CRA
-    UA3_1 -->|"N:1"| CRA
+    WS1[🔌 WebSocket] --> U1
+    WS2[🔌 WebSocket] --> U2
+    WS3[🔌 WebSocket] --> U3
 
-    %% Styling
-    classDef local fill:#f9f,stroke:#333,stroke-width:2px;
-    classDef cluster fill:#bbf,stroke:#333,stroke-width:2px;
-    class UA1_1,UA1_2,UA2_1,UA2_2,UA3_1,UA3_2 local;
-    class CRA cluster;
+    U1 -.->|subscribe| CR
+    U2 -.->|subscribe| CR
+    U3 -.->|subscribe| CR
+
+    U1 -->|send message| CR
+    CR -->|broadcasted to topic| U1
+    CR -->|broadcasted to topic| U2
+    CR -->|broadcasted to topic| U3
+
+    style CR fill:#8B5CF6,stroke:#7C3AED,color:#fff
+    style U1 fill:#06B6D4,stroke:#0891B2,color:#fff
+    style U2 fill:#06B6D4,stroke:#0891B2,color:#fff
+    style U3 fill:#06B6D4,stroke:#0891B2,color:#fff
 ```
 
 ## Features
 
-### Backend
 - Real-time chat using WebSockets
 - Clustered architecture using Pekko
 - Actor-based message handling
 - Metrics collection and export
-
-### Frontend (React)
-- Modern React 19 + TypeScript + Vite
-- Tailwind CSS + shadcn/ui components
-- Real-time WebSocket communication
-- Online user presence tracking
-- Connection status indicator
-- Responsive, accessible design
 
 ## Running Locally
 

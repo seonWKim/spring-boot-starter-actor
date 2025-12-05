@@ -30,6 +30,42 @@ I'm a Java developer, and I love using the actor model. However, Spring is every
 
 With spring-boot-starter-actor, you can build stateful distributed systems without third-party middleware (e.g., Redis, Kafka).
 
+**Architecture** 
+
+```mermaid
+graph TB
+    subgraph "Node 1"
+        U1[UserActor 1]
+        CR[ChatRoomActor<br/>📋 Manages Topic]
+    end
+
+    subgraph "Node 2"
+        U2[UserActor 2]
+    end
+
+    subgraph "Node 3"
+        U3[UserActor 3]
+    end
+
+    WS1[🔌 WebSocket] --> U1
+    WS2[🔌 WebSocket] --> U2
+    WS3[🔌 WebSocket] --> U3
+
+    U1 -.->|subscribe| CR
+    U2 -.->|subscribe| CR
+    U3 -.->|subscribe| CR
+
+    U1 -->|send message| CR
+    CR -->|broadcasted to topic| U1
+    CR -->|broadcasted to topic| U2
+    CR -->|broadcasted to topic| U3
+
+    style CR fill:#8B5CF6,stroke:#7C3AED,color:#fff
+    style U1 fill:#06B6D4,stroke:#0891B2,color:#fff
+    style U2 fill:#06B6D4,stroke:#0891B2,color:#fff
+    style U3 fill:#06B6D4,stroke:#0891B2,color:#fff
+```
+
 ## Quick Start
 
 ### Prerequisites
