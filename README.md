@@ -15,22 +15,20 @@
 
 ## Why spring-boot-starter-actor?
 
-I'm a Java dev and I love using the actor model. But Spring is everywhere in production. The goal of this project is to
-help projects using Spring Boot to easily use actor models with great developer experience.
+I'm a Java developer, and I love using the actor model. However, Spring is everywhere in production. The goal of this project is to help Spring Boot projects easily integrate actor models with a great developer experience.
 
 **Key Features:**
 
-- Auto configure necessary actor components(e.g. ActorSystem) under Spring Boot's context
-- Dependency injection for actor
+- Auto-configure necessary actor components (e.g., ActorSystem) within Spring Boot's context
+- Dependency injection for actors
 - Simplify cluster and sharding
-- Built-in metrics using bytebuddy to intercept actors and collect metrics
+- Built-in metrics using ByteBuddy to intercept actors and collect metrics
 
 <div style="border: 2px solid #ccc; display: inline-block; border-radius: 8px; overflow: hidden; margin: 20px 0;">
   <img src="mkdocs/docs/chat.gif" alt="Live Demo - Distributed Chat Application"/>
 </div>
 
-With spring-boot-starter-actor, you can build stateful distributed systems without 3rd party middleware(e.g. redis,
-kafka)
+With spring-boot-starter-actor, you can build stateful distributed systems without third-party middleware (e.g., Redis, Kafka).
 
 ## Quick Start
 
@@ -207,9 +205,7 @@ CompletionStage<Boolean> exists = actorSystem
 **Stop an Actor:**
 
 ```java
-actorRef.thenAccept(actor ->actor.
-
-stop());
+actorRef.thenAccept(actor -> actor.stop());
 ```
 
 ### Communication Patterns
@@ -403,39 +399,23 @@ Build self-healing systems with supervision strategies:
 SupervisorStrategy.restart()
 
 // Restart with limit (e.g., 3 times within 1 minute)
-SupervisorStrategy.
-
-restart().
-
-withLimit(3,Duration.ofMinutes(1))
+SupervisorStrategy.restart().withLimit(3, Duration.ofMinutes(1))
 
 // Stop on failure
-        SupervisorStrategy.
-
-stop()
+SupervisorStrategy.stop()
 
 // Resume and ignore failure
-SupervisorStrategy.
-
-resume()
+SupervisorStrategy.resume()
 ```
 
 **Spawn Actors with Supervision:**
 
 ```java
 // Top-level actor
-actorSystem.actor(WorkerActor .class)
-    .
-
-withId("worker-1")
-    .
-
-withSupervisionStrategy(SupervisorStrategy.restart().
-
-withLimit(3,Duration.ofMinutes(1)))
-        .
-
-spawn();
+actorSystem.actor(WorkerActor.class)
+    .withId("worker-1")
+    .withSupervisionStrategy(SupervisorStrategy.restart().withLimit(3, Duration.ofMinutes(1)))
+    .spawn();
 ```
 
 **Spawn Child Actors with Supervision:**
