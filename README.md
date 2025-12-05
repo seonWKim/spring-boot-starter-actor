@@ -469,14 +469,6 @@ CompletionStage<SpringActorRef<Command>> childRef = parentRef
         .getOrSpawn();
 ```
 
-**Interactive Demo:**
-
-<div style="border: 2px solid #ccc; display: inline-block; border-radius: 8px; overflow: hidden; margin: 20px 0;">
-  <img src="mkdocs/docs/supervision.png" alt="Supervision Interactive Demo - Actor Hierarchy Visualization"/>
-</div>
-
-Learn more in the [Supervision Guide](https://seonwkim.github.io/spring-boot-starter-actor/examples/supervision/).
-
 ## Running Examples
 
 ### Chat Application (Distributed)
@@ -497,17 +489,7 @@ $ sh cluster-stop.sh
 
 ## Monitoring
 
-Built-in Prometheus metrics and Grafana dashboards:
-
-```bash
-cd scripts/monitoring
-docker-compose up -d
-```
-
-Access:
-
-- **Prometheus**: http://localhost:9090
-- **Grafana**: http://localhost:3000 (admin/admin)
+WIP
 
 ## Documentation
 
