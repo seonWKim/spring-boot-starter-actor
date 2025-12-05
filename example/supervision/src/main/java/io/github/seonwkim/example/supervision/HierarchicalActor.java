@@ -1,6 +1,7 @@
 package io.github.seonwkim.example.supervision;
 
 import io.github.seonwkim.core.AskCommand;
+import io.github.seonwkim.core.FrameworkCommand;
 import org.apache.pekko.actor.typed.ActorRef;
 
 /**
@@ -8,7 +9,7 @@ import org.apache.pekko.actor.typed.ActorRef;
  */
 public class HierarchicalActor {
 
-    public interface Command {}
+    public interface Command extends FrameworkCommand {}
 
     // Work processing commands (only for workers)
     public static class ProcessWork implements Command {

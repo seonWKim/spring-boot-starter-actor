@@ -1,7 +1,7 @@
 package io.github.seonwkim.example.supervision;
 
-import io.github.seonwkim.core.ActorTypeRegistry;
 import io.github.seonwkim.core.SpringActorContext;
+import io.github.seonwkim.core.SpringActorRef;
 import io.github.seonwkim.core.SpringBehaviorContext;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -76,15 +76,6 @@ public class HierarchicalActorBehavior<C> {
     protected Behavior<C> onSpawnChild(HierarchicalActor.SpawnChild msg) {
         String actorId = actorContext.actorId();
 
-        // Check if child already exists
-        Optional<ActorRef<Void>> existing = ctx.getChild(msg.childId);
-        if (existing.isPresent()) {
-            ctx.getLog().warn("Child {} already exists under {}", msg.childId, actorId);
-            logPublisher.publish(String.format("[%s] ⚠️ Child '%s' already exists", actorId, msg.childId));
-            msg.reply(new ActorHierarchy.SpawnResult(msg.childId, false, "Child already exists"));
-            return Behaviors.same();
-        }
-
         // Parse supervision strategy
         SupervisorStrategy strategy;
         String strategyDescription;
@@ -108,7 +99,7 @@ public class HierarchicalActorBehavior<C> {
                 break;
         }
 
-        // Spawn the child worker
+        // Log spawn attempt
         ctx.getLog()
                 .info(
                         "{} {} spawning child {} with strategy: {}",
@@ -119,27 +110,67 @@ public class HierarchicalActorBehavior<C> {
         logPublisher.publish(String.format(
                 "[%s] 🚀 Spawning child '%s' with strategy: %s", actorId, msg.childId, strategyDescription));
 
-        // Create child context
-        SpringActorContext childContext = new SpringActorContext() {
-            @Override
-            public String actorId() {
-                return msg.childId;
-            }
-        };
+        // Use spring-boot-starter-actor API to spawn child
+        SpringActorRef<C> self = ctx.getSelf();
 
-        // Create behavior using static registry and apply supervision
-        Behavior<C> childBehavior = (Behavior<C>)
-                ActorTypeRegistry.createBehavior(childActorClass, childContext).asBehavior();
-        Behavior<C> supervisedBehavior = Behaviors.supervise(childBehavior).onFailure(strategy);
+        ctx.getUnderlying().pipeToSelf(
+                self.child((Class) childActorClass)
+                        .withId(msg.childId)
+                        .withSupervisionStrategy(strategy)
+                        .spawn(),
+                (childRef, failure) -> (C) new ChildSpawnResult(
+                        msg, strategyDescription, (SpringActorRef<?>) childRef, failure));
 
-        // Spawn the child
-        ctx.spawn(supervisedBehavior, msg.childId);
-
-        // Track the child strategy
-        childStrategies.put(msg.childId, strategyDescription);
-
-        msg.reply(new ActorHierarchy.SpawnResult(msg.childId, true, "Child spawned successfully"));
         return Behaviors.same();
+    }
+
+    // Internal message to handle child spawn result
+    protected Behavior<C> onChildSpawnResult(ChildSpawnResult result) {
+        String actorId = actorContext.actorId();
+
+        if (result.failure != null) {
+            ctx.getLog().error("Failed to spawn child {}", result.originalMsg.childId, result.failure);
+            logPublisher.publish(String.format("[%s] ❌ Failed to spawn child '%s': %s",
+                    actorId, result.originalMsg.childId, result.failure.getMessage()));
+            result.originalMsg.reply(new ActorHierarchy.SpawnResult(
+                    result.originalMsg.childId, false, "Failed to spawn: " + result.failure.getMessage()));
+            return Behaviors.same();
+        }
+
+        if (result.childRef != null) {
+            // Track the child strategy
+            childStrategies.put(result.originalMsg.childId, result.strategyDescription);
+
+            ctx.getLog().info("Successfully spawned child {} with strategy {}",
+                    result.originalMsg.childId, result.strategyDescription);
+            result.originalMsg.reply(new ActorHierarchy.SpawnResult(
+                    result.originalMsg.childId, true, "Child spawned successfully"));
+        } else {
+            ctx.getLog().warn("Child spawn returned null ref for {}", result.originalMsg.childId);
+            result.originalMsg.reply(new ActorHierarchy.SpawnResult(
+                    result.originalMsg.childId, false, "Child spawn returned null"));
+        }
+
+        return Behaviors.same();
+    }
+
+    // Internal message class for handling async spawn results
+    public static class ChildSpawnResult implements HierarchicalActor.Command {
+        final HierarchicalActor.SpawnChild originalMsg;
+        final String strategyDescription;
+        final SpringActorRef<?> childRef;
+        final Throwable failure;
+
+        ChildSpawnResult(
+                HierarchicalActor.SpawnChild originalMsg,
+                String strategyDescription,
+                SpringActorRef<?> childRef,
+                Throwable failure) {
+            this.originalMsg = originalMsg;
+            this.strategyDescription = strategyDescription;
+            this.childRef = childRef;
+            this.failure = failure;
+        }
     }
 
     // Recursive routing

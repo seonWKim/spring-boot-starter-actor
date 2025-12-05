@@ -348,4 +348,3 @@ This architecture eliminates the need for third-party middleware by leveraging:
 
 - [Pub/Sub Topics Guide](../guides/pub-sub-topics.md) - Deep dive into pub/sub concepts
 - [Cluster Example](cluster.md) - Learn about cluster sharding
-- [Supervision Example](supervision.md) - Build fault-tolerant systems

@@ -32,6 +32,7 @@ public class SupervisorActor implements SpringActorWithContext<HierarchicalActor
                     return behavior;
                 })
                 .onMessage(HierarchicalActor.SpawnChild.class, HierarchicalActorBehavior::onSpawnChild)
+                .onMessage(HierarchicalActorBehavior.ChildSpawnResult.class, HierarchicalActorBehavior::onChildSpawnResult)
                 .onMessage(HierarchicalActor.RouteToChild.class, HierarchicalActorBehavior::onRouteToChild)
                 .onMessage(
                         HierarchicalActor.TriggerChildFailure.class, HierarchicalActorBehavior::onTriggerChildFailure)
