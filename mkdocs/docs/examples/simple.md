@@ -394,5 +394,4 @@ curl http://localhost:8080/hello
 ## Next Steps
 
 - [Cluster Example](cluster.md) - Learn about distributed actors and cluster sharding
-- [Supervision Example](supervision.md) - Explore fault tolerance and supervision strategies
 - [Chat Example](chat.md) - Build a real-world application with pub/sub topics

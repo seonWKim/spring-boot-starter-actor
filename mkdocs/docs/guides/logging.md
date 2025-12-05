@@ -579,4 +579,3 @@ For more information about logging and observability:
 
 - [Sharded Actors](sharded-actors.md) - Learn about distributed entity management in clusters
 - [Persistence with Spring Boot](persistence-spring-boot.md) - Integrate actors with Spring Data
-- [Supervision](../examples/supervision.md) - Build fault-tolerant systems

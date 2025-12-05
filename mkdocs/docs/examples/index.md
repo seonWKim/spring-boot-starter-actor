@@ -60,20 +60,6 @@ This example demonstrates how Spring Boot Starter Actor can be used to build rea
 
 **Best for:** Building real-time applications with WebSockets and pub/sub.
 
-### [Supervision Example](supervision.md)
-
-The Supervision Example demonstrates how to build hierarchical actor supervision systems with real-time visualization. It shows:
-
-- Building hierarchical actor systems with arbitrary depth
-- Implementing different supervision strategies (restart, stop, resume)
-- Visualizing actor hierarchies in real-time with an interactive web UI
-- Tracking actor failures and monitoring supervision behavior
-- Creating fault-tolerant systems using the actor model
-
-This example provides insights into how supervision trees can be used to build resilient, self-healing systems with clear failure boundaries.
-
-**Best for:** Understanding fault tolerance and building resilient systems.
-
 ### [Monitoring Example](monitoring.md)
 
 The Monitoring example demonstrates how to monitor and analyze your actor system's performance. It shows:

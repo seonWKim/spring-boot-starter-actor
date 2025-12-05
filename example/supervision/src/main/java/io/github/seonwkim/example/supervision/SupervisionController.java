@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -18,7 +19,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
  */
 @RestController
 @RequestMapping("/api")
-public class SupervisionController {
+public class SupervisionController implements SmartInitializingSingleton {
 
     private final SpringActorSystem actorSystem;
     private final LogPublisher logPublisher;
@@ -27,7 +28,10 @@ public class SupervisionController {
     public SupervisionController(SpringActorSystem actorSystem, LogPublisher logPublisher) {
         this.actorSystem = actorSystem;
         this.logPublisher = logPublisher;
-        // Create default supervisor on startup
+    }
+
+    @Override
+    public void afterSingletonsInstantiated() {
         createDefaultSupervisor();
     }
 
