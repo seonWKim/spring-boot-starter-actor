@@ -8,7 +8,9 @@ This is a sample chat application built with Spring Boot and Pekko (a fork of Ak
 graph TB
     subgraph "Node 1"
         U1[UserActor 1]
-        CR[ChatRoomActor<br/>📋 Manages Topic]
+        subgraph CR["ChatRoomActor"]
+            T[Topic]
+        end
     end
 
     subgraph "Node 2"
@@ -23,16 +25,17 @@ graph TB
     WS2[🔌 WebSocket] --> U2
     WS3[🔌 WebSocket] --> U3
 
-    U1 -.->|subscribe| CR
-    U2 -.->|subscribe| CR
-    U3 -.->|subscribe| CR
+    U1 -.->|subscribe| T
+    U2 -.->|subscribe| T
+    U3 -.->|subscribe| T
 
     U1 -->|send message| CR
-    CR -->|broadcasted to topic| U1
-    CR -->|broadcasted to topic| U2
-    CR -->|broadcasted to topic| U3
+    T -->|broadcast| U1
+    T -->|broadcast| U2
+    T -->|broadcast| U3
 
     style CR fill:#8B5CF6,stroke:#7C3AED,color:#fff
+    style T fill:#A78BFA,stroke:#8B5CF6,color:#fff
     style U1 fill:#06B6D4,stroke:#0891B2,color:#fff
     style U2 fill:#06B6D4,stroke:#0891B2,color:#fff
     style U3 fill:#06B6D4,stroke:#0891B2,color:#fff
