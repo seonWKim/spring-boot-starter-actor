@@ -151,7 +151,7 @@ class SpringActorSystemTest {
             SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
 
             final String actorId = "test-actor";
-            final SpringActorRef<TestHelloActor.Command> actorRef =
+            final SpringActorHandle<TestHelloActor.Command> actorRef =
                     actorSystem.actor(TestHelloActor.class).withId(actorId).spawnAndWait();
 
             assertThat(actorRef).isNotNull();
@@ -175,7 +175,7 @@ class SpringActorSystemTest {
 
             final String actorId = "test-actor";
             final SpringActorContext actorContext = new CustomActorContext(actorId);
-            final SpringActorRef<CustomActorContextActor.Command> actorRef = actorSystem
+            final SpringActorHandle<CustomActorContextActor.Command> actorRef = actorSystem
                     .actor(CustomActorContextActor.class)
                     .withContext(actorContext)
                     .spawnAndWait();
@@ -231,7 +231,7 @@ class SpringActorSystemTest {
             SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
 
             // Get an actor that was never spawned
-            SpringActorRef<TestHelloActor.Command> actorRef = actorSystem
+            SpringActorHandle<TestHelloActor.Command> actorRef = actorSystem
                     .get(TestHelloActor.class, "non-existent-actor")
                     .toCompletableFuture()
                     .get(5, TimeUnit.SECONDS);
@@ -246,12 +246,12 @@ class SpringActorSystemTest {
             final String actorId = "get-test-actor";
 
             // Spawn the actor
-            SpringActorRef<TestHelloActor.Command> spawnedRef =
+            SpringActorHandle<TestHelloActor.Command> spawnedRef =
                     actorSystem.actor(TestHelloActor.class).withId(actorId).spawnAndWait();
             assertThat(spawnedRef).isNotNull();
 
             // Get the actor using get()
-            SpringActorRef<TestHelloActor.Command> retrievedRef = actorSystem
+            SpringActorHandle<TestHelloActor.Command> retrievedRef = actorSystem
                     .get(TestHelloActor.class, actorId)
                     .toCompletableFuture()
                     .get(5, TimeUnit.SECONDS);
@@ -275,7 +275,7 @@ class SpringActorSystemTest {
             final String actorId = "stop-test-actor";
 
             // Spawn the actor
-            SpringActorRef<TestHelloActor.Command> actorRef =
+            SpringActorHandle<TestHelloActor.Command> actorRef =
                     actorSystem.actor(TestHelloActor.class).withId(actorId).spawnAndWait();
 
             // Verify actor exists
@@ -347,7 +347,7 @@ class SpringActorSystemTest {
             SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
 
             final String actorId = "counter-actor";
-            final SpringActorRef<SimpleActorWithoutwithState.Command> actorRef = actorSystem
+            final SpringActorHandle<SimpleActorWithoutwithState.Command> actorRef = actorSystem
                     .actor(SimpleActorWithoutwithState.class)
                     .withId(actorId)
                     .spawnAndWait();
@@ -382,7 +382,7 @@ class SpringActorSystemTest {
             SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
 
             final String actorId = "default-dispatcher-actor";
-            final SpringActorRef<DispatcherTestActor.Command> actorRef = actorSystem
+            final SpringActorHandle<DispatcherTestActor.Command> actorRef = actorSystem
                     .actor(DispatcherTestActor.class)
                     .withId(actorId)
                     .withDefaultDispatcher()
@@ -405,7 +405,7 @@ class SpringActorSystemTest {
             SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
 
             final String actorId = "blocking-dispatcher-actor";
-            final SpringActorRef<DispatcherTestActor.Command> actorRef = actorSystem
+            final SpringActorHandle<DispatcherTestActor.Command> actorRef = actorSystem
                     .actor(DispatcherTestActor.class)
                     .withId(actorId)
                     .withBlockingDispatcher()
@@ -428,7 +428,7 @@ class SpringActorSystemTest {
             SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
 
             final String actorId = "same-as-parent-dispatcher-actor";
-            final SpringActorRef<DispatcherTestActor.Command> actorRef = actorSystem
+            final SpringActorHandle<DispatcherTestActor.Command> actorRef = actorSystem
                     .actor(DispatcherTestActor.class)
                     .withId(actorId)
                     .withDispatcherSameAsParent()
@@ -451,7 +451,7 @@ class SpringActorSystemTest {
             SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
 
             final String actorId = "custom-dispatcher-actor";
-            final SpringActorRef<DispatcherTestActor.Command> actorRef = actorSystem
+            final SpringActorHandle<DispatcherTestActor.Command> actorRef = actorSystem
                     .actor(DispatcherTestActor.class)
                     .withId(actorId)
                     .withDispatcherFromConfig("my-custom-dispatcher")

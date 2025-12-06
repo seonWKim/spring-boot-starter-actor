@@ -31,7 +31,7 @@ import org.apache.pekko.serialization.jackson.PekkoSerializationSerializer;
  * }
  *
  * // Usage:
- * CompletionStage<String> result = springActorRef.ask(new GetUserName("user123"));
+ * CompletionStage<String> result = springActorHandle.ask(new GetUserName("user123"));
  * }
  * </pre>
  *
@@ -87,7 +87,7 @@ public abstract class AskCommand<RES> {
         if (replyTo == null) {
             throw new IllegalStateException("Cannot send reply: replyTo has not been set. "
                     + "This command was not sent through the ask() method. "
-                    + "Ensure you're using SpringActorRef.ask() or a similar ask pattern, "
+                    + "Ensure you're using SpringActorHandle.ask() or a similar ask pattern, "
                     + "not tell() which doesn't expect a response. "
                     + "Command type: "
                     + this.getClass().getName());

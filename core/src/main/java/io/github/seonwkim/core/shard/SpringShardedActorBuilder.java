@@ -59,13 +59,13 @@ public class SpringShardedActorBuilder<T> {
     }
 
     /**
-     * Builds and returns the SpringShardedActorRef.
+     * Builds and returns the SpringShardedActorHandle.
      *
-     * @return A SpringShardedActorRef to the sharded actor entity
+     * @return A SpringShardedActorHandle to the sharded actor entity
      * @throws IllegalStateException If the entity ID has not been set or if cluster sharding is not
      *     configured
      */
-    public SpringShardedActorRef<T> get() {
+    public SpringShardedActorHandle<T> get() {
         if (entityId == null) {
             throw new IllegalStateException("Entity ID must be set using withId() before calling get()");
         }
@@ -75,7 +75,7 @@ public class SpringShardedActorBuilder<T> {
         }
 
         final EntityRef<T> entityRef = actorSystem.getClusterSharding().entityRefFor(typeKey, entityId);
-        return new SpringShardedActorRef<>(actorSystem.getRaw().scheduler(), entityRef);
+        return new SpringShardedActorHandle<>(actorSystem.getRaw().scheduler(), entityRef);
     }
 
     /**

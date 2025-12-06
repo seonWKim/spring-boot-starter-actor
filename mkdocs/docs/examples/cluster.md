@@ -123,7 +123,7 @@ public class HelloService {
 
     public Mono<String> hello(String message, String entityId) {
         // Get a reference to the actor entity
-        SpringShardedActorRef<HelloActor.Command> actorRef =
+        SpringShardedActorHandle<HelloActor.Command> actorRef =
                 springActorSystem.sharded(HelloActor.class).withId(entityId).get();
 
         // Send the message to the actor and get the response

@@ -1,6 +1,6 @@
 package io.github.seonwkim.example.virtualthreads;
 
-import io.github.seonwkim.core.SpringActorRef;
+import io.github.seonwkim.core.SpringActorHandle;
 import io.github.seonwkim.core.SpringActorSystem;
 import java.util.HashMap;
 import java.util.Map;
@@ -27,7 +27,7 @@ public class VirtualThreadTestController {
     public Map<String, Object> testVirtual() {
         log.info("Testing virtual-thread-executor dispatcher");
 
-        SpringActorRef<VirtualThreadTestActor.Command> actor = actorSystem
+        SpringActorHandle<VirtualThreadTestActor.Command> actor = actorSystem
                 .actor(VirtualThreadTestActor.class)
                 .withId("virtual-actor-" + System.currentTimeMillis())
                 .withDispatcherFromConfig("virtual-threads-dispatcher")

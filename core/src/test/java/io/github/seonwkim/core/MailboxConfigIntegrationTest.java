@@ -100,7 +100,7 @@ public class MailboxConfigIntegrationTest {
 
     @Test
     void testDefaultMailbox() {
-        SpringActorRef<TestCommand> actor = actorSystem
+        SpringActorHandle<TestCommand> actor = actorSystem
                 .actor(TestActor.class)
                 .withId("default-mailbox-actor")
                 .withMailbox(MailboxConfig.defaultMailbox())
@@ -112,7 +112,7 @@ public class MailboxConfigIntegrationTest {
 
     @Test
     void testBoundedMailbox() {
-        SpringActorRef<TestCommand> actor = actorSystem
+        SpringActorHandle<TestCommand> actor = actorSystem
                 .actor(TestActor.class)
                 .withId("bounded-mailbox-actor")
                 .withMailbox(MailboxConfig.bounded(100))
@@ -124,7 +124,7 @@ public class MailboxConfigIntegrationTest {
 
     @Test
     void testFromConfigMailbox() {
-        SpringActorRef<TestCommand> actor = actorSystem
+        SpringActorHandle<TestCommand> actor = actorSystem
                 .actor(TestActor.class)
                 .withId("config-mailbox-actor")
                 .withMailbox(MailboxConfig.fromConfig("my-test-mailbox"))
@@ -136,7 +136,7 @@ public class MailboxConfigIntegrationTest {
 
     @Test
     void testCombinedWithDispatcher() {
-        SpringActorRef<TestCommand> actor = actorSystem
+        SpringActorHandle<TestCommand> actor = actorSystem
                 .actor(TestActor.class)
                 .withId("combined-actor")
                 .withMailbox(MailboxConfig.bounded(50))
@@ -150,7 +150,7 @@ public class MailboxConfigIntegrationTest {
     @Test
     void testChildActorWithMailbox() throws Exception {
         // Spawn parent actor
-        SpringActorRef<TestCommand> parent = actorSystem
+        SpringActorHandle<TestCommand> parent = actorSystem
                 .actor(TestParentActor.class)
                 .withId("parent-with-child")
                 .spawnAndWait();
@@ -158,12 +158,12 @@ public class MailboxConfigIntegrationTest {
         assertNotNull(parent);
 
         // Spawn child actor with bounded mailbox
-        CompletionStage<SpringActorRef<TestCommand>> childFuture = parent.child(TestChildActor.class)
+        CompletionStage<SpringActorHandle<TestCommand>> childFuture = parent.child(TestChildActor.class)
                 .withId("bounded-child")
                 .withMailbox(MailboxConfig.bounded(25))
                 .spawn();
 
-        SpringActorRef<TestCommand> child = childFuture.toCompletableFuture().get();
+        SpringActorHandle<TestCommand> child = childFuture.toCompletableFuture().get();
         assertNotNull(child);
 
         child.tell(new Ping("Hello from child with bounded mailbox"));
@@ -173,7 +173,7 @@ public class MailboxConfigIntegrationTest {
     void testUnboundedPriorityMailbox() {
         TestPriorityMailboxes.ConstructionTracker.reset();
 
-        SpringActorRef<TestCommand> actor = actorSystem
+        SpringActorHandle<TestCommand> actor = actorSystem
                 .actor(TestActor.class)
                 .withId("unbounded-priority-mailbox-actor")
                 .withMailbox(MailboxConfig.fromConfig("unbounded-priority-mailbox"))
@@ -194,7 +194,7 @@ public class MailboxConfigIntegrationTest {
     void testUnboundedStablePriorityMailbox() {
         TestPriorityMailboxes.ConstructionTracker.reset();
 
-        SpringActorRef<TestCommand> actor = actorSystem
+        SpringActorHandle<TestCommand> actor = actorSystem
                 .actor(TestActor.class)
                 .withId("unbounded-stable-priority-mailbox-actor")
                 .withMailbox(MailboxConfig.fromConfig("unbounded-stable-priority-mailbox"))
@@ -215,7 +215,7 @@ public class MailboxConfigIntegrationTest {
     void testBoundedPriorityMailbox() {
         TestPriorityMailboxes.ConstructionTracker.reset();
 
-        SpringActorRef<TestCommand> actor = actorSystem
+        SpringActorHandle<TestCommand> actor = actorSystem
                 .actor(TestActor.class)
                 .withId("bounded-priority-mailbox-actor")
                 .withMailbox(MailboxConfig.fromConfig("bounded-priority-mailbox"))
@@ -240,7 +240,7 @@ public class MailboxConfigIntegrationTest {
     void testBoundedStablePriorityMailbox() {
         TestPriorityMailboxes.ConstructionTracker.reset();
 
-        SpringActorRef<TestCommand> actor = actorSystem
+        SpringActorHandle<TestCommand> actor = actorSystem
                 .actor(TestActor.class)
                 .withId("bounded-stable-priority-mailbox-actor")
                 .withMailbox(MailboxConfig.fromConfig("bounded-stable-priority-mailbox"))
@@ -280,7 +280,7 @@ public class MailboxConfigIntegrationTest {
     @Test
     void testChildActorWithDispatcher() throws Exception {
         // Spawn parent actor
-        SpringActorRef<TestCommand> parent = actorSystem
+        SpringActorHandle<TestCommand> parent = actorSystem
                 .actor(TestParentActor.class)
                 .withId("parent-with-dispatcher-child")
                 .spawnAndWait();
@@ -288,12 +288,12 @@ public class MailboxConfigIntegrationTest {
         assertNotNull(parent);
 
         // Spawn child actor with blocking dispatcher
-        CompletionStage<SpringActorRef<TestCommand>> childFuture = parent.child(TestChildActor.class)
+        CompletionStage<SpringActorHandle<TestCommand>> childFuture = parent.child(TestChildActor.class)
                 .withId("blocking-dispatcher-child")
                 .withDispatcher(DispatcherConfig.blocking())
                 .spawn();
 
-        SpringActorRef<TestCommand> child = childFuture.toCompletableFuture().get();
+        SpringActorHandle<TestCommand> child = childFuture.toCompletableFuture().get();
         assertNotNull(child);
 
         // Send a message to verify the child is working with the blocking dispatcher
@@ -303,7 +303,7 @@ public class MailboxConfigIntegrationTest {
     @Test
     void testChildActorWithMailboxAndDispatcher() throws Exception {
         // Spawn parent actor
-        SpringActorRef<TestCommand> parent = actorSystem
+        SpringActorHandle<TestCommand> parent = actorSystem
                 .actor(TestParentActor.class)
                 .withId("parent-with-configured-child")
                 .spawnAndWait();
@@ -311,13 +311,13 @@ public class MailboxConfigIntegrationTest {
         assertNotNull(parent);
 
         // Spawn child actor with both bounded mailbox and blocking dispatcher
-        CompletionStage<SpringActorRef<TestCommand>> childFuture = parent.child(TestChildActor.class)
+        CompletionStage<SpringActorHandle<TestCommand>> childFuture = parent.child(TestChildActor.class)
                 .withId("configured-child")
                 .withMailbox(MailboxConfig.bounded(50))
                 .withDispatcher(DispatcherConfig.blocking())
                 .spawn();
 
-        SpringActorRef<TestCommand> child = childFuture.toCompletableFuture().get();
+        SpringActorHandle<TestCommand> child = childFuture.toCompletableFuture().get();
         assertNotNull(child);
 
         // Send a message to verify the child is working with both configurations

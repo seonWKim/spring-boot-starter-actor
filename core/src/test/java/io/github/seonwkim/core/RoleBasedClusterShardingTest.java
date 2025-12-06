@@ -10,7 +10,7 @@ import io.github.seonwkim.core.shard.ShardEnvelope;
 import io.github.seonwkim.core.shard.SpringShardedActor;
 import io.github.seonwkim.core.shard.SpringShardedActorBehavior;
 import io.github.seonwkim.core.shard.SpringShardedActorContext;
-import io.github.seonwkim.core.shard.SpringShardedActorRef;
+import io.github.seonwkim.core.shard.SpringShardedActorHandle;
 import java.time.Duration;
 import java.util.Optional;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
@@ -285,7 +285,7 @@ public class RoleBasedClusterShardingTest extends AbstractClusterTest {
         // end up on the node with "worker" role
         for (int i = 1; i <= TEST_ENTITY_COUNT; i++) {
             String entityId = "worker-" + i;
-            SpringShardedActorRef<WorkerRoleShardedActor.Command> workerRef =
+            SpringShardedActorHandle<WorkerRoleShardedActor.Command> workerRef =
                     systemSeed.sharded(WorkerRoleShardedActor.class).withId(entityId).get();
 
             NodeInfo workerNodeInfo = workerRef
@@ -310,7 +310,7 @@ public class RoleBasedClusterShardingTest extends AbstractClusterTest {
         // end up on the node with "coordinator" role
         for (int i = 1; i <= TEST_ENTITY_COUNT; i++) {
             String entityId = "coord-" + i;
-            SpringShardedActorRef<CoordinatorRoleShardedActor.Command> coordRef =
+            SpringShardedActorHandle<CoordinatorRoleShardedActor.Command> coordRef =
                     systemSeed.sharded(CoordinatorRoleShardedActor.class).withId(entityId).get();
 
             NodeInfo coordNodeInfo = coordRef

@@ -214,7 +214,7 @@ public class MdcIntegrationTest {
         }
     }
 
-    private Pong sendPingAndWait(SpringActorRef<TestCommand> actor, String message, String messageId) throws Exception {
+    private Pong sendPingAndWait(SpringActorHandle<TestCommand> actor, String message, String messageId) throws Exception {
         return actor.ask(new Ping(message, messageId))
                 .execute()
                 .toCompletableFuture()
@@ -265,7 +265,7 @@ public class MdcIntegrationTest {
     void testEmptyMdc() throws Exception {
         logAppender.clear();
 
-        SpringActorRef<TestCommand> actor = actorSystem
+        SpringActorHandle<TestCommand> actor = actorSystem
                 .actor(StaticMdcActor.class)
                 .withId("empty-mdc-actor")
                 .withMdc(MdcConfig.empty())
@@ -286,7 +286,7 @@ public class MdcIntegrationTest {
                 "requestId", "req-456",
                 "service", "order-service");
 
-        SpringActorRef<TestCommand> actor = actorSystem
+        SpringActorHandle<TestCommand> actor = actorSystem
                 .actor(StaticMdcActor.class)
                 .withId("static-mdc-actor")
                 .withMdc(MdcConfig.of(staticMdc))
@@ -305,7 +305,7 @@ public class MdcIntegrationTest {
     void testDynamicMdc() throws Exception {
         logAppender.clear();
 
-        SpringActorRef<TestCommand> actor = actorSystem
+        SpringActorHandle<TestCommand> actor = actorSystem
                 .actor(DynamicMdcActor.class)
                 .withId("dynamic-mdc-actor")
                 .spawnAndWait();
@@ -331,7 +331,7 @@ public class MdcIntegrationTest {
                 "userId", "user-789",
                 "service", "payment-service");
 
-        SpringActorRef<TestCommand> actor = actorSystem
+        SpringActorHandle<TestCommand> actor = actorSystem
                 .actor(CombinedMdcActor.class)
                 .withId("combined-mdc-actor")
                 .withMdc(MdcConfig.of(staticMdc))
@@ -377,7 +377,7 @@ public class MdcIntegrationTest {
                 "sessionId", "session-abc");
 
         // Spawn parent actor with MDC
-        SpringActorRef<TestCommand> parent = actorSystem
+        SpringActorHandle<TestCommand> parent = actorSystem
                 .actor(TestParentActor.class)
                 .withId("parent-with-mdc")
                 .withMdc(MdcConfig.of(parentMdc))
@@ -396,12 +396,12 @@ public class MdcIntegrationTest {
                 "role", "worker");
 
         // Spawn child actor with its own MDC (static)
-        CompletionStage<SpringActorRef<TestCommand>> childFuture = parent.child(TestChildActor.class)
+        CompletionStage<SpringActorHandle<TestCommand>> childFuture = parent.child(TestChildActor.class)
                 .withId("child-with-mdc")
                 .withMdc(MdcConfig.of(childMdc))
                 .spawn();
 
-        SpringActorRef<TestCommand> child = childFuture.toCompletableFuture().get();
+        SpringActorHandle<TestCommand> child = childFuture.toCompletableFuture().get();
         assertNotNull(child);
 
         // Send a message to the child to verify child's MDC (both static and dynamic)
@@ -483,19 +483,19 @@ public class MdcIntegrationTest {
         logAppender.clear();
 
         // Spawn multiple actors with different MDC to ensure they don't interfere
-        SpringActorRef<TestCommand> actor1 = actorSystem
+        SpringActorHandle<TestCommand> actor1 = actorSystem
                 .actor(StaticMdcActor.class)
                 .withId("mdc-actor-1")
                 .withMdc(MdcConfig.of(Map.of("actorId", "1", "environment", "prod")))
                 .spawnAndWait();
 
-        SpringActorRef<TestCommand> actor2 = actorSystem
+        SpringActorHandle<TestCommand> actor2 = actorSystem
                 .actor(StaticMdcActor.class)
                 .withId("mdc-actor-2")
                 .withMdc(MdcConfig.of(Map.of("actorId", "2", "environment", "staging")))
                 .spawnAndWait();
 
-        SpringActorRef<TestCommand> actor3 = actorSystem
+        SpringActorHandle<TestCommand> actor3 = actorSystem
                 .actor(StaticMdcActor.class)
                 .withId("mdc-actor-3")
                 .withMdc(MdcConfig.of(Map.of("actorId", "3", "environment", "dev")))
@@ -525,7 +525,7 @@ public class MdcIntegrationTest {
                 "user.email", "user@example.com",
                 "request_path", "/api/v1/orders");
 
-        SpringActorRef<TestCommand> actor = actorSystem
+        SpringActorHandle<TestCommand> actor = actorSystem
                 .actor(StaticMdcActor.class)
                 .withId("special-chars-mdc-actor")
                 .withMdc(MdcConfig.of(mdcWithSpecialChars))

@@ -85,7 +85,7 @@ public class OrderActorTest {
 public void testAsyncResponse() {
     ActorTestProbe<Response> probe = testKit.createProbe();
     
-    SpringActorRef<Command> actor = testKit.spawn(OrderActor.class, "async-test");
+    SpringActorHandle<Command> actor = testKit.spawn(OrderActor.class, "async-test");
     actor.tell(new ProcessAsync(probe.ref()));
     
     Response response = probe.expectMessage(Duration.ofSeconds(5));
@@ -134,7 +134,7 @@ public void testTimeout() {
 // Pattern 5: Test concurrent operations
 @Test
 public void testConcurrentMessages() {
-    SpringActorRef<Command> actor = testKit.spawn(ConcurrentActor.class, "concurrent");
+    SpringActorHandle<Command> actor = testKit.spawn(ConcurrentActor.class, "concurrent");
     
     testKit.sendConcurrently(actor, 100, i -> new Process("item-" + i));
     
@@ -164,7 +164,7 @@ Easy mocking of actors for unit testing services without spawning real actors.
 public class OrderServiceTest {
     
     @MockActor  // Custom annotation
-    private SpringActorRef<OrderActor.Command> orderActor;
+    private SpringActorHandle<OrderActor.Command> orderActor;
     
     @Autowired
     private OrderService orderService;
@@ -219,7 +219,7 @@ public void testWithMockActorSystem() {
 public class ActorStateAssert {
     
     public static <S> void assertActorState(
-            SpringActorRef<?> actor,
+            SpringActorHandle<?> actor,
             Class<S> stateClass,
             Consumer<S> assertions) {
         
@@ -233,7 +233,7 @@ public class ActorStateAssert {
 // Usage in tests
 @Test
 public void testStateUpdate() {
-    SpringActorRef<Command> actor = testKit.spawn(StatefulActor.class, "test");
+    SpringActorHandle<Command> actor = testKit.spawn(StatefulActor.class, "test");
     
     actor.tell(new UpdateValue(42));
     
@@ -249,14 +249,14 @@ public void testStateUpdate() {
 ```java
 public class MessageFlowTester {
     
-    public static MessageFlowBuilder testFlow(SpringActorRef<?> actor) {
+    public static MessageFlowBuilder testFlow(SpringActorHandle<?> actor) {
         return new MessageFlowBuilder(actor);
     }
 }
 
 @Test
 public void testCompleteFlow() {
-    SpringActorRef<Command> actor = testKit.spawn(FlowActor.class, "flow");
+    SpringActorHandle<Command> actor = testKit.spawn(FlowActor.class, "flow");
     
     MessageFlowTester.testFlow(actor)
         .send(new Start())

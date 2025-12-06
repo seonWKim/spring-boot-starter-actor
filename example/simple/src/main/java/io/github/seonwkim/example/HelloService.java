@@ -51,7 +51,7 @@ public class HelloService {
     }
 
     /**
-     * Stops the actor gracefully using SpringActorRef.stop().
+     * Stops the actor gracefully using SpringActorHandle.stop().
      * This demonstrates the PostStop signal handler.
      */
     public Mono<String> stopActor() {

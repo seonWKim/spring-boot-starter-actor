@@ -249,7 +249,7 @@ public class ClusterEventBus {
     private final SpringActorSystem actorSystem;
     
     // Subscribe to topic
-    public void subscribe(String topic, SpringActorRef<Event> subscriber) {
+    public void subscribe(String topic, SpringActorHandle<Event> subscriber) {
         actorSystem.receptionist()
             .register(ServiceKey.create(Event.class, topic), subscriber);
     }

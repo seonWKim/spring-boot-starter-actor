@@ -4,14 +4,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.mock;
 
-import io.github.seonwkim.core.shard.SpringShardedActorRef;
+import io.github.seonwkim.core.shard.SpringShardedActorHandle;
 import java.time.Duration;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Scheduler;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityRef;
 import org.junit.jupiter.api.Test;
 
-/** Tests for the builder pattern implementation of SpringActorRef and SpringShardedActorRef. */
+/** Tests for the builder pattern implementation of SpringActorHandle and SpringShardedActorHandle. */
 public class ActorRefBuilderTest {
 
     @Test
@@ -23,7 +23,7 @@ public class ActorRefBuilderTest {
         Duration customTimeout = Duration.ofSeconds(10);
 
         // Act
-        SpringActorRef<String> ref = SpringActorRef.builder(scheduler, actorRef)
+        SpringActorHandle<String> ref = SpringActorHandle.builder(scheduler, actorRef)
                 .withTimeout(customTimeout)
                 .build();
 
@@ -41,7 +41,7 @@ public class ActorRefBuilderTest {
         int timeoutSeconds = 5;
 
         // Act
-        SpringActorRef<String> ref = SpringActorRef.builder(scheduler, actorRef)
+        SpringActorHandle<String> ref = SpringActorHandle.builder(scheduler, actorRef)
                 .withTimeoutSeconds(timeoutSeconds)
                 .build();
 
@@ -51,7 +51,7 @@ public class ActorRefBuilderTest {
     }
 
     @Test
-    public void testSpringShardedActorRefBuilder() {
+    public void testSpringShardedActorHandleBuilder() {
         // Arrange
         Scheduler scheduler = mock(Scheduler.class);
         @SuppressWarnings("unchecked")
@@ -59,7 +59,7 @@ public class ActorRefBuilderTest {
         Duration customTimeout = Duration.ofSeconds(10);
 
         // Act
-        SpringShardedActorRef<String> ref = SpringShardedActorRef.builder(scheduler, entityRef)
+        SpringShardedActorHandle<String> ref = SpringShardedActorHandle.builder(scheduler, entityRef)
                 .withTimeout(customTimeout)
                 .build();
 
@@ -68,7 +68,7 @@ public class ActorRefBuilderTest {
     }
 
     @Test
-    public void testSpringShardedActorRefBuilderWithTimeoutSeconds() {
+    public void testSpringShardedActorHandleBuilderWithTimeoutSeconds() {
         // Arrange
         Scheduler scheduler = mock(Scheduler.class);
         @SuppressWarnings("unchecked")
@@ -76,7 +76,7 @@ public class ActorRefBuilderTest {
         int timeoutSeconds = 5;
 
         // Act
-        SpringShardedActorRef<String> ref = SpringShardedActorRef.builder(scheduler, entityRef)
+        SpringShardedActorHandle<String> ref = SpringShardedActorHandle.builder(scheduler, entityRef)
                 .withTimeoutSeconds(timeoutSeconds)
                 .build();
 

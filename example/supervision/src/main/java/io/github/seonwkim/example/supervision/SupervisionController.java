@@ -1,6 +1,6 @@
 package io.github.seonwkim.example.supervision;
 
-import io.github.seonwkim.core.SpringActorRef;
+import io.github.seonwkim.core.SpringActorHandle;
 import io.github.seonwkim.core.SpringActorSystem;
 import java.time.Duration;
 import java.util.HashMap;
@@ -23,7 +23,7 @@ public class SupervisionController implements SmartInitializingSingleton {
 
     private final SpringActorSystem actorSystem;
     private final LogPublisher logPublisher;
-    private final Map<String, SpringActorRef<HierarchicalActor.Command>> supervisors = new ConcurrentHashMap<>();
+    private final Map<String, SpringActorHandle<HierarchicalActor.Command>> supervisors = new ConcurrentHashMap<>();
 
     public SupervisionController(SpringActorSystem actorSystem, LogPublisher logPublisher) {
         this.actorSystem = actorSystem;
@@ -37,7 +37,7 @@ public class SupervisionController implements SmartInitializingSingleton {
 
     private void createDefaultSupervisor() {
         try {
-            SpringActorRef<HierarchicalActor.Command> supervisor = actorSystem
+            SpringActorHandle<HierarchicalActor.Command> supervisor = actorSystem
                     .actor(SupervisorActor.class)
                     .withId("supervisor")
                     .withTimeout(Duration.ofSeconds(5))
@@ -75,8 +75,8 @@ public class SupervisionController implements SmartInitializingSingleton {
         }
 
         try {
-            SpringActorRef<HierarchicalActor.Command> supervisor =
-                    (SpringActorRef<HierarchicalActor.Command>) (SpringActorRef<?>) actorSystem
+            SpringActorHandle<HierarchicalActor.Command> supervisor =
+                    (SpringActorHandle<HierarchicalActor.Command>) (SpringActorHandle<?>) actorSystem
                             .actor(SupervisorActor.class)
                             .withId(supervisorId)
                             .withTimeout(Duration.ofSeconds(5))
@@ -111,7 +111,7 @@ public class SupervisionController implements SmartInitializingSingleton {
 
         // Check if parent is the root supervisor
         if ("supervisor".equals(parentId) || "supervisor".equals(parentType)) {
-            SpringActorRef<HierarchicalActor.Command> supervisor = supervisors.get(parentId);
+            SpringActorHandle<HierarchicalActor.Command> supervisor = supervisors.get(parentId);
             if (supervisor == null) {
                 return CompletableFuture.completedFuture(
                         ResponseEntity.badRequest().body(Map.of("success", false, "message", "Supervisor not found")));
@@ -142,7 +142,7 @@ public class SupervisionController implements SmartInitializingSingleton {
                             .body(Map.of("success", false, "message", "Failed to create child: " + ex.getMessage())));
         } else {
             // Parent is a worker - route through root supervisor
-            SpringActorRef<HierarchicalActor.Command> rootSupervisor = supervisors.get("supervisor");
+            SpringActorHandle<HierarchicalActor.Command> rootSupervisor = supervisors.get("supervisor");
             if (rootSupervisor == null) {
                 return CompletableFuture.completedFuture(ResponseEntity.badRequest()
                         .body(Map.of("success", false, "message", "Root supervisor not found")));
@@ -190,7 +190,7 @@ public class SupervisionController implements SmartInitializingSingleton {
                     ResponseEntity.badRequest().body(Map.of("success", false, "message", "workerId is required")));
         }
 
-        SpringActorRef<HierarchicalActor.Command> supervisor = supervisors.get(supervisorId);
+        SpringActorHandle<HierarchicalActor.Command> supervisor = supervisors.get(supervisorId);
         if (supervisor == null) {
             return CompletableFuture.completedFuture(
                     ResponseEntity.badRequest().body(Map.of("success", false, "message", "Supervisor not found")));
@@ -230,7 +230,7 @@ public class SupervisionController implements SmartInitializingSingleton {
         String supervisorId = request.get("supervisorId");
         String taskName = request.getOrDefault("taskName", "default-task");
 
-        SpringActorRef<HierarchicalActor.Command> supervisor = supervisors.get(supervisorId);
+        SpringActorHandle<HierarchicalActor.Command> supervisor = supervisors.get(supervisorId);
         if (supervisor == null) {
             return CompletableFuture.completedFuture(
                     ResponseEntity.badRequest().body(Map.of("success", false, "message", "Supervisor not found")));
@@ -265,7 +265,7 @@ public class SupervisionController implements SmartInitializingSingleton {
             @PathVariable String workerId, @RequestBody Map<String, String> request) {
         String supervisorId = request.get("supervisorId");
 
-        SpringActorRef<HierarchicalActor.Command> supervisor = supervisors.get(supervisorId);
+        SpringActorHandle<HierarchicalActor.Command> supervisor = supervisors.get(supervisorId);
         if (supervisor == null) {
             return CompletableFuture.completedFuture(
                     ResponseEntity.badRequest().body(Map.of("success", false, "message", "Supervisor not found")));
@@ -289,7 +289,7 @@ public class SupervisionController implements SmartInitializingSingleton {
     public CompletableFuture<ResponseEntity<Map<String, Object>>> stopWorker(
             @PathVariable String workerId, @RequestParam String supervisorId) {
 
-        SpringActorRef<HierarchicalActor.Command> supervisor = supervisors.get(supervisorId);
+        SpringActorHandle<HierarchicalActor.Command> supervisor = supervisors.get(supervisorId);
         if (supervisor == null) {
             return CompletableFuture.completedFuture(
                     ResponseEntity.badRequest().body(Map.of("success", false, "message", "Supervisor not found")));
@@ -310,7 +310,7 @@ public class SupervisionController implements SmartInitializingSingleton {
      */
     @DeleteMapping("/supervisors/{supervisorId}")
     public ResponseEntity<Map<String, Object>> deleteSupervisor(@PathVariable String supervisorId) {
-        SpringActorRef<HierarchicalActor.Command> supervisor = supervisors.remove(supervisorId);
+        SpringActorHandle<HierarchicalActor.Command> supervisor = supervisors.remove(supervisorId);
 
         if (supervisor == null) {
             return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Supervisor not found"));
@@ -331,7 +331,7 @@ public class SupervisionController implements SmartInitializingSingleton {
         }
 
         // Get the root supervisor
-        SpringActorRef<HierarchicalActor.Command> supervisor = supervisors.get("supervisor");
+        SpringActorHandle<HierarchicalActor.Command> supervisor = supervisors.get("supervisor");
         if (supervisor == null) {
             return CompletableFuture.completedFuture(ResponseEntity.ok(toMap("root", null)));
         }

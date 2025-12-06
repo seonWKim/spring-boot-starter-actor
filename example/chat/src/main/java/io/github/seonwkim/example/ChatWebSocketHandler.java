@@ -2,7 +2,7 @@ package io.github.seonwkim.example;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.github.seonwkim.core.SpringActorRef;
+import io.github.seonwkim.core.SpringActorHandle;
 import io.github.seonwkim.core.SpringActorSystem;
 import io.github.seonwkim.example.UserActor.Connect;
 import io.github.seonwkim.example.UserActor.JoinRoom;
@@ -31,7 +31,7 @@ public class ChatWebSocketHandler implements WebSocketHandler {
 
     private final ObjectMapper objectMapper;
     private final SpringActorSystem actorSystem;
-    private final ConcurrentMap<String, SpringActorRef<UserActor.Command>> userActors = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, SpringActorHandle<UserActor.Command>> userActors = new ConcurrentHashMap<>();
 
     public ChatWebSocketHandler(ObjectMapper objectMapper, SpringActorSystem actorSystem) {
         this.objectMapper = objectMapper;
@@ -176,7 +176,7 @@ public class ChatWebSocketHandler implements WebSocketHandler {
         }
     }
 
-    private SpringActorRef<UserActor.Command> getUserActor(String userId) {
+    private SpringActorHandle<UserActor.Command> getUserActor(String userId) {
         if (userId == null) {
             return null;
         }

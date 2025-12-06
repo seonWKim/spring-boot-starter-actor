@@ -339,7 +339,7 @@ This triggers an intentional failure. Check the logs for:
 curl http://localhost:8080/hello/stop
 ```
 
-This stops the actor using `SpringActorRef.stop()`. Check the logs for:
+This stops the actor using `SpringActorHandle.stop()`. Check the logs for:
 
 - `Actor hello-actor is stopping` (PostStop)
 

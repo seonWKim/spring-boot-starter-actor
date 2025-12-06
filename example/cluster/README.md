@@ -88,7 +88,7 @@ curl http://localhost:8081/api/singleton/metrics | jq .singletonNodeAddress
 ### Spawn Cluster Singleton
 
 ```java
-SpringActorRef<Command> singleton = actorSystem
+SpringActorHandle<Command> singleton = actorSystem
     .actor(MySingletonActor.class)
     .withId("my-singleton")
     .asClusterSingleton()
@@ -100,7 +100,7 @@ SpringActorRef<Command> singleton = actorSystem
 ### Use Sharded Actor
 
 ```java
-SpringShardedActorRef<Command> entity = actorSystem
+SpringShardedActorHandle<Command> entity = actorSystem
     .sharded(MyShardedActor.class)
     .withId("entity-123")
     .get();

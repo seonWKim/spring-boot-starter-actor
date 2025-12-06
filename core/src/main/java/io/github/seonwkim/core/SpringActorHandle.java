@@ -17,19 +17,19 @@ import org.apache.pekko.japi.function.Function;
  *
  * @param <T> The type of messages that the actor can handle
  */
-public class SpringActorRef<T> {
+public class SpringActorHandle<T> {
 
     private final Scheduler scheduler;
     private final ActorRef<T> actorRef;
     private final Duration defaultTimeout;
 
     /**
-     * Creates a builder for SpringActorRef.
+     * Creates a builder for SpringActorHandle.
      *
      * @param scheduler The scheduler to use for asking messages
      * @param actorRef The actor reference to wrap
      * @param <T> The type of messages that the actor can handle
-     * @return A new builder for SpringActorRef
+     * @return A new builder for SpringActorHandle
      */
     public static <T> SpringActorRefBuilder<T> builder(Scheduler scheduler, ActorRef<T> actorRef) {
         return new SpringActorRefBuilder<>(scheduler, actorRef);
@@ -39,23 +39,23 @@ public class SpringActorRef<T> {
     public static final int DEFAULT_TIMEOUT_SECONDS = ActorConstants.DEFAULT_TIMEOUT_SECONDS;
 
     /**
-     * Creates a new SpringActorRef with the given scheduler and actor reference.
+     * Creates a new SpringActorHandle with the given scheduler and actor reference.
      *
      * @param scheduler The scheduler to use for asking messages
      * @param actorRef The actor reference to wrap
      */
-    public SpringActorRef(Scheduler scheduler, ActorRef<T> actorRef) {
+    public SpringActorHandle(Scheduler scheduler, ActorRef<T> actorRef) {
         this(scheduler, actorRef, ActorConstants.DEFAULT_TIMEOUT);
     }
 
     /**
-     * Creates a new SpringActorRef with the given scheduler, actor reference, and default timeout.
+     * Creates a new SpringActorHandle with the given scheduler, actor reference, and default timeout.
      *
      * @param scheduler The scheduler to use for asking messages
      * @param actorRef The actor reference to wrap
      * @param defaultTimeout The default timeout for ask operations
      */
-    public SpringActorRef(Scheduler scheduler, ActorRef<T> actorRef, Duration defaultTimeout) {
+    public SpringActorHandle(Scheduler scheduler, ActorRef<T> actorRef, Duration defaultTimeout) {
         if (scheduler == null) {
             throw new IllegalArgumentException("scheduler must not be null");
         }
@@ -78,15 +78,15 @@ public class SpringActorRef<T> {
      * <pre>
      * {@code
      * // Simple ask
-     * CompletionStage<String> result = springActorRef.ask(new GetUserName("user123")).execute();
+     * CompletionStage<String> result = springActorHandle.ask(new GetUserName("user123")).execute();
      *
      * // With timeout
-     * CompletionStage<String> result = springActorRef.ask(new GetUserName("user123"))
+     * CompletionStage<String> result = springActorHandle.ask(new GetUserName("user123"))
      *     .withTimeout(Duration.ofSeconds(5))
      *     .execute();
      *
      * // With timeout handler
-     * CompletionStage<String> result = springActorRef.ask(new GetUserName("user123"))
+     * CompletionStage<String> result = springActorHandle.ask(new GetUserName("user123"))
      *     .withTimeout(Duration.ofSeconds(5))
      *     .onTimeout(() -> "default-value")
      *     .execute();
@@ -157,7 +157,7 @@ public class SpringActorRef<T> {
      * <pre>
      * {@code
      * // Get existing child
-     * Optional<SpringActorRef<ChildCommand>> child = parentRef
+     * Optional<SpringActorHandle<ChildCommand>> child = parentRef
      *     .child(ChildActor.class, "child-1")
      *     .get()
      *     .toCompletableFuture()
@@ -171,14 +171,14 @@ public class SpringActorRef<T> {
      *     .get();
      *
      * // Spawn new child
-     * SpringActorRef<ChildCommand> child = parentRef
+     * SpringActorHandle<ChildCommand> child = parentRef
      *     .child(ChildActor.class, "child-1")
      *     .spawn(SupervisorStrategy.restart())
      *     .toCompletableFuture()
      *     .get();
      *
      * // Get or spawn (convenience)
-     * SpringActorRef<ChildCommand> child = parentRef
+     * SpringActorHandle<ChildCommand> child = parentRef
      *     .child(ChildActor.class, "child-1")
      *     .getOrSpawn(SupervisorStrategy.restart())
      *     .toCompletableFuture()
@@ -209,7 +209,7 @@ public class SpringActorRef<T> {
      * <p>Example usage:
      * <pre>
      * {@code
-     * SpringActorRef<ChildCommand> child = parentRef
+     * SpringActorHandle<ChildCommand> child = parentRef
      *     .child(ChildActor.class)
      *     .withId("child-1")
      *     .withSupervisionStrategy(SupervisorStrategy.restart())

@@ -1,7 +1,7 @@
 package io.github.seonwkim.example;
 
 import io.github.seonwkim.core.SpringActorSystem;
-import io.github.seonwkim.core.shard.SpringShardedActorRef;
+import io.github.seonwkim.core.shard.SpringShardedActorHandle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -30,7 +30,7 @@ public class ChatMessageSenderService {
      */
     public void sendMessage(String roomId, String userId, String message) {
         try {
-            SpringShardedActorRef<ChatRoomActor.Command> roomRef = springActorSystem
+            SpringShardedActorHandle<ChatRoomActor.Command> roomRef = springActorSystem
                     .sharded(ChatRoomActor.class)
                     .withId(roomId)
                     .get();

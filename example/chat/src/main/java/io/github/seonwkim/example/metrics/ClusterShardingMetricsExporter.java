@@ -1,6 +1,6 @@
 package io.github.seonwkim.example.metrics;
 
-import io.github.seonwkim.core.SpringActorRef;
+import io.github.seonwkim.core.SpringActorHandle;
 import io.github.seonwkim.core.SpringActorSystem;
 import io.github.seonwkim.example.HelloActor;
 import io.github.seonwkim.example.metrics.ClusterShardingMetricsActor.ClusterShardingMetricsExporterContext;
@@ -19,7 +19,7 @@ import org.springframework.stereotype.Component;
 public class ClusterShardingMetricsExporter {
 
     private final SpringActorSystem springActorSystem;
-    private final SpringActorRef<CurrentShardRegionState> metricsActors;
+    private final SpringActorHandle<CurrentShardRegionState> metricsActors;
 
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 

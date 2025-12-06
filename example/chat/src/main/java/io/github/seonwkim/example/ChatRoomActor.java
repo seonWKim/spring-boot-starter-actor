@@ -1,6 +1,6 @@
 package io.github.seonwkim.example;
 
-import io.github.seonwkim.core.SpringActorRef;
+import io.github.seonwkim.core.SpringActorHandle;
 import io.github.seonwkim.core.SpringBehaviorContext;
 import io.github.seonwkim.core.serialization.JsonSerializable;
 import io.github.seonwkim.core.shard.SpringShardedActor;
@@ -123,9 +123,9 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
          * @return The next behavior (same in this case)
          */
         private Behavior<Command> onJoinRoom(JoinRoom msg) {
-            // Wrap the Pekko ActorRef in SpringActorRef for subscription
-            SpringActorRef<UserActor.Command> springUserRef =
-                    new SpringActorRef<>(ctx.getUnderlying().getSystem().scheduler(), msg.userActorRef);
+            // Wrap the Pekko ActorRef in SpringActorHandle for subscription
+            SpringActorHandle<UserActor.Command> springUserRef =
+                    new SpringActorHandle<>(ctx.getUnderlying().getSystem().scheduler(), msg.userActorRef);
 
             // Subscribe the user to the room topic
             roomTopic.subscribe(springUserRef);
@@ -146,9 +146,9 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
          * @return The next behavior (same in this case)
          */
         private Behavior<Command> onLeaveRoom(LeaveRoom msg) {
-            // Wrap the Pekko ActorRef in SpringActorRef for unsubscription
-            SpringActorRef<UserActor.Command> springUserRef =
-                    new SpringActorRef<>(ctx.getUnderlying().getSystem().scheduler(), msg.userActorRef);
+            // Wrap the Pekko ActorRef in SpringActorHandle for unsubscription
+            SpringActorHandle<UserActor.Command> springUserRef =
+                    new SpringActorHandle<>(ctx.getUnderlying().getSystem().scheduler(), msg.userActorRef);
 
             // Unsubscribe the user from the topic
             roomTopic.unsubscribe(springUserRef);

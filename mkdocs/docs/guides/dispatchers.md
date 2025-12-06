@@ -21,7 +21,7 @@ Spring Boot Starter Actor provides a fluent API for selecting dispatchers when s
 Use the default Pekko dispatcher (this is the default behavior):
 
 ```java
-SpringActorRef<MyActor.Command> actor = actorSystem
+SpringActorHandle<MyActor.Command> actor = actorSystem
     .actor(MyActor.class)
     .withId("my-actor")
     .withDefaultDispatcher()  // Optional - this is the default
@@ -33,7 +33,7 @@ SpringActorRef<MyActor.Command> actor = actorSystem
 Use Pekko's default blocking I/O dispatcher for actors that perform blocking operations:
 
 ```java
-SpringActorRef<DatabaseActor.Command> dbActor = actorSystem
+SpringActorHandle<DatabaseActor.Command> dbActor = actorSystem
     .actor(DatabaseActor.class)
     .withId("db-actor")
     .withBlockingDispatcher()  // Use blocking I/O dispatcher
@@ -52,7 +52,7 @@ SpringActorRef<DatabaseActor.Command> dbActor = actorSystem
 Use a custom dispatcher defined in your application configuration:
 
 ```java
-SpringActorRef<WorkerActor.Command> worker = actorSystem
+SpringActorHandle<WorkerActor.Command> worker = actorSystem
     .actor(WorkerActor.class)
     .withId("worker")
     .withDispatcherFromConfig("my-custom-dispatcher")
@@ -64,7 +64,7 @@ SpringActorRef<WorkerActor.Command> worker = actorSystem
 Inherit the dispatcher from the parent actor (useful for child actors):
 
 ```java
-SpringActorRef<ChildActor.Command> child = parentRef
+SpringActorHandle<ChildActor.Command> child = parentRef
     .child(ChildActor.class)
     .withId("child")
     .withDispatcherSameAsParent()
@@ -176,7 +176,7 @@ spring:
 **Usage:**
 
 ```java
-SpringActorRef<DatabaseActor.Command> dbActor = actorSystem
+SpringActorHandle<DatabaseActor.Command> dbActor = actorSystem
     .actor(DatabaseActor.class)
     .withId("db-actor")
     .withDispatcherFromConfig("virtual-thread-dispatcher")

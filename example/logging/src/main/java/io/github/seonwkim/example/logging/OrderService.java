@@ -1,6 +1,6 @@
 package io.github.seonwkim.example.logging;
 
-import io.github.seonwkim.core.SpringActorRef;
+import io.github.seonwkim.core.SpringActorHandle;
 import io.github.seonwkim.core.SpringActorSystem;
 import io.github.seonwkim.core.TagsConfig;
 import java.time.Duration;
@@ -12,7 +12,7 @@ import reactor.core.publisher.Mono;
 @Service
 public class OrderService {
 
-    private final SpringActorRef<OrderProcessorActor.Command> orderProcessor;
+    private final SpringActorHandle<OrderProcessorActor.Command> orderProcessor;
 
     public OrderService(SpringActorSystem actorSystem) {
         this.orderProcessor = actorSystem

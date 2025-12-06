@@ -18,7 +18,7 @@ import org.springframework.util.ObjectUtils;
  *
  * <p>Example usage:
  * <pre>
- * SpringActorRef&lt;ChildCommand&gt; child = parentRef
+ * SpringActorHandle&lt;ChildCommand&gt; child = parentRef
  *     .child(ChildActor.class)
  *     .withId("child-1")
  *     .withSupervisionStrategy(SupervisorStrategy.restart())
@@ -243,7 +243,7 @@ public class SpringChildActorBuilder<P, C> {
      * @throws IllegalStateException If neither childId nor childContext is set
      */
     @SuppressWarnings("unchecked")
-    public CompletionStage<SpringActorRef<C>> spawn() {
+    public CompletionStage<SpringActorHandle<C>> spawn() {
         if (childContext == null) {
             if (childId == null) {
                 throw new IllegalStateException("Either childId or childContext must be set before spawning. "
@@ -276,7 +276,7 @@ public class SpringChildActorBuilder<P, C> {
                 .thenApply(response -> {
                     if ((response.success || "Child already exists".equals(response.message))
                             && response.childRef != null) {
-                        return new SpringActorRef<>(scheduler, response.childRef, defaultTimeout);
+                        return new SpringActorHandle<>(scheduler, response.childRef, defaultTimeout);
                     } else {
                         throw new RuntimeException("Failed to spawn child actor "
                                 + childActorClass.getName()
@@ -295,7 +295,7 @@ public class SpringChildActorBuilder<P, C> {
      * @return The child actor reference
      * @throws IllegalStateException If neither childId nor childContext is set
      */
-    public SpringActorRef<C> spawnAndWait() {
+    public SpringActorHandle<C> spawnAndWait() {
         return spawn().toCompletableFuture().join();
     }
 
@@ -307,7 +307,7 @@ public class SpringChildActorBuilder<P, C> {
      * @throws IllegalStateException If neither childId nor childContext is set
      */
     @SuppressWarnings("unchecked")
-    public CompletionStage<SpringActorRef<C>> getOrSpawn() {
+    public CompletionStage<SpringActorHandle<C>> getOrSpawn() {
         if (childContext == null) {
             if (childId == null) {
                 throw new IllegalStateException("Either childId or childContext must be set");
@@ -330,7 +330,7 @@ public class SpringChildActorBuilder<P, C> {
                     if (response.found && response.childRef != null) {
                         // Child exists, return it
                         return CompletableFuture.completedFuture(
-                                new SpringActorRef<>(scheduler, response.childRef, defaultTimeout));
+                                new SpringActorHandle<>(scheduler, response.childRef, defaultTimeout));
                     } else {
                         // Child doesn't exist, spawn it
                         return spawn();
@@ -346,7 +346,7 @@ public class SpringChildActorBuilder<P, C> {
      * @throws IllegalStateException If neither childId nor childContext is set
      */
     @SuppressWarnings("unchecked")
-    public CompletionStage<SpringActorRef<C>> get() {
+    public CompletionStage<SpringActorHandle<C>> get() {
         if (childContext == null) {
             if (childId == null) {
                 throw new IllegalStateException("Either childId or childContext must be set");
@@ -365,7 +365,7 @@ public class SpringChildActorBuilder<P, C> {
                         scheduler)
                 .thenApply(response -> {
                     if (response.found && response.childRef != null) {
-                        return new SpringActorRef<>(scheduler, response.childRef, defaultTimeout);
+                        return new SpringActorHandle<>(scheduler, response.childRef, defaultTimeout);
                     } else {
                         return null;
                     }

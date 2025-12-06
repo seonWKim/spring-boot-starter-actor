@@ -101,7 +101,7 @@ For advanced scenarios requiring custom configuration (supervision strategies, d
 @Service
 public class HelloService {
 
-    private final SpringActorRef<HelloActor.Command> helloActor;
+    private final SpringActorHandle<HelloActor.Command> helloActor;
 
     public HelloService(SpringActorSystem springActorSystem) {
         // Spawn an actor using the fluent builder API
@@ -123,7 +123,7 @@ For non-blocking actor creation with custom configuration:
 ```java
 @Service
 public class HelloService {
-    private final CompletionStage<SpringActorRef<HelloActor.Command>> helloActor;
+    private final CompletionStage<SpringActorHandle<HelloActor.Command>> helloActor;
 
     public HelloService(SpringActorSystem springActorSystem) {
         // Spawn asynchronously
@@ -151,7 +151,7 @@ public class HelloService {
 The fluent API supports additional configuration options for advanced use cases:
 
 ```java
-SpringActorRef<HelloActor.Command> actor = springActorSystem
+SpringActorHandle<HelloActor.Command> actor = springActorSystem
         .actor(HelloActor.class)
         .withId("myActor")
         .withTimeout(Duration.ofSeconds(5))
@@ -227,7 +227,7 @@ exists = actorSystem.exists(MyActor.class, "my-actor-1", Duration.ofMillis(500))
 Retrieve a reference to an existing actor without creating a new instance:
 
 ```java
-CompletionStage<SpringActorRef<Command>> actorRef = actorSystem
+CompletionStage<SpringActorHandle<Command>> actorRef = actorSystem
     .get(MyActor.class, "my-actor-1");
 
 // With custom timeout
@@ -244,7 +244,7 @@ The `getOrSpawn` method automatically handles the exists/get/spawn logic:
 
 ```java
 // Recommended: Use getOrSpawn for simplified actor lifecycle management
-CompletionStage<SpringActorRef<Command>> actorRef = actorSystem
+CompletionStage<SpringActorHandle<Command>> actorRef = actorSystem
     .getOrSpawn(MyActor.class, "my-actor-1");
 
 // With custom timeout
@@ -306,7 +306,7 @@ If the same actor is accessed very frequently, cache the reference to avoid repe
 @Service
 public class HelloService {
     private final SpringActorSystem actorSystem;
-    private final AtomicReference<CompletionStage<SpringActorRef<HelloActor.Command>>> actorRef =
+    private final AtomicReference<CompletionStage<SpringActorHandle<HelloActor.Command>>> actorRef =
             new AtomicReference<>();
 
     public HelloService(SpringActorSystem actorSystem) {
@@ -317,7 +317,7 @@ public class HelloService {
      * Lazily initializes the actor on first use and caches the reference
      * for subsequent calls. Use this for high-frequency access scenarios.
      */
-    private CompletionStage<SpringActorRef<HelloActor.Command>> getActor() {
+    private CompletionStage<SpringActorHandle<HelloActor.Command>> getActor() {
         return actorRef.updateAndGet(existing ->
                 existing != null ? existing : actorSystem.getOrSpawn(HelloActor.class, "hello-actor")
         );
@@ -339,7 +339,7 @@ Child actors can be spawned from within parent actors using the fluent child bui
 
 ### Basic Child Spawning
 
-Use the `child()` method on `SpringActorRef` to spawn child actors:
+Use the `child()` method on `SpringActorHandle` to spawn child actors:
 
 ```java
 @Component
@@ -352,7 +352,7 @@ public class ParentActor implements SpringActor<ParentActor.Command> {
         return SpringActorBehavior.builder(Command.class, actorContext)
             .withState(ctx -> {
                 // Get reference to self
-                SpringActorRef<Command> self = new SpringActorRef<>(
+                SpringActorHandle<Command> self = new SpringActorHandle<>(
                     ctx.getSystem().scheduler(), ctx.getSelf());
 
                 // Spawn a child actor using fluent API
@@ -360,7 +360,7 @@ public class ParentActor implements SpringActor<ParentActor.Command> {
                     .withId("worker-1")
                     .withSupervisionStrategy(SupervisorStrategy.restart())
                     .withTimeout(Duration.ofSeconds(5))
-                    .spawn();  // Returns CompletionStage<SpringActorRef>
+                    .spawn();  // Returns CompletionStage<SpringActorHandle>
 
                 return new ParentBehavior(ctx, actorContext);
             })
@@ -375,14 +375,14 @@ The child builder API supports several operations:
 
 **Spawn a new child:**
 ```java
-CompletionStage<SpringActorRef<Command>> child = parentRef
+CompletionStage<SpringActorHandle<Command>> child = parentRef
     .child(ChildActor.class)
     .withId("child-1")
     .withSupervisionStrategy(SupervisorStrategy.restart())
     .spawn();  // Async
 
 // Or synchronous spawning
-SpringActorRef<Command> child = parentRef
+SpringActorHandle<Command> child = parentRef
     .child(ChildActor.class)
     .withId("child-2")
     .withSupervisionStrategy(SupervisorStrategy.restart())
@@ -391,7 +391,7 @@ SpringActorRef<Command> child = parentRef
 
 **Get existing child reference:**
 ```java
-CompletionStage<SpringActorRef<Command>> existing = parentRef
+CompletionStage<SpringActorHandle<Command>> existing = parentRef
     .child(ChildActor.class)
     .withId("child-1")
     .get();  // Returns null if not found
@@ -407,7 +407,7 @@ CompletionStage<Boolean> exists = parentRef
 
 **Get existing or spawn new (recommended):**
 ```java
-CompletionStage<SpringActorRef<Command>> childRef = parentRef
+CompletionStage<SpringActorHandle<Command>> childRef = parentRef
     .child(ChildActor.class)
     .withId("child-1")
     .getOrSpawn();  // Gets existing or creates new
@@ -425,7 +425,7 @@ SpringActorContext customContext = new SpringActorContext() {
     }
 };
 
-SpringActorRef<Command> child = parentRef
+SpringActorHandle<Command> child = parentRef
     .child(ChildActor.class)
     .withContext(customContext)
     .withSupervisionStrategy(SupervisorStrategy.restart())

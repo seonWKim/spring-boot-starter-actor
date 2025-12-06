@@ -103,7 +103,7 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
         private final SpringBehaviorContext<Command> ctx;
         private final String roomId;
         private final SpringTopicRef<UserActor.Command> roomTopic;
-        private final Map<String, SpringActorRef<UserActor.Command>> connectedUsers =
+        private final Map<String, SpringActorHandle<UserActor.Command>> connectedUsers =
                 new HashMap<>();
 
         ChatRoomBehavior(SpringBehaviorContext<Command> ctx, String roomId) {
@@ -123,9 +123,9 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
          * Handles JoinRoom commands by subscribing the user to the room topic.
          */
         private Behavior<Command> onJoinRoom(JoinRoom msg) {
-            // Wrap the Pekko ActorRef in SpringActorRef for subscription
-            SpringActorRef<UserActor.Command> springUserRef =
-                new SpringActorRef<>(
+            // Wrap the Pekko ActorRef in SpringActorHandle for subscription
+            SpringActorHandle<UserActor.Command> springUserRef =
+                new SpringActorHandle<>(
                     ctx.getUnderlying().getSystem().scheduler(),
                     msg.userActorRef);
 
@@ -150,7 +150,7 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
          */
         private Behavior<Command> onLeaveRoom(LeaveRoom msg) {
             // Remove the user and get their ref for unsubscription
-            SpringActorRef<UserActor.Command> userRef = connectedUsers.remove(msg.userId);
+            SpringActorHandle<UserActor.Command> userRef = connectedUsers.remove(msg.userId);
 
             if (userRef != null) {
                 // Unsubscribe the user from the topic
@@ -256,7 +256,7 @@ public class UserActor implements SpringActorWithContext<
             return Behaviors.same();
         }
 
-        private SpringShardedActorRef<ChatRoomActor.Command> getRoomActor() {
+        private SpringShardedActorHandle<ChatRoomActor.Command> getRoomActor() {
             return actorSystem
                     .sharded(ChatRoomActor.class)
                     .withId(currentRoomId)
@@ -294,18 +294,18 @@ The pub/sub implementation provides several advantages:
 
 ### Cluster Serialization
 
-**Important**: When sending actor references across cluster boundaries, use raw Pekko `ActorRef` instead of `SpringActorRef`:
+**Important**: When sending actor references across cluster boundaries, use raw Pekko `ActorRef` instead of `SpringActorHandle`:
 
 ```java
 // ✅ Correct: Raw ActorRef is serializable
 roomActor.tell(new ChatRoomActor.JoinRoom(userId, context.getUnderlying().getSelf()));
 
-// ❌ Wrong: SpringActorRef contains non-serializable Scheduler
+// ❌ Wrong: SpringActorHandle contains non-serializable Scheduler
 roomActor.tell(new ChatRoomActor.JoinRoom(userId, context.getSelf()));
 ```
 
 !!! warning "Serialization"
-    `SpringActorRef` is a local convenience wrapper that contains a non-serializable scheduler. For cluster messages, always use the raw Pekko `ActorRef` from `context.getUnderlying().getSelf()`.
+    `SpringActorHandle` is a local convenience wrapper that contains a non-serializable scheduler. For cluster messages, always use the raw Pekko `ActorRef` from `context.getUnderlying().getSelf()`.
 
 ## Running the Application
 

@@ -31,7 +31,7 @@ public class ClusterSingletonClusterModeTest extends AbstractClusterTest {
         SpringActorSystem system1 = context1.getBean(SpringActorSystem.class);
 
         // When: Spawning a cluster singleton
-        SpringActorRef<ClusterSingletonTest.SingletonTestActor.Command> singleton = system1.actor(
+        SpringActorHandle<ClusterSingletonTest.SingletonTestActor.Command> singleton = system1.actor(
                         ClusterSingletonTest.SingletonTestActor.class)
                 .withId("test-singleton")
                 .asClusterSingleton()
@@ -56,7 +56,7 @@ public class ClusterSingletonClusterModeTest extends AbstractClusterTest {
         SpringActorSystem system3 = context3.getBean(SpringActorSystem.class);
 
         // Given: Get singleton proxy from each node
-        SpringActorRef<ClusterSingletonTest.SingletonTestActor.Command> singleton1 = system1.actor(
+        SpringActorHandle<ClusterSingletonTest.SingletonTestActor.Command> singleton1 = system1.actor(
                         ClusterSingletonTest.SingletonTestActor.class)
                 .withId("shared-singleton")
                 .asClusterSingleton()
@@ -64,7 +64,7 @@ public class ClusterSingletonClusterModeTest extends AbstractClusterTest {
                 .toCompletableFuture()
                 .get();
 
-        SpringActorRef<ClusterSingletonTest.SingletonTestActor.Command> singleton2 = system2.actor(
+        SpringActorHandle<ClusterSingletonTest.SingletonTestActor.Command> singleton2 = system2.actor(
                         ClusterSingletonTest.SingletonTestActor.class)
                 .withId("shared-singleton")
                 .asClusterSingleton()
@@ -72,7 +72,7 @@ public class ClusterSingletonClusterModeTest extends AbstractClusterTest {
                 .toCompletableFuture()
                 .get();
 
-        SpringActorRef<ClusterSingletonTest.SingletonTestActor.Command> singleton3 = system3.actor(
+        SpringActorHandle<ClusterSingletonTest.SingletonTestActor.Command> singleton3 = system3.actor(
                         ClusterSingletonTest.SingletonTestActor.class)
                 .withId("shared-singleton")
                 .asClusterSingleton()
@@ -113,7 +113,7 @@ public class ClusterSingletonClusterModeTest extends AbstractClusterTest {
         SpringActorSystem system1 = context1.getBean(SpringActorSystem.class);
 
         // Given: A cluster singleton spawned from node 1
-        SpringActorRef<ClusterSingletonTest.SingletonTestActor.Command> singleton = system1.actor(
+        SpringActorHandle<ClusterSingletonTest.SingletonTestActor.Command> singleton = system1.actor(
                         ClusterSingletonTest.SingletonTestActor.class)
                 .withId("accessible-singleton")
                 .asClusterSingleton()
@@ -154,7 +154,7 @@ public class ClusterSingletonClusterModeTest extends AbstractClusterTest {
         SpringActorSystem system2 = context2.getBean(SpringActorSystem.class);
 
         // Given: A cluster singleton spawned from node 1
-        SpringActorRef<ClusterSingletonTest.SingletonTestActor.Command> singleton1 = system1.actor(
+        SpringActorHandle<ClusterSingletonTest.SingletonTestActor.Command> singleton1 = system1.actor(
                         ClusterSingletonTest.SingletonTestActor.class)
                 .withId("idempotent-singleton")
                 .asClusterSingleton()
@@ -163,7 +163,7 @@ public class ClusterSingletonClusterModeTest extends AbstractClusterTest {
                 .get();
 
         // When: Attempting to spawn the same singleton from node 2
-        SpringActorRef<ClusterSingletonTest.SingletonTestActor.Command> singleton2 = system2.actor(
+        SpringActorHandle<ClusterSingletonTest.SingletonTestActor.Command> singleton2 = system2.actor(
                         ClusterSingletonTest.SingletonTestActor.class)
                 .withId("idempotent-singleton")
                 .asClusterSingleton()

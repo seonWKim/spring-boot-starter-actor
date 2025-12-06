@@ -1,7 +1,7 @@
 package io.github.seonwkim.example.logging;
 
 import io.github.seonwkim.core.MdcConfig;
-import io.github.seonwkim.core.SpringActorRef;
+import io.github.seonwkim.core.SpringActorHandle;
 import io.github.seonwkim.core.SpringActorSystem;
 import io.github.seonwkim.core.TagsConfig;
 import java.time.Duration;
@@ -14,7 +14,7 @@ import reactor.core.publisher.Mono;
 @Service
 public class NotificationService {
 
-    private final SpringActorRef<NotificationActor.Command> notificationActor;
+    private final SpringActorHandle<NotificationActor.Command> notificationActor;
 
     public NotificationService(SpringActorSystem actorSystem) {
         Map<String, String> staticMdc = Map.of(

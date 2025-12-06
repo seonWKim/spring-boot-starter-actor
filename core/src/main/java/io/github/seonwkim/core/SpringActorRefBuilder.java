@@ -5,8 +5,8 @@ import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Scheduler;
 
 /**
- * Builder for creating instances of {@link SpringActorRef}. This builder provides a fluent API for
- * constructing SpringActorRef instances with various configurations.
+ * Builder for creating instances of {@link SpringActorHandle}. This builder provides a fluent API for
+ * constructing SpringActorHandle instances with various configurations.
  *
  * @param <T> The type of messages that the actor can handle
  */
@@ -48,11 +48,11 @@ public class SpringActorRefBuilder<T> {
     }
 
     /**
-     * Builds a new SpringActorRef instance with the configured parameters.
+     * Builds a new SpringActorHandle instance with the configured parameters.
      *
-     * @return A new SpringActorRef instance
+     * @return A new SpringActorHandle instance
      */
-    public SpringActorRef<T> build() {
-        return new SpringActorRef<>(scheduler, actorRef, timeout);
+    public SpringActorHandle<T> build() {
+        return new SpringActorHandle<>(scheduler, actorRef, timeout);
     }
 }

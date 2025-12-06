@@ -1,6 +1,6 @@
 package io.github.seonwkim.core.topic;
 
-import io.github.seonwkim.core.SpringActorRef;
+import io.github.seonwkim.core.SpringActorHandle;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.pubsub.Topic;
 
@@ -102,7 +102,7 @@ public class SpringTopicRef<T> {
      *
      * @param subscriber The Spring actor reference to subscribe
      */
-    public void subscribe(SpringActorRef<T> subscriber) {
+    public void subscribe(SpringActorHandle<T> subscriber) {
         if (subscriber == null) {
             throw new IllegalArgumentException("subscriber must not be null");
         }
@@ -121,7 +121,7 @@ public class SpringTopicRef<T> {
      *
      * @param subscriber The Spring actor reference to unsubscribe
      */
-    public void unsubscribe(SpringActorRef<T> subscriber) {
+    public void unsubscribe(SpringActorHandle<T> subscriber) {
         if (subscriber == null) {
             throw new IllegalArgumentException("subscriber must not be null");
         }

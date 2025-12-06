@@ -1,7 +1,7 @@
 package io.github.seonwkim.example.supervision;
 
 import io.github.seonwkim.core.SpringActorContext;
-import io.github.seonwkim.core.SpringActorRef;
+import io.github.seonwkim.core.SpringActorHandle;
 import io.github.seonwkim.core.SpringBehaviorContext;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -111,7 +111,7 @@ public class HierarchicalActorBehavior<C> {
                 "[%s] 🚀 Spawning child '%s' with strategy: %s", actorId, msg.childId, strategyDescription));
 
         // Use spring-boot-starter-actor API to spawn child
-        SpringActorRef<C> self = ctx.getSelf();
+        SpringActorHandle<C> self = ctx.getSelf();
 
         ctx.getUnderlying().pipeToSelf(
                 self.child((Class) childActorClass)
@@ -119,7 +119,7 @@ public class HierarchicalActorBehavior<C> {
                         .withSupervisionStrategy(strategy)
                         .spawn(),
                 (childRef, failure) -> (C) new ChildSpawnResult(
-                        msg, strategyDescription, (SpringActorRef<?>) childRef, failure));
+                        msg, strategyDescription, (SpringActorHandle<?>) childRef, failure));
 
         return Behaviors.same();
     }
@@ -158,13 +158,13 @@ public class HierarchicalActorBehavior<C> {
     public static class ChildSpawnResult implements HierarchicalActor.Command {
         final HierarchicalActor.SpawnChild originalMsg;
         final String strategyDescription;
-        final SpringActorRef<?> childRef;
+        final SpringActorHandle<?> childRef;
         final Throwable failure;
 
         ChildSpawnResult(
                 HierarchicalActor.SpawnChild originalMsg,
                 String strategyDescription,
-                SpringActorRef<?> childRef,
+                SpringActorHandle<?> childRef,
                 Throwable failure) {
             this.originalMsg = originalMsg;
             this.strategyDescription = strategyDescription;
