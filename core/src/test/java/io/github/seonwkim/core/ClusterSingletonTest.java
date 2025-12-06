@@ -102,7 +102,7 @@ public class ClusterSingletonTest {
         @Test
         public void testClusterSingletonInLocalModeFails() {
             // When: Attempting to spawn a cluster singleton in local mode
-            CompletionStage<SpringActorRef<SingletonTestActor.Command>> result = actorSystem
+            CompletionStage<SpringActorHandle<SingletonTestActor.Command>> result = actorSystem
                     .actor(SingletonTestActor.class)
                     .withId("singleton-test")
                     .asClusterSingleton()
@@ -120,7 +120,7 @@ public class ClusterSingletonTest {
         @Test
         public void testRegularActorWorksInLocalMode() throws Exception {
             // Given: A regular (non-singleton) actor
-            SpringActorRef<SingletonTestActor.Command> actor = actorSystem
+            SpringActorHandle<SingletonTestActor.Command> actor = actorSystem
                     .actor(SingletonTestActor.class)
                     .withId("regular-actor")
                     // Note: NOT calling asClusterSingleton()

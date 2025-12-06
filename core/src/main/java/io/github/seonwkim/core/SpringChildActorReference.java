@@ -10,7 +10,7 @@ import org.apache.pekko.actor.typed.javadsl.AskPattern;
 /**
  * A reference to a child actor that provides operations for querying existing child actors.
  * This class is for pure referencing operations only - to spawn new child actors, use
- * {@link SpringActorRef#child(Class)} which returns a {@link SpringChildActorBuilder}.
+ * {@link SpringActorHandle#child(Class)} which returns a {@link SpringChildActorBuilder}.
  *
  * <p>This class eliminates redundant class and ID parameters by capturing them once and providing
  * simple methods for checking actor existence and getting references.
@@ -19,7 +19,7 @@ import org.apache.pekko.actor.typed.javadsl.AskPattern;
  * <pre>
  * {@code
  * // Get existing child
- * Optional<SpringActorRef<ChildCommand>> child = parentRef
+ * Optional<SpringActorHandle<ChildCommand>> child = parentRef
  *     .child(ChildActor.class, "child-1")
  *     .get()
  *     .toCompletableFuture()
@@ -110,7 +110,7 @@ public class SpringChildActorReference<P, C> {
      *         actor reference if found, or an empty Optional if not found
      */
     @SuppressWarnings("unchecked")
-    public CompletionStage<Optional<SpringActorRef<C>>> get() {
+    public CompletionStage<Optional<SpringActorHandle<C>>> get() {
         ActorRef<Object> parentAsObject = (ActorRef<Object>) parentRef;
 
         return AskPattern.ask(
@@ -121,7 +121,7 @@ public class SpringChildActorReference<P, C> {
                         scheduler)
                 .thenApply(response -> {
                     if (response.found && response.childRef != null) {
-                        return Optional.of(new SpringActorRef<>(scheduler, response.childRef, defaultTimeout));
+                        return Optional.of(new SpringActorHandle<>(scheduler, response.childRef, defaultTimeout));
                     } else {
                         return Optional.empty();
                     }

@@ -51,10 +51,10 @@ The core architecture consists of several key components:
 2. **SpringActorContext**: Represents the context for an actor in the Spring Actor system, providing a way to
    identify actors uniquely.
 
-3. **SpringActorRef**: A wrapper around Pekko's ActorRef that provides methods for asking and telling messages
+3. **SpringActorHandle**: A wrapper around Pekko's ActorRef that provides methods for asking and telling messages
    to an actor with a more Spring-friendly API.
 
-4. **SpringShardedActorRef**: Similar to SpringActorRef but for sharded actors in a cluster environment.
+4. **SpringShardedActorHandle**: Similar to SpringActorHandle but for sharded actors in a cluster environment.
 
 5. **SpringActorSystemBuilder**: Used to build and configure the actor system.
 
@@ -157,7 +157,7 @@ spring-boot-starter-actor/
 │   └── src/main/java/io/github/seonwkim/core/
 │       ├── SpringActor.java               # Main actor interface
 │       ├── SpringActorContext.java        # Actor context
-│       ├── SpringActorRef.java            # Actor reference wrapper
+│       ├── SpringActorHandle.java            # Actor reference wrapper
 │       └── SpringActorSystemBuilder.java  # System builder
 ├── core-boot3/                             # Spring Boot 3.x support
 │   └── src/main/java/io/github/seonwkim/core/  # Same structure as core

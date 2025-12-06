@@ -151,7 +151,7 @@ public class ActorTagsIntegrationTest {
         }
     }
 
-    private Pong sendPingAndWait(SpringActorRef<TestCommand> actor, String message) throws Exception {
+    private Pong sendPingAndWait(SpringActorHandle<TestCommand> actor, String message) throws Exception {
         return actor.ask(new Ping(message)).execute().toCompletableFuture().get();
     }
 
@@ -197,7 +197,7 @@ public class ActorTagsIntegrationTest {
     void testEmptyTags() throws Exception {
         logAppender.clear();
 
-        SpringActorRef<TestCommand> actor = actorSystem
+        SpringActorHandle<TestCommand> actor = actorSystem
                 .actor(TestActor.class)
                 .withId("empty-tags-actor")
                 .withTags(TagsConfig.empty())
@@ -213,7 +213,7 @@ public class ActorTagsIntegrationTest {
     void testSingleTag() throws Exception {
         logAppender.clear();
 
-        SpringActorRef<TestCommand> actor = actorSystem
+        SpringActorHandle<TestCommand> actor = actorSystem
                 .actor(TestActor.class)
                 .withId("single-tag-actor")
                 .withTags(TagsConfig.of("worker"))
@@ -232,7 +232,7 @@ public class ActorTagsIntegrationTest {
     void testMultipleTags() throws Exception {
         logAppender.clear();
 
-        SpringActorRef<TestCommand> actor = actorSystem
+        SpringActorHandle<TestCommand> actor = actorSystem
                 .actor(TestActor.class)
                 .withId("multiple-tags-actor")
                 .withTags(TagsConfig.of("worker", "high-priority", "cpu-intensive"))
@@ -252,7 +252,7 @@ public class ActorTagsIntegrationTest {
         logAppender.clear();
 
         Set<String> tags = Set.of("worker", "backend");
-        SpringActorRef<TestCommand> actor = actorSystem
+        SpringActorHandle<TestCommand> actor = actorSystem
                 .actor(TestActor.class)
                 .withId("tags-from-set-actor")
                 .withTags(TagsConfig.of(tags))
@@ -271,7 +271,7 @@ public class ActorTagsIntegrationTest {
     void testCombinedWithMailbox() throws Exception {
         logAppender.clear();
 
-        SpringActorRef<TestCommand> actor = actorSystem
+        SpringActorHandle<TestCommand> actor = actorSystem
                 .actor(TestActor.class)
                 .withId("tags-with-mailbox-actor")
                 .withTags(TagsConfig.of("worker", "bounded"))
@@ -291,7 +291,7 @@ public class ActorTagsIntegrationTest {
     void testCombinedWithDispatcher() throws Exception {
         logAppender.clear();
 
-        SpringActorRef<TestCommand> actor = actorSystem
+        SpringActorHandle<TestCommand> actor = actorSystem
                 .actor(TestActor.class)
                 .withId("tags-with-dispatcher-actor")
                 .withTags(TagsConfig.of("worker", "blocking"))
@@ -311,7 +311,7 @@ public class ActorTagsIntegrationTest {
     void testCombinedWithMailboxAndDispatcher() throws Exception {
         logAppender.clear();
 
-        SpringActorRef<TestCommand> actor = actorSystem
+        SpringActorHandle<TestCommand> actor = actorSystem
                 .actor(TestActor.class)
                 .withId("tags-with-all-actor")
                 .withTags(TagsConfig.of("worker", "high-priority", "io-bound"))
@@ -333,7 +333,7 @@ public class ActorTagsIntegrationTest {
         logAppender.clear();
 
         // Spawn parent actor
-        SpringActorRef<TestCommand> parent = actorSystem
+        SpringActorHandle<TestCommand> parent = actorSystem
                 .actor(TestParentActor.class)
                 .withId("parent-with-tagged-child")
                 .spawnAndWait();
@@ -341,12 +341,12 @@ public class ActorTagsIntegrationTest {
         assertNotNull(parent);
 
         // Spawn child actor with tags
-        CompletionStage<SpringActorRef<TestCommand>> childFuture = parent.child(TestChildActor.class)
+        CompletionStage<SpringActorHandle<TestCommand>> childFuture = parent.child(TestChildActor.class)
                 .withId("tagged-child")
                 .withTags(TagsConfig.of("child-worker", "low-priority"))
                 .spawn();
 
-        SpringActorRef<TestCommand> child = childFuture.toCompletableFuture().get();
+        SpringActorHandle<TestCommand> child = childFuture.toCompletableFuture().get();
         assertNotNull(child);
 
         Pong response = sendPingAndWait(child, "Hello from tagged child");
@@ -362,7 +362,7 @@ public class ActorTagsIntegrationTest {
         logAppender.clear();
 
         // Spawn parent actor
-        SpringActorRef<TestCommand> parent = actorSystem
+        SpringActorHandle<TestCommand> parent = actorSystem
                 .actor(TestParentActor.class)
                 .withId("parent-with-configured-child")
                 .spawnAndWait();
@@ -370,13 +370,13 @@ public class ActorTagsIntegrationTest {
         assertNotNull(parent);
 
         // Spawn child actor with tags and bounded mailbox
-        CompletionStage<SpringActorRef<TestCommand>> childFuture = parent.child(TestChildActor.class)
+        CompletionStage<SpringActorHandle<TestCommand>> childFuture = parent.child(TestChildActor.class)
                 .withId("tagged-bounded-child")
                 .withTags(TagsConfig.of("child-worker", "bounded"))
                 .withMailbox(MailboxConfig.bounded(25))
                 .spawn();
 
-        SpringActorRef<TestCommand> child = childFuture.toCompletableFuture().get();
+        SpringActorHandle<TestCommand> child = childFuture.toCompletableFuture().get();
         assertNotNull(child);
 
         Pong response = sendPingAndWait(child, "Hello from child with tags and bounded mailbox");
@@ -392,7 +392,7 @@ public class ActorTagsIntegrationTest {
         logAppender.clear();
 
         // Spawn parent actor
-        SpringActorRef<TestCommand> parent = actorSystem
+        SpringActorHandle<TestCommand> parent = actorSystem
                 .actor(TestParentActor.class)
                 .withId("parent-with-fully-configured-child")
                 .spawnAndWait();
@@ -400,14 +400,14 @@ public class ActorTagsIntegrationTest {
         assertNotNull(parent);
 
         // Spawn child actor with tags, bounded mailbox, and blocking dispatcher
-        CompletionStage<SpringActorRef<TestCommand>> childFuture = parent.child(TestChildActor.class)
+        CompletionStage<SpringActorHandle<TestCommand>> childFuture = parent.child(TestChildActor.class)
                 .withId("fully-configured-child")
                 .withTags(TagsConfig.of("child-worker", "io-bound", "critical"))
                 .withMailbox(MailboxConfig.bounded(50))
                 .withDispatcher(DispatcherConfig.blocking())
                 .spawn();
 
-        SpringActorRef<TestCommand> child = childFuture.toCompletableFuture().get();
+        SpringActorHandle<TestCommand> child = childFuture.toCompletableFuture().get();
         assertNotNull(child);
 
         Pong response = sendPingAndWait(child, "Hello from child with tags, bounded mailbox, and blocking dispatcher");
@@ -441,19 +441,19 @@ public class ActorTagsIntegrationTest {
         logAppender.clear();
 
         // Spawn multiple actors with different tags to ensure they don't interfere
-        SpringActorRef<TestCommand> worker1 = actorSystem
+        SpringActorHandle<TestCommand> worker1 = actorSystem
                 .actor(TestActor.class)
                 .withId("worker-1")
                 .withTags(TagsConfig.of("worker", "group-1"))
                 .spawnAndWait();
 
-        SpringActorRef<TestCommand> worker2 = actorSystem
+        SpringActorHandle<TestCommand> worker2 = actorSystem
                 .actor(TestActor.class)
                 .withId("worker-2")
                 .withTags(TagsConfig.of("worker", "group-2"))
                 .spawnAndWait();
 
-        SpringActorRef<TestCommand> supervisor = actorSystem
+        SpringActorHandle<TestCommand> supervisor = actorSystem
                 .actor(TestActor.class)
                 .withId("supervisor")
                 .withTags(TagsConfig.of("supervisor", "management"))

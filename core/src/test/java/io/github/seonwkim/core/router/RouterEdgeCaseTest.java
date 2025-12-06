@@ -7,7 +7,7 @@ import io.github.seonwkim.core.AskCommand;
 import io.github.seonwkim.core.SpringActor;
 import io.github.seonwkim.core.SpringActorBehavior;
 import io.github.seonwkim.core.SpringActorContext;
-import io.github.seonwkim.core.SpringActorRef;
+import io.github.seonwkim.core.SpringActorHandle;
 import io.github.seonwkim.core.SpringActorSystem;
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
@@ -190,7 +190,7 @@ class RouterEdgeCaseTest {
 
     @Test
     void routerHandlesWorkerFailuresWithSupervision(@Autowired SpringActorSystem actorSystem) throws Exception {
-        SpringActorRef<SupervisedRouterActor.Command> router = actorSystem
+        SpringActorHandle<SupervisedRouterActor.Command> router = actorSystem
                 .actor(SupervisedRouterActor.class)
                 .withId("supervised-router")
                 .spawnAndWait();
@@ -232,7 +232,7 @@ class RouterEdgeCaseTest {
 
     @Test
     void routerHandlesHighMessageVolume(@Autowired SpringActorSystem actorSystem) throws Exception {
-        SpringActorRef<HighVolumeRouterActor.Command> router = actorSystem
+        SpringActorHandle<HighVolumeRouterActor.Command> router = actorSystem
                 .actor(HighVolumeRouterActor.class)
                 .withId("high-volume-router")
                 .spawnAndWait();
@@ -266,17 +266,17 @@ class RouterEdgeCaseTest {
 
     @Test
     void multipleRoutersCanCoexist(@Autowired SpringActorSystem actorSystem) throws Exception {
-        SpringActorRef<HighVolumeRouterActor.Command> router1 = actorSystem
+        SpringActorHandle<HighVolumeRouterActor.Command> router1 = actorSystem
                 .actor(HighVolumeRouterActor.class)
                 .withId("router-1")
                 .spawnAndWait();
 
-        SpringActorRef<HighVolumeRouterActor.Command> router2 = actorSystem
+        SpringActorHandle<HighVolumeRouterActor.Command> router2 = actorSystem
                 .actor(HighVolumeRouterActor.class)
                 .withId("router-2")
                 .spawnAndWait();
 
-        SpringActorRef<HighVolumeRouterActor.Command> router3 = actorSystem
+        SpringActorHandle<HighVolumeRouterActor.Command> router3 = actorSystem
                 .actor(HighVolumeRouterActor.class)
                 .withId("router-3")
                 .spawnAndWait();
@@ -316,7 +316,7 @@ class RouterEdgeCaseTest {
 
     @Test
     void routerHandlesConcurrentMessageBursts(@Autowired SpringActorSystem actorSystem) throws Exception {
-        SpringActorRef<HighVolumeRouterActor.Command> router = actorSystem
+        SpringActorHandle<HighVolumeRouterActor.Command> router = actorSystem
                 .actor(HighVolumeRouterActor.class)
                 .withId("burst-router")
                 .spawnAndWait();

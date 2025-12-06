@@ -3,7 +3,7 @@ package io.github.seonwkim.example;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import io.github.seonwkim.core.*;
 import io.github.seonwkim.core.serialization.JsonSerializable;
-import io.github.seonwkim.core.shard.SpringShardedActorRef;
+import io.github.seonwkim.core.shard.SpringShardedActorHandle;
 import javax.annotation.Nullable;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
@@ -165,7 +165,7 @@ public class UserActor implements SpringActorWithContext<UserActor.Command, User
                 json.append(",\"roomId\":\"").append(escapeJson(currentRoomId)).append("\"");
             });
 
-            // TODO: how can we send SpringActorRef across the clusters?
+            // TODO: how can we send SpringActorHandle across the clusters?
             // currently we have schedulers as field under the ref, that's why it's hard to send it across the cluster
             // because we now have to serde scheduler which isn't possible(and shouldn't be)
             roomActor.tell(
@@ -235,7 +235,7 @@ public class UserActor implements SpringActorWithContext<UserActor.Command, User
             return Behaviors.same();
         }
 
-        private SpringShardedActorRef<ChatRoomActor.Command> getRoomActor() {
+        private SpringShardedActorHandle<ChatRoomActor.Command> getRoomActor() {
             return actorSystem
                     .sharded(ChatRoomActor.class)
                     .withId(currentRoomId)

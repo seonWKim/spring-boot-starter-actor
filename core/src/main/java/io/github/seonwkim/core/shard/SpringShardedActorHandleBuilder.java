@@ -6,12 +6,12 @@ import org.apache.pekko.actor.typed.Scheduler;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityRef;
 
 /**
- * Builder for creating instances of {@link SpringShardedActorRef}. This builder provides a fluent
- * API for constructing SpringShardedActorRef instances with various configurations.
+ * Builder for creating instances of {@link SpringShardedActorHandle}. This builder provides a fluent
+ * API for constructing SpringShardedActorHandle instances with various configurations.
  *
  * @param <T> The type of messages that the actor can handle
  */
-public class SpringShardedActorRefBuilder<T> {
+public class SpringShardedActorHandleBuilder<T> {
     private final Scheduler scheduler;
     private final EntityRef<T> entityRef;
     private Duration timeout = ActorConstants.DEFAULT_TIMEOUT;
@@ -22,7 +22,7 @@ public class SpringShardedActorRefBuilder<T> {
      * @param scheduler The scheduler to use for asking messages
      * @param entityRef The entity reference to wrap
      */
-    public SpringShardedActorRefBuilder(Scheduler scheduler, EntityRef<T> entityRef) {
+    public SpringShardedActorHandleBuilder(Scheduler scheduler, EntityRef<T> entityRef) {
         this.scheduler = scheduler;
         this.entityRef = entityRef;
     }
@@ -33,7 +33,7 @@ public class SpringShardedActorRefBuilder<T> {
      * @param timeout The timeout duration
      * @return This builder for method chaining
      */
-    public SpringShardedActorRefBuilder<T> withTimeout(Duration timeout) {
+    public SpringShardedActorHandleBuilder<T> withTimeout(Duration timeout) {
         this.timeout = timeout;
         return this;
     }
@@ -44,16 +44,16 @@ public class SpringShardedActorRefBuilder<T> {
      * @param timeoutSeconds The timeout in seconds
      * @return This builder for method chaining
      */
-    public SpringShardedActorRefBuilder<T> withTimeoutSeconds(int timeoutSeconds) {
+    public SpringShardedActorHandleBuilder<T> withTimeoutSeconds(int timeoutSeconds) {
         return withTimeout(Duration.ofSeconds(timeoutSeconds));
     }
 
     /**
-     * Builds a new SpringShardedActorRef instance with the configured parameters.
+     * Builds a new SpringShardedActorHandle instance with the configured parameters.
      *
-     * @return A new SpringShardedActorRef instance
+     * @return A new SpringShardedActorHandle instance
      */
-    public SpringShardedActorRef<T> build() {
-        return new SpringShardedActorRef<>(scheduler, entityRef, timeout);
+    public SpringShardedActorHandle<T> build() {
+        return new SpringShardedActorHandle<>(scheduler, entityRef, timeout);
     }
 }

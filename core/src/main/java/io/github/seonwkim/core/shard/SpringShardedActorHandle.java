@@ -20,47 +20,47 @@ import org.apache.pekko.japi.function.Function;
  *
  * @param <T> The type of messages that the actor can handle
  */
-public class SpringShardedActorRef<T> {
+public class SpringShardedActorHandle<T> {
 
     private final Scheduler scheduler;
     private final EntityRef<T> entityRef;
     private final Duration defaultTimeout;
 
     /**
-     * Creates a builder for SpringShardedActorRef.
+     * Creates a builder for SpringShardedActorHandle.
      *
      * @param scheduler The scheduler to use for asking messages
      * @param entityRef The entity reference to wrap
      * @param <T> The type of messages that the actor can handle
-     * @return A new builder for SpringShardedActorRef
+     * @return A new builder for SpringShardedActorHandle
      */
-    public static <T> SpringShardedActorRefBuilder<T> builder(Scheduler scheduler, EntityRef<T> entityRef) {
-        return new SpringShardedActorRefBuilder<>(scheduler, entityRef);
+    public static <T> SpringShardedActorHandleBuilder<T> builder(Scheduler scheduler, EntityRef<T> entityRef) {
+        return new SpringShardedActorHandleBuilder<>(scheduler, entityRef);
     }
 
     /** Default value for the default timeout in seconds. */
     public static final int DEFAULT_TIMEOUT_SECONDS = ActorConstants.DEFAULT_TIMEOUT_SECONDS;
 
     /**
-     * Creates a new SpringShardedActorRef with the given scheduler and entity reference. Uses the
+     * Creates a new SpringShardedActorHandle with the given scheduler and entity reference. Uses the
      * default timeout of 3 seconds.
      *
      * @param scheduler The scheduler to use for asking messages
      * @param entityRef The entity reference to wrap
      */
-    public SpringShardedActorRef(Scheduler scheduler, EntityRef<T> entityRef) {
+    public SpringShardedActorHandle(Scheduler scheduler, EntityRef<T> entityRef) {
         this(scheduler, entityRef, ActorConstants.DEFAULT_TIMEOUT);
     }
 
     /**
-     * Creates a new SpringShardedActorRef with the given scheduler, entity reference, and default
+     * Creates a new SpringShardedActorHandle with the given scheduler, entity reference, and default
      * timeout.
      *
      * @param scheduler The scheduler to use for asking messages
      * @param entityRef The entity reference to wrap
      * @param defaultTimeout The default timeout for ask operations
      */
-    public SpringShardedActorRef(Scheduler scheduler, EntityRef<T> entityRef, Duration defaultTimeout) {
+    public SpringShardedActorHandle(Scheduler scheduler, EntityRef<T> entityRef, Duration defaultTimeout) {
         if (scheduler == null) {
             throw new IllegalArgumentException("scheduler must not be null");
         }

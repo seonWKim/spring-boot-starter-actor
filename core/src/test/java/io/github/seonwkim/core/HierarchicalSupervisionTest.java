@@ -148,12 +148,12 @@ class HierarchicalSupervisionTest {
 
     /**
      * A parent supervisor that spawns child workers with different supervision strategies.
-     * This demonstrates the SpringActorRef child management API in a real-world pattern.
+     * This demonstrates the SpringActorHandle child management API in a real-world pattern.
      *
      * <p>Key features demonstrated:
      * <ul>
-     *   <li>Using {@link SpringActorRef#child(Class, String)} with {@code get()} to check for existing children</li>
-     *   <li>Using {@link SpringActorRef#child(Class, String)} with {@code spawn()} for on-demand spawning</li>
+     *   <li>Using {@link SpringActorHandle#child(Class, String)} with {@code get()} to check for existing children</li>
+     *   <li>Using {@link SpringActorHandle#child(Class, String)} with {@code spawn()} for on-demand spawning</li>
      *   <li>Async message handling with {@code ctx.pipeToSelf()}</li>
      *   <li>Automatic framework command handling when Command extends {@link FrameworkCommand}</li>
      * </ul>
@@ -197,8 +197,8 @@ class HierarchicalSupervisionTest {
             }
 
             private Behavior<Command> onDelegateWork(DelegateWork msg) {
-                // Create SpringActorRef to self for child management
-                SpringActorRef<Command> self = ctx.getSelf();
+                // Create SpringActorHandle to self for child management
+                SpringActorHandle<Command> self = ctx.getSelf();
 
                 // Try to get existing child first
                 ctx.getUnderlying()
@@ -233,9 +233,9 @@ class HierarchicalSupervisionTest {
                 ctx.getLog().info("Spawning new worker {} with strategy {}", msg.workerId, msg.strategy);
 
                 SupervisorStrategy strategy = buildStrategy(msg.strategy);
-                SpringActorRef<Command> self = ctx.getSelf();
+                SpringActorHandle<Command> self = ctx.getSelf();
 
-                // Spawn child using SpringActorRef unified API
+                // Spawn child using SpringActorHandle unified API
                 ctx.getUnderlying()
                         .pipeToSelf(
                                 self.child(ChildWorkerActor.class)
@@ -247,7 +247,7 @@ class HierarchicalSupervisionTest {
                 return Behaviors.same();
             }
 
-            private void delegateToChild(SpringActorRef<ChildWorkerActor.Command> childRef, DelegateWork msg) {
+            private void delegateToChild(SpringActorHandle<ChildWorkerActor.Command> childRef, DelegateWork msg) {
                 childRef.tell(msg.work);
                 msg.reply("Delegated to " + msg.workerId);
             }
@@ -271,10 +271,10 @@ class HierarchicalSupervisionTest {
          */
         private static class ChildReady implements Command {
             final DelegateWork originalMsg;
-            final SpringActorRef<ChildWorkerActor.Command> childRef;
+            final SpringActorHandle<ChildWorkerActor.Command> childRef;
             final Throwable failure;
 
-            ChildReady(DelegateWork originalMsg, SpringActorRef<ChildWorkerActor.Command> childRef, Throwable failure) {
+            ChildReady(DelegateWork originalMsg, SpringActorHandle<ChildWorkerActor.Command> childRef, Throwable failure) {
                 this.originalMsg = originalMsg;
                 this.childRef = childRef;
                 this.failure = failure;
@@ -421,13 +421,13 @@ class HierarchicalSupervisionTest {
             verificationService.reset();
 
             // And: A parent supervisor
-            SpringActorRef<ParentSupervisorActor.Command> parent = actorSystem
+            SpringActorHandle<ParentSupervisorActor.Command> parent = actorSystem
                     .actor(ParentSupervisorActor.class)
                     .withId("di-test-parent")
                     .spawnAndWait();
 
             // When: Spawning a child actor using builder API
-            SpringActorRef<DependencyVerificationActor.Command> child = parent.child(DependencyVerificationActor.class)
+            SpringActorHandle<DependencyVerificationActor.Command> child = parent.child(DependencyVerificationActor.class)
                     .withId("di-test-child")
                     .withSupervisionStrategy(SupervisorStrategy.restart())
                     .spawn()
@@ -456,25 +456,25 @@ class HierarchicalSupervisionTest {
             verificationService.reset();
 
             // And: A parent supervisor
-            SpringActorRef<ParentSupervisorActor.Command> parent = actorSystem
+            SpringActorHandle<ParentSupervisorActor.Command> parent = actorSystem
                     .actor(ParentSupervisorActor.class)
                     .withId("di-singleton-test-parent")
                     .spawnAndWait();
 
             // When: Spawning multiple child actors
-            SpringActorRef<DependencyVerificationActor.Command> child1 = parent.child(DependencyVerificationActor.class)
+            SpringActorHandle<DependencyVerificationActor.Command> child1 = parent.child(DependencyVerificationActor.class)
                     .withId("singleton-child-1")
                     .spawn()
                     .toCompletableFuture()
                     .get(5, TimeUnit.SECONDS);
 
-            SpringActorRef<DependencyVerificationActor.Command> child2 = parent.child(DependencyVerificationActor.class)
+            SpringActorHandle<DependencyVerificationActor.Command> child2 = parent.child(DependencyVerificationActor.class)
                     .withId("singleton-child-2")
                     .spawn()
                     .toCompletableFuture()
                     .get(5, TimeUnit.SECONDS);
 
-            SpringActorRef<DependencyVerificationActor.Command> child3 = parent.child(DependencyVerificationActor.class)
+            SpringActorHandle<DependencyVerificationActor.Command> child3 = parent.child(DependencyVerificationActor.class)
                     .withId("singleton-child-3")
                     .spawn()
                     .toCompletableFuture()
@@ -516,13 +516,13 @@ class HierarchicalSupervisionTest {
             verificationService.reset();
 
             // And: A parent supervisor
-            SpringActorRef<ParentSupervisorActor.Command> parent = actorSystem
+            SpringActorHandle<ParentSupervisorActor.Command> parent = actorSystem
                     .actor(ParentSupervisorActor.class)
                     .withId("di-builder-test-parent")
                     .spawnAndWait();
 
             // When: Spawning a child actor using builder API
-            SpringActorRef<DependencyVerificationActor.Command> child = parent.child(DependencyVerificationActor.class)
+            SpringActorHandle<DependencyVerificationActor.Command> child = parent.child(DependencyVerificationActor.class)
                     .withId("di-builder-child")
                     .withSupervisionStrategy(SupervisorStrategy.restart())
                     .withTimeout(Duration.ofSeconds(10))
@@ -562,7 +562,7 @@ class HierarchicalSupervisionTest {
             taskLogger.reset();
 
             // And: A child actor with restart supervision
-            SpringActorRef<ChildWorkerActor.Command> worker = actorSystem
+            SpringActorHandle<ChildWorkerActor.Command> worker = actorSystem
                     .actor(ChildWorkerActor.class)
                     .withId("di-restart-test-worker")
                     .withSupervisionStrategy(SupervisorStrategy.restart())
@@ -609,7 +609,7 @@ class HierarchicalSupervisionTest {
         void testExistsChildReturnsFalseForNonExistent(ApplicationContext springContext) throws Exception {
             // Given: A parent supervisor
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
-            SpringActorRef<ParentSupervisorActor.Command> supervisor = actorSystem
+            SpringActorHandle<ParentSupervisorActor.Command> supervisor = actorSystem
                     .actor(ParentSupervisorActor.class)
                     .withId("supervisor-exists-test")
                     .spawnAndWait();
@@ -629,13 +629,13 @@ class HierarchicalSupervisionTest {
         void testGetChildReturnsNullForNonExistent(ApplicationContext springContext) throws Exception {
             // Given: A parent supervisor
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
-            SpringActorRef<ParentSupervisorActor.Command> supervisor = actorSystem
+            SpringActorHandle<ParentSupervisorActor.Command> supervisor = actorSystem
                     .actor(ParentSupervisorActor.class)
                     .withId("supervisor-get-test")
                     .spawnAndWait();
 
             // When: Getting a child that doesn't exist
-            SpringActorRef<ChildWorkerActor.Command> childRef = supervisor
+            SpringActorHandle<ChildWorkerActor.Command> childRef = supervisor
                     .child(ChildWorkerActor.class, "non-existent-child")
                     .get()
                     .toCompletableFuture()
@@ -650,13 +650,13 @@ class HierarchicalSupervisionTest {
         void testSpawnChildDirectly(ApplicationContext springContext) throws Exception {
             // Given: A parent supervisor
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
-            SpringActorRef<ParentSupervisorActor.Command> supervisor = actorSystem
+            SpringActorHandle<ParentSupervisorActor.Command> supervisor = actorSystem
                     .actor(ParentSupervisorActor.class)
                     .withId("supervisor-spawn-test")
                     .spawnAndWait();
 
             // When: Spawning a child directly using the builder API
-            SpringActorRef<ChildWorkerActor.Command> childRef = supervisor
+            SpringActorHandle<ChildWorkerActor.Command> childRef = supervisor
                     .child(ChildWorkerActor.class)
                     .withId("direct-spawn-child")
                     .withSupervisionStrategy(SupervisorStrategy.restart())
@@ -684,7 +684,7 @@ class HierarchicalSupervisionTest {
             assertThat(exists).isTrue();
 
             // And: Can retrieve child ref again
-            SpringActorRef<ChildWorkerActor.Command> retrievedChild = supervisor
+            SpringActorHandle<ChildWorkerActor.Command> retrievedChild = supervisor
                     .child(ChildWorkerActor.class, "direct-spawn-child")
                     .get()
                     .toCompletableFuture()
@@ -707,7 +707,7 @@ class HierarchicalSupervisionTest {
             taskLogger.reset();
 
             // When: Spawn a parent supervisor
-            SpringActorRef<ParentSupervisorActor.Command> supervisor = actorSystem
+            SpringActorHandle<ParentSupervisorActor.Command> supervisor = actorSystem
                     .actor(ParentSupervisorActor.class)
                     .withId("supervisor-1")
                     .spawnAndWait();
@@ -738,7 +738,7 @@ class HierarchicalSupervisionTest {
             taskLogger.reset();
 
             // When: Spawn a parent supervisor
-            SpringActorRef<ParentSupervisorActor.Command> supervisor = actorSystem
+            SpringActorHandle<ParentSupervisorActor.Command> supervisor = actorSystem
                     .actor(ParentSupervisorActor.class)
                     .withId("supervisor-2")
                     .spawnAndWait();
@@ -780,7 +780,7 @@ class HierarchicalSupervisionTest {
             // Given: Supervisor with restart strategy
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
 
-            SpringActorRef<ParentSupervisorActor.Command> supervisor = actorSystem
+            SpringActorHandle<ParentSupervisorActor.Command> supervisor = actorSystem
                     .actor(ParentSupervisorActor.class)
                     .withId("supervisor-restart")
                     .spawnAndWait();
@@ -823,7 +823,7 @@ class HierarchicalSupervisionTest {
             // Given: Supervisor
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
 
-            SpringActorRef<ParentSupervisorActor.Command> supervisor = actorSystem
+            SpringActorHandle<ParentSupervisorActor.Command> supervisor = actorSystem
                     .actor(ParentSupervisorActor.class)
                     .withId("supervisor-state-reset")
                     .spawnAndWait();
@@ -878,7 +878,7 @@ class HierarchicalSupervisionTest {
             // Given: Supervisor with stop strategy
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
 
-            SpringActorRef<ParentSupervisorActor.Command> supervisor = actorSystem
+            SpringActorHandle<ParentSupervisorActor.Command> supervisor = actorSystem
                     .actor(ParentSupervisorActor.class)
                     .withId("supervisor-stop")
                     .spawnAndWait();
@@ -934,7 +934,7 @@ class HierarchicalSupervisionTest {
             // Given: Actor spawned with restart supervision
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
 
-            SpringActorRef<ChildWorkerActor.Command> worker = actorSystem
+            SpringActorHandle<ChildWorkerActor.Command> worker = actorSystem
                     .actor(ChildWorkerActor.class)
                     .withId("top-level-restart-worker")
                     .withSupervisionStrategy(SupervisorStrategy.restart())
@@ -972,7 +972,7 @@ class HierarchicalSupervisionTest {
             // Given: Actor spawned with restart supervision
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
 
-            SpringActorRef<ChildWorkerActor.Command> worker = actorSystem
+            SpringActorHandle<ChildWorkerActor.Command> worker = actorSystem
                     .actor(ChildWorkerActor.class)
                     .withId("top-level-state-worker")
                     .withSupervisionStrategy(SupervisorStrategy.restart())
@@ -1021,7 +1021,7 @@ class HierarchicalSupervisionTest {
             // Given: Actor spawned with limited restart supervision (max 2 restarts)
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
 
-            SpringActorRef<ChildWorkerActor.Command> worker = actorSystem
+            SpringActorHandle<ChildWorkerActor.Command> worker = actorSystem
                     .actor(ChildWorkerActor.class)
                     .withId("top-level-limited-worker")
                     .withSupervisionStrategy(SupervisorStrategy.restart().withLimit(2, Duration.ofSeconds(10)))
@@ -1081,7 +1081,7 @@ class HierarchicalSupervisionTest {
             // Given: Actor spawned with stop supervision
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
 
-            SpringActorRef<ChildWorkerActor.Command> worker = actorSystem
+            SpringActorHandle<ChildWorkerActor.Command> worker = actorSystem
                     .actor(ChildWorkerActor.class)
                     .withId("top-level-stop-worker")
                     .withSupervisionStrategy(SupervisorStrategy.stop())
@@ -1117,7 +1117,7 @@ class HierarchicalSupervisionTest {
             // Given: Actor spawned with resume supervision
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
 
-            SpringActorRef<ChildWorkerActor.Command> worker = actorSystem
+            SpringActorHandle<ChildWorkerActor.Command> worker = actorSystem
                     .actor(ChildWorkerActor.class)
                     .withId("top-level-resume-worker")
                     .withSupervisionStrategy(SupervisorStrategy.resume())
@@ -1182,7 +1182,7 @@ class HierarchicalSupervisionTest {
             // Given: Actor spawned without supervision (null strategy)
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
 
-            SpringActorRef<ChildWorkerActor.Command> worker = actorSystem
+            SpringActorHandle<ChildWorkerActor.Command> worker = actorSystem
                     .actor(ChildWorkerActor.class)
                     .withId("top-level-no-supervision-worker")
                     // No withSupervisionStrategy() call - defaults to null

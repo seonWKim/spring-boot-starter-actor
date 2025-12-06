@@ -147,7 +147,7 @@ public class SpringActorSystem implements DisposableBean {
      * <p>Example usage:
      *
      * <pre>
-     * SpringActorRef&lt;Command&gt; actor = actorSystem
+     * SpringActorHandle&lt;Command&gt; actor = actorSystem
      *     .actor(HelloActor.class)
      *     .withId("myActor")
      *     .withTimeout(Duration.ofSeconds(5))
@@ -208,9 +208,9 @@ public class SpringActorSystem implements DisposableBean {
      * @param actorId The ID of the actor
      * @param <A> The type of the actor
      * @param <C> The type of commands that the actor can handle
-     * @return A CompletionStage that completes with a SpringActorRef if found, or null if not found
+     * @return A CompletionStage that completes with a SpringActorHandle if found, or null if not found
      */
-    public <A extends SpringActorWithContext<C, ?>, C> CompletionStage<SpringActorRef<C>> get(
+    public <A extends SpringActorWithContext<C, ?>, C> CompletionStage<SpringActorHandle<C>> get(
             Class<A> actorClass, String actorId) {
         return get(actorClass, actorId, defaultQueryTimeout);
     }
@@ -223,9 +223,9 @@ public class SpringActorSystem implements DisposableBean {
      * @param timeout The maximum time to wait for the response
      * @param <A> The type of the actor
      * @param <C> The type of commands that the actor can handle
-     * @return A CompletionStage that completes with a SpringActorRef if found, or null if not found
+     * @return A CompletionStage that completes with a SpringActorHandle if found, or null if not found
      */
-    public <A extends SpringActorWithContext<C, ?>, C> CompletionStage<SpringActorRef<C>> get(
+    public <A extends SpringActorWithContext<C, ?>, C> CompletionStage<SpringActorHandle<C>> get(
             Class<A> actorClass, String actorId, Duration timeout) {
         SpringActorContext actorContext = new DefaultSpringActorContext(actorId);
 
@@ -242,7 +242,7 @@ public class SpringActorSystem implements DisposableBean {
 
                     @SuppressWarnings("unchecked")
                     ActorRef<C> typedRef = (ActorRef<C>) response.ref;
-                    return new SpringActorRef<>(actorSystem.scheduler(), typedRef, defaultActorRefTimeout);
+                    return new SpringActorHandle<>(actorSystem.scheduler(), typedRef, defaultActorRefTimeout);
                 })
                 .exceptionally(throwable -> null);
     }
@@ -255,9 +255,9 @@ public class SpringActorSystem implements DisposableBean {
      * @param actorId The ID of the actor
      * @param <A> The type of the actor
      * @param <C> The type of commands that the actor can handle
-     * @return A CompletionStage that completes with a SpringActorRef (either existing or newly created)
+     * @return A CompletionStage that completes with a SpringActorHandle (either existing or newly created)
      */
-    public <A extends SpringActorWithContext<C, ?>, C> CompletionStage<SpringActorRef<C>> getOrSpawn(
+    public <A extends SpringActorWithContext<C, ?>, C> CompletionStage<SpringActorHandle<C>> getOrSpawn(
             Class<A> actorClass, String actorId) {
         return getOrSpawn(actorClass, actorId, defaultActorRefTimeout);
     }
@@ -271,9 +271,9 @@ public class SpringActorSystem implements DisposableBean {
      * @param timeout The maximum time to wait for the response
      * @param <A> The type of the actor
      * @param <C> The type of commands that the actor can handle
-     * @return A CompletionStage that completes with a SpringActorRef (either existing or newly created)
+     * @return A CompletionStage that completes with a SpringActorHandle (either existing or newly created)
      */
-    public <A extends SpringActorWithContext<C, ?>, C> CompletionStage<SpringActorRef<C>> getOrSpawn(
+    public <A extends SpringActorWithContext<C, ?>, C> CompletionStage<SpringActorHandle<C>> getOrSpawn(
             Class<A> actorClass, String actorId, Duration timeout) {
         return exists(actorClass, actorId, timeout).thenCompose(exists -> {
             if (exists) {
@@ -284,7 +284,7 @@ public class SpringActorSystem implements DisposableBean {
         });
     }
 
-    protected <A extends SpringActorWithContext<C, ?>, C> CompletionStage<SpringActorRef<C>> spawn(
+    protected <A extends SpringActorWithContext<C, ?>, C> CompletionStage<SpringActorHandle<C>> spawn(
             Class<A> actorClass,
             SpringActorContext actorContext,
             MailboxConfig mailboxConfig,
@@ -317,7 +317,7 @@ public class SpringActorSystem implements DisposableBean {
                 .thenApply(spawned -> {
                     @SuppressWarnings("unchecked")
                     ActorRef<C> typedRef = (ActorRef<C>) spawned.ref;
-                    return new SpringActorRef<>(actorSystem.scheduler(), typedRef, defaultActorRefTimeout);
+                    return new SpringActorHandle<>(actorSystem.scheduler(), typedRef, defaultActorRefTimeout);
                 });
     }
 

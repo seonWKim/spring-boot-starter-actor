@@ -59,7 +59,7 @@ public class OrderService {
             "service", "order-service"
         );
 
-        SpringActorRef<OrderActor.Command> processor = actorSystem
+        SpringActorHandle<OrderActor.Command> processor = actorSystem
             .actor(OrderActor.class)
             .withId("order-processor-" + userId)
             .withMdc(MdcConfig.of(mdc))
@@ -142,7 +142,7 @@ Map<String, String> staticMdc = Map.of(
     "region", "us-east-1"
 );
 
-SpringActorRef<PaymentActor.Command> actor = actorSystem
+SpringActorHandle<PaymentActor.Command> actor = actorSystem
     .actor(PaymentActor.class)
     .withId("payment-processor")
     .withMdc(MdcConfig.of(staticMdc))
@@ -190,14 +190,14 @@ Actor tags provide a way to categorize actors for easier log filtering and analy
 
 ```java
 // Single tag
-SpringActorRef<Worker.Command> worker = actorSystem
+SpringActorHandle<Worker.Command> worker = actorSystem
     .actor(Worker.class)
     .withId("worker-1")
     .withTags(TagsConfig.of("worker"))
     .spawnAndWait();
 
 // Multiple tags
-SpringActorRef<Worker.Command> priorityWorker = actorSystem
+SpringActorHandle<Worker.Command> priorityWorker = actorSystem
     .actor(Worker.class)
     .withId("worker-2")
     .withTags(TagsConfig.of("worker", "high-priority", "cpu-intensive"))
@@ -205,7 +205,7 @@ SpringActorRef<Worker.Command> priorityWorker = actorSystem
 
 // Tags from a set
 Set<String> tags = Set.of("worker", "backend");
-SpringActorRef<Worker.Command> backendWorker = actorSystem
+SpringActorHandle<Worker.Command> backendWorker = actorSystem
     .actor(Worker.class)
     .withId("worker-3")
     .withTags(TagsConfig.of(tags))
@@ -252,7 +252,7 @@ public class ParentActor implements SpringActor<ParentActor.Command> {
     public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
         return SpringActorBehavior.builder(Command.class, actorContext)
             .withState(ctx -> {
-                SpringActorRef<Command> self = new SpringActorRef<>(
+                SpringActorHandle<Command> self = new SpringActorHandle<>(
                     ctx.getSystem().scheduler(), ctx.getSelf());
 
                 // Spawn child with its own MDC and tags
@@ -475,7 +475,7 @@ public class RequestHandler implements SpringActor<RequestHandler.Command> {
 Track user sessions throughout the application:
 
 ```java
-SpringActorRef<SessionActor.Command> sessionActor = actorSystem
+SpringActorHandle<SessionActor.Command> sessionActor = actorSystem
     .actor(SessionActor.class)
     .withId("session-" + sessionId)
     .withMdc(MdcConfig.of(Map.of(

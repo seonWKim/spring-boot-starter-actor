@@ -74,8 +74,8 @@ public final class SpringBehaviorContext<T> {
      *
      * @return This actor's reference
      */
-    public SpringActorRef<T> getSelf() {
-        return new SpringActorRef<>(underlying.getSystem().scheduler(), underlying.getSelf());
+    public SpringActorHandle<T> getSelf() {
+        return new SpringActorHandle<>(underlying.getSystem().scheduler(), underlying.getSelf());
     }
 
     /**

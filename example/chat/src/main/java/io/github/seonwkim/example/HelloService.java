@@ -1,7 +1,7 @@
 package io.github.seonwkim.example;
 
 import io.github.seonwkim.core.SpringActorSystem;
-import io.github.seonwkim.core.shard.SpringShardedActorRef;
+import io.github.seonwkim.core.shard.SpringShardedActorHandle;
 import java.time.Duration;
 import java.util.concurrent.CompletionStage;
 import org.springframework.stereotype.Service;
@@ -18,7 +18,7 @@ public class HelloService {
 
     public Mono<String> hello(String message, String entityId) {
         // Get a reference to the actor entity
-        SpringShardedActorRef<HelloActor.Command> actorRef =
+        SpringShardedActorHandle<HelloActor.Command> actorRef =
                 springActorSystem.sharded(HelloActor.class).withId(entityId).get();
 
         // Send the message using the fluent ask API with timeout and error handling

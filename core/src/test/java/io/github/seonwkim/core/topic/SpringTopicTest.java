@@ -72,7 +72,7 @@ class SpringTopicTest {
                 topicManager.topic(TestMessage.class).withName("basic-topic").create();
 
         // Create subscriber
-        SpringActorRef<TestMessage> subscriber = actorSystem
+        SpringActorHandle<TestMessage> subscriber = actorSystem
                 .actor(SubscriberActor.class)
                 .withContext(new SubscriberActor.SubscriberContext(latch, messageCount, "basicPublishSubscribe-sub-1"))
                 .spawnAndWait();
@@ -98,17 +98,17 @@ class SpringTopicTest {
                 .create();
 
         // Create 3 subscribers
-        SpringActorRef<TestMessage> sub1 = actorSystem
+        SpringActorHandle<TestMessage> sub1 = actorSystem
                 .actor(SubscriberActor.class)
                 .withContext(new SubscriberActor.SubscriberContext(latch, messageCount, "multipleSubscribers-sub-1"))
                 .spawnAndWait();
 
-        SpringActorRef<TestMessage> sub2 = actorSystem
+        SpringActorHandle<TestMessage> sub2 = actorSystem
                 .actor(SubscriberActor.class)
                 .withContext(new SubscriberActor.SubscriberContext(latch, messageCount, "multipleSubscribers-sub-2"))
                 .spawnAndWait();
 
-        SpringActorRef<TestMessage> sub3 = actorSystem
+        SpringActorHandle<TestMessage> sub3 = actorSystem
                 .actor(SubscriberActor.class)
                 .withContext(new SubscriberActor.SubscriberContext(latch, messageCount, "multipleSubscribers-sub-3"))
                 .spawnAndWait();
@@ -133,7 +133,7 @@ class SpringTopicTest {
         SpringTopicRef<TestMessage> topic =
                 topicManager.topic(TestMessage.class).withName("unsub-topic").create();
 
-        SpringActorRef<TestMessage> subscriber = actorSystem
+        SpringActorHandle<TestMessage> subscriber = actorSystem
                 .actor(SubscriberActor.class)
                 .withContext(new SubscriberActor.SubscriberContext(
                         firstLatch, messageCount, "unsubscribeStopsReceivingMessages-sub-1"))
@@ -168,19 +168,19 @@ class SpringTopicTest {
                 .withName("partial-unsub-topic")
                 .create();
 
-        SpringActorRef<TestMessage> sub1 = actorSystem
+        SpringActorHandle<TestMessage> sub1 = actorSystem
                 .actor(SubscriberActor.class)
                 .withContext(new SubscriberActor.SubscriberContext(
                         new CountDownLatch(1), count1, "partialUnsubscribeOtherSubscribersContinue-sub-1"))
                 .spawnAndWait();
 
-        SpringActorRef<TestMessage> sub2 = actorSystem
+        SpringActorHandle<TestMessage> sub2 = actorSystem
                 .actor(SubscriberActor.class)
                 .withContext(new SubscriberActor.SubscriberContext(
                         latch, count2, "partialUnsubscribeOtherSubscribersContinue-sub-2"))
                 .spawnAndWait();
 
-        SpringActorRef<TestMessage> sub3 = actorSystem
+        SpringActorHandle<TestMessage> sub3 = actorSystem
                 .actor(SubscriberActor.class)
                 .withContext(new SubscriberActor.SubscriberContext(
                         latch, count3, "partialUnsubscribeOtherSubscribersContinue-sub-3"))
@@ -223,7 +223,7 @@ class SpringTopicTest {
         SpringTopicRef<TestMessage> topic =
                 topicManager.topic(TestMessage.class).withName("dup-sub-topic").create();
 
-        SpringActorRef<TestMessage> subscriber = actorSystem
+        SpringActorHandle<TestMessage> subscriber = actorSystem
                 .actor(SubscriberActor.class)
                 .withContext(
                         new SubscriberActor.SubscriberContext(latch, messageCount, "duplicateSubscribeIsSafe-sub-1"))
@@ -248,7 +248,7 @@ class SpringTopicTest {
                 .withName("safe-unsub-topic")
                 .create();
 
-        SpringActorRef<TestMessage> subscriber = actorSystem
+        SpringActorHandle<TestMessage> subscriber = actorSystem
                 .actor(SubscriberActor.class)
                 .withContext(new SubscriberActor.SubscriberContext(
                         new CountDownLatch(1), new AtomicInteger(0), "unsubscribeNonSubscribedActorIsSafe-sub-1"))
@@ -277,7 +277,7 @@ class SpringTopicTest {
         CountDownLatch latch = new CountDownLatch(1);
         AtomicInteger messageCount = new AtomicInteger(0);
 
-        SpringActorRef<TestMessage> subscriber = actorSystem
+        SpringActorHandle<TestMessage> subscriber = actorSystem
                 .actor(SubscriberActor.class)
                 .withContext(
                         new SubscriberActor.SubscriberContext(latch, messageCount, "getOrCreateIsIdempotent-sub-1"))
@@ -304,12 +304,12 @@ class SpringTopicTest {
         SpringTopicRef<TestMessage> topicB =
                 topicManager.topic(TestMessage.class).withName("topic-b").create();
 
-        SpringActorRef<TestMessage> subA = actorSystem
+        SpringActorHandle<TestMessage> subA = actorSystem
                 .actor(SubscriberActor.class)
                 .withContext(new SubscriberActor.SubscriberContext(latchA, countA, "sub-a"))
                 .spawnAndWait();
 
-        SpringActorRef<TestMessage> subB = actorSystem
+        SpringActorHandle<TestMessage> subB = actorSystem
                 .actor(SubscriberActor.class)
                 .withContext(new SubscriberActor.SubscriberContext(latchB, countB, "sub-b"))
                 .spawnAndWait();

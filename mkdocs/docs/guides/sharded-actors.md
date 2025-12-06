@@ -168,7 +168,7 @@ public class HelloService {
      */
     public Mono<String> hello(String message, String entityId) {
         // Get a reference to the sharded actor entity
-        SpringShardedActorRef<HelloActor.Command> actorRef =
+        SpringShardedActorHandle<HelloActor.Command> actorRef =
                 springActorSystem.sharded(HelloActor.class).withId(entityId).get();
 
         // Send the message using the fluent ask builder with timeout and error handling
@@ -207,7 +207,7 @@ The builder pattern provides a more fluent API and automatically resolves the `E
 
 ```java
 // Regular Actor - needs explicit lifecycle management
-CompletionStage<SpringActorRef<Command>> actor = actorSystem
+CompletionStage<SpringActorHandle<Command>> actor = actorSystem
     .exists(MyActor.class, "actor-1")
     .thenCompose(exists -> {
         if (exists) {
@@ -220,7 +220,7 @@ CompletionStage<SpringActorRef<Command>> actor = actorSystem
     });
 
 // Sharded Actor - just get the reference and use it
-SpringShardedActorRef<Command> actor = actorSystem
+SpringShardedActorHandle<Command> actor = actorSystem
     .sharded(MyShardedActor.class)
     .withId("actor-1")
     .get();

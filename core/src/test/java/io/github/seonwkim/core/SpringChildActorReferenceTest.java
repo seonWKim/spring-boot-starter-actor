@@ -101,18 +101,18 @@ class SpringChildActorReferenceTest {
         void testGetReturnsOptionalWithExistingChild(ApplicationContext springContext) throws Exception {
             // Given: A parent actor with an existing child (spawned using builder)
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
-            SpringActorRef<ReferenceTestParentActor.Command> parent = actorSystem
+            SpringActorHandle<ReferenceTestParentActor.Command> parent = actorSystem
                     .actor(ReferenceTestParentActor.class)
                     .withId("parent-get-existing")
                     .spawnAndWait();
 
             // Spawn a child using the builder API
-            SpringActorRef<ReferenceTestChildActor.Command> spawnedChild = parent.child(ReferenceTestChildActor.class)
+            SpringActorHandle<ReferenceTestChildActor.Command> spawnedChild = parent.child(ReferenceTestChildActor.class)
                     .withId("existing-child")
                     .spawnAndWait();
 
             // When: Getting the child using the reference API
-            Optional<SpringActorRef<ReferenceTestChildActor.Command>> retrievedChild = parent.child(
+            Optional<SpringActorHandle<ReferenceTestChildActor.Command>> retrievedChild = parent.child(
                             ReferenceTestChildActor.class, "existing-child")
                     .get()
                     .toCompletableFuture()
@@ -127,13 +127,13 @@ class SpringChildActorReferenceTest {
         void testGetReturnsEmptyOptionalForNonExistent(ApplicationContext springContext) throws Exception {
             // Given: A parent actor without children
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
-            SpringActorRef<ReferenceTestParentActor.Command> parent = actorSystem
+            SpringActorHandle<ReferenceTestParentActor.Command> parent = actorSystem
                     .actor(ReferenceTestParentActor.class)
                     .withId("parent-get-empty")
                     .spawnAndWait();
 
             // When: Getting a non-existent child
-            Optional<SpringActorRef<ReferenceTestChildActor.Command>> child = parent.child(
+            Optional<SpringActorHandle<ReferenceTestChildActor.Command>> child = parent.child(
                             ReferenceTestChildActor.class, "non-existent-child")
                     .get()
                     .toCompletableFuture()
@@ -147,7 +147,7 @@ class SpringChildActorReferenceTest {
         void testGetWithCustomTimeout(ApplicationContext springContext) throws Exception {
             // Given: A parent actor with a child
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
-            SpringActorRef<ReferenceTestParentActor.Command> parent = actorSystem
+            SpringActorHandle<ReferenceTestParentActor.Command> parent = actorSystem
                     .actor(ReferenceTestParentActor.class)
                     .withId("parent-get-timeout")
                     .spawnAndWait();
@@ -155,7 +155,7 @@ class SpringChildActorReferenceTest {
             parent.child(ReferenceTestChildActor.class).withId("timeout-child").spawnAndWait();
 
             // When: Getting with custom timeout
-            Optional<SpringActorRef<ReferenceTestChildActor.Command>> child = parent.child(
+            Optional<SpringActorHandle<ReferenceTestChildActor.Command>> child = parent.child(
                             ReferenceTestChildActor.class, "timeout-child")
                     .withTimeout(Duration.ofSeconds(10))
                     .get()
@@ -176,7 +176,7 @@ class SpringChildActorReferenceTest {
         void testExistsReturnsTrueForExistingChild(ApplicationContext springContext) throws Exception {
             // Given: A parent actor with an existing child
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
-            SpringActorRef<ReferenceTestParentActor.Command> parent = actorSystem
+            SpringActorHandle<ReferenceTestParentActor.Command> parent = actorSystem
                     .actor(ReferenceTestParentActor.class)
                     .withId("parent-exists-true")
                     .spawnAndWait();
@@ -199,7 +199,7 @@ class SpringChildActorReferenceTest {
         void testExistsReturnsFalseForNonExistent(ApplicationContext springContext) throws Exception {
             // Given: A parent actor without children
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
-            SpringActorRef<ReferenceTestParentActor.Command> parent = actorSystem
+            SpringActorHandle<ReferenceTestParentActor.Command> parent = actorSystem
                     .actor(ReferenceTestParentActor.class)
                     .withId("parent-exists-false")
                     .spawnAndWait();
@@ -224,7 +224,7 @@ class SpringChildActorReferenceTest {
         void testNullChildIdThrowsException(ApplicationContext springContext) {
             // Given: A parent actor
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
-            SpringActorRef<ReferenceTestParentActor.Command> parent = actorSystem
+            SpringActorHandle<ReferenceTestParentActor.Command> parent = actorSystem
                     .actor(ReferenceTestParentActor.class)
                     .withId("parent-null-id")
                     .spawnAndWait();
@@ -239,7 +239,7 @@ class SpringChildActorReferenceTest {
         void testEmptyChildIdThrowsException(ApplicationContext springContext) {
             // Given: A parent actor
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
-            SpringActorRef<ReferenceTestParentActor.Command> parent = actorSystem
+            SpringActorHandle<ReferenceTestParentActor.Command> parent = actorSystem
                     .actor(ReferenceTestParentActor.class)
                     .withId("parent-empty-id")
                     .spawnAndWait();
@@ -254,7 +254,7 @@ class SpringChildActorReferenceTest {
         void testWithTimeoutThrowsOnNull(ApplicationContext springContext) {
             // Given: A parent actor
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
-            SpringActorRef<ReferenceTestParentActor.Command> parent = actorSystem
+            SpringActorHandle<ReferenceTestParentActor.Command> parent = actorSystem
                     .actor(ReferenceTestParentActor.class)
                     .withId("parent-timeout-null")
                     .spawnAndWait();
@@ -276,7 +276,7 @@ class SpringChildActorReferenceTest {
         void testReferenceCanBeReusedForMultipleOperations(ApplicationContext springContext) throws Exception {
             // Given: A parent actor with a spawned child
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
-            SpringActorRef<ReferenceTestParentActor.Command> parent = actorSystem
+            SpringActorHandle<ReferenceTestParentActor.Command> parent = actorSystem
                     .actor(ReferenceTestParentActor.class)
                     .withId("parent-reuse")
                     .spawnAndWait();
@@ -289,7 +289,7 @@ class SpringChildActorReferenceTest {
 
             // All operations use the same reference
             Boolean exists = childRef.exists().toCompletableFuture().get();
-            Optional<SpringActorRef<ReferenceTestChildActor.Command>> gotten =
+            Optional<SpringActorHandle<ReferenceTestChildActor.Command>> gotten =
                     childRef.get().toCompletableFuture().get();
 
             // Then: All should succeed
@@ -301,7 +301,7 @@ class SpringChildActorReferenceTest {
         void testMultipleReferencesToSameChildPointToSameActor(ApplicationContext springContext) throws Exception {
             // Given: A parent actor with a spawned child
             SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
-            SpringActorRef<ReferenceTestParentActor.Command> parent = actorSystem
+            SpringActorHandle<ReferenceTestParentActor.Command> parent = actorSystem
                     .actor(ReferenceTestParentActor.class)
                     .withId("parent-multiple-refs")
                     .spawnAndWait();
@@ -309,13 +309,13 @@ class SpringChildActorReferenceTest {
             parent.child(ReferenceTestChildActor.class).withId("same-child").spawnAndWait();
 
             // When: Creating multiple references to the same child
-            Optional<SpringActorRef<ReferenceTestChildActor.Command>> child1 = parent.child(
+            Optional<SpringActorHandle<ReferenceTestChildActor.Command>> child1 = parent.child(
                             ReferenceTestChildActor.class, "same-child")
                     .get()
                     .toCompletableFuture()
                     .get();
 
-            Optional<SpringActorRef<ReferenceTestChildActor.Command>> child2 = parent.child(
+            Optional<SpringActorHandle<ReferenceTestChildActor.Command>> child2 = parent.child(
                             ReferenceTestChildActor.class, "same-child")
                     .get()
                     .toCompletableFuture()

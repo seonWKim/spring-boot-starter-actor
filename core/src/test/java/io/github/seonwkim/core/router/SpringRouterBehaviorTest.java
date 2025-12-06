@@ -8,7 +8,7 @@ import io.github.seonwkim.core.AskCommand;
 import io.github.seonwkim.core.SpringActor;
 import io.github.seonwkim.core.SpringActorBehavior;
 import io.github.seonwkim.core.SpringActorContext;
-import io.github.seonwkim.core.SpringActorRef;
+import io.github.seonwkim.core.SpringActorHandle;
 import io.github.seonwkim.core.SpringActorSystem;
 import java.time.Duration;
 import java.util.HashMap;
@@ -435,7 +435,7 @@ class SpringRouterBehaviorTest {
             // This test verifies the key benefit of withWorkerActors() API:
             // Workers are full Spring components with dependency injection!
 
-            SpringActorRef<SpringDIRouterActor.Command> router = actorSystem
+            SpringActorHandle<SpringDIRouterActor.Command> router = actorSystem
                     .actor(SpringDIRouterActor.class)
                     .withId("spring-di-router")
                     .spawnAndWait();
@@ -483,7 +483,7 @@ class SpringRouterBehaviorTest {
 
         @Test
         void roundRobinDistributesEvenly(@Autowired SpringActorSystem actorSystem) throws Exception {
-            SpringActorRef<TestRouterActor.Command> router = actorSystem
+            SpringActorHandle<TestRouterActor.Command> router = actorSystem
                     .actor(TestRouterActor.class)
                     .withId("round-robin-router")
                     .spawnAndWait();
@@ -527,7 +527,7 @@ class SpringRouterBehaviorTest {
 
         @Test
         void roundRobinHandlesUnevenMessageCount(@Autowired SpringActorSystem actorSystem) throws Exception {
-            SpringActorRef<TestRouterActor.Command> router = actorSystem
+            SpringActorHandle<TestRouterActor.Command> router = actorSystem
                     .actor(TestRouterActor.class)
                     .withId("round-robin-uneven")
                     .spawnAndWait();
@@ -583,7 +583,7 @@ class SpringRouterBehaviorTest {
 
         @Test
         void randomDistributesMessages(@Autowired SpringActorSystem actorSystem) throws Exception {
-            SpringActorRef<RandomRouterActor.Command> router = actorSystem
+            SpringActorHandle<RandomRouterActor.Command> router = actorSystem
                     .actor(RandomRouterActor.class)
                     .withId("random-router")
                     .spawnAndWait();
@@ -627,7 +627,7 @@ class SpringRouterBehaviorTest {
 
         @Test
         void broadcastSendsToAllWorkers(@Autowired SpringActorSystem actorSystem) throws Exception {
-            SpringActorRef<BroadcastRouterActor.Command> router = actorSystem
+            SpringActorHandle<BroadcastRouterActor.Command> router = actorSystem
                     .actor(BroadcastRouterActor.class)
                     .withId("broadcast-router")
                     .spawnAndWait();
@@ -682,7 +682,7 @@ class SpringRouterBehaviorTest {
 
         @Test
         void consistentHashingRoutesMessagesToSameWorker(@Autowired SpringActorSystem actorSystem) throws Exception {
-            SpringActorRef<ConsistentHashingRouterActor.Command> router = actorSystem
+            SpringActorHandle<ConsistentHashingRouterActor.Command> router = actorSystem
                     .actor(ConsistentHashingRouterActor.class)
                     .withId("consistent-hashing-router")
                     .spawnAndWait();
@@ -745,7 +745,7 @@ class SpringRouterBehaviorTest {
 
         @Test
         void consistentHashingDistributesAcrossWorkers(@Autowired SpringActorSystem actorSystem) throws Exception {
-            SpringActorRef<ConsistentHashingRouterActor.Command> router = actorSystem
+            SpringActorHandle<ConsistentHashingRouterActor.Command> router = actorSystem
                     .actor(ConsistentHashingRouterActor.class)
                     .withId("consistent-hashing-distribution")
                     .spawnAndWait();

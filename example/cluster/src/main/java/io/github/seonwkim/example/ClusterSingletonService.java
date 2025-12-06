@@ -1,6 +1,6 @@
 package io.github.seonwkim.example;
 
-import io.github.seonwkim.core.SpringActorRef;
+import io.github.seonwkim.core.SpringActorHandle;
 import io.github.seonwkim.core.SpringActorSystem;
 import java.time.Duration;
 import java.util.Map;
@@ -32,7 +32,7 @@ import reactor.core.publisher.Mono;
 public class ClusterSingletonService {
 
     private final SpringActorSystem springActorSystem;
-    private SpringActorRef<ClusterMetricsAggregator.Command> metricsAggregator;
+    private SpringActorHandle<ClusterMetricsAggregator.Command> metricsAggregator;
 
     /**
      * Creates a new ClusterSingletonService with the given actor system.

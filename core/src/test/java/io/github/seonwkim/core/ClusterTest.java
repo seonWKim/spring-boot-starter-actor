@@ -7,7 +7,7 @@ import io.github.seonwkim.core.behavior.ClusterEventBehavior.ClusterDomainWrappe
 import io.github.seonwkim.core.fixture.SimpleShardedActorWithoutWithState;
 import io.github.seonwkim.core.fixture.TestShardedActor;
 import io.github.seonwkim.core.fixture.TestShardedActor.GetState;
-import io.github.seonwkim.core.shard.SpringShardedActorRef;
+import io.github.seonwkim.core.shard.SpringShardedActorHandle;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -80,11 +80,11 @@ public class ClusterTest extends AbstractClusterTest {
         SpringActorSystem system3 = context3.getBean(SpringActorSystem.class);
         waitUntilClusterInitialized();
 
-        SpringShardedActorRef<TestShardedActor.Command> sharedActor1 =
+        SpringShardedActorHandle<TestShardedActor.Command> sharedActor1 =
                 system1.sharded(TestShardedActor.class).withId("shared-entity").get();
-        SpringShardedActorRef<TestShardedActor.Command> sharedActor2 =
+        SpringShardedActorHandle<TestShardedActor.Command> sharedActor2 =
                 system2.sharded(TestShardedActor.class).withId("shared-entity").get();
-        SpringShardedActorRef<TestShardedActor.Command> sharedActor3 =
+        SpringShardedActorHandle<TestShardedActor.Command> sharedActor3 =
                 system3.sharded(TestShardedActor.class).withId("shared-entity").get();
 
         sharedActor1.tell(new TestShardedActor.Ping("hello shard1"));
@@ -109,13 +109,13 @@ public class ClusterTest extends AbstractClusterTest {
         waitUntilClusterInitialized();
 
         System.out.println("Cluster is configured 🚀");
-        SpringShardedActorRef<TestShardedActor.Command> actor1 = system1.sharded(TestShardedActor.class)
+        SpringShardedActorHandle<TestShardedActor.Command> actor1 = system1.sharded(TestShardedActor.class)
                 .withId("shared-entity-1")
                 .get();
-        SpringShardedActorRef<TestShardedActor.Command> actor2 = system2.sharded(TestShardedActor.class)
+        SpringShardedActorHandle<TestShardedActor.Command> actor2 = system2.sharded(TestShardedActor.class)
                 .withId("shared-entity-2")
                 .get();
-        SpringShardedActorRef<TestShardedActor.Command> actor3 = system3.sharded(TestShardedActor.class)
+        SpringShardedActorHandle<TestShardedActor.Command> actor3 = system3.sharded(TestShardedActor.class)
                 .withId("shared-entity-3")
                 .get();
 
@@ -156,7 +156,7 @@ public class ClusterTest extends AbstractClusterTest {
         waitUntilClusterInitialized();
 
         final String entityId = "test-entity";
-        SpringShardedActorRef<SimpleShardedActorWithoutWithState.Command> actor = system1.sharded(
+        SpringShardedActorHandle<SimpleShardedActorWithoutWithState.Command> actor = system1.sharded(
                         SimpleShardedActorWithoutWithState.class)
                 .withId(entityId)
                 .get();

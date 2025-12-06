@@ -211,7 +211,7 @@ public class GreeterService {
 
 ```java
 // Create and start a new actor
-CompletionStage<SpringActorRef<Command>> actorRef = actorSystem
+CompletionStage<SpringActorHandle<Command>> actorHandle = actorSystem
                 .actor(MyActor.class)
                 .withId("my-actor-1")
                 .withTimeout(Duration.ofSeconds(5))  // Optional
@@ -222,7 +222,7 @@ CompletionStage<SpringActorRef<Command>> actorRef = actorSystem
 
 ```java
 // Get reference to existing actor (returns null if not found)
-CompletionStage<SpringActorRef<Command>> actorRef = actorSystem
+CompletionStage<SpringActorHandle<Command>> actorHandle = actorSystem
                 .get(MyActor.class, "my-actor-1");
 ```
 
@@ -230,7 +230,7 @@ CompletionStage<SpringActorRef<Command>> actorRef = actorSystem
 
 ```java
 // Automatically gets existing or spawns new actor
-CompletionStage<SpringActorRef<Command>> actorRef = actorSystem
+CompletionStage<SpringActorHandle<Command>> actorHandle = actorSystem
                 .getOrSpawn(MyActor.class, "my-actor-1");
 ```
 
@@ -244,7 +244,7 @@ CompletionStage<Boolean> exists = actorSystem
 **Stop an Actor:**
 
 ```java
-actorRef.thenAccept(actor -> actor.stop());
+actorHandle.thenAccept(actor -> actor.stop());
 ```
 
 ### Communication Patterns
@@ -404,7 +404,7 @@ public class UserSessionActor implements SpringShardedActor<UserSessionActor.Com
 
 ```java
 // Get reference (entity created on-demand)
-SpringShardedActorRef<Command> actor = actorSystem
+SpringShardedActorHandle<Command> actor = actorSystem
                 .sharded(UserSessionActor.class)
                 .withId("user-123")
                 .get();
@@ -471,7 +471,7 @@ public class SupervisorActor implements SpringActor<SupervisorActor.Command> {
     public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
         return SpringActorBehavior.builder(Command.class, actorContext)
                 .onMessage(DelegateWork.class, (ctx, msg) -> {
-                    SpringActorRef<Command> self = new SpringActorRef<>(ctx.getSystem().scheduler(), ctx.getSelf());
+                    SpringActorHandle<Command> self = new SpringActorHandle<>(ctx.getSystem().scheduler(), ctx.getSelf());
 
                     // Spawn supervised child
                     self.child(WorkerActor.class)
@@ -490,19 +490,19 @@ public class SupervisorActor implements SpringActor<SupervisorActor.Command> {
 
 ```java
 // Spawn new child
-CompletionStage<SpringActorRef<Command>> child = parentRef
+CompletionStage<SpringActorHandle<Command>> child = parentRef
                 .child(ChildActor.class)
                 .withId("child-1")
                 .spawn();
 
 // Get existing child
-CompletionStage<SpringActorRef<Command>> existing = parentRef
+CompletionStage<SpringActorHandle<Command>> existing = parentRef
         .child(ChildActor.class)
         .withId("child-1")
         .get();
 
 // Get or spawn (recommended)
-CompletionStage<SpringActorRef<Command>> childRef = parentRef
+CompletionStage<SpringActorHandle<Command>> childRef = parentRef
         .child(ChildActor.class)
         .withId("child-1")
         .getOrSpawn();
