@@ -41,6 +41,6 @@ dependencies {
 
 tasks.named<org.springframework.boot.gradle.tasks.run.BootRun>("bootRun") {
 	jvmArgs = listOf(
-		"-javaagent:${rootProject.projectDir}/metrics/build/libs/metrics-${rootProject.version}-agent.jar"
+		"-javaagent:${rootProject.projectDir}/metrics/build/libs/spring-boot-starter-actor-metrics-${rootProject.version}-agent.jar"
 	)
 }
