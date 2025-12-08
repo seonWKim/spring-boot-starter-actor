@@ -89,7 +89,7 @@ subprojects {
 
     dependencies {
         // Only add Pekko dependencies to non-metrics modules
-        if (!project.path.startsWith(":metrics")) {
+        if (!project.path.startsWith(":metrics") && project.name != "spring-boot-starter-actor-metrics") {
             implementation("org.apache.pekko:pekko-actor-typed_3:${pekkoVersion}")
             implementation("org.apache.pekko:pekko-cluster-typed_3:${pekkoVersion}")
             implementation("org.apache.pekko:pekko-cluster-sharding-typed_3:${pekkoVersion}")
@@ -104,7 +104,7 @@ subprojects {
         }
 
         // Only add Pekko testkit to non-metrics modules
-        if (!project.path.startsWith(":metrics")) {
+        if (!project.path.startsWith(":metrics") && project.name != "spring-boot-starter-actor-metrics") {
             testImplementation("org.apache.pekko:pekko-actor-testkit-typed_3:$pekkoVersion")
         }
         testImplementation("org.awaitility:awaitility:4.3.0")
@@ -214,8 +214,8 @@ subprojects {
         }
     }
 
-    // Apply NullAway only to :core, :core-boot3, and :metrics subprojects
-    if (project.name == "core" || project.name == "core-boot3" || project.name == "metrics") {
+    // Apply NullAway only to :core, :core-boot3, :metrics, and :spring-boot-starter-actor-metrics subprojects
+    if (project.name == "core" || project.name == "core-boot3" || project.name == "metrics" || project.name == "spring-boot-starter-actor-metrics") {
         tasks.withType<JavaCompile> {
             options.errorprone {
                 // Let's select which checks to perform. NullAway is enough for now.

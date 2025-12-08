@@ -30,22 +30,16 @@ class MessageProcessingModuleIntegrationTest {
         // Create test metrics backend
         metricsBackend = new TestMetricsBackend();
 
-        // Create configuration - include user actors, exclude system actors
-        MetricsConfiguration.FilterConfig filters = MetricsConfiguration.FilterConfig.builder()
-                .includeActors("**/user/**")
-                .excludeActors("**/system/**")
-                .build();
-
+        // Create configuration
         MetricsConfiguration config = MetricsConfiguration.builder()
                 .enabled(true)
                 .tag("test", "message-processing-integration")
-                .filters(filters)
                 .build();
 
         // Create registry
         metricsRegistry = MetricsRegistry.builder()
                 .configuration(config)
-                .backend(metricsBackend)
+                .meterRegistry(metricsBackend)
                 .build();
 
         // Create and register module

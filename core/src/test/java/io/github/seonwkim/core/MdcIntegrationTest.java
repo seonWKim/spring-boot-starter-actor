@@ -214,7 +214,8 @@ public class MdcIntegrationTest {
         }
     }
 
-    private Pong sendPingAndWait(SpringActorHandle<TestCommand> actor, String message, String messageId) throws Exception {
+    private Pong sendPingAndWait(SpringActorHandle<TestCommand> actor, String message, String messageId)
+            throws Exception {
         return actor.ask(new Ping(message, messageId))
                 .execute()
                 .toCompletableFuture()

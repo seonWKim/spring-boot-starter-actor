@@ -1,189 +1,131 @@
 package io.github.seonwkim.metrics.agent;
 
-import io.github.seonwkim.metrics.api.InstrumentationModule;
 import io.github.seonwkim.metrics.core.MetricsRegistry;
+import io.github.seonwkim.metrics.modules.actor.ActorLifecycleModule;
+import io.github.seonwkim.metrics.modules.mailbox.MailboxModule;
+import io.github.seonwkim.metrics.modules.message.MessageProcessingModule;
+import java.io.File;
 import java.lang.instrument.Instrumentation;
-import java.lang.reflect.Method;
-import java.util.ServiceLoader;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.jar.JarFile;
 import javax.annotation.Nullable;
 import net.bytebuddy.agent.builder.AgentBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Java agent for instrumenting actor classes to collect metrics.
- * <p>
- * At JVM startup, the agent:
- * 1. Discovers InstrumentationModules via SPI
- * 2. Applies bytecode instrumentation to Pekko actor classes
- * 3. Waits for application to set MetricsRegistry via setRegistry()
- * <p>
- * The MetricsRegistry (with backend) must be provided by the application after startup
- * (e.g., in Spring's ApplicationReadyEvent) because backends typically need runtime
- * dependencies like Spring's MeterRegistry.
- * <p>
- * Modules are registered in META-INF/services/io.github.seonwkim.metrics.api.InstrumentationModule
+ * Java agent for bytecode instrumentation of Pekko actors.
  */
 public class MetricsAgent {
 
-    private static final Logger logger = LoggerFactory.getLogger(MetricsAgent.class);
+    private static final Logger log = LoggerFactory.getLogger(MetricsAgent.class);
+    private static final String ENV_ENABLED = "ACTOR_METRICS_ENABLED";
+    private static final String ENV_MODULE_PREFIX = "ACTOR_METRICS_INSTRUMENT_";
+
+    private static final Map<String, Function<AgentBuilder, AgentBuilder>> MODULES = new LinkedHashMap<>();
+
+    static {
+        MODULES.put("actor-lifecycle", ActorLifecycleModule::instrument);
+        MODULES.put("message-processing", MessageProcessingModule::instrument);
+        MODULES.put("mailbox", MailboxModule::instrument);
+    }
 
     @Nullable private static volatile MetricsRegistry registry;
 
-    /**
-     * Premain method called when the agent is loaded during JVM startup.
-     * <p>
-     * Applies bytecode instrumentation but does NOT initialize the registry.
-     * The registry must be set later via setRegistry() once the application
-     * framework (e.g., Spring) has initialized.
-     * <p>
-     * Users can control instrumentation via environment variables:
-     * - ACTOR_METRICS_ENABLED=false (disable all instrumentation)
-     * - ACTOR_METRICS_INSTRUMENT_ACTOR_LIFECYCLE=false (disable specific module instrumentation)
-     * - ACTOR_METRICS_INSTRUMENT_MAILBOX=false (disable specific module instrumentation)
-     * - ACTOR_METRICS_INSTRUMENT_MESSAGE_PROCESSING=false (disable specific module instrumentation)
-     *
-     * @param arguments Agent arguments
-     * @param instrumentation Instrumentation instance
-     */
     public static void premain(String arguments, Instrumentation instrumentation) {
-        logger.info("[MetricsAgent] Starting metrics agent initialization");
-
-        // Check global enabled flag first
-        if (!isMetricsEnabled()) {
-            logger.info(
-                    "[MetricsAgent] Metrics disabled via ACTOR_METRICS_ENABLED=false. Skipping all instrumentation.");
+        if (!getBooleanEnv(ENV_ENABLED, true)) {
+            log.info("Metrics disabled via {}", ENV_ENABLED);
             return;
         }
 
         try {
-            // Apply bytecode instrumentation (registry will be set later)
-            AgentBuilder agentBuilder = new AgentBuilder.Default()
-                    .with(AgentBuilder.RedefinitionStrategy.RETRANSFORMATION)
-                    .with(AgentBuilder.TypeStrategy.Default.REDEFINE)
-                    .with(AgentBuilder.InitializationStrategy.NoOp.INSTANCE);
+            addAgentToSystemClassLoader(instrumentation);
+            installInstrumentation(instrumentation);
+        } catch (Exception e) {
+            log.error("Failed to initialize agent", e);
+        }
+    }
 
-            // Discover all modules via SPI
-            ServiceLoader<InstrumentationModule> moduleLoader = ServiceLoader.load(InstrumentationModule.class);
-            int instrumentedCount = 0;
-            int skippedCount = 0;
+    private static void installInstrumentation(Instrumentation instrumentation) {
+        AgentBuilder builder = new AgentBuilder.Default()
+                .with(AgentBuilder.RedefinitionStrategy.RETRANSFORMATION)
+                .with(AgentBuilder.TypeStrategy.Default.REDEFINE)
+                .with(AgentBuilder.InitializationStrategy.NoOp.INSTANCE);
 
-            for (InstrumentationModule module : moduleLoader) {
-                // Check if this module should be instrumented
-                if (!shouldInstrumentModule(module.moduleId())) {
-                    logger.info(
-                            "[MetricsAgent] Skipping instrumentation for module: {} (disabled via environment)",
-                            module.moduleId());
-                    skippedCount++;
-                    continue;
-                }
-
-                try {
-                    // Use reflection to call the static instrument() method
-                    Method instrumentMethod = module.getClass().getMethod("instrument", AgentBuilder.class);
-                    agentBuilder = (AgentBuilder) instrumentMethod.invoke(null, agentBuilder);
-                    logger.info("[MetricsAgent] Applied instrumentation for module: {}", module.moduleId());
-                    instrumentedCount++;
-                } catch (Exception e) {
-                    logger.warn("[MetricsAgent] Failed to apply instrumentation for module: {}", module.moduleId(), e);
-                }
+        for (Map.Entry<String, Function<AgentBuilder, AgentBuilder>> entry : MODULES.entrySet()) {
+            String moduleId = entry.getKey();
+            if (!isModuleEnabled(moduleId)) {
+                log.info("Module disabled: {}", moduleId);
+                continue;
             }
 
-            agentBuilder.installOn(instrumentation);
+            try {
+                builder = entry.getValue().apply(builder);
+                log.info("Module enabled: {}", moduleId);
+            } catch (Exception e) {
+                log.warn("Failed to instrument module: {}", moduleId, e);
+            }
+        }
 
-            logger.info(
-                    "[MetricsAgent] Metrics agent installed successfully. Instrumented {} modules, skipped {}.",
-                    instrumentedCount,
-                    skippedCount);
-            logger.info("[MetricsAgent] Waiting for application to set MetricsRegistry via setRegistry()...");
+        builder.installOn(instrumentation);
+        log.info("Agent installed");
+    }
 
+    private static void addAgentToSystemClassLoader(Instrumentation instrumentation) {
+        try {
+            var codeSource = MetricsAgent.class.getProtectionDomain().getCodeSource();
+            if (codeSource == null) {
+                log.warn("Could not determine agent JAR location");
+                return;
+            }
+
+            File jar = new File(codeSource.getLocation().toURI());
+            if (!jar.exists() || !jar.isFile()) {
+                log.warn("Agent JAR not found: {}", jar);
+                return;
+            }
+
+            instrumentation.appendToSystemClassLoaderSearch(new JarFile(jar));
+            log.info("Added agent JAR to system classloader: {}", jar.getAbsolutePath());
         } catch (Exception e) {
-            logger.error("[MetricsAgent] Failed to initialize metrics agent", e);
+            log.error("Failed to add agent JAR to system classloader", e);
         }
     }
 
-    /**
-     * Check if metrics are globally enabled.
-     * <p>
-     * Environment variable: ACTOR_METRICS_ENABLED (default: true)
-     * <p>
-     * If false, skips ALL instrumentation to avoid any overhead.
-     */
-    private static boolean isMetricsEnabled() {
-        String value = System.getenv("ACTOR_METRICS_ENABLED");
-        if (value == null) {
-            value = System.getProperty("ACTOR_METRICS_ENABLED");
-        }
-
-        // Default to true if not specified
-        if (value == null) {
-            return true;
-        }
-
-        return Boolean.parseBoolean(value);
+    private static boolean isModuleEnabled(String moduleId) {
+        String key = ENV_MODULE_PREFIX + moduleId.toUpperCase().replace("-", "_");
+        return getBooleanEnv(key, true);
     }
 
-    /**
-     * Check if a module should be instrumented based on environment variables.
-     * <p>
-     * Environment variable format: ACTOR_METRICS_INSTRUMENT_{MODULE_ID}
-     * Example: ACTOR_METRICS_INSTRUMENT_MAILBOX=false to disable mailbox instrumentation
-     * <p>
-     * Default: true (instrument all modules unless explicitly disabled)
-     */
-    private static boolean shouldInstrumentModule(String moduleId) {
-        String envKey = "ACTOR_METRICS_INSTRUMENT_" + moduleId.toUpperCase().replace("-", "_");
-        String value = System.getenv(envKey);
+    private static boolean getBooleanEnv(String key, boolean defaultValue) {
+        String value = System.getenv(key);
         if (value == null) {
-            value = System.getProperty(envKey);
+            value = System.getProperty(key);
         }
-
-        // Default to true if not specified
-        if (value == null) {
-            return true;
-        }
-
-        return Boolean.parseBoolean(value);
+        return value == null ? defaultValue : Boolean.parseBoolean(value);
     }
 
-    /**
-     * Agent method called when the agent is loaded after JVM startup.
-     *
-     * @param arguments Agent arguments
-     * @param instrumentation Instrumentation instance
-     */
     public static void agentmain(String arguments, Instrumentation instrumentation) {
         premain(arguments, instrumentation);
     }
 
-    /**
-     * Get the metrics registry instance.
-     * <p>
-     * Returns null until the application calls setRegistry().
-     * Instrumented code checks this before recording metrics.
-     */
     @Nullable public static MetricsRegistry getRegistry() {
         return registry;
     }
 
-    /**
-     * Set the metrics registry.
-     * <p>
-     * This is called by the application after the framework (e.g., Spring) has initialized
-     * and the metrics backend (e.g., MicrometerMetricsBackend) has been created.
-     * <p>
-     * After this is called, instrumented code will start recording metrics.
-     *
-     * @param metricsRegistry the registry to use for recording metrics
-     */
     public static void setRegistry(@Nullable MetricsRegistry metricsRegistry) {
         registry = metricsRegistry;
         if (metricsRegistry != null) {
-            logger.info(
-                    "[MetricsAgent] MetricsRegistry set. Metrics collection enabled with {} modules.",
+            metricsRegistry.registerModule(new ActorLifecycleModule());
+            metricsRegistry.registerModule(new MessageProcessingModule());
+            metricsRegistry.registerModule(new MailboxModule());
+            log.info(
+                    "Registry set: {} modules enabled",
                     metricsRegistry.getModules().size());
         } else {
-            logger.info("[MetricsAgent] MetricsRegistry cleared. Metrics collection disabled.");
+            log.info("Registry cleared: metrics disabled");
         }
     }
 }

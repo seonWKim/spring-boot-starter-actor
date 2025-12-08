@@ -18,12 +18,12 @@ dependencies {
 
     compileOnly("com.google.code.findbugs:jsr305:3.0.2")
 
+    // Micrometer (compileOnly - users provide via Maven)
+    compileOnly("io.micrometer:micrometer-core:1.11.0")
+
     // Pekko for compilation only (instrumentation needs Pekko classes)
     // Users bring their own Pekko at runtime
     compileOnly("org.apache.pekko:pekko-actor-typed_3:${pekkoVersion}")
-
-    // Micrometer support - bundled in agent JAR for java -jar usage
-    implementation("io.micrometer:micrometer-core:1.11.0")
 
     testImplementation("org.apache.pekko:pekko-actor-typed_3:${pekkoVersion}")
     testImplementation("org.apache.pekko:pekko-cluster-typed_3:${pekkoVersion}")

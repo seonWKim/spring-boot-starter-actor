@@ -4,43 +4,30 @@ import java.util.*;
 
 /**
  * Configuration for the metrics system.
- * Supports programmatic builder and environment variable configuration.
  */
 public class MetricsConfiguration {
 
     private boolean enabled = true;
     private Map<String, String> tags = new HashMap<>();
-    private FilterConfig filters = new FilterConfig();
     private SamplingConfig sampling = new SamplingConfig();
     private Map<String, ModuleConfig> modules = new HashMap<>();
 
     public MetricsConfiguration() {}
 
-    /**
-     * Get default configuration.
-     */
     public static MetricsConfiguration getDefault() {
         return new MetricsConfiguration();
     }
 
-    /**
-     * Create a builder for programmatic configuration.
-     */
     public static Builder builder() {
         return new Builder();
     }
 
-    // Getters
     public boolean isEnabled() {
         return enabled;
     }
 
     public Map<String, String> getTags() {
         return tags;
-    }
-
-    public FilterConfig getFilters() {
-        return filters;
     }
 
     public SamplingConfig getSampling() {
@@ -51,9 +38,6 @@ public class MetricsConfiguration {
         return modules;
     }
 
-    /**
-     * Builder for MetricsConfiguration.
-     */
     public static class Builder {
         private final MetricsConfiguration config = new MetricsConfiguration();
 
@@ -72,11 +56,6 @@ public class MetricsConfiguration {
             return this;
         }
 
-        public Builder filters(FilterConfig filters) {
-            config.filters = filters;
-            return this;
-        }
-
         public Builder sampling(SamplingConfig sampling) {
             config.sampling = sampling;
             return this;
@@ -92,83 +71,6 @@ public class MetricsConfiguration {
         }
     }
 
-    /**
-     * Filter configuration.
-     */
-    public static class FilterConfig {
-        private List<String> actorInclude = new ArrayList<>();
-        private List<String> actorExclude = new ArrayList<>();
-        private List<String> messageInclude = new ArrayList<>();
-        private List<String> messageExclude = new ArrayList<>();
-
-        public List<String> getActorInclude() {
-            return actorInclude;
-        }
-
-        public void setActorInclude(List<String> actorInclude) {
-            this.actorInclude = actorInclude;
-        }
-
-        public List<String> getActorExclude() {
-            return actorExclude;
-        }
-
-        public void setActorExclude(List<String> actorExclude) {
-            this.actorExclude = actorExclude;
-        }
-
-        public List<String> getMessageInclude() {
-            return messageInclude;
-        }
-
-        public void setMessageInclude(List<String> messageInclude) {
-            this.messageInclude = messageInclude;
-        }
-
-        public List<String> getMessageExclude() {
-            return messageExclude;
-        }
-
-        public void setMessageExclude(List<String> messageExclude) {
-            this.messageExclude = messageExclude;
-        }
-
-        public static Builder builder() {
-            return new Builder();
-        }
-
-        public static class Builder {
-            private final FilterConfig config = new FilterConfig();
-
-            public Builder includeActors(String... patterns) {
-                config.actorInclude.addAll(Arrays.asList(patterns));
-                return this;
-            }
-
-            public Builder excludeActors(String... patterns) {
-                config.actorExclude.addAll(Arrays.asList(patterns));
-                return this;
-            }
-
-            public Builder includeMessages(String... patterns) {
-                config.messageInclude.addAll(Arrays.asList(patterns));
-                return this;
-            }
-
-            public Builder excludeMessages(String... patterns) {
-                config.messageExclude.addAll(Arrays.asList(patterns));
-                return this;
-            }
-
-            public FilterConfig build() {
-                return config;
-            }
-        }
-    }
-
-    /**
-     * Sampling configuration.
-     */
     public static class SamplingConfig {
         private String strategy = "always"; // always, never, rate-based, adaptive
         private double rate = 1.0;
@@ -247,9 +149,6 @@ public class MetricsConfiguration {
         }
     }
 
-    /**
-     * Module-specific configuration.
-     */
     public static class ModuleConfig {
         private boolean enabled = true;
 

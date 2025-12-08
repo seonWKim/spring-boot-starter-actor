@@ -2,10 +2,12 @@ package io.github.seonwkim.metrics.modules.message;
 
 import io.github.seonwkim.metrics.api.ActorContext;
 import io.github.seonwkim.metrics.api.InstrumentationModule;
-import io.github.seonwkim.metrics.api.Tags;
-import io.github.seonwkim.metrics.api.instruments.Counter;
-import io.github.seonwkim.metrics.api.instruments.Timer;
 import io.github.seonwkim.metrics.core.MetricsRegistry;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Tag;
+import io.micrometer.core.instrument.Timer;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.asm.Advice;
@@ -14,25 +16,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Instrumentation module for message processing metrics.
- *
- * Tracks:
- * - actor.message.processing.time (timer)
- * - actor.message.processed (counter)
- *
- * Tags: actor.class, message.type (low cardinality to avoid time-series explosion)
- *
- * Note: Error/exception tracking is intentionally NOT included here because Pekko's
- * supervisor catches exceptions before invoke() completes. Error tracking should be
- * implemented in a separate Supervision module that instruments ActorCell.handleInvokeFailure()
- * or supervision strategy decision points. See ENHANCEMENT.md Phase 1 for details.
+ * Tracks message processing time and message counts.
  */
 public class MessageProcessingModule implements InstrumentationModule {
 
     private static final Logger logger = LoggerFactory.getLogger(MessageProcessingModule.class);
     private static final String MODULE_ID = "message-processing";
-
-    // Metric names
     private static final String METRIC_MESSAGE_PROCESSING_TIME = "actor.message.processing.time";
     private static final String METRIC_MESSAGE_PROCESSED = "actor.message.processed";
 
@@ -42,35 +31,17 @@ public class MessageProcessingModule implements InstrumentationModule {
     }
 
     @Override
-    public String description() {
-        return "Message processing metrics (processing time, processed count)";
-    }
+    public void initialize(MetricsRegistry metricsRegistry) {}
 
     @Override
-    public void initialize(MetricsRegistry metricsRegistry) {
-        logger.info("Initializing Message Processing Module");
-        logger.info("Message Processing Module initialized");
-    }
+    public void shutdown() {}
 
-    @Override
-    public void shutdown() {
-        logger.info("Shutting down Message Processing Module");
-    }
-
-    /**
-     * Apply instrumentation to AgentBuilder.
-     * This is called by the MetricsAgent during bytecode transformation.
-     */
     public static AgentBuilder instrument(AgentBuilder builder) {
         return builder.type(ElementMatchers.named("org.apache.pekko.actor.ActorCell"))
-                .transform((builderParam, typeDescription, classLoader, module) -> builderParam
-                        // Instrument invoke() for message processing
-                        .visit(Advice.to(InvokeAdvice.class).on(ElementMatchers.named("invoke"))));
+                .transform((builderParam, typeDescription, classLoader, module) ->
+                        builderParam.visit(Advice.to(InvokeAdvice.class).on(ElementMatchers.named("invoke"))));
     }
 
-    /**
-     * ByteBuddy advice for message processing (invoke method).
-     */
     public static class InvokeAdvice {
 
         @Advice.OnMethodEnter(suppress = Throwable.class)
@@ -79,20 +50,11 @@ public class MessageProcessingModule implements InstrumentationModule {
                 @Advice.Argument(0) Object envelope,
                 @Advice.Local("messageType") String messageType) {
             try {
-                // Get registry from MetricsAgent (not from static field)
                 MetricsRegistry reg = io.github.seonwkim.metrics.agent.MetricsAgent.getRegistry();
-                if (reg == null) {
+                if (reg == null || !reg.shouldInstrument(ActorContext.from(actorCell))) {
                     return System.nanoTime();
                 }
 
-                ActorContext context = ActorContext.from(actorCell);
-
-                // Check filtering, sampling, and business rules (skips system/temporary actors)
-                if (!reg.shouldInstrument(context)) {
-                    return System.nanoTime();
-                }
-
-                // Extract message type inline (ByteBuddy can't inline method calls properly)
                 try {
                     Object message = envelope.getClass().getMethod("message").invoke(envelope);
                     messageType = message.getClass().getSimpleName();
@@ -113,24 +75,12 @@ public class MessageProcessingModule implements InstrumentationModule {
                 @Advice.Enter long startTime,
                 @Advice.Local("messageType") String messageType) {
             try {
-                // Get registry from MetricsAgent (not from static field)
                 MetricsRegistry reg = io.github.seonwkim.metrics.agent.MetricsAgent.getRegistry();
-                if (reg == null) {
-                    return;
-                }
-
-                long endTime = System.nanoTime();
-                long durationNanos = endTime - startTime;
+                if (reg == null) return;
 
                 ActorContext context = ActorContext.from(actorCell);
+                if (!reg.shouldInstrument(context)) return;
 
-                // Check filtering, sampling, and business rules (skips system/temporary actors)
-                if (!reg.shouldInstrument(context)) {
-                    return;
-                }
-
-                // Extract messageType if not set in onEnter
-                // (can happen if filtering logic differs between enter/exit)
                 if (messageType == null) {
                     try {
                         Object message =
@@ -141,19 +91,20 @@ public class MessageProcessingModule implements InstrumentationModule {
                     }
                 }
 
-                // Use low cardinality tags: actor.class and message.type
-                Tags baseTags =
-                        context.toTags().and("message.type", messageType).and(reg.getGlobalTags());
+                List<Tag> tags = new ArrayList<>(context.toTags());
+                tags.add(Tag.of("message.type", messageType));
+                reg.getGlobalTags().forEach(tags::add);
 
-                // Record processing time
-                Timer processingTimer = reg.getBackend().timer(METRIC_MESSAGE_PROCESSING_TIME, baseTags);
-                processingTimer.record(durationNanos, TimeUnit.NANOSECONDS);
+                Timer.builder(METRIC_MESSAGE_PROCESSING_TIME)
+                        .tags(tags)
+                        .register(reg.getMeterRegistry())
+                        .record(System.nanoTime() - startTime, TimeUnit.NANOSECONDS);
 
-                // Record processed message count
-                Counter processedCounter = reg.getBackend().counter(METRIC_MESSAGE_PROCESSED, baseTags);
-                processedCounter.increment();
+                Counter.builder(METRIC_MESSAGE_PROCESSED)
+                        .tags(tags)
+                        .register(reg.getMeterRegistry())
+                        .increment();
             } catch (Exception e) {
-                // Silently fail - don't disrupt actor system
             }
         }
     }

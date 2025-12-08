@@ -2,20 +2,15 @@ package io.github.seonwkim.metrics.modules.message;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import io.github.seonwkim.metrics.api.MetricsBackend;
-import io.github.seonwkim.metrics.api.Tags;
-import io.github.seonwkim.metrics.api.instruments.Counter;
-import io.github.seonwkim.metrics.api.instruments.DistributionSummary;
-import io.github.seonwkim.metrics.api.instruments.Gauge;
-import io.github.seonwkim.metrics.api.instruments.Timer;
 import io.github.seonwkim.metrics.core.MetricsConfiguration;
 import io.github.seonwkim.metrics.core.MetricsRegistry;
-import java.time.Duration;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import io.github.seonwkim.metrics.testing.TestMetricsBackend;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Tag;
+import io.micrometer.core.instrument.Timer;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Supplier;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,14 +24,14 @@ import org.junit.jupiter.api.Test;
  */
 class MessageProcessingModuleTest {
 
-    private TestMetricsBackend metricsBackend;
+    private TestMetricsBackend meterRegistry;
     private MetricsRegistry metricsRegistry;
     private MessageProcessingModule module;
 
     @BeforeEach
     void setUp() {
-        // Create test metrics backend
-        metricsBackend = new TestMetricsBackend();
+        // Create test meter registry
+        meterRegistry = new TestMetricsBackend();
 
         // Create configuration
         MetricsConfiguration config = MetricsConfiguration.builder()
@@ -47,7 +42,7 @@ class MessageProcessingModuleTest {
         // Create registry
         metricsRegistry = MetricsRegistry.builder()
                 .configuration(config)
-                .backend(metricsBackend)
+                .meterRegistry(meterRegistry)
                 .build();
 
         // Create and register module
@@ -65,9 +60,6 @@ class MessageProcessingModuleTest {
     @Test
     void testModuleMetadata() {
         assertEquals("message-processing", module.moduleId());
-        assertNotNull(module.description());
-        assertFalse(module.description().isEmpty());
-        assertTrue(module.description().contains("processing"));
     }
 
     @Test
@@ -88,20 +80,26 @@ class MessageProcessingModuleTest {
     @Test
     void testMetricsCreation() {
         // Simulate creating metrics that would be used during instrumentation
-        Tags testTags = Tags.of("actor.class", "TestActor", "message.type", "TestMessage")
-                .and(metricsRegistry.getGlobalTags());
+        List<Tag> testTags = new ArrayList<>();
+        testTags.add(Tag.of("actor.class", "TestActor"));
+        testTags.add(Tag.of("message.type", "TestMessage"));
+        metricsRegistry.getGlobalTags().forEach(testTags::add);
 
         // Processing time timer
-        Timer processingTimer = metricsBackend.timer("actor.message.processing.time", testTags);
+        Timer processingTimer =
+                Timer.builder("actor.message.processing.time").tags(testTags).register(meterRegistry);
         assertNotNull(processingTimer);
 
         // Processed counter
-        Counter processedCounter = metricsBackend.counter("actor.message.processed", testTags);
+        Counter processedCounter =
+                Counter.builder("actor.message.processed").tags(testTags).register(meterRegistry);
         assertNotNull(processedCounter);
 
         // Error counter
-        Tags errorTags = testTags.and("error.type", "NullPointerException");
-        Counter errorCounter = metricsBackend.counter("actor.message.errors", errorTags);
+        List<Tag> errorTags = new ArrayList<>(testTags);
+        errorTags.add(Tag.of("error.type", "NullPointerException"));
+        Counter errorCounter =
+                Counter.builder("actor.message.errors").tags(errorTags).register(meterRegistry);
         assertNotNull(errorCounter);
 
         // Verify metrics work
@@ -123,8 +121,7 @@ class MessageProcessingModuleTest {
         assertTrue(config.isEnabled());
 
         // Verify global tags are applied
-        Tags globalTags = metricsRegistry.getGlobalTags();
-        assertNotNull(globalTags);
+        assertNotNull(metricsRegistry.getGlobalTags());
     }
 
     @Test
@@ -141,215 +138,62 @@ class MessageProcessingModuleTest {
         String[] messageTypes = {"SayHello", "Stop", "GetStatus", "UpdateState"};
 
         for (String messageType : messageTypes) {
-            Tags tags = Tags.of("actor.class", "TestActor", "message.type", messageType)
-                    .and(metricsRegistry.getGlobalTags());
+            List<Tag> tags = new ArrayList<>();
+            tags.add(Tag.of("actor.class", "TestActor"));
+            tags.add(Tag.of("message.type", messageType));
+            metricsRegistry.getGlobalTags().forEach(tags::add);
 
-            Timer timer = metricsBackend.timer("actor.message.processing.time", tags);
+            Timer timer =
+                    Timer.builder("actor.message.processing.time").tags(tags).register(meterRegistry);
             timer.record(50, TimeUnit.MILLISECONDS);
 
-            Counter counter = metricsBackend.counter("actor.message.processed", tags);
+            Counter counter =
+                    Counter.builder("actor.message.processed").tags(tags).register(meterRegistry);
             counter.increment();
         }
 
         // Verify we have metrics for all message types
-        assertEquals(4, metricsBackend.timerCount());
-        assertEquals(4, metricsBackend.counterCount());
+        assertEquals(
+                4,
+                meterRegistry.getMeters().stream()
+                        .filter(m -> m instanceof Timer)
+                        .count());
+        assertEquals(
+                4,
+                meterRegistry.getMeters().stream()
+                        .filter(m -> m instanceof Counter && m.getId().getName().equals("actor.message.processed"))
+                        .count());
     }
 
     @Test
     void testErrorTracking() {
-        Tags baseTags = Tags.of(
-                        "actor.class", "FailingActor",
-                        "message.type", "FailingMessage")
-                .and(metricsRegistry.getGlobalTags());
+        List<Tag> baseTags = new ArrayList<>();
+        baseTags.add(Tag.of("actor.class", "FailingActor"));
+        baseTags.add(Tag.of("message.type", "FailingMessage"));
+        metricsRegistry.getGlobalTags().forEach(baseTags::add);
 
         // Simulate successful processing
-        Counter processedCounter = metricsBackend.counter("actor.message.processed", baseTags);
+        Counter processedCounter =
+                Counter.builder("actor.message.processed").tags(baseTags).register(meterRegistry);
         processedCounter.increment();
         processedCounter.increment();
 
         // Simulate errors
-        Tags errorTags1 = baseTags.and("error.type", "NullPointerException");
-        Counter errorCounter1 = metricsBackend.counter("actor.message.errors", errorTags1);
+        List<Tag> error1Tags = new ArrayList<>(baseTags);
+        error1Tags.add(Tag.of("error.type", "NullPointerException"));
+        Counter errorCounter1 =
+                Counter.builder("actor.message.errors").tags(error1Tags).register(meterRegistry);
         errorCounter1.increment();
 
-        Tags errorTags2 = baseTags.and("error.type", "IllegalArgumentException");
-        Counter errorCounter2 = metricsBackend.counter("actor.message.errors", errorTags2);
+        List<Tag> error2Tags = new ArrayList<>(baseTags);
+        error2Tags.add(Tag.of("error.type", "IllegalArgumentException"));
+        Counter errorCounter2 =
+                Counter.builder("actor.message.errors").tags(error2Tags).register(meterRegistry);
         errorCounter2.increment();
 
         // Verify counts
         assertEquals(2.0, processedCounter.count());
         assertEquals(1.0, errorCounter1.count());
         assertEquals(1.0, errorCounter2.count());
-    }
-
-    /**
-     * Test implementation of MetricsBackend for testing.
-     */
-    static class TestMetricsBackend implements MetricsBackend {
-        private final Map<String, TestCounter> counters = new ConcurrentHashMap<>();
-        private final Map<String, TestGauge> gauges = new ConcurrentHashMap<>();
-        private final Map<String, TestTimer> timers = new ConcurrentHashMap<>();
-        private final Map<String, TestDistributionSummary> summaries = new ConcurrentHashMap<>();
-
-        @Override
-        public Counter counter(String name, Tags tags) {
-            String key = name + tags.toString();
-            return counters.computeIfAbsent(key, k -> new TestCounter());
-        }
-
-        @Override
-        public Gauge gauge(String name, Tags tags, Supplier<Number> valueSupplier) {
-            String key = name + tags.toString();
-            return gauges.computeIfAbsent(key, k -> new TestGauge(valueSupplier));
-        }
-
-        @Override
-        public Timer timer(String name, Tags tags) {
-            String key = name + tags.toString();
-            return timers.computeIfAbsent(key, k -> new TestTimer());
-        }
-
-        @Override
-        public DistributionSummary summary(String name, Tags tags) {
-            String key = name + tags.toString();
-            return summaries.computeIfAbsent(key, k -> new TestDistributionSummary());
-        }
-
-        @Override
-        public String getBackendType() {
-            return "test";
-        }
-
-        public int counterCount() {
-            return counters.size();
-        }
-
-        public int timerCount() {
-            return timers.size();
-        }
-    }
-
-    static class TestCounter implements Counter {
-        private final AtomicLong count = new AtomicLong(0);
-
-        @Override
-        public void increment() {
-            count.incrementAndGet();
-        }
-
-        @Override
-        public void increment(double amount) {
-            count.addAndGet((long) amount);
-        }
-
-        @Override
-        public double count() {
-            return count.get();
-        }
-    }
-
-    static class TestGauge implements Gauge {
-        private final Supplier<Number> valueSupplier;
-
-        TestGauge(Supplier<Number> valueSupplier) {
-            this.valueSupplier = valueSupplier;
-        }
-
-        @Override
-        public double value() {
-            return valueSupplier.get().doubleValue();
-        }
-
-        @Override
-        public Supplier<Number> valueSupplier() {
-            return valueSupplier;
-        }
-    }
-
-    static class TestTimer implements Timer {
-        private final AtomicLong count = new AtomicLong(0);
-        private final AtomicLong totalTime = new AtomicLong(0);
-
-        @Override
-        public void record(Duration duration) {
-            count.incrementAndGet();
-            totalTime.addAndGet(duration.toNanos());
-        }
-
-        @Override
-        public void record(long amount, TimeUnit unit) {
-            count.incrementAndGet();
-            totalTime.addAndGet(unit.toNanos(amount));
-        }
-
-        @Override
-        public void recordNanos(long nanos) {
-            count.incrementAndGet();
-            totalTime.addAndGet(nanos);
-        }
-
-        @Override
-        public <T> T recordCallable(java.util.concurrent.Callable<T> f) throws Exception {
-            long start = System.nanoTime();
-            try {
-                return f.call();
-            } finally {
-                recordNanos(System.nanoTime() - start);
-            }
-        }
-
-        @Override
-        public long count() {
-            return count.get();
-        }
-
-        @Override
-        public long totalTime(TimeUnit unit) {
-            return unit.convert(totalTime.get(), TimeUnit.NANOSECONDS);
-        }
-
-        @Override
-        public double max(TimeUnit unit) {
-            return 0;
-        }
-
-        @Override
-        public double mean(TimeUnit unit) {
-            long c = count.get();
-            return c == 0 ? 0 : unit.convert(totalTime.get(), TimeUnit.NANOSECONDS) / (double) c;
-        }
-    }
-
-    static class TestDistributionSummary implements DistributionSummary {
-        private final AtomicLong count = new AtomicLong(0);
-        private final AtomicLong total = new AtomicLong(0);
-
-        @Override
-        public void record(double amount) {
-            count.incrementAndGet();
-            total.addAndGet((long) amount);
-        }
-
-        @Override
-        public long count() {
-            return count.get();
-        }
-
-        @Override
-        public double totalAmount() {
-            return total.get();
-        }
-
-        @Override
-        public double max() {
-            return 0;
-        }
-
-        @Override
-        public double mean() {
-            long c = count.get();
-            return c == 0 ? 0 : total.get() / (double) c;
-        }
     }
 }

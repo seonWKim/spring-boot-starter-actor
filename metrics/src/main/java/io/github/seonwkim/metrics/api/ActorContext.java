@@ -1,36 +1,35 @@
 package io.github.seonwkim.metrics.api;
 
+import io.micrometer.core.instrument.Tag;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import org.apache.pekko.actor.ActorCell;
 
 /**
- * Represents the context of an actor for filtering and tagging purposes.
- * Extracted from Pekko ActorCell via reflection.
+ * Represents the context of an actor for metrics tagging.
  */
 public final class ActorContext {
 
     private final String path;
     private final String actorClass;
     private final Object actorCell;
+    private final boolean isSystemActor;
+    private final boolean isTemporaryActor;
 
     public ActorContext(String path, String actorClass, Object actorCell) {
         this.path = Objects.requireNonNull(path, "path cannot be null");
         this.actorClass = Objects.requireNonNull(actorClass, "actorClass cannot be null");
         this.actorCell = actorCell;
+        this.isSystemActor = path.startsWith("pekko://") && path.contains("/system/");
+        this.isTemporaryActor = path.contains("/temp/") || path.contains("$");
     }
 
-    /**
-     * Extract actor context from Pekko ActorCell.
-     */
     public static ActorContext from(Object actorCell) {
         try {
             ActorCell cell = (ActorCell) actorCell;
-
-            // Get actor path
             String pathString = cell.self().path().toString();
 
-            // Get actor class directly from the actor instance
-            // Note: actor() might not be available at all lifecycle points, fallback to "Unknown"
             String actorClassName;
             try {
                 actorClassName = cell.actor().getClass().getSimpleName();
@@ -56,33 +55,31 @@ public final class ActorContext {
         return actorCell;
     }
 
-    /**
-     * Check if this is a system actor (path starts with /system).
-     */
     public boolean isSystemActor() {
-        return path.startsWith("pekko://") && path.contains("/system/");
+        return isSystemActor;
     }
 
-    /**
-     * Check if this is a user actor (path starts with /user).
-     */
     public boolean isUserActor() {
         return path.startsWith("pekko://") && path.contains("/user/");
     }
 
-    /**
-     * Check if this is a temporary actor (contains /temp/ or $).
-     */
     public boolean isTemporaryActor() {
-        return path.contains("/temp/") || path.contains("$");
+        return isTemporaryActor;
     }
 
-    /**
-     * Convert to tags for metrics.
-     * Only includes actor.class to avoid high cardinality (actor.path has unique IDs).
-     */
-    public Tags toTags() {
-        return Tags.of("actor.class", actorClass);
+    public List<Tag> toTags() {
+        List<Tag> tags = new ArrayList<>(3);
+        tags.add(Tag.of("actor.class", actorClass));
+
+        if (isSystemActor) {
+            tags.add(Tag.of("actor.system", "true"));
+        }
+
+        if (isTemporaryActor) {
+            tags.add(Tag.of("actor.temporary", "true"));
+        }
+
+        return tags;
     }
 
     @Override

@@ -7,20 +7,11 @@ import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Strategy for sampling actor instrumentation to reduce overhead.
- * Supports always, never, rate-based, and adaptive sampling.
  */
 public interface SamplingStrategy {
 
-    /**
-     * Determine if an actor should be sampled for instrumentation.
-     * @param context the actor context
-     * @return true if the actor should be instrumented
-     */
     boolean shouldSample(ActorContext context);
 
-    /**
-     * Create SamplingStrategy from configuration.
-     */
     static SamplingStrategy from(SamplingConfig config) {
         switch (config.getStrategy().toLowerCase()) {
             case "always":
@@ -170,9 +161,6 @@ public interface SamplingStrategy {
             }
         }
 
-        /**
-         * Get the current sampling rate (for monitoring).
-         */
         public double getCurrentRate() {
             return currentRate;
         }

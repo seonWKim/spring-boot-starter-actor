@@ -21,7 +21,7 @@ configurations {
 
 dependencies {
 	implementation(project(":core"))
-	implementation(project(":metrics"))
+	implementation(project(":spring-boot-starter-actor-metrics"))
 
 	implementation("org.springframework.boot:spring-boot-starter")
 	implementation("org.springframework.boot:spring-boot-starter-webflux")
