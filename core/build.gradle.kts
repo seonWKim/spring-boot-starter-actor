@@ -37,6 +37,9 @@ dependencies {
 	// Additionally, add a discovery method dependency (e.g., pekko-discovery-kubernetes-api_3)
 	compileOnly("org.apache.pekko:pekko-management-cluster-bootstrap_3:$pekkoManagementVersion")
 	compileOnly("org.apache.pekko:pekko-management-cluster-http_3:$pekkoManagementVersion")
+	
+	// Optional: Spring Boot Actuator for health indicators and metrics
+	compileOnly("org.springframework.boot:spring-boot-starter-actuator")
 
 	implementation("com.google.code.findbugs:jsr305")
 	implementation("org.springframework.boot:spring-boot-starter")
