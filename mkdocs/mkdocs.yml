@@ -34,6 +34,8 @@ nav:
   - Home:
     - index.md
     - getting-started.md
+    - best-practices.md
+    - faq.md
     - troubleshooting.md
   - Guides:
     - Actor Registration and Messaging: guides/actor-registration-messaging.md
