@@ -613,4 +613,4 @@ Key principles:
 For more information:
 - [Troubleshooting Guide](troubleshooting.md)
 - [FAQ](faq.md)
-- [Examples](examples/index.md)
+- [Examples](examples/)

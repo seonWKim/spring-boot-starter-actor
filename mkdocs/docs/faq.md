@@ -306,7 +306,7 @@ public class MyActor implements SpringActor<Command> {
 }
 ```
 
-For event sourcing patterns, see the [Persistence Guide](guides/persistence-spring-boot.md).
+For event sourcing patterns, see the Persistence Guide in the documentation.
 
 ### What about Pekko Persistence?
 

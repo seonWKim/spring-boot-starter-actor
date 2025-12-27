@@ -268,7 +268,7 @@ spring:
           active-strategy: keep-majority
 ```
 
-See [Split Brain Resolver](../guides/split-brain-resolver.md) guide.
+For more information on configuring split-brain resolver, see the [Pekko documentation](https://pekko.apache.org/docs/pekko/current/split-brain-resolver.html).
 
 ---
 
