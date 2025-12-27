@@ -1,0 +1,91 @@
+# EditorConfig is awesome: https://EditorConfig.org
+
+# top-most EditorConfig file
+root = true
+
+# Unix-style newlines with a newline ending every file
+[*]
+end_of_line = lf
+insert_final_newline = true
+charset = utf-8
+trim_trailing_whitespace = true
+
+# Java source files
+[*.java]
+indent_style = space
+indent_size = 4
+max_line_length = 120
+continuation_indent_size = 8
+
+# Gradle files
+[*.gradle]
+indent_style = space
+indent_size = 4
+
+[*.gradle.kts]
+indent_style = space
+indent_size = 4
+
+# YAML files
+[*.{yml,yaml}]
+indent_style = space
+indent_size = 2
+
+# JSON files
+[*.json]
+indent_style = space
+indent_size = 2
+
+# XML files
+[*.xml]
+indent_style = space
+indent_size = 4
+
+# Markdown files
+[*.md]
+trim_trailing_whitespace = false
+max_line_length = off
+
+# Shell scripts
+[*.sh]
+indent_style = space
+indent_size = 2
+
+# Properties files
+[*.properties]
+indent_style = space
+indent_size = 4
+
+# JavaScript/TypeScript (for frontend examples)
+[*.{js,ts,jsx,tsx}]
+indent_style = space
+indent_size = 2
+
+# CSS/SCSS
+[*.{css,scss}]
+indent_style = space
+indent_size = 2
+
+# HTML
+[*.html]
+indent_style = space
+indent_size = 2
+
+# Python (for build scripts)
+[*.py]
+indent_style = space
+indent_size = 4
+
+# Kotlin (for Gradle scripts)
+[*.kt]
+indent_style = space
+indent_size = 4
+
+# Makefile
+[Makefile]
+indent_style = tab
+
+# Git config files
+[.gitignore]
+indent_style = space
+indent_size = 2

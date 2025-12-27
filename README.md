@@ -10,8 +10,13 @@
 </tr>
 </table>
 
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.seonwkim/spring-boot-starter-actor.svg?label=Maven%20Central)](https://central.sonatype.com/artifact/io.github.seonwkim/spring-boot-starter-actor)
+[![Java](https://img.shields.io/badge/Java-11%2B-orange.svg)](https://www.oracle.com/java/)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-2.7%20%7C%203.2-brightgreen.svg)](https://spring.io/projects/spring-boot)
 [![Discord](https://img.shields.io/badge/Discord-Join%20Us-7289DA?style=flat&logo=discord&logoColor=white)](https://discord.com/channels/1439734161614045205/1439734162100846655)
 [![Documentation](https://img.shields.io/badge/docs-latest-blue)](https://seonwkim.github.io/spring-boot-starter-actor/)
+[![GitHub Stars](https://img.shields.io/github/stars/seonwkim/spring-boot-starter-actor?style=social)](https://github.com/seonwkim/spring-boot-starter-actor/stargazers)
 
 ## Why spring-boot-starter-actor?
 
@@ -555,8 +560,10 @@ Contributions welcome! Please:
 3. Run `./gradlew spotlessApply` for formatting
 4. Ensure tests pass
 
-See [CONTRIBUTION.md](CONTRIBUTION.md) for detailed guidelines and [roadmap/ROADMAP.md](roadmap/ROADMAP.md) for the
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines and [roadmap/ROADMAP.md](roadmap/ROADMAP.md) for the
 implementation roadmap.
+
+We follow a [Code of Conduct](CODE_OF_CONDUCT.md) to ensure a welcoming environment for all contributors.
 
 ## License
 
