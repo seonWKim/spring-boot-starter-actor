@@ -34,9 +34,11 @@ nav:
   - Home:
     - index.md
     - getting-started.md
+    - comparison.md
     - best-practices.md
     - faq.md
     - troubleshooting.md
+    - deployment-checklist.md
   - Guides:
     - Actor Registration and Messaging: guides/actor-registration-messaging.md
     - Pub/Sub Topics: guides/pub-sub-topics.md
