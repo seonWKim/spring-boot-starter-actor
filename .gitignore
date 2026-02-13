@@ -43,4 +43,6 @@ log_*.txt
 ### ETC
 reference
 blog/**
-works/
+works/**
+
+.cursor/
