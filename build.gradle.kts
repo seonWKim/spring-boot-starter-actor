@@ -29,6 +29,18 @@ subprojects {
     // Only apply error-prone to core modules, not examples
     if (!project.path.startsWith(":example")) {
         apply(plugin = "net.ltgt.errorprone")
+        tasks.withType<JavaCompile> {
+            options.errorprone {
+                disableAllChecks = true
+                check("NullAway", CheckSeverity.ERROR)
+                option("NullAway:AnnotatedPackages", "io.github.seonwkim")
+            }
+            if (name.lowercase().contains("test")) {
+                options.errorprone {
+                    disable("NullAway")
+                }
+            }
+        }
     }
 
     repositories {
@@ -214,22 +226,5 @@ subprojects {
         }
     }
 
-    // Apply NullAway only to :core, :core-boot3, and :metrics subprojects
-    if (project.name == "core" || project.name == "core-boot3" || project.name == "metrics") {
-        tasks.withType<JavaCompile> {
-            options.errorprone {
-                // Let's select which checks to perform. NullAway is enough for now.
-                disableAllChecks = true
-                check("NullAway", CheckSeverity.ERROR)
-
-                option("NullAway:AnnotatedPackages", "io.github.seonwkim")
-            }
-            if (name.lowercase().contains("test")) {
-                options.errorprone {
-                    disable("NullAway")
-                }
-            }
-        }
-    }
 }
 
