@@ -11,6 +11,7 @@ import io.micrometer.core.instrument.Tag;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -65,6 +66,13 @@ public class MicrometerMetricsBackend implements MetricsBackend {
     private final MeterRegistry registry;
 
     /**
+     * Strong references to gauge value suppliers to prevent GC.
+     * Micrometer's Gauge.builder() holds only a WeakReference to the state object.
+     * Without strong references here, the supplier lambda can be GC'd, causing NaN.
+     */
+    private final List<Supplier<Number>> gaugeRefs = new CopyOnWriteArrayList<>();
+
+    /**
      * Creates a new MicrometerMetricsBackend with the given MeterRegistry.
      *
      * @param registry The Micrometer registry to use for metrics
@@ -102,6 +110,9 @@ public class MicrometerMetricsBackend implements MetricsBackend {
 
     @Override
     public Gauge gauge(String name, Tags tags, Supplier<Number> valueSupplier) {
+        // Keep a strong reference to the supplier so Micrometer's WeakReference doesn't GC it
+        gaugeRefs.add(valueSupplier);
+
         io.micrometer.core.instrument.Gauge micrometerGauge = io.micrometer.core.instrument.Gauge.builder(
                         name, valueSupplier, supplier -> supplier.get().doubleValue())
                 .tags(convertTags(tags))

@@ -113,13 +113,14 @@ public class HierarchicalActorBehavior<C> {
         // Use spring-boot-starter-actor API to spawn child
         SpringActorHandle<C> self = ctx.getSelf();
 
-        ctx.getUnderlying().pipeToSelf(
-                self.child((Class) childActorClass)
-                        .withId(msg.childId)
-                        .withSupervisionStrategy(strategy)
-                        .spawn(),
-                (childRef, failure) -> (C) new ChildSpawnResult(
-                        msg, strategyDescription, (SpringActorHandle<?>) childRef, failure));
+        ctx.getUnderlying()
+                .pipeToSelf(
+                        self.child((Class) childActorClass)
+                                .withId(msg.childId)
+                                .withSupervisionStrategy(strategy)
+                                .spawn(),
+                        (childRef, failure) -> (C) new ChildSpawnResult(
+                                msg, strategyDescription, (SpringActorHandle<?>) childRef, failure));
 
         return Behaviors.same();
     }
@@ -130,7 +131,8 @@ public class HierarchicalActorBehavior<C> {
 
         if (result.failure != null) {
             ctx.getLog().error("Failed to spawn child {}", result.originalMsg.childId, result.failure);
-            logPublisher.publish(String.format("[%s] ❌ Failed to spawn child '%s': %s",
+            logPublisher.publish(String.format(
+                    "[%s] ❌ Failed to spawn child '%s': %s",
                     actorId, result.originalMsg.childId, result.failure.getMessage()));
             result.originalMsg.reply(new ActorHierarchy.SpawnResult(
                     result.originalMsg.childId, false, "Failed to spawn: " + result.failure.getMessage()));
@@ -141,14 +143,17 @@ public class HierarchicalActorBehavior<C> {
             // Track the child strategy
             childStrategies.put(result.originalMsg.childId, result.strategyDescription);
 
-            ctx.getLog().info("Successfully spawned child {} with strategy {}",
-                    result.originalMsg.childId, result.strategyDescription);
-            result.originalMsg.reply(new ActorHierarchy.SpawnResult(
-                    result.originalMsg.childId, true, "Child spawned successfully"));
+            ctx.getLog()
+                    .info(
+                            "Successfully spawned child {} with strategy {}",
+                            result.originalMsg.childId,
+                            result.strategyDescription);
+            result.originalMsg.reply(
+                    new ActorHierarchy.SpawnResult(result.originalMsg.childId, true, "Child spawned successfully"));
         } else {
             ctx.getLog().warn("Child spawn returned null ref for {}", result.originalMsg.childId);
-            result.originalMsg.reply(new ActorHierarchy.SpawnResult(
-                    result.originalMsg.childId, false, "Child spawn returned null"));
+            result.originalMsg.reply(
+                    new ActorHierarchy.SpawnResult(result.originalMsg.childId, false, "Child spawn returned null"));
         }
 
         return Behaviors.same();

@@ -6,6 +6,7 @@ import io.github.seonwkim.metrics.agent.MetricsAgent;
 import io.github.seonwkim.metrics.core.MetricsConfiguration;
 import io.github.seonwkim.metrics.core.MetricsRegistry;
 import io.github.seonwkim.metrics.testing.TestMetricsBackend;
+import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 import org.apache.pekko.actor.*;
 import org.apache.pekko.actor.typed.Behavior;
@@ -223,6 +224,113 @@ class ActorLifecycleModuleIntegrationTest {
                 String.format(
                         "Active gauge should decrease by at least 2. Before: %.0f, After: %.0f",
                         activeAfterCreation, activeAfterTwoStopped));
+    }
+
+    @Test
+    void testResumeCounterIncrementsOnSupervisedFailureWithResumeStrategy() throws Exception {
+        Thread.sleep(200);
+
+        double initialResumes = metricsBackend.getCounterValue("actor.lifecycle.resumes");
+
+        ActorRef supervisor =
+                actorSystem.actorOf(Props.create(SupervisorWithResumeStrategy.class), "resume-supervisor");
+        supervisor.tell(new CreateAndTriggerChild("resume-child"), ActorRef.noSender());
+
+        Thread.sleep(1000);
+
+        double afterResume = metricsBackend.getCounterValue("actor.lifecycle.resumes");
+        assertEquals(
+                initialResumes + 1,
+                afterResume,
+                String.format(
+                        "Resume counter should increment when supervised child throws with Resume strategy. Initial: %.0f, After: %.0f",
+                        initialResumes, afterResume));
+    }
+
+    @Test
+    void testRestartCounterIncrementsOnSupervisedFailure() throws Exception {
+        // Use Classic API: supervisor with Restart strategy, child that throws.
+        // When child throws, Pekko calls faultRecreate on the child's ActorCell.
+        Thread.sleep(200);
+
+        double initialRestarts = metricsBackend.getCounterValue("actor.lifecycle.restarts");
+
+        ActorRef supervisor =
+                actorSystem.actorOf(Props.create(SupervisorWithRestartStrategy.class), "restart-supervisor");
+        supervisor.tell(new CreateAndTriggerChild("restart-child"), ActorRef.noSender());
+
+        Thread.sleep(1000);
+
+        double afterRestart = metricsBackend.getCounterValue("actor.lifecycle.restarts");
+        assertEquals(
+                initialRestarts + 1,
+                afterRestart,
+                String.format(
+                        "Restart counter should increment when supervised child throws. Initial: %.0f, After: %.0f",
+                        initialRestarts, afterRestart));
+    }
+
+    /** Supervisor that uses OneForOneStrategy with Resume for all exceptions. */
+    public static class SupervisorWithResumeStrategy extends AbstractActor {
+        @Override
+        public SupervisorStrategy supervisorStrategy() {
+            return new OneForOneStrategy(
+                    -1, java.time.Duration.ofDays(1), (Throwable t) -> SupervisorStrategy.resume());
+        }
+
+        @Override
+        public Receive createReceive() {
+            return receiveBuilder()
+                    .match(CreateAndTriggerChild.class, msg -> {
+                        ActorRef child = getContext().actorOf(Props.create(ThrowingChildActor.class), msg.childName);
+                        child.tell(TriggerThrow.INSTANCE, getSelf());
+                    })
+                    .build();
+        }
+    }
+
+    /** Supervisor that uses OneForOneStrategy with Restart for RuntimeException. */
+    public static class SupervisorWithRestartStrategy extends AbstractActor {
+        @Override
+        public SupervisorStrategy supervisorStrategy() {
+            // Restart on RuntimeException, escalate on others
+            return new OneForOneStrategy(
+                    -1, scala.concurrent.duration.Duration.Inf(), Collections.singletonList(RuntimeException.class));
+        }
+
+        @Override
+        public Receive createReceive() {
+            return receiveBuilder()
+                    .match(CreateAndTriggerChild.class, msg -> {
+                        ActorRef child = getContext().actorOf(Props.create(ThrowingChildActor.class), msg.childName);
+                        child.tell(TriggerThrow.INSTANCE, getSelf());
+                    })
+                    .build();
+        }
+    }
+
+    /** Child actor that throws when it receives TriggerThrow. */
+    public static class ThrowingChildActor extends AbstractActor {
+        @Override
+        public Receive createReceive() {
+            return receiveBuilder()
+                    .match(TriggerThrow.class, msg -> {
+                        throw new RuntimeException("Intentional failure for restart test");
+                    })
+                    .build();
+        }
+    }
+
+    public static class CreateAndTriggerChild {
+        public final String childName;
+
+        public CreateAndTriggerChild(String childName) {
+            this.childName = childName;
+        }
+    }
+
+    public static class TriggerThrow {
+        public static final TriggerThrow INSTANCE = new TriggerThrow();
     }
 
     @Test

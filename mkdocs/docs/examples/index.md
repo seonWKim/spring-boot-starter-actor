@@ -62,17 +62,14 @@ This example demonstrates how Spring Boot Starter Actor can be used to build rea
 
 ### [Monitoring Example](monitoring.md)
 
-The Monitoring example demonstrates how to monitor and analyze your actor system's performance. It shows:
+The Monitoring example demonstrates the built-in actor metrics module using a minimal Spring Boot application with Prometheus and Micrometer. It shows:
 
-- Setting up a complete monitoring stack with Prometheus and Grafana
-- Collecting and exporting metrics from your actor system
-- Visualizing actor performance metrics in real-time
-- Tracking message processing times and throughput
-- Monitoring cluster health and resource usage
+- Adding the metrics agent and library dependency to your project
+- Auto-configuring actor metrics collection with zero boilerplate
+- Exposing actor lifecycle, message processing, mailbox, and system metrics via Prometheus
+- Observing actor restarts, processing times, and throughput
 
-This example provides insights into how Spring Boot Starter Actor can be used to observe and optimize your application's performance without complex configuration.
-
-**Best for:** Production monitoring and performance optimization.
+**Best for:** Getting started with actor metrics and Prometheus-based monitoring.
 
 ## Getting Started
 

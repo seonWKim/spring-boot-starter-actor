@@ -274,7 +274,8 @@ class HierarchicalSupervisionTest {
             final SpringActorHandle<ChildWorkerActor.Command> childRef;
             final Throwable failure;
 
-            ChildReady(DelegateWork originalMsg, SpringActorHandle<ChildWorkerActor.Command> childRef, Throwable failure) {
+            ChildReady(
+                    DelegateWork originalMsg, SpringActorHandle<ChildWorkerActor.Command> childRef, Throwable failure) {
                 this.originalMsg = originalMsg;
                 this.childRef = childRef;
                 this.failure = failure;
@@ -427,7 +428,8 @@ class HierarchicalSupervisionTest {
                     .spawnAndWait();
 
             // When: Spawning a child actor using builder API
-            SpringActorHandle<DependencyVerificationActor.Command> child = parent.child(DependencyVerificationActor.class)
+            SpringActorHandle<DependencyVerificationActor.Command> child = parent.child(
+                            DependencyVerificationActor.class)
                     .withId("di-test-child")
                     .withSupervisionStrategy(SupervisorStrategy.restart())
                     .spawn()
@@ -462,19 +464,22 @@ class HierarchicalSupervisionTest {
                     .spawnAndWait();
 
             // When: Spawning multiple child actors
-            SpringActorHandle<DependencyVerificationActor.Command> child1 = parent.child(DependencyVerificationActor.class)
+            SpringActorHandle<DependencyVerificationActor.Command> child1 = parent.child(
+                            DependencyVerificationActor.class)
                     .withId("singleton-child-1")
                     .spawn()
                     .toCompletableFuture()
                     .get(5, TimeUnit.SECONDS);
 
-            SpringActorHandle<DependencyVerificationActor.Command> child2 = parent.child(DependencyVerificationActor.class)
+            SpringActorHandle<DependencyVerificationActor.Command> child2 = parent.child(
+                            DependencyVerificationActor.class)
                     .withId("singleton-child-2")
                     .spawn()
                     .toCompletableFuture()
                     .get(5, TimeUnit.SECONDS);
 
-            SpringActorHandle<DependencyVerificationActor.Command> child3 = parent.child(DependencyVerificationActor.class)
+            SpringActorHandle<DependencyVerificationActor.Command> child3 = parent.child(
+                            DependencyVerificationActor.class)
                     .withId("singleton-child-3")
                     .spawn()
                     .toCompletableFuture()
@@ -522,7 +527,8 @@ class HierarchicalSupervisionTest {
                     .spawnAndWait();
 
             // When: Spawning a child actor using builder API
-            SpringActorHandle<DependencyVerificationActor.Command> child = parent.child(DependencyVerificationActor.class)
+            SpringActorHandle<DependencyVerificationActor.Command> child = parent.child(
+                            DependencyVerificationActor.class)
                     .withId("di-builder-child")
                     .withSupervisionStrategy(SupervisorStrategy.restart())
                     .withTimeout(Duration.ofSeconds(10))

@@ -162,8 +162,7 @@ public class RoleBasedClusterShardingTest extends AbstractClusterTest {
      * Test sharded actor that requires the "coordinator" role. This actor will only be created on
      * nodes with the "coordinator" role. On other nodes, a proxy will be created instead.
      */
-    public static class CoordinatorRoleShardedActor
-            implements SpringShardedActor<CoordinatorRoleShardedActor.Command> {
+    public static class CoordinatorRoleShardedActor implements SpringShardedActor<CoordinatorRoleShardedActor.Command> {
         public static final EntityTypeKey<Command> TYPE_KEY =
                 EntityTypeKey.create(Command.class, "CoordinatorRoleShardedActor");
 
@@ -277,16 +276,20 @@ public class RoleBasedClusterShardingTest extends AbstractClusterTest {
         SpringActorSystem systemCoordinator = context3.getBean(SpringActorSystem.class);
 
         // Get the artery ports for each node from the cluster configuration
-        int workerPort = (Integer) systemWorker.getCluster().selfMember().address().port().get();
-        int coordinatorPort = (Integer) systemCoordinator.getCluster().selfMember().address().port().get();
+        int workerPort = (Integer)
+                systemWorker.getCluster().selfMember().address().port().get();
+        int coordinatorPort = (Integer)
+                systemCoordinator.getCluster().selfMember().address().port().get();
 
         // Test WorkerRoleShardedActor - create multiple entities with different IDs
         // This ensures entities are distributed across different shards, but all still
         // end up on the node with "worker" role
         for (int i = 1; i <= TEST_ENTITY_COUNT; i++) {
             String entityId = "worker-" + i;
-            SpringShardedActorHandle<WorkerRoleShardedActor.Command> workerRef =
-                    systemSeed.sharded(WorkerRoleShardedActor.class).withId(entityId).get();
+            SpringShardedActorHandle<WorkerRoleShardedActor.Command> workerRef = systemSeed
+                    .sharded(WorkerRoleShardedActor.class)
+                    .withId(entityId)
+                    .get();
 
             NodeInfo workerNodeInfo = workerRef
                     .ask(new WorkerRoleShardedActor.GetNodeInfo())
@@ -310,11 +313,12 @@ public class RoleBasedClusterShardingTest extends AbstractClusterTest {
         // end up on the node with "coordinator" role
         for (int i = 1; i <= TEST_ENTITY_COUNT; i++) {
             String entityId = "coord-" + i;
-            SpringShardedActorHandle<CoordinatorRoleShardedActor.Command> coordRef =
-                    systemSeed.sharded(CoordinatorRoleShardedActor.class).withId(entityId).get();
+            SpringShardedActorHandle<CoordinatorRoleShardedActor.Command> coordRef = systemSeed
+                    .sharded(CoordinatorRoleShardedActor.class)
+                    .withId(entityId)
+                    .get();
 
-            NodeInfo coordNodeInfo = coordRef
-                    .ask(new CoordinatorRoleShardedActor.GetNodeInfo())
+            NodeInfo coordNodeInfo = coordRef.ask(new CoordinatorRoleShardedActor.GetNodeInfo())
                     .withTimeout(Duration.ofSeconds(5))
                     .execute()
                     .toCompletableFuture()

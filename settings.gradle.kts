@@ -5,6 +5,7 @@ include(":core-boot3")
 include(":metrics")
 
 include(":example:chat")
+include(":example:metrics-example")
 include(":example:cluster")
 include(":example:kubernetes")
 include(":example:logging")

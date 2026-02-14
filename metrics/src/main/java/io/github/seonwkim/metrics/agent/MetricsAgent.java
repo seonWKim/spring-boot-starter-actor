@@ -3,7 +3,6 @@ package io.github.seonwkim.metrics.agent;
 import io.github.seonwkim.metrics.api.InstrumentationModule;
 import io.github.seonwkim.metrics.core.MetricsRegistry;
 import java.lang.instrument.Instrumentation;
-import java.lang.reflect.Method;
 import java.util.ServiceLoader;
 import javax.annotation.Nullable;
 import net.bytebuddy.agent.builder.AgentBuilder;
@@ -28,7 +27,17 @@ public class MetricsAgent {
 
     private static final Logger logger = LoggerFactory.getLogger(MetricsAgent.class);
 
+    /** System property set when the agent's premain has run (i.e. -javaagent was used). */
+    public static final String AGENT_LOADED_PROPERTY = "io.github.seonwkim.metrics.agent.loaded";
+
     @Nullable private static volatile MetricsRegistry registry;
+
+    /**
+     * Returns true if the metrics agent was loaded at JVM startup via -javaagent.
+     */
+    public static boolean isAgentLoaded() {
+        return "true".equals(System.getProperty(AGENT_LOADED_PROPERTY));
+    }
 
     /**
      * Premain method called when the agent is loaded during JVM startup.
@@ -47,12 +56,12 @@ public class MetricsAgent {
      * @param instrumentation Instrumentation instance
      */
     public static void premain(String arguments, Instrumentation instrumentation) {
-        logger.info("[MetricsAgent] Starting metrics agent initialization");
+        System.setProperty(AGENT_LOADED_PROPERTY, "true");
 
-        // Check global enabled flag first
+        logger.info("Starting metrics agent initialization");
+
         if (!isMetricsEnabled()) {
-            logger.info(
-                    "[MetricsAgent] Metrics disabled via ACTOR_METRICS_ENABLED=false. Skipping all instrumentation.");
+            logger.info("Metrics disabled via ACTOR_METRICS_ENABLED=false; skipping all instrumentation");
             return;
         }
 
@@ -69,81 +78,43 @@ public class MetricsAgent {
             int skippedCount = 0;
 
             for (InstrumentationModule module : moduleLoader) {
-                // Check if this module should be instrumented
                 if (!shouldInstrumentModule(module.moduleId())) {
-                    logger.info(
-                            "[MetricsAgent] Skipping instrumentation for module: {} (disabled via environment)",
-                            module.moduleId());
+                    logger.info("Skipping disabled module: {}", module.moduleId());
                     skippedCount++;
                     continue;
                 }
-
                 try {
-                    // Use reflection to call the static instrument() method
-                    Method instrumentMethod = module.getClass().getMethod("instrument", AgentBuilder.class);
-                    agentBuilder = (AgentBuilder) instrumentMethod.invoke(null, agentBuilder);
-                    logger.info("[MetricsAgent] Applied instrumentation for module: {}", module.moduleId());
+                    agentBuilder = module.instrument(agentBuilder);
+                    logger.info("Applied instrumentation: {}", module.moduleId());
                     instrumentedCount++;
                 } catch (Exception e) {
-                    logger.warn("[MetricsAgent] Failed to apply instrumentation for module: {}", module.moduleId(), e);
+                    logger.warn("Failed to instrument module: {}", module.moduleId(), e);
                 }
             }
 
             agentBuilder.installOn(instrumentation);
 
-            logger.info(
-                    "[MetricsAgent] Metrics agent installed successfully. Instrumented {} modules, skipped {}.",
-                    instrumentedCount,
-                    skippedCount);
-            logger.info("[MetricsAgent] Waiting for application to set MetricsRegistry via setRegistry()...");
-
+            logger.info("Agent installed: {} modules instrumented, {} skipped", instrumentedCount, skippedCount);
+            logger.info("Waiting for MetricsRegistry to be set via setRegistry()...");
         } catch (Exception e) {
-            logger.error("[MetricsAgent] Failed to initialize metrics agent", e);
+            logger.error("Failed to initialize metrics agent", e);
         }
     }
 
-    /**
-     * Check if metrics are globally enabled.
-     * <p>
-     * Environment variable: ACTOR_METRICS_ENABLED (default: true)
-     * <p>
-     * If false, skips ALL instrumentation to avoid any overhead.
-     */
+    /** Reads an env var (or system property fallback), defaulting to true if absent. */
+    private static boolean getBooleanConfig(String key) {
+        String value = System.getenv(key);
+        if (value == null) value = System.getProperty(key);
+        return value == null || Boolean.parseBoolean(value);
+    }
+
     private static boolean isMetricsEnabled() {
-        String value = System.getenv("ACTOR_METRICS_ENABLED");
-        if (value == null) {
-            value = System.getProperty("ACTOR_METRICS_ENABLED");
-        }
-
-        // Default to true if not specified
-        if (value == null) {
-            return true;
-        }
-
-        return Boolean.parseBoolean(value);
+        return getBooleanConfig("ACTOR_METRICS_ENABLED");
     }
 
-    /**
-     * Check if a module should be instrumented based on environment variables.
-     * <p>
-     * Environment variable format: ACTOR_METRICS_INSTRUMENT_{MODULE_ID}
-     * Example: ACTOR_METRICS_INSTRUMENT_MAILBOX=false to disable mailbox instrumentation
-     * <p>
-     * Default: true (instrument all modules unless explicitly disabled)
-     */
     private static boolean shouldInstrumentModule(String moduleId) {
-        String envKey = "ACTOR_METRICS_INSTRUMENT_" + moduleId.toUpperCase().replace("-", "_");
-        String value = System.getenv(envKey);
-        if (value == null) {
-            value = System.getProperty(envKey);
-        }
-
-        // Default to true if not specified
-        if (value == null) {
-            return true;
-        }
-
-        return Boolean.parseBoolean(value);
+        String key = "ACTOR_METRICS_INSTRUMENT_" + moduleId.toUpperCase().replace("-", "_");
+        return getBooleanConfig(key);
     }
 
     /**
@@ -180,10 +151,10 @@ public class MetricsAgent {
         registry = metricsRegistry;
         if (metricsRegistry != null) {
             logger.info(
-                    "[MetricsAgent] MetricsRegistry set. Metrics collection enabled with {} modules.",
+                    "MetricsRegistry set with {} modules",
                     metricsRegistry.getModules().size());
         } else {
-            logger.info("[MetricsAgent] MetricsRegistry cleared. Metrics collection disabled.");
+            logger.info("MetricsRegistry cleared; metrics collection disabled");
         }
     }
 }

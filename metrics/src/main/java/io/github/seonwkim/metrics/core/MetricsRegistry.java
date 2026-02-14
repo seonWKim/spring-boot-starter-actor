@@ -26,8 +26,9 @@ public class MetricsRegistry {
     private final FilterEngine filterEngine;
     private final SamplingStrategy samplingStrategy;
     private final List<InstrumentationModule> modules = new CopyOnWriteArrayList<>();
-    private volatile MetricsConfiguration config;
+    private final MetricsConfiguration config;
     private final Tags globalTags;
+    private final MetricsContext context;
 
     private MetricsRegistry(Builder builder) {
         this.config = builder.config;
@@ -35,6 +36,7 @@ public class MetricsRegistry {
         this.filterEngine = Objects.requireNonNull(builder.filterEngine, "filterEngine cannot be null");
         this.samplingStrategy = Objects.requireNonNull(builder.samplingStrategy, "samplingStrategy cannot be null");
         this.globalTags = Tags.of(config.getTags());
+        this.context = new MetricsContext();
 
         // Register initial modules
         if (builder.modules != null) {
@@ -59,30 +61,9 @@ public class MetricsRegistry {
     }
 
     /**
-     * Update configuration at runtime.
-     */
-    public void updateConfiguration(MetricsConfiguration newConfig) {
-        MetricsConfiguration oldConfig = this.config;
-        this.config = newConfig;
-        logger.info("Configuration updated");
-
-        // Notify modules
-        modules.forEach(m -> {
-            try {
-                m.onConfigurationChanged(oldConfig, newConfig);
-            } catch (Exception e) {
-                logger.error("Error notifying module {} of configuration change", m.moduleId(), e);
-            }
-        });
-    }
-
-    /**
      * Check if an actor should be instrumented based on filters, sampling, and business rules.
-     * This method consolidates all instrumentation checks:
-     * - Skips system actors (e.g., /system/*)
-     * - Skips temporary actors (e.g., /temp/* or actors with $ in path)
-     * - Applies user-configured filters (include/exclude patterns)
-     * - Applies sampling strategy
+     * Skips system actors (/system guardian) and temporary actors (/temp guardian),
+     * then applies user-configured filters and sampling strategy.
      */
     public boolean shouldInstrument(ActorContext context) {
         // Skip system and temporary actors (business rule)
@@ -123,17 +104,11 @@ public class MetricsRegistry {
     }
 
     /**
-     * Get filter engine.
+     * Get the shared metrics context that holds mutable state for modules.
+     * Advice code should access state through this context instead of static fields.
      */
-    public FilterEngine getFilterEngine() {
-        return filterEngine;
-    }
-
-    /**
-     * Get sampling strategy.
-     */
-    public SamplingStrategy getSamplingStrategy() {
-        return samplingStrategy;
+    public MetricsContext getContext() {
+        return context;
     }
 
     /**
@@ -148,6 +123,7 @@ public class MetricsRegistry {
                 logger.error("Error shutting down module {}", m.moduleId(), e);
             }
         });
+        context.clear();
     }
 
     /**

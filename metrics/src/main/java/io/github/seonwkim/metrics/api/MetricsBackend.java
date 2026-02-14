@@ -33,20 +33,6 @@ public interface MetricsBackend {
     DistributionSummary summary(String name, Tags tags);
 
     /**
-     * Record a value in a distribution summary (convenience method).
-     */
-    default void recordValue(String name, double value, Tags tags) {
-        summary(name, tags).record(value);
-    }
-
-    /**
-     * Increment a counter by 1 (convenience method).
-     */
-    default void increment(String name, Tags tags) {
-        counter(name, tags).increment();
-    }
-
-    /**
      * Get the backend type/name for debugging.
      */
     String getBackendType();

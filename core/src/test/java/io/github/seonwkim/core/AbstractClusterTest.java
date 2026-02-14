@@ -172,7 +172,8 @@ public abstract class AbstractClusterTest {
      * @param roles The cluster roles for this node
      * @return The Spring application context for this node
      */
-    private ConfigurableApplicationContext startContext(int httpPort, int arteryPort, String seedNodes, String[] roles) {
+    private ConfigurableApplicationContext startContext(
+            int httpPort, int arteryPort, String seedNodes, String[] roles) {
         // Base properties required for cluster mode
         String[] baseProperties = {
             "server.port=" + httpPort,

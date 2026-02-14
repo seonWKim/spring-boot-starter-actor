@@ -20,7 +20,6 @@ import org.slf4j.LoggerFactory;
  *   <li>ACTOR_METRICS_ENABLED - Enable/disable metrics (default: true)</li>
  *   <li>ACTOR_METRICS_TAG_{NAME} - Global tags (e.g., ACTOR_METRICS_TAG_APPLICATION=my-app)</li>
  *   <li>ACTOR_METRICS_SAMPLING_RATE - Sampling rate 0.0-1.0 (default: 1.0)</li>
- *   <li>ACTOR_METRICS_MODULE_{MODULE_ID}_ENABLED - Enable/disable specific modules</li>
  * </ul>
  * <p>
  * Example usage:
@@ -38,8 +37,6 @@ public class MicrometerMetricsRegistryBuilder {
     private static final String ENV_METRICS_ENABLED = "ACTOR_METRICS_ENABLED";
     private static final String ENV_TAG_PREFIX = "ACTOR_METRICS_TAG_";
     private static final String ENV_SAMPLING_RATE = "ACTOR_METRICS_SAMPLING_RATE";
-    private static final String ENV_MODULE_PREFIX = "ACTOR_METRICS_MODULE_";
-    private static final String ENV_MODULE_SUFFIX = "_ENABLED";
 
     private final MeterRegistry meterRegistry;
     private final MetricsConfiguration.Builder configBuilder;
@@ -73,16 +70,16 @@ public class MicrometerMetricsRegistryBuilder {
         String enabled = getEnvOrNull(ENV_METRICS_ENABLED);
         if (enabled != null && !enabled.isEmpty()) {
             configBuilder.enabled(Boolean.parseBoolean(enabled));
-            logger.info("[MicrometerMetrics] Metrics enabled from env: {}", enabled);
+            logger.info("Metrics enabled from env: {}", enabled);
         }
 
-        // Global tags - scan all env vars starting with METRICS_TAG_
+        // Global tags - scan all env vars starting with ACTOR_METRICS_TAG_
         System.getenv().forEach((key, value) -> {
             if (key.startsWith(ENV_TAG_PREFIX)) {
                 String tagName =
                         key.substring(ENV_TAG_PREFIX.length()).toLowerCase().replace('_', '.');
                 configBuilder.tag(tagName, value);
-                logger.info("[MicrometerMetrics] Added tag from env: {}={}", tagName, value);
+                logger.info("Added tag from env: {}={}", tagName, value);
             }
         });
 
@@ -91,30 +88,8 @@ public class MicrometerMetricsRegistryBuilder {
         if (samplingRate != null && !samplingRate.isEmpty()) {
             double rate = Double.parseDouble(samplingRate);
             configBuilder.sampling(MetricsConfiguration.SamplingConfig.rateBased(rate));
-            logger.info("[MicrometerMetrics] Sampling rate from env: {}", rate);
+            logger.info("Sampling rate from env: {}", rate);
         }
-
-        // Module enable/disable - scan all env vars matching METRICS_MODULE_*_ENABLED
-        System.getenv().forEach((key, value) -> {
-            if (key.startsWith(ENV_MODULE_PREFIX) && key.endsWith(ENV_MODULE_SUFFIX)) {
-                String moduleId = extractModuleId(key);
-                boolean isEnabled = Boolean.parseBoolean(value);
-                if (!isEnabled) {
-                    configBuilder.module(moduleId, MetricsConfiguration.ModuleConfig.disabled());
-                    logger.info("[MicrometerMetrics] Disabled module from env: {}", moduleId);
-                }
-            }
-        });
-    }
-
-    /**
-     * Extract module ID from environment variable name.
-     * METRICS_MODULE_MAILBOX_ENABLED -> mailbox
-     * METRICS_MODULE_ACTOR_LIFECYCLE_ENABLED -> actor-lifecycle
-     */
-    private String extractModuleId(String envKey) {
-        String middle = envKey.substring(ENV_MODULE_PREFIX.length(), envKey.length() - ENV_MODULE_SUFFIX.length());
-        return middle.toLowerCase().replace('_', '-');
     }
 
     /**
@@ -150,65 +125,34 @@ public class MicrometerMetricsRegistryBuilder {
     }
 
     /**
-     * Configure a specific module.
-     */
-    public MicrometerMetricsRegistryBuilder module(String moduleId, MetricsConfiguration.ModuleConfig moduleConfig) {
-        configBuilder.module(moduleId, moduleConfig);
-        return this;
-    }
-
-    /**
      * Build the MetricsRegistry, auto-discover modules, and wire to agent.
      */
     public MetricsRegistry build() {
-        logger.info("[MicrometerMetrics] Building MetricsRegistry with Micrometer backend");
-
-        // Create backend
         MetricsBackend backend = new MicrometerMetricsBackend(meterRegistry);
-
-        // Build configuration
         MetricsConfiguration config = configBuilder.build();
-
-        // Create registry
         MetricsRegistry registry =
                 MetricsRegistry.builder().configuration(config).backend(backend).build();
 
         // Auto-discover and register modules via ServiceLoader
-        ServiceLoader<InstrumentationModule> moduleLoader = ServiceLoader.load(InstrumentationModule.class);
         int moduleCount = 0;
-        for (InstrumentationModule module : moduleLoader) {
-            logger.info("[MicrometerMetrics] Registering module: {} - {}", module.moduleId(), module.description());
+        for (InstrumentationModule module : ServiceLoader.load(InstrumentationModule.class)) {
+            logger.info("Registering module: {} - {}", module.moduleId(), module.description());
             registry.registerModule(module);
             moduleCount++;
         }
 
-        // Wire to agent
         MetricsAgent.setRegistry(registry);
 
-        logger.info(
-                "[MicrometerMetrics] MetricsRegistry configured successfully. " + "Registered {} modules, backend: {}",
-                moduleCount,
-                backend.getBackendType());
+        if (!MetricsAgent.isAgentLoaded()) {
+            logger.warn("Metrics agent was NOT loaded. Start with: java -javaagent:metrics-agent.jar -jar app.jar");
+        }
 
+        logger.info("MetricsRegistry ready: {} modules, backend={}", moduleCount, backend.getBackendType());
         return registry;
     }
 
-    /**
-     * Get environment variable or system property (returns null if not found).
-     */
     @Nullable private String getEnvOrNull(String key) {
         String value = System.getenv(key);
-        if (value == null) {
-            value = System.getProperty(key);
-        }
-        return value;
-    }
-
-    /**
-     * Get environment variable or system property with fallback.
-     */
-    private String getEnv(String key, String defaultValue) {
-        String value = getEnvOrNull(key);
-        return value != null ? value : defaultValue;
+        return value != null ? value : System.getProperty(key);
     }
 }
