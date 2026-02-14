@@ -3,6 +3,8 @@ package io.github.seonwkim.metrics.modules.mailbox;
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 import io.github.seonwkim.metrics.agent.MetricsAgent;
 import io.github.seonwkim.metrics.core.MetricsConfiguration;
 import io.github.seonwkim.metrics.core.MetricsRegistry;
@@ -94,6 +96,27 @@ class MailboxModuleIntegrationTest {
     }
 
     @Test
+    void testMailboxSizeMaxCapturesPeak() throws Exception {
+        Thread.sleep(200);
+
+        ActorRef actor = actorSystem.actorOf(Props.create(SlowActor.class), "max-actor");
+
+        // Send many messages so mailbox queues up (slow actor processes one every 500ms)
+        for (int i = 0; i < 10; i++) {
+            actor.tell(new TestMessage("msg" + i), ActorRef.noSender());
+        }
+
+        Thread.sleep(300);
+
+        // Max should have captured the peak size (multiple messages queued)
+        double maxSize = metricsBackend.getGaugeValue("actor.mailbox.size.max");
+        assertTrue(
+                maxSize >= 2,
+                String.format(
+                        "Mailbox size max should capture peak (>= 2 when messages queue up), got: %.0f", maxSize));
+    }
+
+    @Test
     void testMailboxSizeDecrementsOnProcessing() throws Exception {
         // Wait for system to stabilize
         Thread.sleep(200);
@@ -177,6 +200,42 @@ class MailboxModuleIntegrationTest {
         assertTrue(
                 metricsBackend.hasMetricWithTag("actor.mailbox.time", "actor.class"),
                 "Mailbox timer should have actor.class tag");
+    }
+
+    @Test
+    void testMailboxOverflowIncrementsWhenBoundedMailboxFull() throws Exception {
+        // Use NonBlockingBoundedMailbox with capacity 2
+        Config overflowConfig = ConfigFactory.parseString("overflow-test-mailbox {\n"
+                        + "  mailbox-type = \"org.apache.pekko.dispatch.NonBlockingBoundedMailbox\"\n"
+                        + "  mailbox-capacity = 2\n"
+                        + "}")
+                .withFallback(ConfigFactory.load());
+
+        ActorSystem overflowSystem = ActorSystem.create("overflow-test-system", overflowConfig);
+
+        try {
+            MetricsAgent.setRegistry(metricsRegistry);
+
+            // Create slow actor with bounded mailbox (capacity 2)
+            ActorRef actor = overflowSystem.actorOf(
+                    Props.create(SlowActor.class).withMailbox("overflow-test-mailbox"), "overflow-actor");
+
+            // Send 5 messages - actor processes slowly, mailbox holds 2, rest overflow
+            for (int i = 0; i < 5; i++) {
+                actor.tell(new TestMessage("msg" + i), ActorRef.noSender());
+            }
+
+            Thread.sleep(800);
+
+            long overflowCount = (long) metricsBackend.getCounterValue("actor.mailbox.overflow");
+            assertTrue(
+                    overflowCount > 0,
+                    String.format(
+                            "Overflow counter should increment when bounded mailbox full, got: %d", overflowCount));
+        } finally {
+            overflowSystem.terminate();
+            Await.result(overflowSystem.whenTerminated(), Duration.apply(5, TimeUnit.SECONDS));
+        }
     }
 
     @Test

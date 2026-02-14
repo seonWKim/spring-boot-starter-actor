@@ -4,11 +4,10 @@ import io.github.seonwkim.metrics.agent.MetricsAgent;
 import io.github.seonwkim.metrics.api.ActorContext;
 import io.github.seonwkim.metrics.api.InstrumentationModule;
 import io.github.seonwkim.metrics.api.Tags;
-import io.github.seonwkim.metrics.api.instruments.Timer;
+import io.github.seonwkim.metrics.core.MetricsContext;
 import io.github.seonwkim.metrics.core.MetricsRegistry;
-import java.util.Collections;
+import io.github.seonwkim.metrics.util.RateLimitedLog;
 import java.util.Map;
-import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -22,28 +21,24 @@ import org.slf4j.LoggerFactory;
  * Instrumentation module for mailbox metrics.
  *
  * Tracks:
- * - actor.mailbox.size (gauge) - aggregated per actor class
+ * - actor.mailbox.size (gauge) - current size, aggregated per actor class
+ * - actor.mailbox.size.max (gauge) - peak size ever reached, per actor class
  * - actor.mailbox.time (timer - time from enqueue to dequeue)
+ * - actor.mailbox.overflow (counter) - messages dropped when bounded mailbox is full
  *
  * Tags: actor.class, message.type (low cardinality to avoid time-series explosion)
  */
 public class MailboxModule implements InstrumentationModule {
 
     private static final Logger logger = LoggerFactory.getLogger(MailboxModule.class);
+    private static final RateLimitedLog errorLog = new RateLimitedLog(5000);
     private static final String MODULE_ID = "mailbox";
 
     // Metric names
     private static final String METRIC_MAILBOX_SIZE = "actor.mailbox.size";
+    private static final String METRIC_MAILBOX_SIZE_MAX = "actor.mailbox.size.max";
     private static final String METRIC_MAILBOX_TIME = "actor.mailbox.time";
-
-    // WeakHashMap to store envelope timestamps without preventing GC
-    // Must be public for ByteBuddy inline advice access
-    // Synchronized for thread-safety in concurrent actor system
-    public static final Map<Object, Long> envelopeTimestamps = Collections.synchronizedMap(new WeakHashMap<>());
-
-    // Track mailbox sizes per actor class (not per instance to avoid high cardinality)
-    // Must be public for ByteBuddy inline advice access
-    public static final Map<String, AtomicLong> mailboxSizes = new ConcurrentHashMap<>();
+    private static final String METRIC_MAILBOX_OVERFLOW = "actor.mailbox.overflow";
 
     @Override
     public String moduleId() {
@@ -57,33 +52,32 @@ public class MailboxModule implements InstrumentationModule {
 
     @Override
     public void initialize(MetricsRegistry metricsRegistry) {
-        logger.info("Initializing Mailbox Module");
-        // Note: We don't store registry as static field - use MetricsAgent.getRegistry() instead
         logger.info("Mailbox Module initialized");
     }
 
-    @Override
-    public void shutdown() {
-        logger.info("Shutting down Mailbox Module");
-        envelopeTimestamps.clear();
-        mailboxSizes.clear();
-    }
-
     /**
-     * Helper method to register a mailbox size gauge for an actor class.
-     * This is called from ByteBuddy advice and MUST be public static.
+     * Helper method to register mailbox size and max gauges for an actor class.
+     * Uses putIfAbsent to ensure exactly one gauge registration per actor class,
+     * avoiding duplicate gauges under concurrent actor creation.
+     * Must be public for ByteBuddy advice inlining.
      */
     public static void registerMailboxGauge(String actorClass, MetricsRegistry registry) {
-        AtomicLong newSize = new AtomicLong(0);
-        mailboxSizes.put(actorClass, newSize);
+        MetricsContext ctx = registry.getContext();
+        ConcurrentHashMap<String, AtomicLong> sizes = ctx.getMailboxSizes();
+        ConcurrentHashMap<String, AtomicLong> maxSizes = ctx.getMailboxSizesMax();
+
+        // Only register gauges if we won the race (first to add this actor class)
+        if (sizes.putIfAbsent(actorClass, new AtomicLong(0)) != null) return;
+        maxSizes.putIfAbsent(actorClass, new AtomicLong(0));
 
         Tags tags = Tags.of("actor.class", actorClass).and(registry.getGlobalTags());
-
-        // Register gauge that reads from the static map
-        final String clazz = actorClass;
         registry.getBackend().gauge(METRIC_MAILBOX_SIZE, tags, () -> {
-            AtomicLong current = mailboxSizes.get(clazz);
+            AtomicLong current = sizes.get(actorClass);
             return current != null ? current.get() : 0L;
+        });
+        registry.getBackend().gauge(METRIC_MAILBOX_SIZE_MAX, tags, () -> {
+            AtomicLong max = maxSizes.get(actorClass);
+            return max != null ? max.get() : 0L;
         });
     }
 
@@ -91,7 +85,8 @@ public class MailboxModule implements InstrumentationModule {
      * Apply instrumentation to AgentBuilder.
      * This is called by the MetricsAgent during bytecode transformation.
      */
-    public static AgentBuilder instrument(AgentBuilder builder) {
+    @Override
+    public AgentBuilder instrument(AgentBuilder builder) {
         return builder
                 // Instrument Envelope constructor to track when messages are enqueued
                 .type(ElementMatchers.named("org.apache.pekko.dispatch.Envelope"))
@@ -103,10 +98,17 @@ public class MailboxModule implements InstrumentationModule {
                 .transform((builderParam, typeDescription, classLoader, module) ->
                         builderParam.visit(Advice.to(SendMessageAdvice.class)
                                 .on(ElementMatchers.named("sendMessage").and(ElementMatchers.takesArguments(1)))))
-                // Instrument ActorCell.invoke to track dequeue and processing
-                .type(ElementMatchers.named("org.apache.pekko.actor.ActorCell"))
+                // Instrument ActorCell.invoke(Envelope) to track dequeue and processing
+                .type(ElementMatchers.hasSuperType(ElementMatchers.named("org.apache.pekko.actor.ActorCell"))
+                        .and(ElementMatchers.not(ElementMatchers.isInterface())))
                 .transform((builderParam, typeDescription, classLoader, module) ->
-                        builderParam.visit(Advice.to(MailboxProcessAdvice.class).on(ElementMatchers.named("invoke"))));
+                        builderParam.visit(Advice.to(MailboxProcessAdvice.class)
+                                .on(ElementMatchers.named("invoke").and(ElementMatchers.takesArguments(1)))))
+                // Instrument AbstractBoundedNodeQueue.add - when false, mailbox overflow (NonBlockingBoundedMailbox)
+                .type(ElementMatchers.named("org.apache.pekko.dispatch.AbstractBoundedNodeQueue"))
+                .transform((builderParam, typeDescription, classLoader, module) ->
+                        builderParam.visit(Advice.to(BoundedQueueAddAdvice.class)
+                                .on(ElementMatchers.named("add").and(ElementMatchers.takesArguments(1)))));
     }
 
     /**
@@ -116,10 +118,11 @@ public class MailboxModule implements InstrumentationModule {
         @Advice.OnMethodExit(suppress = Throwable.class)
         public static void onExit(@Advice.This Object envelope) {
             try {
-                long timestamp = System.nanoTime();
-                envelopeTimestamps.put(envelope, timestamp);
+                MetricsRegistry reg = MetricsAgent.getRegistry();
+                if (reg == null) return;
+                reg.getContext().getEnvelopeTimestamps().put(envelope, System.nanoTime());
             } catch (Exception e) {
-                // Silently fail - don't disrupt actor system
+                errorLog.error(logger, "Error recording envelope timestamp", e);
             }
         }
     }
@@ -131,89 +134,81 @@ public class MailboxModule implements InstrumentationModule {
         @Advice.OnMethodExit(suppress = Throwable.class)
         public static void onExit(@Advice.This Object oldEnvelope, @Advice.Return Object newEnvelope) {
             try {
-                Long timestamp = envelopeTimestamps.get(oldEnvelope);
+                MetricsRegistry reg = MetricsAgent.getRegistry();
+                if (reg == null) return;
+                Map<Object, Long> timestamps = reg.getContext().getEnvelopeTimestamps();
+                Long timestamp = timestamps.get(oldEnvelope);
                 if (timestamp != null) {
-                    envelopeTimestamps.put(newEnvelope, timestamp);
+                    timestamps.put(newEnvelope, timestamp);
                 }
             } catch (Exception e) {
-                // Silently fail - don't disrupt actor system
+                errorLog.error(logger, "Error copying envelope timestamp", e);
             }
         }
     }
 
-    /**
-     * ByteBuddy advice for message send (enqueue).
-     */
+    /** Records envelope timestamp on enqueue and increments per-class mailbox size. */
     public static class SendMessageAdvice {
         @Advice.OnMethodEnter(suppress = Throwable.class)
         public static void onEnter(@Advice.This Object actorCell, @Advice.Argument(0) Object envelope) {
             try {
-                // Get registry from MetricsAgent (not from static field)
                 MetricsRegistry reg = MetricsAgent.getRegistry();
-                if (reg == null) {
-                    return;
-                }
+                if (reg == null) return;
 
-                // Ensure envelope has a timestamp
-                if (!envelopeTimestamps.containsKey(envelope)) {
-                    envelopeTimestamps.put(envelope, System.nanoTime());
-                }
+                // Always record envelope timestamp (needed for mailbox-time even if module disabled)
+                MetricsContext ctx = reg.getContext();
+                ctx.getEnvelopeTimestamps().putIfAbsent(envelope, System.nanoTime());
 
+                if (!reg.isModuleEnabled(MODULE_ID)) return;
                 ActorContext context = ActorContext.from(actorCell);
-
-                // Check filtering, sampling, and business rules (skips system/temporary actors)
-                if (!reg.shouldInstrument(context)) {
-                    return;
-                }
+                if (!reg.shouldInstrument(context)) return;
 
                 String actorClass = context.getActorClass();
-
-                // Increment mailbox size (per actor class, aggregating all instances)
+                ConcurrentHashMap<String, AtomicLong> mailboxSizes = ctx.getMailboxSizes();
                 AtomicLong size = mailboxSizes.get(actorClass);
                 if (size == null) {
-                    // Register gauge via helper method (avoids lambda issues in ByteBuddy)
                     registerMailboxGauge(actorClass, reg);
                     size = mailboxSizes.get(actorClass);
                 }
                 if (size != null) {
-                    size.incrementAndGet();
+                    long current = size.incrementAndGet();
+                    AtomicLong max = ctx.getMailboxSizesMax().get(actorClass);
+                    if (max != null) max.accumulateAndGet(current, Math::max);
                 }
             } catch (Exception e) {
-                // Silently fail - don't disrupt actor system
+                errorLog.error(logger, "Error recording mailbox enqueue metric", e);
             }
         }
     }
 
     /**
      * ByteBuddy advice for message processing (dequeue).
+     * Performs its own registry lookup — simple and reliable.
      */
     public static class MailboxProcessAdvice {
         @Advice.OnMethodEnter(suppress = Throwable.class)
         public static void onEnter(@Advice.This Object actorCell, @Advice.Argument(0) Object envelope) {
             try {
-                // Get registry from MetricsAgent (not from static field)
                 MetricsRegistry reg = MetricsAgent.getRegistry();
-                if (reg == null) {
+                if (reg == null || !reg.isModuleEnabled(MODULE_ID)) {
+                    return;
+                }
+                ActorContext actorContext = ActorContext.from(actorCell);
+                if (!reg.shouldInstrument(actorContext)) {
                     return;
                 }
 
-                ActorContext context = ActorContext.from(actorCell);
-
-                // Check filtering, sampling, and business rules (skips system/temporary actors)
-                if (!reg.shouldInstrument(context)) {
-                    return;
-                }
-
-                String actorClass = context.getActorClass();
+                MetricsContext ctx = reg.getContext();
+                String actorClass = actorContext.getActorClass();
 
                 // Decrement mailbox size (per actor class)
-                AtomicLong size = mailboxSizes.get(actorClass);
+                AtomicLong size = ctx.getMailboxSizes().get(actorClass);
                 if (size != null) {
                     size.decrementAndGet();
                 }
 
                 // Calculate mailbox time (enqueue to dequeue)
-                Long enqueueTime = envelopeTimestamps.remove(envelope);
+                Long enqueueTime = ctx.getEnvelopeTimestamps().remove(envelope);
                 if (enqueueTime != null) {
                     long dequeueTime = System.nanoTime();
                     long mailboxTimeNanos = dequeueTime - enqueueTime;
@@ -228,15 +223,38 @@ public class MailboxModule implements InstrumentationModule {
                         messageType = "unknown";
                     }
 
-                    // Use low cardinality tags: actor.class and message.type
-                    Tags tags =
-                            context.toTags().and("message.type", messageType).and(reg.getGlobalTags());
-
-                    Timer mailboxTimer = reg.getBackend().timer(METRIC_MAILBOX_TIME, tags);
-                    mailboxTimer.record(mailboxTimeNanos, TimeUnit.NANOSECONDS);
+                    Tags tags = actorContext
+                            .toTags()
+                            .and("message.type", messageType)
+                            .and(reg.getGlobalTags());
+                    reg.getBackend().timer(METRIC_MAILBOX_TIME, tags).record(mailboxTimeNanos, TimeUnit.NANOSECONDS);
                 }
             } catch (Exception e) {
-                // Silently fail - don't disrupt actor system
+                errorLog.error(logger, "Error recording mailbox time/dequeue metric", e);
+            }
+        }
+    }
+
+    /**
+     * ByteBuddy advice for AbstractBoundedNodeQueue.add - records overflow when add returns false.
+     * Used by NonBlockingBoundedMailbox (BoundedNodeMessageQueue) when full.
+     */
+    public static class BoundedQueueAddAdvice {
+        @Advice.OnMethodExit(suppress = Throwable.class)
+        public static void onExit(@Advice.Return boolean added) {
+            try {
+                if (added) {
+                    return;
+                }
+                MetricsRegistry reg = MetricsAgent.getRegistry();
+                if (reg == null || !reg.isModuleEnabled(MODULE_ID)) {
+                    return;
+                }
+                reg.getBackend()
+                        .counter(METRIC_MAILBOX_OVERFLOW, reg.getGlobalTags())
+                        .increment();
+            } catch (Exception e) {
+                errorLog.error(logger, "Error recording mailbox overflow metric", e);
             }
         }
     }

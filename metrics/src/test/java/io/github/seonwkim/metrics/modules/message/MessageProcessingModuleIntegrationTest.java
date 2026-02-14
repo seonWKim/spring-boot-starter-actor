@@ -188,6 +188,34 @@ class MessageProcessingModuleIntegrationTest {
     }
 
     @Test
+    void testErrorCounterIncrementsOnException() throws Exception {
+        // Wait for system to stabilize
+        Thread.sleep(200);
+
+        double initialErrors = metricsBackend.getCounterValue("actor.errors");
+
+        // Create actor that throws on ThrowMessage (default strategy restarts on exception)
+        ActorRef actor = actorSystem.actorOf(Props.create(ThrowingActor.class), "throwing-actor");
+
+        // Send message that triggers exception
+        actor.tell(new ThrowMessage(), ActorRef.noSender());
+
+        Thread.sleep(500);
+
+        double afterError = metricsBackend.getCounterValue("actor.errors");
+        assertEquals(
+                initialErrors + 1,
+                afterError,
+                String.format(
+                        "Error counter should increment by 1 when actor throws. Initial: %.0f, After: %.0f",
+                        initialErrors, afterError));
+
+        assertTrue(
+                metricsBackend.hasMetricWithTag("actor.errors", "error.type"),
+                "Error counter should have error.type tag");
+    }
+
+    @Test
     void testMetricsHaveActorClassTag() throws Exception {
         // Wait for system to stabilize
         Thread.sleep(200);
@@ -217,6 +245,21 @@ class MessageProcessingModuleIntegrationTest {
                     })
                     .match(Object.class, msg -> {
                         // Handle any message
+                    })
+                    .build();
+        }
+    }
+
+    /** Actor that throws RuntimeException when it receives ThrowMessage. */
+    public static class ThrowingActor extends AbstractActor {
+        @Override
+        public Receive createReceive() {
+            return receiveBuilder()
+                    .match(ThrowMessage.class, msg -> {
+                        throw new RuntimeException("Test exception for metrics");
+                    })
+                    .match(Object.class, msg -> {
+                        // Ignore other messages
                     })
                     .build();
         }
@@ -275,4 +318,7 @@ class MessageProcessingModuleIntegrationTest {
             return value;
         }
     }
+
+    /** Message that causes ThrowingActor to throw. */
+    public static class ThrowMessage {}
 }

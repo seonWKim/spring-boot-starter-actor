@@ -2,6 +2,7 @@ package io.github.seonwkim.metrics.api;
 
 import io.github.seonwkim.metrics.core.MetricsConfiguration;
 import io.github.seonwkim.metrics.core.MetricsRegistry;
+import net.bytebuddy.agent.builder.AgentBuilder;
 
 /**
  * Base interface for all instrumentation modules.
@@ -21,6 +22,17 @@ public interface InstrumentationModule {
      * Human-readable description of what this module instruments.
      */
     String description();
+
+    /**
+     * Apply ByteBuddy bytecode instrumentation.
+     * Override to add instrumentation; default returns builder unchanged (no-op).
+     *
+     * @param builder the AgentBuilder to chain transformations onto
+     * @return the agent builder (possibly with additional transformations)
+     */
+    default AgentBuilder instrument(AgentBuilder builder) {
+        return builder;
+    }
 
     /**
      * Called when the module is registered with the registry.

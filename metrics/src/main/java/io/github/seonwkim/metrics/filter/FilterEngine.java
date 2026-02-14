@@ -65,6 +65,10 @@ public class FilterEngine {
 
     /**
      * Check if a message type matches the filter criteria.
+     *
+     * <p>Note: Not yet wired to instrumentation. Message include/exclude patterns are
+     * reserved for future use. At this stage, all messages are recorded regardless.
+     *
      * @param messageClass the message class name
      * @return true if the message should be instrumented
      */
