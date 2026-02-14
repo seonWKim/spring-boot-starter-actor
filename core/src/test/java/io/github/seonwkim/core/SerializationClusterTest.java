@@ -220,15 +220,18 @@ public class SerializationClusterTest extends AbstractClusterTest {
         waitUntilClusterInitialized();
 
         // ========== Test 1: JSON Serializer without ActorRef ==========
-        SpringShardedActorHandle<SerializationTestActor.Command> jsonActor1 = system1.sharded(SerializationTestActor.class)
+        SpringShardedActorHandle<SerializationTestActor.Command> jsonActor1 = system1.sharded(
+                        SerializationTestActor.class)
                 .withId("json-entity-1")
                 .get();
 
-        SpringShardedActorHandle<SerializationTestActor.Command> jsonActor2 = system2.sharded(SerializationTestActor.class)
+        SpringShardedActorHandle<SerializationTestActor.Command> jsonActor2 = system2.sharded(
+                        SerializationTestActor.class)
                 .withId("json-entity-2")
                 .get();
 
-        SpringShardedActorHandle<SerializationTestActor.Command> jsonActor3 = system3.sharded(SerializationTestActor.class)
+        SpringShardedActorHandle<SerializationTestActor.Command> jsonActor3 = system3.sharded(
+                        SerializationTestActor.class)
                 .withId("json-entity-3")
                 .get();
 
@@ -286,15 +289,18 @@ public class SerializationClusterTest extends AbstractClusterTest {
         assertEquals(600, jsonResp3.processedValue);
 
         // ========== Test 3: CBOR Serializer without ActorRef ==========
-        SpringShardedActorHandle<SerializationTestActor.Command> cborActor1 = system1.sharded(SerializationTestActor.class)
+        SpringShardedActorHandle<SerializationTestActor.Command> cborActor1 = system1.sharded(
+                        SerializationTestActor.class)
                 .withId("cbor-entity-1")
                 .get();
 
-        SpringShardedActorHandle<SerializationTestActor.Command> cborActor2 = system2.sharded(SerializationTestActor.class)
+        SpringShardedActorHandle<SerializationTestActor.Command> cborActor2 = system2.sharded(
+                        SerializationTestActor.class)
                 .withId("cbor-entity-2")
                 .get();
 
-        SpringShardedActorHandle<SerializationTestActor.Command> cborActor3 = system3.sharded(SerializationTestActor.class)
+        SpringShardedActorHandle<SerializationTestActor.Command> cborActor3 = system3.sharded(
+                        SerializationTestActor.class)
                 .withId("cbor-entity-3")
                 .get();
 

@@ -1,6 +1,5 @@
 package io.github.seonwkim.metrics.api;
 
-import io.github.seonwkim.metrics.core.MetricsConfiguration;
 import io.github.seonwkim.metrics.core.MetricsRegistry;
 import net.bytebuddy.agent.builder.AgentBuilder;
 
@@ -41,17 +40,6 @@ public interface InstrumentationModule {
      * @param registry the metrics registry
      */
     void initialize(MetricsRegistry registry);
-
-    /**
-     * Called when configuration changes at runtime.
-     * Modules can react to configuration changes (e.g., enable/disable features).
-     *
-     * @param oldConfig the previous configuration
-     * @param newConfig the new configuration
-     */
-    default void onConfigurationChanged(MetricsConfiguration oldConfig, MetricsConfiguration newConfig) {
-        // Default: do nothing
-    }
 
     /**
      * Shutdown hook for cleanup when the agent is stopped.

@@ -85,7 +85,7 @@ public class ActorLifecycleModule implements InstrumentationModule {
         public static void onExit(@Advice.This Object actorCell) {
             try {
                 MetricsRegistry reg = MetricsAgent.getRegistry();
-                if (reg == null || !reg.isModuleEnabled(MODULE_ID)) return;
+                if (reg == null) return;
                 ActorContext context = ActorContext.from(actorCell);
                 if (!reg.shouldInstrument(context)) return;
 
@@ -107,7 +107,7 @@ public class ActorLifecycleModule implements InstrumentationModule {
         public static void onEnter(@Advice.This Object actorCell) {
             try {
                 MetricsRegistry reg = MetricsAgent.getRegistry();
-                if (reg == null || !reg.isModuleEnabled(MODULE_ID)) return;
+                if (reg == null) return;
                 ActorContext context = ActorContext.from(actorCell);
                 if (!reg.shouldInstrument(context)) return;
 
@@ -127,7 +127,7 @@ public class ActorLifecycleModule implements InstrumentationModule {
         public static void onEnter(@Advice.This Object actorCell) {
             try {
                 MetricsRegistry reg = MetricsAgent.getRegistry();
-                if (reg == null || !reg.isModuleEnabled(MODULE_ID)) return;
+                if (reg == null) return;
                 ActorContext context = ActorContext.from(actorCell);
                 if (!reg.shouldInstrument(context)) return;
 
@@ -145,7 +145,7 @@ public class ActorLifecycleModule implements InstrumentationModule {
         public static void onEnter(@Advice.This Object actorCell) {
             try {
                 MetricsRegistry reg = MetricsAgent.getRegistry();
-                if (reg == null || !reg.isModuleEnabled(MODULE_ID)) return;
+                if (reg == null) return;
                 ActorContext context = ActorContext.from(actorCell);
                 if (!reg.shouldInstrument(context)) return;
 

@@ -110,7 +110,7 @@ public class MessageProcessingModule implements InstrumentationModule {
                     return System.nanoTime();
                 }
                 ActorContext context = ActorContext.from(actorCell);
-                if (!reg.shouldInstrument(context) || !reg.isModuleEnabled(MODULE_ID)) {
+                if (!reg.shouldInstrument(context)) {
                     return System.nanoTime();
                 }
 
@@ -143,10 +143,6 @@ public class MessageProcessingModule implements InstrumentationModule {
                 String messageType = ctx.getCurrentMessageType().get();
                 ctx.getCurrentMessageType().remove();
 
-                if (!reg.isModuleEnabled(MODULE_ID)) {
-                    return;
-                }
-
                 // Fallback if ThreadLocal was not set (e.g. onEnter threw)
                 if (messageType == null) {
                     messageType = extractMessageType(envelope);
@@ -174,7 +170,7 @@ public class MessageProcessingModule implements InstrumentationModule {
         public static void onEnter(@Advice.This Object actorCell, @Advice.Argument(1) Throwable cause) {
             try {
                 MetricsRegistry reg = MetricsAgent.getRegistry();
-                if (reg == null || cause == null || !reg.isModuleEnabled(MODULE_ID)) return;
+                if (reg == null || cause == null) return;
                 ActorContext context = ActorContext.from(actorCell);
                 if (!reg.shouldInstrument(context)) return;
 

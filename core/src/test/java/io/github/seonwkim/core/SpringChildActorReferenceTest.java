@@ -107,7 +107,8 @@ class SpringChildActorReferenceTest {
                     .spawnAndWait();
 
             // Spawn a child using the builder API
-            SpringActorHandle<ReferenceTestChildActor.Command> spawnedChild = parent.child(ReferenceTestChildActor.class)
+            SpringActorHandle<ReferenceTestChildActor.Command> spawnedChild = parent.child(
+                            ReferenceTestChildActor.class)
                     .withId("existing-child")
                     .spawnAndWait();
 

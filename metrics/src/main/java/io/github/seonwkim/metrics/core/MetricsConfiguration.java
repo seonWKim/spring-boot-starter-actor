@@ -12,7 +12,6 @@ public class MetricsConfiguration {
     private Map<String, String> tags = new HashMap<>();
     private FilterConfig filters = new FilterConfig();
     private SamplingConfig sampling = new SamplingConfig();
-    private Map<String, ModuleConfig> modules = new HashMap<>();
 
     public MetricsConfiguration() {}
 
@@ -47,10 +46,6 @@ public class MetricsConfiguration {
         return sampling;
     }
 
-    public Map<String, ModuleConfig> getModules() {
-        return modules;
-    }
-
     /**
      * Builder for MetricsConfiguration.
      */
@@ -79,11 +74,6 @@ public class MetricsConfiguration {
 
         public Builder sampling(SamplingConfig sampling) {
             config.sampling = sampling;
-            return this;
-        }
-
-        public Builder module(String moduleId, ModuleConfig moduleConfig) {
-            config.modules.put(moduleId, moduleConfig);
             return this;
         }
 
@@ -243,33 +233,6 @@ public class MetricsConfiguration {
             SamplingConfig config = new SamplingConfig();
             config.strategy = "never";
             config.rate = 0.0;
-            return config;
-        }
-    }
-
-    /**
-     * Module-specific configuration.
-     */
-    public static class ModuleConfig {
-        private boolean enabled = true;
-
-        public boolean isEnabled() {
-            return enabled;
-        }
-
-        public void setEnabled(boolean enabled) {
-            this.enabled = enabled;
-        }
-
-        public static ModuleConfig enabled() {
-            ModuleConfig config = new ModuleConfig();
-            config.enabled = true;
-            return config;
-        }
-
-        public static ModuleConfig disabled() {
-            ModuleConfig config = new ModuleConfig();
-            config.enabled = false;
             return config;
         }
     }

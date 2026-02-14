@@ -67,7 +67,7 @@ public class SchedulerMetricsModule implements InstrumentationModule {
     private static void recordScheduled() {
         try {
             MetricsRegistry reg = MetricsAgent.getRegistry();
-            if (reg == null || !reg.isModuleEnabled(MODULE_ID)) return;
+            if (reg == null) return;
             reg.getBackend()
                     .counter(METRIC_TASKS_SCHEDULED, reg.getGlobalTags())
                     .increment();

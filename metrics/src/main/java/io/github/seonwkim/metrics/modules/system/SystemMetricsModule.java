@@ -72,9 +72,7 @@ public class SystemMetricsModule implements InstrumentationModule {
                 }
 
                 MetricsRegistry reg = MetricsAgent.getRegistry();
-                if (reg == null || !reg.isModuleEnabled(MODULE_ID)) {
-                    return;
-                }
+                if (reg == null) return;
 
                 Tags tags = reg.getGlobalTags();
 

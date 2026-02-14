@@ -20,7 +20,6 @@ import org.slf4j.LoggerFactory;
  *   <li>ACTOR_METRICS_ENABLED - Enable/disable metrics (default: true)</li>
  *   <li>ACTOR_METRICS_TAG_{NAME} - Global tags (e.g., ACTOR_METRICS_TAG_APPLICATION=my-app)</li>
  *   <li>ACTOR_METRICS_SAMPLING_RATE - Sampling rate 0.0-1.0 (default: 1.0)</li>
- *   <li>ACTOR_METRICS_MODULE_{MODULE_ID}_ENABLED - Enable/disable specific modules</li>
  * </ul>
  * <p>
  * Example usage:
@@ -38,8 +37,6 @@ public class MicrometerMetricsRegistryBuilder {
     private static final String ENV_METRICS_ENABLED = "ACTOR_METRICS_ENABLED";
     private static final String ENV_TAG_PREFIX = "ACTOR_METRICS_TAG_";
     private static final String ENV_SAMPLING_RATE = "ACTOR_METRICS_SAMPLING_RATE";
-    private static final String ENV_MODULE_PREFIX = "ACTOR_METRICS_MODULE_";
-    private static final String ENV_MODULE_SUFFIX = "_ENABLED";
 
     private final MeterRegistry meterRegistry;
     private final MetricsConfiguration.Builder configBuilder;
@@ -93,28 +90,6 @@ public class MicrometerMetricsRegistryBuilder {
             configBuilder.sampling(MetricsConfiguration.SamplingConfig.rateBased(rate));
             logger.info("Sampling rate from env: {}", rate);
         }
-
-        // Module enable/disable - scan all env vars matching ACTOR_METRICS_MODULE_*_ENABLED
-        System.getenv().forEach((key, value) -> {
-            if (key.startsWith(ENV_MODULE_PREFIX) && key.endsWith(ENV_MODULE_SUFFIX)) {
-                String moduleId = extractModuleId(key);
-                boolean isEnabled = Boolean.parseBoolean(value);
-                if (!isEnabled) {
-                    configBuilder.module(moduleId, MetricsConfiguration.ModuleConfig.disabled());
-                    logger.info("Disabled module from env: {}", moduleId);
-                }
-            }
-        });
-    }
-
-    /**
-     * Extract module ID from environment variable name.
-     * ACTOR_METRICS_MODULE_MAILBOX_ENABLED -> mailbox
-     * ACTOR_METRICS_MODULE_ACTOR_LIFECYCLE_ENABLED -> actor-lifecycle
-     */
-    private String extractModuleId(String envKey) {
-        String middle = envKey.substring(ENV_MODULE_PREFIX.length(), envKey.length() - ENV_MODULE_SUFFIX.length());
-        return middle.toLowerCase().replace('_', '-');
     }
 
     /**
@@ -146,14 +121,6 @@ public class MicrometerMetricsRegistryBuilder {
      */
     public MicrometerMetricsRegistryBuilder filters(MetricsConfiguration.FilterConfig filters) {
         configBuilder.filters(filters);
-        return this;
-    }
-
-    /**
-     * Configure a specific module.
-     */
-    public MicrometerMetricsRegistryBuilder module(String moduleId, MetricsConfiguration.ModuleConfig moduleConfig) {
-        configBuilder.module(moduleId, moduleConfig);
         return this;
     }
 

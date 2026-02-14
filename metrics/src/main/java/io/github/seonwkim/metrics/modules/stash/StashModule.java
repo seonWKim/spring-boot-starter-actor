@@ -92,7 +92,7 @@ public class StashModule implements InstrumentationModule {
         public static void onEnter(@Advice.This Object actorCell) {
             try {
                 MetricsRegistry reg = MetricsAgent.getRegistry();
-                if (reg == null || !reg.isModuleEnabled(MODULE_ID)) return;
+                if (reg == null) return;
                 ActorContext context = ActorContext.from(actorCell);
                 if (!reg.shouldInstrument(context)) return;
                 reg.getContext().getCurrentActorClass().set(context.getActorClass());
@@ -120,7 +120,7 @@ public class StashModule implements InstrumentationModule {
         public static void onEnter() {
             try {
                 MetricsRegistry reg = MetricsAgent.getRegistry();
-                if (reg == null || !reg.isModuleEnabled(MODULE_ID)) return;
+                if (reg == null) return;
                 MetricsContext ctx = reg.getContext();
                 String actorClass = ctx.getCurrentActorClass().get();
                 if (actorClass == null) actorClass = "unknown";
@@ -152,7 +152,7 @@ public class StashModule implements InstrumentationModule {
                     errorLog.error(logger, "Error reading stash buffer size", e);
                 }
                 MetricsRegistry reg = MetricsAgent.getRegistry();
-                if (reg == null || !reg.isModuleEnabled(MODULE_ID)) return;
+                if (reg == null) return;
                 MetricsContext ctx = reg.getContext();
                 String actorClass = ctx.getCurrentActorClass().get();
                 if (actorClass == null) actorClass = "unknown";
@@ -173,7 +173,7 @@ public class StashModule implements InstrumentationModule {
         public static void onEnter(@Advice.Argument(1) int numberOfMessages) {
             try {
                 MetricsRegistry reg = MetricsAgent.getRegistry();
-                if (reg == null || !reg.isModuleEnabled(MODULE_ID)) return;
+                if (reg == null) return;
                 MetricsContext ctx = reg.getContext();
                 String actorClass = ctx.getCurrentActorClass().get();
                 if (actorClass == null) actorClass = "unknown";

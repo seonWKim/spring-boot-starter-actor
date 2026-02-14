@@ -26,7 +26,7 @@ public class MetricsRegistry {
     private final FilterEngine filterEngine;
     private final SamplingStrategy samplingStrategy;
     private final List<InstrumentationModule> modules = new CopyOnWriteArrayList<>();
-    private volatile MetricsConfiguration config;
+    private final MetricsConfiguration config;
     private final Tags globalTags;
     private final MetricsContext context;
 
@@ -58,32 +58,6 @@ public class MetricsRegistry {
         logger.info("Registering instrumentation module: {}", module.moduleId());
         modules.add(module);
         module.initialize(this);
-    }
-
-    /**
-     * Update configuration at runtime.
-     */
-    public void updateConfiguration(MetricsConfiguration newConfig) {
-        MetricsConfiguration oldConfig = this.config;
-        this.config = newConfig;
-        logger.info("Configuration updated");
-
-        // Notify modules
-        modules.forEach(m -> {
-            try {
-                m.onConfigurationChanged(oldConfig, newConfig);
-            } catch (Exception e) {
-                logger.error("Error notifying module {} of configuration change", m.moduleId(), e);
-            }
-        });
-    }
-
-    /**
-     * Check if a module is enabled for metrics collection (via {@link MetricsConfiguration}).
-     */
-    public boolean isModuleEnabled(String moduleId) {
-        MetricsConfiguration.ModuleConfig mc = config.getModules().get(moduleId);
-        return mc == null || mc.isEnabled();
     }
 
     /**

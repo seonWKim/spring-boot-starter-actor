@@ -155,11 +155,9 @@ public class MailboxModule implements InstrumentationModule {
                 MetricsRegistry reg = MetricsAgent.getRegistry();
                 if (reg == null) return;
 
-                // Always record envelope timestamp (needed for mailbox-time even if module disabled)
                 MetricsContext ctx = reg.getContext();
                 ctx.getEnvelopeTimestamps().putIfAbsent(envelope, System.nanoTime());
 
-                if (!reg.isModuleEnabled(MODULE_ID)) return;
                 ActorContext context = ActorContext.from(actorCell);
                 if (!reg.shouldInstrument(context)) return;
 
@@ -190,9 +188,7 @@ public class MailboxModule implements InstrumentationModule {
         public static void onEnter(@Advice.This Object actorCell, @Advice.Argument(0) Object envelope) {
             try {
                 MetricsRegistry reg = MetricsAgent.getRegistry();
-                if (reg == null || !reg.isModuleEnabled(MODULE_ID)) {
-                    return;
-                }
+                if (reg == null) return;
                 ActorContext actorContext = ActorContext.from(actorCell);
                 if (!reg.shouldInstrument(actorContext)) {
                     return;
@@ -247,9 +243,7 @@ public class MailboxModule implements InstrumentationModule {
                     return;
                 }
                 MetricsRegistry reg = MetricsAgent.getRegistry();
-                if (reg == null || !reg.isModuleEnabled(MODULE_ID)) {
-                    return;
-                }
+                if (reg == null) return;
                 reg.getBackend()
                         .counter(METRIC_MAILBOX_OVERFLOW, reg.getGlobalTags())
                         .increment();
