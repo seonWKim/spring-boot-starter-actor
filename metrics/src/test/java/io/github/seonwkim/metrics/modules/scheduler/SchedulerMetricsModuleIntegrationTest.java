@@ -55,7 +55,7 @@ class SchedulerMetricsModuleIntegrationTest {
     }
 
     @Test
-    @Disabled("ByteBuddy instrumentation of Scala scheduler methods does not match—advice never runs. "
+    @Disabled("ByteBuddy instrumentation of Scala scheduler methods do not match—advice never runs. "
             + "Scheduler interface is IGNORED; LightArrayRevolverScheduler matchers fail. Deferred.")
     void testScheduledCounterIncrementsWhenSchedulingTasks() throws Exception {
         Thread.sleep(200);
