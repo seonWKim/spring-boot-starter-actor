@@ -105,3 +105,4 @@ Now that you have set up Spring Boot Starter Actor in your project, you can:
 1. [Learn how to register actors and send messages](guides/actor-registration-messaging.md)
 2. [Explore pub/sub topics for distributed messaging](guides/pub-sub-topics.md)
 3. [Create sharded actors for clustered environments](guides/sharded-actors.md)
+4. [Add metrics and monitoring to your actor system](examples/monitoring.md)
