@@ -1,6 +1,7 @@
 package io.github.seonwkim.metrics.modules.actor;
 
 import static io.github.seonwkim.metrics.testing.Eventually.eventually;
+import static io.github.seonwkim.metrics.testing.Eventually.eventuallyStays;
 import static org.junit.jupiter.api.Assertions.*;
 
 import io.github.seonwkim.metrics.agent.MetricsAgent;
@@ -91,7 +92,7 @@ class ActorLifecycleModuleIntegrationTest {
         assertNotNull(actor);
 
         // Verify created counter incremented
-        eventually(() -> {
+        eventuallyStays(() -> {
             double afterCreation = metricsBackend.getCounterValue("actor.lifecycle.created");
             assertEquals(
                     afterCreation,
@@ -113,7 +114,7 @@ class ActorLifecycleModuleIntegrationTest {
         // Create first actor
         ActorRef actor1 = actorSystem.actorOf(Props.create(TestActor.class), "test-actor-gauge-1");
 
-        eventually(() -> {
+        eventuallyStays(() -> {
             double afterFirstActor = metricsBackend.getGaugeValue("actor.lifecycle.active");
             assertEquals(
                     afterFirstActor,
@@ -127,7 +128,7 @@ class ActorLifecycleModuleIntegrationTest {
         // Create second actor
         ActorRef actor2 = actorSystem.actorOf(Props.create(TestActor.class), "test-actor-gauge-2");
 
-        eventually(() -> {
+        eventuallyStays(() -> {
             double afterSecondActor = metricsBackend.getGaugeValue("actor.lifecycle.active");
             assertEquals(
                     afterSecondActor,
@@ -149,7 +150,7 @@ class ActorLifecycleModuleIntegrationTest {
         // Create actor
         ActorRef actor = actorSystem.actorOf(Props.create(TestActor.class), "test-actor-terminate");
 
-        eventually(() -> {
+        eventuallyStays(() -> {
             double activeAfterCreation = metricsBackend.getGaugeValue("actor.lifecycle.active");
             assertEquals(
                     activeAfterCreation, initialActive + 1, "Active gauge should increment after actor creation");
@@ -160,7 +161,7 @@ class ActorLifecycleModuleIntegrationTest {
         actorSystem.stop(actor);
 
         // Verify terminated counter incremented
-        eventually(() -> {
+        eventuallyStays(() -> {
             double afterTermination = metricsBackend.getCounterValue("actor.lifecycle.terminated");
             assertEquals(
                     afterTermination,
@@ -171,7 +172,7 @@ class ActorLifecycleModuleIntegrationTest {
         });
 
         // Verify active gauge decremented
-        eventually(() -> {
+        eventuallyStays(() -> {
             double activeAfterTermination = metricsBackend.getGaugeValue("actor.lifecycle.active");
             assertEquals(
                     activeAfterTermination,
@@ -196,7 +197,7 @@ class ActorLifecycleModuleIntegrationTest {
         ActorRef actor3 = actorSystem.actorOf(Props.create(TestActor.class), "multi-3");
 
         // Verify created counter increased by 3
-        eventually(() -> {
+        eventuallyStays(() -> {
             double afterCreation = metricsBackend.getCounterValue("actor.lifecycle.created");
             assertEquals(
                     afterCreation,
@@ -207,7 +208,7 @@ class ActorLifecycleModuleIntegrationTest {
         });
 
         // Verify active gauge increased by 3
-        eventually(() -> {
+        eventuallyStays(() -> {
             double activeAfterCreation = metricsBackend.getGaugeValue("actor.lifecycle.active");
             assertEquals(
                     activeAfterCreation,
@@ -223,7 +224,7 @@ class ActorLifecycleModuleIntegrationTest {
         actorSystem.stop(actor2);
 
         // Verify active gauge decreased by 2
-        eventually(() -> {
+        eventuallyStays(() -> {
             double activeAfterTwoStopped = metricsBackend.getGaugeValue("actor.lifecycle.active");
             assertEquals(
                     activeAfterTwoStopped,
@@ -244,7 +245,7 @@ class ActorLifecycleModuleIntegrationTest {
                 actorSystem.actorOf(Props.create(SupervisorWithResumeStrategy.class), "resume-supervisor");
         supervisor.tell(new CreateAndTriggerChild("resume-child"), ActorRef.noSender());
 
-        eventually(() -> {
+        eventuallyStays(() -> {
             double afterResume = metricsBackend.getCounterValue("actor.lifecycle.resumes");
             assertEquals(
                     initialResumes + 1,
@@ -267,7 +268,7 @@ class ActorLifecycleModuleIntegrationTest {
                 actorSystem.actorOf(Props.create(SupervisorWithRestartStrategy.class), "restart-supervisor");
         supervisor.tell(new CreateAndTriggerChild("restart-child"), ActorRef.noSender());
 
-        eventually(() -> {
+        eventuallyStays(() -> {
             double afterRestart = metricsBackend.getCounterValue("actor.lifecycle.restarts");
             assertEquals(
                     initialRestarts + 1,
@@ -379,7 +380,7 @@ class ActorLifecycleModuleIntegrationTest {
             typedSystem.tell(new SpawnCommand("child-1"));
 
             // Verify created counter incremented by exactly 1
-            eventually(() -> {
+            eventuallyStays(() -> {
                 double afterCreation = metricsBackend.getCounterValue("actor.lifecycle.created");
                 assertEquals(
                         afterCreation,
@@ -391,7 +392,7 @@ class ActorLifecycleModuleIntegrationTest {
             double afterCreation = initialCreated + 1;
 
             // Verify active gauge incremented by exactly 1
-            eventually(() -> {
+            eventuallyStays(() -> {
                 double activeAfterCreation = metricsBackend.getGaugeValue("actor.lifecycle.active");
                 assertEquals(
                         activeAfterCreation,
@@ -406,7 +407,7 @@ class ActorLifecycleModuleIntegrationTest {
             typedSystem.tell(new SpawnCommand("child-2"));
 
             // Verify created counter incremented by exactly 1 again
-            eventually(() -> {
+            eventuallyStays(() -> {
                 double afterSecondCreation = metricsBackend.getCounterValue("actor.lifecycle.created");
                 assertEquals(
                         afterSecondCreation,
@@ -417,7 +418,7 @@ class ActorLifecycleModuleIntegrationTest {
             });
 
             // Verify active gauge incremented by exactly 1 again
-            eventually(() -> {
+            eventuallyStays(() -> {
                 double activeAfterSecondCreation = metricsBackend.getGaugeValue("actor.lifecycle.active");
                 assertEquals(
                         activeAfterSecondCreation,

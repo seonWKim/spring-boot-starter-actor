@@ -1,14 +1,16 @@
 package io.github.seonwkim.metrics.modules.system;
 
-import static io.github.seonwkim.metrics.testing.Eventually.eventually;
+import static io.github.seonwkim.metrics.testing.Eventually.eventuallyStays;
 import static org.junit.jupiter.api.Assertions.*;
 
 import io.github.seonwkim.metrics.agent.MetricsAgent;
 import io.github.seonwkim.metrics.core.MetricsConfiguration;
 import io.github.seonwkim.metrics.core.MetricsRegistry;
+import io.github.seonwkim.metrics.testing.Eventually;
 import io.github.seonwkim.metrics.testing.TestMetricsBackend;
 import java.util.concurrent.TimeUnit;
 import org.apache.pekko.actor.*;
+import org.apache.pekko.pattern.Patterns;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -70,7 +72,7 @@ class SystemMetricsModuleIntegrationTest {
         ActorRef actor = actorSystem.actorOf(Props.create(StringOnlyActor.class), "string-only-actor");
         actor.tell(42, ActorRef.noSender()); // Integer - not handled
 
-        eventually(() -> {
+        eventuallyStays(() -> {
             double afterUnhandled = metricsBackend.getCounterValue("system.unhandled-messages");
             assertEquals(
                     initialUnhandled + 1,
@@ -89,14 +91,17 @@ class SystemMetricsModuleIntegrationTest {
 
         // Create actor, stop it, then send message -> dead letter
         ActorRef actor = actorSystem.actorOf(Props.create(SimpleActor.class), "soon-to-be-stopped");
-        actorSystem.stop(actor);
-
-        Thread.sleep(500); // Wait for termination
+        // Stop it and wait until it has terminated (completes when Terminated is observed)
+        assertTrue(
+                Patterns.gracefulStop(actor, Eventually.TIMEOUT)
+                        .toCompletableFuture()
+                        .get(Eventually.TIMEOUT.toMillis(), TimeUnit.MILLISECONDS),
+                "Actor should terminate");
 
         // Send to terminated actor -> results in dead letter
         actor.tell("hello", ActorRef.noSender());
 
-        eventually(() -> {
+        eventuallyStays(() -> {
             double afterDeadLetter = metricsBackend.getCounterValue("system.dead-letters");
             assertEquals(
                     initialDeadLetters + 1,

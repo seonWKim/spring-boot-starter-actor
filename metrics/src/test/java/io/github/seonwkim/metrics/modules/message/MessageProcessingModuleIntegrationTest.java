@@ -1,6 +1,7 @@
 package io.github.seonwkim.metrics.modules.message;
 
 import static io.github.seonwkim.metrics.testing.Eventually.eventually;
+import static io.github.seonwkim.metrics.testing.Eventually.eventuallyStays;
 import static org.junit.jupiter.api.Assertions.*;
 
 import io.github.seonwkim.metrics.agent.MetricsAgent;
@@ -83,7 +84,7 @@ class MessageProcessingModuleIntegrationTest {
         ActorRef actor = actorSystem.actorOf(Props.create(EchoActor.class), "echo-actor");
         actor.tell(new StringMessage("hello"), ActorRef.noSender());
 
-        eventually(() -> {
+        eventuallyStays(() -> {
             double afterMessage = metricsBackend.getCounterValue("actor.message.processed");
             assertEquals(
                     initialProcessed + 1,
@@ -127,7 +128,7 @@ class MessageProcessingModuleIntegrationTest {
         actor.tell(new StringMessage("msg2"), ActorRef.noSender());
         actor.tell(new StringMessage("msg3"), ActorRef.noSender());
 
-        eventually(() -> {
+        eventuallyStays(() -> {
             double afterMessages = metricsBackend.getCounterValue("actor.message.processed");
             assertEquals(
                     initialProcessed + 3,
@@ -156,7 +157,7 @@ class MessageProcessingModuleIntegrationTest {
                 metricsBackend.hasMetricWithTag("actor.message.processed", "message.type"),
                 "Processed counter should have message.type tag"));
 
-        eventually(() -> {
+        eventuallyStays(() -> {
             double totalProcessed = metricsBackend.getCounterValue("actor.message.processed");
             assertEquals(
                     initialProcessed + 3, totalProcessed, "Should process exactly 3 messages of different types");
@@ -180,7 +181,7 @@ class MessageProcessingModuleIntegrationTest {
         actor2.tell(new StringMessage("msg2"), ActorRef.noSender());
         actor3.tell(new StringMessage("msg3"), ActorRef.noSender());
 
-        eventually(() -> {
+        eventuallyStays(() -> {
             double afterMessages = metricsBackend.getCounterValue("actor.message.processed");
             assertEquals(
                     initialProcessed + 3,
@@ -204,7 +205,7 @@ class MessageProcessingModuleIntegrationTest {
         // Send message that triggers exception
         actor.tell(new ThrowMessage(), ActorRef.noSender());
 
-        eventually(() -> {
+        eventuallyStays(() -> {
             double afterError = metricsBackend.getCounterValue("actor.errors");
             assertEquals(
                     initialErrors + 1,

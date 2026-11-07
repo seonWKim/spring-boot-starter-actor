@@ -1,6 +1,6 @@
 package io.github.seonwkim.metrics.modules.scheduler;
 
-import static io.github.seonwkim.metrics.testing.Eventually.eventually;
+import static io.github.seonwkim.metrics.testing.Eventually.eventuallyStays;
 import static org.junit.jupiter.api.Assertions.*;
 
 import io.github.seonwkim.metrics.agent.MetricsAgent;
@@ -67,7 +67,7 @@ class SchedulerMetricsModuleIntegrationTest {
 
         actorSystem.scheduler().scheduleOnce(java.time.Duration.ofMillis(20), () -> {}, actorSystem.dispatcher());
 
-        eventually(() -> {
+        eventuallyStays(() -> {
             double afterScheduled = metricsBackend.getCounterValue("scheduler.tasks.scheduled");
             assertEquals(
                     initialScheduled + 2,
