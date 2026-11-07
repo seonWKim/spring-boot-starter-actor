@@ -38,6 +38,7 @@ nav:
     - Actor Registration and Messaging: guides/actor-registration-messaging.md
     - Pub/Sub Topics: guides/pub-sub-topics.md
     - Routers: guides/routers.md
+    - Receptionist: guides/receptionist.md
     - Dispatchers: guides/dispatchers.md
     - Logging with MDC and Tags: guides/logging.md
     - Sharded Actors: guides/sharded-actors.md

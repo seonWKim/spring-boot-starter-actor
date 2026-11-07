@@ -1,6 +1,7 @@
 package io.github.seonwkim.core;
 
 import io.github.seonwkim.core.impl.DefaultSpringActorSystemBuilder;
+import io.github.seonwkim.core.receptionist.SpringReceptionist;
 import io.github.seonwkim.core.shard.ShardedActorRegistry;
 import io.github.seonwkim.core.shard.SpringShardedActor;
 import io.github.seonwkim.core.topic.SpringTopicManager;
@@ -177,5 +178,14 @@ public class ActorConfiguration {
     @ConditionalOnMissingBean(SpringTopicManager.class)
     public SpringTopicManager topicManager(SpringActorSystem actorSystem) {
         return new SpringTopicManager(actorSystem);
+    }
+
+    /**
+     * Provides actor discovery by service key through Pekko's Receptionist.
+     */
+    @Bean
+    @ConditionalOnMissingBean(SpringReceptionist.class)
+    public SpringReceptionist springReceptionist(SpringActorSystem actorSystem) {
+        return new SpringReceptionist(actorSystem);
     }
 }
