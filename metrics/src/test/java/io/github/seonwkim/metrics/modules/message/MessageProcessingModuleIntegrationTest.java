@@ -1,5 +1,7 @@
 package io.github.seonwkim.metrics.modules.message;
 
+import static io.github.seonwkim.metrics.testing.Eventually.eventually;
+import static io.github.seonwkim.metrics.testing.Eventually.eventuallyStays;
 import static org.junit.jupiter.api.Assertions.*;
 
 import io.github.seonwkim.metrics.agent.MetricsAgent;
@@ -82,15 +84,15 @@ class MessageProcessingModuleIntegrationTest {
         ActorRef actor = actorSystem.actorOf(Props.create(EchoActor.class), "echo-actor");
         actor.tell(new StringMessage("hello"), ActorRef.noSender());
 
-        Thread.sleep(500);
-
-        double afterMessage = metricsBackend.getCounterValue("actor.message.processed");
-        assertEquals(
-                initialProcessed + 1,
-                afterMessage,
-                String.format(
-                        "Processed counter should increment by exactly 1. Initial: %.0f, After: %.0f",
-                        initialProcessed, afterMessage));
+        eventuallyStays(() -> {
+            double afterMessage = metricsBackend.getCounterValue("actor.message.processed");
+            assertEquals(
+                    initialProcessed + 1,
+                    afterMessage,
+                    String.format(
+                            "Processed counter should increment by exactly 1. Initial: %.0f, After: %.0f",
+                            initialProcessed, afterMessage));
+        });
     }
 
     @Test
@@ -102,13 +104,15 @@ class MessageProcessingModuleIntegrationTest {
         ActorRef actor = actorSystem.actorOf(Props.create(EchoActor.class), "timer-actor");
         actor.tell(new StringMessage("test"), ActorRef.noSender());
 
-        Thread.sleep(500);
+        eventually(() -> {
+            long timerCount = metricsBackend.getTimerCount("actor.message.processing.time");
+            assertTrue(timerCount > 0, "Processing time should be recorded");
+        });
 
-        long timerCount = metricsBackend.getTimerCount("actor.message.processing.time");
-        assertTrue(timerCount > 0, "Processing time should be recorded");
-
-        long totalTime = metricsBackend.getTimerTotalTime("actor.message.processing.time");
-        assertTrue(totalTime > 0, "Total processing time should be greater than 0");
+        eventually(() -> {
+            long totalTime = metricsBackend.getTimerTotalTime("actor.message.processing.time");
+            assertTrue(totalTime > 0, "Total processing time should be greater than 0");
+        });
     }
 
     @Test
@@ -124,15 +128,15 @@ class MessageProcessingModuleIntegrationTest {
         actor.tell(new StringMessage("msg2"), ActorRef.noSender());
         actor.tell(new StringMessage("msg3"), ActorRef.noSender());
 
-        Thread.sleep(500);
-
-        double afterMessages = metricsBackend.getCounterValue("actor.message.processed");
-        assertEquals(
-                initialProcessed + 3,
-                afterMessages,
-                String.format(
-                        "Should process exactly 3 messages. Initial: %.0f, After: %.0f",
-                        initialProcessed, afterMessages));
+        eventuallyStays(() -> {
+            double afterMessages = metricsBackend.getCounterValue("actor.message.processed");
+            assertEquals(
+                    initialProcessed + 3,
+                    afterMessages,
+                    String.format(
+                            "Should process exactly 3 messages. Initial: %.0f, After: %.0f",
+                            initialProcessed, afterMessages));
+        });
     }
 
     @Test
@@ -148,15 +152,16 @@ class MessageProcessingModuleIntegrationTest {
         actor.tell(new IntMessage(42), ActorRef.noSender());
         actor.tell(new BooleanMessage(true), ActorRef.noSender());
 
-        Thread.sleep(500);
-
         // Verify that different message types are tracked
-        assertTrue(
+        eventually(() -> assertTrue(
                 metricsBackend.hasMetricWithTag("actor.message.processed", "message.type"),
-                "Processed counter should have message.type tag");
+                "Processed counter should have message.type tag"));
 
-        double totalProcessed = metricsBackend.getCounterValue("actor.message.processed");
-        assertEquals(initialProcessed + 3, totalProcessed, "Should process exactly 3 messages of different types");
+        eventuallyStays(() -> {
+            double totalProcessed = metricsBackend.getCounterValue("actor.message.processed");
+            assertEquals(
+                    initialProcessed + 3, totalProcessed, "Should process exactly 3 messages of different types");
+        });
     }
 
     @Test
@@ -176,15 +181,15 @@ class MessageProcessingModuleIntegrationTest {
         actor2.tell(new StringMessage("msg2"), ActorRef.noSender());
         actor3.tell(new StringMessage("msg3"), ActorRef.noSender());
 
-        Thread.sleep(500);
-
-        double afterMessages = metricsBackend.getCounterValue("actor.message.processed");
-        assertEquals(
-                initialProcessed + 3,
-                afterMessages,
-                String.format(
-                        "Should process exactly 3 messages from multiple actors. Initial: %.0f, After: %.0f",
-                        initialProcessed, afterMessages));
+        eventuallyStays(() -> {
+            double afterMessages = metricsBackend.getCounterValue("actor.message.processed");
+            assertEquals(
+                    initialProcessed + 3,
+                    afterMessages,
+                    String.format(
+                            "Should process exactly 3 messages from multiple actors. Initial: %.0f, After: %.0f",
+                            initialProcessed, afterMessages));
+        });
     }
 
     @Test
@@ -200,19 +205,19 @@ class MessageProcessingModuleIntegrationTest {
         // Send message that triggers exception
         actor.tell(new ThrowMessage(), ActorRef.noSender());
 
-        Thread.sleep(500);
+        eventuallyStays(() -> {
+            double afterError = metricsBackend.getCounterValue("actor.errors");
+            assertEquals(
+                    initialErrors + 1,
+                    afterError,
+                    String.format(
+                            "Error counter should increment by 1 when actor throws. Initial: %.0f, After: %.0f",
+                            initialErrors, afterError));
+        });
 
-        double afterError = metricsBackend.getCounterValue("actor.errors");
-        assertEquals(
-                initialErrors + 1,
-                afterError,
-                String.format(
-                        "Error counter should increment by 1 when actor throws. Initial: %.0f, After: %.0f",
-                        initialErrors, afterError));
-
-        assertTrue(
+        eventually(() -> assertTrue(
                 metricsBackend.hasMetricWithTag("actor.errors", "error.type"),
-                "Error counter should have error.type tag");
+                "Error counter should have error.type tag"));
     }
 
     @Test
@@ -224,14 +229,12 @@ class MessageProcessingModuleIntegrationTest {
         ActorRef actor = actorSystem.actorOf(Props.create(EchoActor.class), "tagged-actor");
         actor.tell(new StringMessage("test"), ActorRef.noSender());
 
-        Thread.sleep(500);
-
-        assertTrue(
+        eventually(() -> assertTrue(
                 metricsBackend.hasMetricWithTag("actor.message.processed", "actor.class"),
-                "Processed counter should have actor.class tag");
-        assertTrue(
+                "Processed counter should have actor.class tag"));
+        eventually(() -> assertTrue(
                 metricsBackend.hasMetricWithTag("actor.message.processing.time", "actor.class"),
-                "Processing timer should have actor.class tag");
+                "Processing timer should have actor.class tag"));
     }
 
     // Test actors

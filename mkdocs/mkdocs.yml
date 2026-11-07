@@ -24,7 +24,10 @@ markdown_extensions:
   - pymdownx.highlight:
       anchor_linenums: true
   - pymdownx.inlinehilite
-  - pymdownx.snippets
+  - pymdownx.snippets:
+      # "." when mkdocs runs from the repository root (CI), ".." when it runs from mkdocs/
+      base_path: [".", ".."]
+      check_paths: true
   - pymdownx.superfences
   - pymdownx.tabbed:
       alternate_style: true
@@ -38,11 +41,14 @@ nav:
     - Actor Registration and Messaging: guides/actor-registration-messaging.md
     - Pub/Sub Topics: guides/pub-sub-topics.md
     - Routers: guides/routers.md
+    - Receptionist: guides/receptionist.md
     - Dispatchers: guides/dispatchers.md
     - Logging with MDC and Tags: guides/logging.md
     - Sharded Actors: guides/sharded-actors.md
     - Persistence with Spring Boot: guides/persistence-spring-boot.md
     - Running in Production: guides/production.md
+    - AI Agents: guides/ai-agents.md
+    - Configuration Reference: guides/configuration.md
   - Examples:
     - Overview: examples/index.md
     - Simple: examples/simple.md
@@ -50,6 +56,9 @@ nav:
     - Synchronization: examples/synchronization.md
     - Chat: examples/chat.md
     - Monitoring: examples/monitoring.md
+  - Contributing:
+    - Spring Conventions: contributing/spring-conventions.md
+    - RFCs: contributing/rfcs/index.md
 
 extra_css:
   - stylesheets/extra.css
