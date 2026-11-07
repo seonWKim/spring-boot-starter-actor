@@ -1,5 +1,6 @@
 package io.github.seonwkim.metrics.modules.system;
 
+import static io.github.seonwkim.metrics.testing.Eventually.eventually;
 import static org.junit.jupiter.api.Assertions.*;
 
 import io.github.seonwkim.metrics.agent.MetricsAgent;
@@ -69,15 +70,15 @@ class SystemMetricsModuleIntegrationTest {
         ActorRef actor = actorSystem.actorOf(Props.create(StringOnlyActor.class), "string-only-actor");
         actor.tell(42, ActorRef.noSender()); // Integer - not handled
 
-        Thread.sleep(500);
-
-        double afterUnhandled = metricsBackend.getCounterValue("system.unhandled-messages");
-        assertEquals(
-                initialUnhandled + 1,
-                afterUnhandled,
-                String.format(
-                        "Unhandled message counter should increment when actor doesn't handle message type. Initial: %.0f, After: %.0f",
-                        initialUnhandled, afterUnhandled));
+        eventually(() -> {
+            double afterUnhandled = metricsBackend.getCounterValue("system.unhandled-messages");
+            assertEquals(
+                    initialUnhandled + 1,
+                    afterUnhandled,
+                    String.format(
+                            "Unhandled message counter should increment when actor doesn't handle message type. Initial: %.0f, After: %.0f",
+                            initialUnhandled, afterUnhandled));
+        });
     }
 
     @Test
@@ -95,15 +96,15 @@ class SystemMetricsModuleIntegrationTest {
         // Send to terminated actor -> results in dead letter
         actor.tell("hello", ActorRef.noSender());
 
-        Thread.sleep(500);
-
-        double afterDeadLetter = metricsBackend.getCounterValue("system.dead-letters");
-        assertEquals(
-                initialDeadLetters + 1,
-                afterDeadLetter,
-                String.format(
-                        "Dead letter counter should increment when sending to terminated actor. Initial: %.0f, After: %.0f",
-                        initialDeadLetters, afterDeadLetter));
+        eventually(() -> {
+            double afterDeadLetter = metricsBackend.getCounterValue("system.dead-letters");
+            assertEquals(
+                    initialDeadLetters + 1,
+                    afterDeadLetter,
+                    String.format(
+                            "Dead letter counter should increment when sending to terminated actor. Initial: %.0f, After: %.0f",
+                            initialDeadLetters, afterDeadLetter));
+        });
     }
 
     /** Actor that only handles String - other types trigger UnhandledMessage. */

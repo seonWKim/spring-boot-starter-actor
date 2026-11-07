@@ -1,5 +1,6 @@
 package io.github.seonwkim.metrics.modules.scheduler;
 
+import static io.github.seonwkim.metrics.testing.Eventually.eventually;
 import static org.junit.jupiter.api.Assertions.*;
 
 import io.github.seonwkim.metrics.agent.MetricsAgent;
@@ -66,14 +67,14 @@ class SchedulerMetricsModuleIntegrationTest {
 
         actorSystem.scheduler().scheduleOnce(java.time.Duration.ofMillis(20), () -> {}, actorSystem.dispatcher());
 
-        Thread.sleep(500);
-
-        double afterScheduled = metricsBackend.getCounterValue("scheduler.tasks.scheduled");
-        assertEquals(
-                initialScheduled + 2,
-                afterScheduled,
-                String.format(
-                        "Scheduled counter should increment by 2. Initial: %.0f, After: %.0f",
-                        initialScheduled, afterScheduled));
+        eventually(() -> {
+            double afterScheduled = metricsBackend.getCounterValue("scheduler.tasks.scheduled");
+            assertEquals(
+                    initialScheduled + 2,
+                    afterScheduled,
+                    String.format(
+                            "Scheduled counter should increment by 2. Initial: %.0f, After: %.0f",
+                            initialScheduled, afterScheduled));
+        });
     }
 }

@@ -1,6 +1,6 @@
 package io.github.seonwkim.metrics.modules.mailbox;
 
-import static org.awaitility.Awaitility.await;
+import static io.github.seonwkim.metrics.testing.Eventually.eventually;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.typesafe.config.Config;
@@ -87,12 +87,12 @@ class MailboxModuleIntegrationTest {
         actor.tell(new TestMessage("msg2"), ActorRef.noSender());
         actor.tell(new TestMessage("msg3"), ActorRef.noSender());
 
-        // Wait a bit for enqueuing
-        Thread.sleep(200);
-
         // Mailbox size should be > 0 (messages are queued)
-        double mailboxSize = metricsBackend.getGaugeValue("actor.mailbox.size");
-        assertTrue(mailboxSize > 0, String.format("Mailbox size should be greater than 0, got: %.0f", mailboxSize));
+        eventually(() -> {
+            double mailboxSize = metricsBackend.getGaugeValue("actor.mailbox.size");
+            assertTrue(
+                    mailboxSize > 0, String.format("Mailbox size should be greater than 0, got: %.0f", mailboxSize));
+        });
     }
 
     @Test
@@ -106,14 +106,14 @@ class MailboxModuleIntegrationTest {
             actor.tell(new TestMessage("msg" + i), ActorRef.noSender());
         }
 
-        Thread.sleep(300);
-
         // Max should have captured the peak size (multiple messages queued)
-        double maxSize = metricsBackend.getGaugeValue("actor.mailbox.size.max");
-        assertTrue(
-                maxSize >= 2,
-                String.format(
-                        "Mailbox size max should capture peak (>= 2 when messages queue up), got: %.0f", maxSize));
+        eventually(() -> {
+            double maxSize = metricsBackend.getGaugeValue("actor.mailbox.size.max");
+            assertTrue(
+                    maxSize >= 2,
+                    String.format(
+                            "Mailbox size max should capture peak (>= 2 when messages queue up), got: %.0f", maxSize));
+        });
     }
 
     @Test
@@ -128,14 +128,13 @@ class MailboxModuleIntegrationTest {
         actor.tell(new TestMessage("msg1"), ActorRef.noSender());
         actor.tell(new TestMessage("msg2"), ActorRef.noSender());
 
-        // Wait for processing to complete
-        Thread.sleep(500);
-
-        // Mailbox should be empty (or close to it)
-        double mailboxSize = metricsBackend.getGaugeValue("actor.mailbox.size");
-        assertTrue(
-                mailboxSize <= 1,
-                String.format("Mailbox size should be 0 or 1 after processing, got: %.0f", mailboxSize));
+        // Mailbox should be empty (or close to it) once processing completes
+        eventually(() -> {
+            double mailboxSize = metricsBackend.getGaugeValue("actor.mailbox.size");
+            assertTrue(
+                    mailboxSize <= 1,
+                    String.format("Mailbox size should be 0 or 1 after processing, got: %.0f", mailboxSize));
+        });
     }
 
     @Test
@@ -147,13 +146,15 @@ class MailboxModuleIntegrationTest {
         ActorRef actor = actorSystem.actorOf(Props.create(FastActor.class), "timer-actor");
         actor.tell(new TestMessage("test"), ActorRef.noSender());
 
-        Thread.sleep(500);
+        eventually(() -> {
+            long timerCount = metricsBackend.getTimerCount("actor.mailbox.time");
+            assertTrue(timerCount > 0, "Mailbox time should be recorded");
+        });
 
-        long timerCount = metricsBackend.getTimerCount("actor.mailbox.time");
-        assertTrue(timerCount > 0, "Mailbox time should be recorded");
-
-        long totalTime = metricsBackend.getTimerTotalTime("actor.mailbox.time");
-        assertTrue(totalTime > 0, "Total mailbox time should be greater than 0");
+        eventually(() -> {
+            long totalTime = metricsBackend.getTimerTotalTime("actor.mailbox.time");
+            assertTrue(totalTime > 0, "Total mailbox time should be greater than 0");
+        });
     }
 
     @Test
@@ -170,17 +171,14 @@ class MailboxModuleIntegrationTest {
         actor1.tell(new TestMessage("msg2"), ActorRef.noSender());
         actor2.tell(new TestMessage("msg3"), ActorRef.noSender());
 
-        // Wait for gauges to be registered using Awaitility
-        await().atMost(3, TimeUnit.SECONDS)
-                .pollInterval(100, TimeUnit.MILLISECONDS)
-                .untilAsserted(() -> {
-                    int gaugeCount = metricsBackend.gaugeCount();
-                    assertTrue(
-                            gaugeCount >= 2,
-                            String.format(
-                                    "Should have at least 2 mailbox gauges (one per actor class), got: %d",
-                                    gaugeCount));
-                });
+        // Wait for gauges to be registered
+        eventually(() -> {
+            int gaugeCount = metricsBackend.gaugeCount();
+            assertTrue(
+                    gaugeCount >= 2,
+                    String.format(
+                            "Should have at least 2 mailbox gauges (one per actor class), got: %d", gaugeCount));
+        });
     }
 
     @Test
@@ -192,14 +190,12 @@ class MailboxModuleIntegrationTest {
         ActorRef actor = actorSystem.actorOf(Props.create(FastActor.class), "tagged-actor");
         actor.tell(new TestMessage("test"), ActorRef.noSender());
 
-        Thread.sleep(500);
-
-        assertTrue(
+        eventually(() -> assertTrue(
                 metricsBackend.hasMetricWithTag("actor.mailbox.size", "actor.class"),
-                "Mailbox size gauge should have actor.class tag");
-        assertTrue(
+                "Mailbox size gauge should have actor.class tag"));
+        eventually(() -> assertTrue(
                 metricsBackend.hasMetricWithTag("actor.mailbox.time", "actor.class"),
-                "Mailbox timer should have actor.class tag");
+                "Mailbox timer should have actor.class tag"));
     }
 
     @Test
@@ -225,13 +221,14 @@ class MailboxModuleIntegrationTest {
                 actor.tell(new TestMessage("msg" + i), ActorRef.noSender());
             }
 
-            Thread.sleep(800);
-
-            long overflowCount = (long) metricsBackend.getCounterValue("actor.mailbox.overflow");
-            assertTrue(
-                    overflowCount > 0,
-                    String.format(
-                            "Overflow counter should increment when bounded mailbox full, got: %d", overflowCount));
+            eventually(() -> {
+                long overflowCount = (long) metricsBackend.getCounterValue("actor.mailbox.overflow");
+                assertTrue(
+                        overflowCount > 0,
+                        String.format(
+                                "Overflow counter should increment when bounded mailbox full, got: %d",
+                                overflowCount));
+            });
         } finally {
             overflowSystem.terminate();
             Await.result(overflowSystem.whenTerminated(), Duration.apply(5, TimeUnit.SECONDS));
@@ -247,11 +244,9 @@ class MailboxModuleIntegrationTest {
         ActorRef actor = actorSystem.actorOf(Props.create(FastActor.class), "message-type-actor");
         actor.tell(new TestMessage("test"), ActorRef.noSender());
 
-        Thread.sleep(500);
-
-        assertTrue(
+        eventually(() -> assertTrue(
                 metricsBackend.hasMetricWithTag("actor.mailbox.time", "message.type"),
-                "Mailbox timer should have message.type tag");
+                "Mailbox timer should have message.type tag"));
     }
 
     // Test actors
