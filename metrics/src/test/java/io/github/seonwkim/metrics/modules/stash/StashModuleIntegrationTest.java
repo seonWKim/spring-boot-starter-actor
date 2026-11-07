@@ -89,7 +89,17 @@ class StashModuleIntegrationTest {
 
         actorSystem.tell("stash1");
         actorSystem.tell("stash2");
-        Thread.sleep(300);
+
+        // Wait until both messages are stashed; otherwise the "<= 1" check below would pass
+        // before anything was stashed.
+        await().atMost(3, TimeUnit.SECONDS)
+                .pollInterval(50, TimeUnit.MILLISECONDS)
+                .untilAsserted(() -> {
+                    double stashSize = metricsBackend.getGaugeValue("actor.stash.size");
+                    assertTrue(
+                            stashSize >= 2,
+                            String.format("Stash size should be >= 2 before unstashAll, got: %.0f", stashSize));
+                });
 
         // Send "ready" to trigger unstashAll
         actorSystem.tell("ready");

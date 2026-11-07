@@ -128,13 +128,19 @@ class MailboxModuleIntegrationTest {
         actor.tell(new TestMessage("msg1"), ActorRef.noSender());
         actor.tell(new TestMessage("msg2"), ActorRef.noSender());
 
-        // Mailbox should be empty (or close to it) once processing completes
+        // Wait until both messages have been dequeued. The dequeue advice decrements the size
+        // gauge before it records actor.mailbox.time, so a count of 2 means both decrements ran.
+        // Polling the size alone would pass at once, before anything was processed.
         eventually(() -> {
-            double mailboxSize = metricsBackend.getGaugeValue("actor.mailbox.size");
-            assertTrue(
-                    mailboxSize <= 1,
-                    String.format("Mailbox size should be 0 or 1 after processing, got: %.0f", mailboxSize));
+            long dequeued = metricsBackend.getTimerCount("actor.mailbox.time");
+            assertTrue(dequeued >= 2, String.format("Both messages should be dequeued, got: %d", dequeued));
         });
+
+        // Mailbox should be empty (or close to it) after processing
+        double mailboxSize = metricsBackend.getGaugeValue("actor.mailbox.size");
+        assertTrue(
+                mailboxSize <= 1,
+                String.format("Mailbox size should be 0 or 1 after processing, got: %.0f", mailboxSize));
     }
 
     @Test
