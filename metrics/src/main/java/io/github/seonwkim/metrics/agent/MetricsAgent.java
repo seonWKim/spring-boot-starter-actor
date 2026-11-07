@@ -4,8 +4,10 @@ import io.github.seonwkim.metrics.api.InstrumentationModule;
 import io.github.seonwkim.metrics.core.MetricsRegistry;
 import java.lang.instrument.Instrumentation;
 import java.util.ServiceLoader;
+import java.util.concurrent.atomic.AtomicBoolean;
 import javax.annotation.Nullable;
 import net.bytebuddy.agent.builder.AgentBuilder;
+import net.bytebuddy.utility.JavaModule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,6 +31,13 @@ public class MetricsAgent {
 
     /** System property set when the agent's premain has run (i.e. -javaagent was used). */
     public static final String AGENT_LOADED_PROPERTY = "io.github.seonwkim.metrics.agent.loaded";
+
+    /**
+     * Byte Buddy property that lets it read class files newer than the Java version it was
+     * released for. Without it, Byte Buddy rejects every JDK class on such a JVM (for Byte Buddy
+     * 1.12.x: Java 20 and later), so no Pekko class is transformed and no metric is recorded.
+     */
+    private static final String BYTE_BUDDY_EXPERIMENTAL_PROPERTY = "net.bytebuddy.experimental";
 
     @Nullable private static volatile MetricsRegistry registry;
 
@@ -65,12 +74,16 @@ public class MetricsAgent {
             return;
         }
 
+        // Must run before any Byte Buddy class reads the property (it is read once, at class init).
+        enableNewerClassFileVersions();
+
         try {
             // Apply bytecode instrumentation (registry will be set later)
             AgentBuilder agentBuilder = new AgentBuilder.Default()
                     .with(AgentBuilder.RedefinitionStrategy.RETRANSFORMATION)
                     .with(AgentBuilder.TypeStrategy.Default.REDEFINE)
-                    .with(AgentBuilder.InitializationStrategy.NoOp.INSTANCE);
+                    .with(AgentBuilder.InitializationStrategy.NoOp.INSTANCE)
+                    .with(new TransformationErrorListener());
 
             // Discover all modules via SPI
             ServiceLoader<InstrumentationModule> moduleLoader = ServiceLoader.load(InstrumentationModule.class);
@@ -98,6 +111,44 @@ public class MetricsAgent {
             logger.info("Waiting for MetricsRegistry to be set via setRegistry()...");
         } catch (Exception e) {
             logger.error("Failed to initialize metrics agent", e);
+        }
+    }
+
+    /**
+     * Allows Byte Buddy to read class files of the running JVM when that JVM is newer than the
+     * Java versions Byte Buddy knows. Has no effect on JVMs Byte Buddy already supports. An
+     * explicit {@code -Dnet.bytebuddy.experimental=...} set by the user is kept as is.
+     */
+    private static void enableNewerClassFileVersions() {
+        if (System.getProperty(BYTE_BUDDY_EXPERIMENTAL_PROPERTY) == null) {
+            System.setProperty(BYTE_BUDDY_EXPERIMENTAL_PROPERTY, "true");
+        }
+    }
+
+    /**
+     * Reports instrumentation errors instead of dropping them. Byte Buddy calls onError for every
+     * class it fails to match or transform; the first error is logged at WARN with its cause so a
+     * broken agent is visible, the rest at DEBUG.
+     */
+    private static final class TransformationErrorListener extends AgentBuilder.Listener.Adapter {
+        private final AtomicBoolean warned = new AtomicBoolean(false);
+
+        @Override
+        public void onError(
+                String typeName,
+                @Nullable ClassLoader classLoader,
+                @Nullable JavaModule module,
+                boolean loaded,
+                Throwable throwable) {
+            if (warned.compareAndSet(false, true)) {
+                logger.warn(
+                        "Failed to instrument {}; metrics from this class will be missing "
+                                + "(further instrumentation errors are logged at DEBUG)",
+                        typeName,
+                        throwable);
+            } else {
+                logger.debug("Failed to instrument {}", typeName, throwable);
+            }
         }
     }
 
