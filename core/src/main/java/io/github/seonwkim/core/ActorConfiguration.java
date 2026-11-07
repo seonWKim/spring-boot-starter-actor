@@ -143,6 +143,18 @@ public class ActorConfiguration {
         return builder.build();
     }
 
+    /**
+     * Runs Pekko coordinated shutdown when the Spring context closes, after the web server has
+     * stopped and before the beans the actors use are destroyed. Waits at most
+     * {@code spring.actor.shutdown.timeout} (default 20s).
+     */
+    @Bean
+    @ConditionalOnMissingBean(ActorSystemShutdownLifecycle.class)
+    public ActorSystemShutdownLifecycle actorSystemShutdownLifecycle(
+            SpringActorSystem actorSystem, ActorProperties actorProperties) {
+        return new ActorSystemShutdownLifecycle(actorSystem, actorProperties.getShutdownTimeout());
+    }
+
     // ==================================================================================
     // PHASE 3: Post-Initialization (SmartInitializingSingleton)
     // ==================================================================================
