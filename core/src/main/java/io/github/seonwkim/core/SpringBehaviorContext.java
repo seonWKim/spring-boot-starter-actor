@@ -7,6 +7,8 @@ import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.Scheduler;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
+import org.apache.pekko.actor.typed.receptionist.Receptionist;
+import org.apache.pekko.actor.typed.receptionist.ServiceKey;
 import org.slf4j.Logger;
 
 /**
@@ -143,5 +145,18 @@ public final class SpringBehaviorContext<T> {
      */
     public void stop(ActorRef<?> child) {
         underlying.stop(child);
+    }
+
+    /**
+     * Registers this actor with Pekko's Receptionist under the given service key.
+     *
+     * <p>Call this from behavior setup (for example inside {@code withState}) so the actor
+     * can be found through {@code SpringReceptionist#find} or a subscription. The actor is
+     * removed from the listing automatically when it stops.
+     *
+     * @param key The service key to register under
+     */
+    public void registerWithReceptionist(ServiceKey<T> key) {
+        underlying.getSystem().receptionist().tell(Receptionist.register(key, underlying.getSelf()));
     }
 }

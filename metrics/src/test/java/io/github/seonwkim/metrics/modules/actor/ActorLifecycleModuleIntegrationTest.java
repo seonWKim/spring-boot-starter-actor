@@ -1,5 +1,7 @@
 package io.github.seonwkim.metrics.modules.actor;
 
+import static io.github.seonwkim.metrics.testing.Eventually.eventually;
+import static io.github.seonwkim.metrics.testing.Eventually.eventuallyStays;
 import static org.junit.jupiter.api.Assertions.*;
 
 import io.github.seonwkim.metrics.agent.MetricsAgent;
@@ -89,16 +91,16 @@ class ActorLifecycleModuleIntegrationTest {
 
         assertNotNull(actor);
 
-        // Wait for instrumentation to record
-        Thread.sleep(500);
-
         // Verify created counter incremented
-        double afterCreation = metricsBackend.getCounterValue("actor.lifecycle.created");
-        assertEquals(
-                afterCreation,
-                initialCreated + 1,
-                String.format(
-                        "Created counter should increment. Initial: %.0f, After: %.0f", initialCreated, afterCreation));
+        eventuallyStays(() -> {
+            double afterCreation = metricsBackend.getCounterValue("actor.lifecycle.created");
+            assertEquals(
+                    afterCreation,
+                    initialCreated + 1,
+                    String.format(
+                            "Created counter should increment. Initial: %.0f, After: %.0f",
+                            initialCreated, afterCreation));
+        });
     }
 
     @Test
@@ -112,28 +114,29 @@ class ActorLifecycleModuleIntegrationTest {
         // Create first actor
         ActorRef actor1 = actorSystem.actorOf(Props.create(TestActor.class), "test-actor-gauge-1");
 
-        Thread.sleep(500);
-
-        double afterFirstActor = metricsBackend.getGaugeValue("actor.lifecycle.active");
-        assertEquals(
-                afterFirstActor,
-                initialActive + 1,
-                String.format(
-                        "Active gauge should increment after first actor. Initial: %.0f, After: %.0f",
-                        initialActive, afterFirstActor));
+        eventuallyStays(() -> {
+            double afterFirstActor = metricsBackend.getGaugeValue("actor.lifecycle.active");
+            assertEquals(
+                    afterFirstActor,
+                    initialActive + 1,
+                    String.format(
+                            "Active gauge should increment after first actor. Initial: %.0f, After: %.0f",
+                            initialActive, afterFirstActor));
+        });
+        double afterFirstActor = initialActive + 1;
 
         // Create second actor
         ActorRef actor2 = actorSystem.actorOf(Props.create(TestActor.class), "test-actor-gauge-2");
 
-        Thread.sleep(500);
-
-        double afterSecondActor = metricsBackend.getGaugeValue("actor.lifecycle.active");
-        assertEquals(
-                afterSecondActor,
-                afterFirstActor + 1,
-                String.format(
-                        "Active gauge should increment after second actor. After first: %.0f, After second: %.0f",
-                        afterFirstActor, afterSecondActor));
+        eventuallyStays(() -> {
+            double afterSecondActor = metricsBackend.getGaugeValue("actor.lifecycle.active");
+            assertEquals(
+                    afterSecondActor,
+                    afterFirstActor + 1,
+                    String.format(
+                            "Active gauge should increment after second actor. After first: %.0f, After second: %.0f",
+                            afterFirstActor, afterSecondActor));
+        });
     }
 
     @Test
@@ -147,34 +150,37 @@ class ActorLifecycleModuleIntegrationTest {
         // Create actor
         ActorRef actor = actorSystem.actorOf(Props.create(TestActor.class), "test-actor-terminate");
 
-        Thread.sleep(500);
-
-        double activeAfterCreation = metricsBackend.getGaugeValue("actor.lifecycle.active");
-        assertEquals(activeAfterCreation, initialActive + 1, "Active gauge should increment after actor creation");
+        eventuallyStays(() -> {
+            double activeAfterCreation = metricsBackend.getGaugeValue("actor.lifecycle.active");
+            assertEquals(
+                    activeAfterCreation, initialActive + 1, "Active gauge should increment after actor creation");
+        });
+        double activeAfterCreation = initialActive + 1;
 
         // Stop the actor
         actorSystem.stop(actor);
 
-        // Wait for termination
-        Thread.sleep(1000);
-
         // Verify terminated counter incremented
-        double afterTermination = metricsBackend.getCounterValue("actor.lifecycle.terminated");
-        assertEquals(
-                afterTermination,
-                initialTerminated + 1,
-                String.format(
-                        "Terminated counter should increment. Initial: %.0f, After: %.0f",
-                        initialTerminated, afterTermination));
+        eventuallyStays(() -> {
+            double afterTermination = metricsBackend.getCounterValue("actor.lifecycle.terminated");
+            assertEquals(
+                    afterTermination,
+                    initialTerminated + 1,
+                    String.format(
+                            "Terminated counter should increment. Initial: %.0f, After: %.0f",
+                            initialTerminated, afterTermination));
+        });
 
         // Verify active gauge decremented
-        double activeAfterTermination = metricsBackend.getGaugeValue("actor.lifecycle.active");
-        assertEquals(
-                activeAfterTermination,
-                activeAfterCreation - 1,
-                String.format(
-                        "Active gauge should decrement after termination. Before: %.0f, After: %.0f",
-                        activeAfterCreation, activeAfterTermination));
+        eventuallyStays(() -> {
+            double activeAfterTermination = metricsBackend.getGaugeValue("actor.lifecycle.active");
+            assertEquals(
+                    activeAfterTermination,
+                    activeAfterCreation - 1,
+                    String.format(
+                            "Active gauge should decrement after termination. Before: %.0f, After: %.0f",
+                            activeAfterCreation, activeAfterTermination));
+        });
     }
 
     @Test
@@ -190,40 +196,43 @@ class ActorLifecycleModuleIntegrationTest {
         ActorRef actor2 = actorSystem.actorOf(Props.create(TestActor.class), "multi-2");
         ActorRef actor3 = actorSystem.actorOf(Props.create(TestActor.class), "multi-3");
 
-        Thread.sleep(500);
-
         // Verify created counter increased by 3
-        double afterCreation = metricsBackend.getCounterValue("actor.lifecycle.created");
-        assertEquals(
-                afterCreation,
-                initialCreated + 3,
-                String.format(
-                        "Created counter should increase by at least 3. Initial: %.0f, After: %.0f",
-                        initialCreated, afterCreation));
+        eventuallyStays(() -> {
+            double afterCreation = metricsBackend.getCounterValue("actor.lifecycle.created");
+            assertEquals(
+                    afterCreation,
+                    initialCreated + 3,
+                    String.format(
+                            "Created counter should increase by at least 3. Initial: %.0f, After: %.0f",
+                            initialCreated, afterCreation));
+        });
 
         // Verify active gauge increased by 3
-        double activeAfterCreation = metricsBackend.getGaugeValue("actor.lifecycle.active");
-        assertEquals(
-                activeAfterCreation,
-                initialActive + 3,
-                String.format(
-                        "Active gauge should increase by at least 3. Initial: %.0f, After: %.0f",
-                        initialActive, activeAfterCreation));
+        eventuallyStays(() -> {
+            double activeAfterCreation = metricsBackend.getGaugeValue("actor.lifecycle.active");
+            assertEquals(
+                    activeAfterCreation,
+                    initialActive + 3,
+                    String.format(
+                            "Active gauge should increase by at least 3. Initial: %.0f, After: %.0f",
+                            initialActive, activeAfterCreation));
+        });
+        double activeAfterCreation = initialActive + 3;
 
         // Stop 2 actors
         actorSystem.stop(actor1);
         actorSystem.stop(actor2);
 
-        Thread.sleep(1000);
-
         // Verify active gauge decreased by 2
-        double activeAfterTwoStopped = metricsBackend.getGaugeValue("actor.lifecycle.active");
-        assertEquals(
-                activeAfterTwoStopped,
-                activeAfterCreation - 2,
-                String.format(
-                        "Active gauge should decrease by at least 2. Before: %.0f, After: %.0f",
-                        activeAfterCreation, activeAfterTwoStopped));
+        eventuallyStays(() -> {
+            double activeAfterTwoStopped = metricsBackend.getGaugeValue("actor.lifecycle.active");
+            assertEquals(
+                    activeAfterTwoStopped,
+                    activeAfterCreation - 2,
+                    String.format(
+                            "Active gauge should decrease by at least 2. Before: %.0f, After: %.0f",
+                            activeAfterCreation, activeAfterTwoStopped));
+        });
     }
 
     @Test
@@ -236,15 +245,15 @@ class ActorLifecycleModuleIntegrationTest {
                 actorSystem.actorOf(Props.create(SupervisorWithResumeStrategy.class), "resume-supervisor");
         supervisor.tell(new CreateAndTriggerChild("resume-child"), ActorRef.noSender());
 
-        Thread.sleep(1000);
-
-        double afterResume = metricsBackend.getCounterValue("actor.lifecycle.resumes");
-        assertEquals(
-                initialResumes + 1,
-                afterResume,
-                String.format(
-                        "Resume counter should increment when supervised child throws with Resume strategy. Initial: %.0f, After: %.0f",
-                        initialResumes, afterResume));
+        eventuallyStays(() -> {
+            double afterResume = metricsBackend.getCounterValue("actor.lifecycle.resumes");
+            assertEquals(
+                    initialResumes + 1,
+                    afterResume,
+                    String.format(
+                            "Resume counter should increment when supervised child throws with Resume strategy. Initial: %.0f, After: %.0f",
+                            initialResumes, afterResume));
+        });
     }
 
     @Test
@@ -259,15 +268,15 @@ class ActorLifecycleModuleIntegrationTest {
                 actorSystem.actorOf(Props.create(SupervisorWithRestartStrategy.class), "restart-supervisor");
         supervisor.tell(new CreateAndTriggerChild("restart-child"), ActorRef.noSender());
 
-        Thread.sleep(1000);
-
-        double afterRestart = metricsBackend.getCounterValue("actor.lifecycle.restarts");
-        assertEquals(
-                initialRestarts + 1,
-                afterRestart,
-                String.format(
-                        "Restart counter should increment when supervised child throws. Initial: %.0f, After: %.0f",
-                        initialRestarts, afterRestart));
+        eventuallyStays(() -> {
+            double afterRestart = metricsBackend.getCounterValue("actor.lifecycle.restarts");
+            assertEquals(
+                    initialRestarts + 1,
+                    afterRestart,
+                    String.format(
+                            "Restart counter should increment when supervised child throws. Initial: %.0f, After: %.0f",
+                            initialRestarts, afterRestart));
+        });
     }
 
     /** Supervisor that uses OneForOneStrategy with Resume for all exceptions. */
@@ -342,13 +351,11 @@ class ActorLifecycleModuleIntegrationTest {
         String actorName = "tagged-actor";
         ActorRef actor = actorSystem.actorOf(Props.create(TestActor.class), actorName);
 
-        Thread.sleep(500);
-
         // Verify that counters were created with actor.class tag
         // The created counter should have tags including the actor class
-        assertTrue(
+        eventually(() -> assertTrue(
                 metricsBackend.hasMetricWithTag("actor.lifecycle.created", "actor.class"),
-                "Created counter should have actor.class tag");
+                "Created counter should have actor.class tag"));
         // Note: The active gauge is global and does NOT have actor-specific tags,
         // as it tracks the total count of all active actors
     }
@@ -372,48 +379,54 @@ class ActorLifecycleModuleIntegrationTest {
             // Send command to spawn a child actor (same pattern as DefaultRootGuardian)
             typedSystem.tell(new SpawnCommand("child-1"));
 
-            // Wait for instrumentation to record
-            Thread.sleep(500);
-
             // Verify created counter incremented by exactly 1
-            double afterCreation = metricsBackend.getCounterValue("actor.lifecycle.created");
-            assertEquals(
-                    afterCreation,
-                    initialCreated + 1,
-                    String.format(
-                            "Created counter should increment by 1. Initial: %.0f, After: %.0f",
-                            initialCreated, afterCreation));
+            eventuallyStays(() -> {
+                double afterCreation = metricsBackend.getCounterValue("actor.lifecycle.created");
+                assertEquals(
+                        afterCreation,
+                        initialCreated + 1,
+                        String.format(
+                                "Created counter should increment by 1. Initial: %.0f, After: %.0f",
+                                initialCreated, afterCreation));
+            });
+            double afterCreation = initialCreated + 1;
 
             // Verify active gauge incremented by exactly 1
-            double activeAfterCreation = metricsBackend.getGaugeValue("actor.lifecycle.active");
-            assertEquals(
-                    activeAfterCreation,
-                    initialActive + 1,
-                    String.format(
-                            "Active gauge should increment by 1. Initial: %.0f, After: %.0f",
-                            initialActive, activeAfterCreation));
+            eventuallyStays(() -> {
+                double activeAfterCreation = metricsBackend.getGaugeValue("actor.lifecycle.active");
+                assertEquals(
+                        activeAfterCreation,
+                        initialActive + 1,
+                        String.format(
+                                "Active gauge should increment by 1. Initial: %.0f, After: %.0f",
+                                initialActive, activeAfterCreation));
+            });
+            double activeAfterCreation = initialActive + 1;
 
             // Spawn another child
             typedSystem.tell(new SpawnCommand("child-2"));
-            Thread.sleep(500);
 
             // Verify created counter incremented by exactly 1 again
-            double afterSecondCreation = metricsBackend.getCounterValue("actor.lifecycle.created");
-            assertEquals(
-                    afterSecondCreation,
-                    afterCreation + 1,
-                    String.format(
-                            "Created counter should increment by 1 for second child. After first: %.0f, After second: %.0f",
-                            afterCreation, afterSecondCreation));
+            eventuallyStays(() -> {
+                double afterSecondCreation = metricsBackend.getCounterValue("actor.lifecycle.created");
+                assertEquals(
+                        afterSecondCreation,
+                        afterCreation + 1,
+                        String.format(
+                                "Created counter should increment by 1 for second child. After first: %.0f, After second: %.0f",
+                                afterCreation, afterSecondCreation));
+            });
 
             // Verify active gauge incremented by exactly 1 again
-            double activeAfterSecondCreation = metricsBackend.getGaugeValue("actor.lifecycle.active");
-            assertEquals(
-                    activeAfterSecondCreation,
-                    activeAfterCreation + 1,
-                    String.format(
-                            "Active gauge should increment by 1 for second child. After first: %.0f, After second: %.0f",
-                            activeAfterCreation, activeAfterSecondCreation));
+            eventuallyStays(() -> {
+                double activeAfterSecondCreation = metricsBackend.getGaugeValue("actor.lifecycle.active");
+                assertEquals(
+                        activeAfterSecondCreation,
+                        activeAfterCreation + 1,
+                        String.format(
+                                "Active gauge should increment by 1 for second child. After first: %.0f, After second: %.0f",
+                                activeAfterCreation, activeAfterSecondCreation));
+            });
 
         } finally {
             typedSystem.terminate();

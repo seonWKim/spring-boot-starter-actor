@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
 /**
@@ -47,6 +48,7 @@ import org.springframework.context.annotation.Configuration;
             "org.apache.pekko.management.cluster.bootstrap.ClusterBootstrap"
         })
 @ConditionalOnProperty(value = "spring.actor.pekko.management.enabled", matchIfMissing = true)
+@EnableConfigurationProperties(PekkoManagementProperties.class)
 public class PekkoManagementAutoConfiguration {
 
     private static final Logger log = LoggerFactory.getLogger(PekkoManagementAutoConfiguration.class);

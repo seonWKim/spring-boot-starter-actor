@@ -31,6 +31,10 @@ dependencies {
     compileOnly("org.springframework:spring-context:5.3.31")
     compileOnly(project(":core"))
 
+    // Generates META-INF/spring-configuration-metadata.json from @ConfigurationProperties classes.
+    // Pinned to match the compileOnly Spring Boot version above (this module has no Spring Boot BOM).
+    annotationProcessor("org.springframework.boot:spring-boot-configuration-processor:2.7.18")
+
     testImplementation("org.apache.pekko:pekko-actor-typed_3:${pekkoVersion}")
     testImplementation("org.apache.pekko:pekko-cluster-typed_3:${pekkoVersion}")
     testImplementation("org.apache.pekko:pekko-cluster-sharding-typed_3:${pekkoVersion}")
