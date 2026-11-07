@@ -30,6 +30,8 @@ I'm a Java developer, and I love using the actor model. However, Spring is every
 
 With spring-boot-starter-actor, you can build stateful distributed systems without third-party middleware (e.g., Redis, Kafka).
 
+Building AI agents? Each agent can be one sharded actor that keeps its own conversation, calls the model without blocking, and restarts under supervision. See the [AI Agents guide](https://seonwkim.github.io/spring-boot-starter-actor/guides/ai-agents/) and its runnable example in [`example/agent`](example/agent).
+
 **Architecture** 
 
 ```mermaid
