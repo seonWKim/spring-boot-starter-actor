@@ -49,6 +49,9 @@ nav:
     - Synchronization: examples/synchronization.md
     - Chat: examples/chat.md
     - Monitoring: examples/monitoring.md
+  - Contributing:
+    - Spring Conventions: contributing/spring-conventions.md
+    - RFCs: contributing/rfcs/index.md
 
 extra_css:
   - stylesheets/extra.css
