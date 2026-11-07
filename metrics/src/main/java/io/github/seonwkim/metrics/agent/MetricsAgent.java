@@ -142,7 +142,7 @@ public class MetricsAgent {
                 Throwable throwable) {
             if (warned.compareAndSet(false, true)) {
                 logger.warn(
-                        "Failed to instrument {}; metrics from this class will be missing "
+                        "Byte Buddy failed on {}; actor metrics may be missing "
                                 + "(further instrumentation errors are logged at DEBUG)",
                         typeName,
                         throwable);
