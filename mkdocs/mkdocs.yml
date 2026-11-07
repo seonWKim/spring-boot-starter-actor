@@ -24,7 +24,10 @@ markdown_extensions:
   - pymdownx.highlight:
       anchor_linenums: true
   - pymdownx.inlinehilite
-  - pymdownx.snippets
+  - pymdownx.snippets:
+      # "." when mkdocs runs from the repository root (CI), ".." when it runs from mkdocs/
+      base_path: [".", ".."]
+      check_paths: true
   - pymdownx.superfences
   - pymdownx.tabbed:
       alternate_style: true
@@ -42,6 +45,7 @@ nav:
     - Logging with MDC and Tags: guides/logging.md
     - Sharded Actors: guides/sharded-actors.md
     - Persistence with Spring Boot: guides/persistence-spring-boot.md
+    - AI Agents: guides/ai-agents.md
   - Examples:
     - Overview: examples/index.md
     - Simple: examples/simple.md
