@@ -46,6 +46,7 @@ nav:
     - Logging with MDC and Tags: guides/logging.md
     - Sharded Actors: guides/sharded-actors.md
     - Persistence with Spring Boot: guides/persistence-spring-boot.md
+    - Running in Production: guides/production.md
     - AI Agents: guides/ai-agents.md
     - Configuration Reference: guides/configuration.md
   - Examples:

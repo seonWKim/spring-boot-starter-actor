@@ -10,7 +10,12 @@ import io.github.seonwkim.core.shard.SpringShardedActorBuilder;
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import javax.annotation.Nullable;
+import org.apache.pekko.actor.CoordinatedShutdown;
 import org.apache.pekko.actor.typed.*;
 import org.apache.pekko.actor.typed.javadsl.AskPattern;
 import org.apache.pekko.cluster.ClusterEvent;
@@ -20,6 +25,8 @@ import org.apache.pekko.cluster.typed.Cluster;
 import org.apache.pekko.cluster.typed.ClusterSingleton;
 import org.apache.pekko.cluster.typed.Subscribe;
 import org.springframework.beans.factory.DisposableBean;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 
 /**
@@ -41,6 +48,32 @@ import org.springframework.context.ApplicationEventPublisher;
  * handles commands for spawning and stopping actors.
  */
 public class SpringActorSystem implements DisposableBean {
+
+    private static final Logger log = LoggerFactory.getLogger(SpringActorSystem.class);
+
+    /** The coordinated shutdown reason used when the Spring application context closes. */
+    public static final CoordinatedShutdown.Reason SPRING_CONTEXT_CLOSED = new SpringContextClosedReason();
+
+    /** What a call to {@link #shutdown(Duration)} did. */
+    public enum ShutdownOutcome {
+        /** This call ran coordinated shutdown and the actor system terminated within the timeout. */
+        TERMINATED,
+        /** The actor system had already terminated (for example after being downed); nothing was done. */
+        ALREADY_TERMINATED,
+        /** Shutdown was already started by an earlier call; this call did not wait again. */
+        ALREADY_IN_PROGRESS,
+        /** This call ran coordinated shutdown but the actor system did not terminate within the timeout. */
+        TIMED_OUT
+    }
+
+    private static final class SpringContextClosedReason implements CoordinatedShutdown.Reason {
+        @Override
+        public String toString() {
+            return "SpringContextClosed";
+        }
+    }
+
+    private final AtomicBoolean shutdownStarted = new AtomicBoolean(false);
 
     private final ActorSystem<RootGuardian.Command> actorSystem;
 
@@ -404,12 +437,58 @@ public class SpringActorSystem implements DisposableBean {
     }
 
     /**
-     * Terminates the actor system and waits for it to terminate. This method is called by Spring when
-     * the application context is closed.
+     * Runs Pekko coordinated shutdown and waits at most {@code timeout} for the actor system to
+     * terminate. Coordinated shutdown leaves the cluster gracefully, so other nodes see this node as
+     * Removed instead of unreachable.
+     *
+     * <p>Safe to call more than once: only the first call runs coordinated shutdown and waits. If the
+     * actor system has already terminated (for example after being downed), the call does nothing.
+     *
+     * @param timeout The maximum time to wait for the actor system to terminate
+     * @return What this call did
+     */
+    public ShutdownOutcome shutdown(Duration timeout) {
+        CompletableFuture<?> terminated = actorSystem.getWhenTerminated().toCompletableFuture();
+        if (terminated.isDone()) {
+            shutdownStarted.set(true);
+            return ShutdownOutcome.ALREADY_TERMINATED;
+        }
+        if (!shutdownStarted.compareAndSet(false, true)) {
+            return ShutdownOutcome.ALREADY_IN_PROGRESS;
+        }
+
+        log.info("Running coordinated shutdown of actor system [{}] (timeout {})", actorSystem.name(), timeout);
+        CoordinatedShutdown.get(actorSystem)
+                .runAll(SPRING_CONTEXT_CLOSED)
+                // In case coordinated shutdown is configured not to terminate the actor system.
+                .whenComplete((done, error) -> actorSystem.terminate());
+
+        try {
+            terminated.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
+            return ShutdownOutcome.TERMINATED;
+        } catch (TimeoutException e) {
+            log.warn(
+                    "Actor system [{}] did not terminate within {}; continuing Spring context close",
+                    actorSystem.name(),
+                    timeout);
+            return ShutdownOutcome.TIMED_OUT;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn("Interrupted while waiting for actor system [{}] to terminate", actorSystem.name());
+            return ShutdownOutcome.TIMED_OUT;
+        } catch (ExecutionException e) {
+            log.warn("Actor system [{}] terminated with an error", actorSystem.name(), e.getCause());
+            return ShutdownOutcome.TERMINATED;
+        }
+    }
+
+    /**
+     * Called by Spring when the application context is closed. Normally {@link
+     * ActorSystemShutdownLifecycle} has already shut the actor system down by then, so this does
+     * nothing; otherwise it runs {@link #shutdown(Duration)} with the default timeout.
      */
     @Override
     public void destroy() {
-        actorSystem.terminate();
-        actorSystem.getWhenTerminated().toCompletableFuture().join();
+        shutdown(ActorProperties.DEFAULT_SHUTDOWN_TIMEOUT);
     }
 }

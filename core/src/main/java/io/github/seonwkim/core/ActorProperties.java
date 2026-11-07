@@ -1,5 +1,6 @@
 package io.github.seonwkim.core;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -18,7 +19,19 @@ import org.springframework.core.env.Environment;
  * "spring.actor" to a map and normalizes comma-separated lists.
  */
 public class ActorProperties implements EnvironmentAware {
+
+    /** Property that sets how long closing the Spring context waits for the actor system to stop. */
+    public static final String SHUTDOWN_TIMEOUT_PROPERTY = "spring.actor.shutdown.timeout";
+
+    /**
+     * Default shutdown timeout. It fits inside a 30s Kubernetes termination grace period with room
+     * for a preStop hook and the web server's graceful stop.
+     */
+    public static final Duration DEFAULT_SHUTDOWN_TIMEOUT = Duration.ofSeconds(20);
+
     private final Map<String, Object> config = new HashMap<>();
+
+    private Duration shutdownTimeout = DEFAULT_SHUTDOWN_TIMEOUT;
 
     /**
      * Sets the environment and binds properties with the prefix "spring.actor" to the config map.
@@ -39,6 +52,31 @@ public class ActorProperties implements EnvironmentAware {
 
         Map<String, Object> normalized = normalizeCommaSeparatedLists(actorConfig);
         this.config.putAll(normalized);
+
+        this.shutdownTimeout = binder.bind(ConfigurationPropertyName.of(SHUTDOWN_TIMEOUT_PROPERTY), Bindable.of(Duration.class))
+                .orElse(DEFAULT_SHUTDOWN_TIMEOUT);
+    }
+
+    /**
+     * Returns how long closing the Spring context waits for the actor system to finish coordinated
+     * shutdown. Set with {@value #SHUTDOWN_TIMEOUT_PROPERTY}; defaults to 20 seconds.
+     *
+     * @return The shutdown timeout
+     */
+    public Duration getShutdownTimeout() {
+        return shutdownTimeout;
+    }
+
+    /**
+     * Sets the shutdown timeout.
+     *
+     * @param shutdownTimeout The shutdown timeout; must be positive
+     */
+    public void setShutdownTimeout(Duration shutdownTimeout) {
+        if (shutdownTimeout == null || shutdownTimeout.isNegative() || shutdownTimeout.isZero()) {
+            throw new IllegalArgumentException("Shutdown timeout must be positive, got " + shutdownTimeout);
+        }
+        this.shutdownTimeout = shutdownTimeout;
     }
 
     /**
