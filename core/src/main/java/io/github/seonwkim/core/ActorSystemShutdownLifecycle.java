@@ -8,8 +8,9 @@ import org.springframework.context.SmartLifecycle;
  * Ties Pekko coordinated shutdown to the Spring application context close.
  *
  * <p>Spring stops lifecycle beans from the highest phase to the lowest before it destroys any
- * singleton. This bean runs at {@link #PHASE}, below Spring Boot's web server lifecycles
- * ({@code Integer.MAX_VALUE} for graceful shutdown, {@code Integer.MAX_VALUE - 1} for stop), so:
+ * singleton. This bean runs at {@link #PHASE}, below Spring Boot's web server lifecycles (graceful
+ * shutdown at {@code Integer.MAX_VALUE} and stop at {@code Integer.MAX_VALUE - 1} in Boot 2.7;
+ * {@code Integer.MAX_VALUE - 1024} and {@code Integer.MAX_VALUE - 2048} since Boot 3.2), so:
  *
  * <ol>
  *   <li>with {@code server.shutdown=graceful} the web server stops taking requests and drains first,
@@ -21,7 +22,7 @@ import org.springframework.context.SmartLifecycle;
 public class ActorSystemShutdownLifecycle implements SmartLifecycle {
 
     /** Phase of this lifecycle: stops after the web server, before lower-phase lifecycles. */
-    public static final int PHASE = Integer.MAX_VALUE - 1024;
+    public static final int PHASE = SmartLifecycle.DEFAULT_PHASE - 4096;
 
     private final SpringActorSystem actorSystem;
     private final Duration timeout;

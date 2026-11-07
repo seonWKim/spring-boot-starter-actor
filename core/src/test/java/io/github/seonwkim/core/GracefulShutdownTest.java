@@ -288,6 +288,7 @@ class GracefulShutdownTest {
                         "dependency-destroyed(actor-system-terminated=true)");
         assertThat(ActorSystemShutdownLifecycle.PHASE)
                 .isLessThan(WebServerGracefulShutdownLifecycle.SMART_LIFECYCLE_PHASE)
-                .isLessThan(Integer.MAX_VALUE - 1); // WebServerStartStopLifecycle phase
+                // WebServerStartStopLifecycle runs 1024 below graceful shutdown since Boot 3.2.
+                .isLessThan(WebServerGracefulShutdownLifecycle.SMART_LIFECYCLE_PHASE - 1024);
     }
 }
