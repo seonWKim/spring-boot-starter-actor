@@ -200,9 +200,23 @@ You can use Pekko's built-in virtual thread executor for actors performing block
 ```yaml
 spring:
   actor:
-    virtual-thread-dispatcher:
-      executor: virtual-thread-executor
+    virtual-threads:
+      enabled: true            # auto (default) | true | false
+    dispatchers:
+      virtual-thread-dispatcher:
+        virtual: true
 ```
+
+- `spring.actor.virtual-threads.enabled` runs the blocking dispatcher (`withBlockingDispatcher()`) on
+  virtual threads. The default, `auto`, follows Spring Boot's `spring.threads.virtual.enabled`, so an
+  application that turns on virtual threads for Spring gets them for blocking actors too. `false` keeps
+  platform threads even when Spring's flag is on.
+- `spring.actor.dispatchers.<name>.virtual: true` defines a named dispatcher on virtual threads, whatever
+  the switch says. A dispatcher sets either `virtual` or `executor`, not both.
+- The default dispatcher always stays on its platform fork-join pool: actors that never block gain
+  nothing from virtual threads.
+- A raw `spring.actor.pekko.actor.default-blocking-io-dispatcher.executor` still wins over the switch,
+  with a warning.
 
 **Usage:**
 
@@ -210,9 +224,15 @@ spring:
 SpringActorHandle<DatabaseActor.Command> dbActor = actorSystem
     .actor(DatabaseActor.class)
     .withId("db-actor")
-    .withDispatcherFromConfig("virtual-thread-dispatcher")
+    .withBlockingDispatcher()            // or .withDispatcherFromConfig("virtual-thread-dispatcher")
     .spawnAndWait();
 ```
+
+!!! warning "Pinning"
+    A virtual thread that blocks inside a `synchronized` block, or in some native calls, pins its
+    carrier (platform) thread until it unblocks, and too many pinned carriers stall every virtual thread.
+    Use `java.util.concurrent` locks (`ReentrantLock`) around blocking calls, and find pinning with
+    `-Djdk.tracePinnedThreads=short`.
 
 **JVM Tuning (Optional):**
 
@@ -234,7 +254,7 @@ You can further configure virtual threads using JVM system properties:
 | Use Case | Recommended Dispatcher |
 |----------|----------------------|
 | Blocking I/O (Java 21+) | Virtual Thread Executor |
-| Blocking I/O (Java 11-17) | Thread Pool Executor |
+| Blocking I/O with a bounded pool | Thread Pool Executor |
 | CPU-intensive tasks | Fork-Join Executor (default) |
 | Non-blocking operations | Default Dispatcher |
 

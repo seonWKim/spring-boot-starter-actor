@@ -19,6 +19,8 @@ application with a message that names the key.
 | `spring.actor.cluster.seed-nodes` | none | `pekko.cluster.seed-nodes` | Nodes to join at startup, as `pekko://<name>@<host>:<port>`. |
 | `spring.actor.cluster.roles` | none | `pekko.cluster.roles` | Roles of this node. Sharded actors and singletons can be limited to a role. |
 | `spring.actor.dispatchers.<name>.executor` | none | `<name>.*` | Declares a dispatcher that runs on the named Spring `Executor` bean. See [Dispatchers](dispatchers.md). |
+| `spring.actor.dispatchers.<name>.virtual` | `false` | `<name>.executor` | Declares a dispatcher that runs on virtual threads (instead of `executor`). |
+| `spring.actor.virtual-threads.enabled` | `auto` | `pekko.actor.default-blocking-io-dispatcher.executor` | Runs `withBlockingDispatcher()` on virtual threads; `auto` follows `spring.threads.virtual.enabled`. |
 | `spring.actor.dispatchers.<name>.throughput` | Pekko's default (`5`) | `<name>.throughput` | Messages an actor processes before its thread moves on. |
 | `spring.actor.shutdown.timeout` | `20s` | | How long closing the Spring context waits for the actor system's coordinated shutdown. |
 | `spring.actor.shutdown.exit-process` | `true` | | When the actor system terminates by itself (for example after this node is downed), the context closes; with this set, the process then exits with status 1. |

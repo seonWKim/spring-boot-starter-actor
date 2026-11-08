@@ -49,6 +49,8 @@ public class ActorProperties {
 
     private final Shutdown shutdown = new Shutdown();
 
+    private final VirtualThreads virtualThreads = new VirtualThreads();
+
     /**
      * Dispatchers that run on Spring Executor beans, by dispatcher name. An actor uses one with
      * withDispatcherFromConfig("<name>").
@@ -92,11 +94,58 @@ public class ActorProperties {
         return dispatchers;
     }
 
-    /** A dispatcher that runs its actors on a Spring Executor bean. */
+    public VirtualThreads getVirtualThreads() {
+        return virtualThreads;
+    }
+
+    /** Running blocking work on virtual threads. */
+    public static class VirtualThreads {
+
+        /** Whether virtual threads are used. */
+        public enum Mode {
+            /** Follow Spring Boot's spring.threads.virtual.enabled. */
+            AUTO,
+            /** Use virtual threads. */
+            TRUE,
+            /** Use platform threads. */
+            FALSE
+        }
+
+        /**
+         * Runs the blocking dispatcher (withBlockingDispatcher()) on virtual threads. auto follows
+         * spring.threads.virtual.enabled. The default dispatcher always stays on platform threads.
+         */
+        private Mode enabled = Mode.AUTO;
+
+        public Mode getEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(Mode enabled) {
+            this.enabled = enabled;
+        }
+
+        boolean isOn(boolean springThreadsVirtual) {
+            return enabled == Mode.TRUE || (enabled == Mode.AUTO && springThreadsVirtual);
+        }
+    }
+
+    /** A dispatcher that runs its actors on a Spring Executor bean or on virtual threads. */
     public static class Dispatcher {
 
         /** Name of the Executor bean (for example a ThreadPoolTaskExecutor) the actors run on. */
         @Nullable private String executor;
+
+        /** Runs the actors on virtual threads, one per task, instead of an Executor bean. */
+        private boolean virtual;
+
+        public boolean isVirtual() {
+            return virtual;
+        }
+
+        public void setVirtual(boolean virtual) {
+            this.virtual = virtual;
+        }
 
         /** Messages an actor processes before its thread goes to the next actor. Pekko's default is 5. */
         @Nullable private Integer throughput;
@@ -218,7 +267,8 @@ public class ActorProperties {
     }
 
     /** The keys under {@code spring.actor} that are typed settings rather than Pekko configuration. */
-    static final List<String> TYPED_ROOTS = List.of("name", "provider", "remote", "cluster", "shutdown", "dispatchers");
+    static final List<String> TYPED_ROOTS =
+            List.of("name", "provider", "remote", "cluster", "shutdown", "dispatchers", "virtual-threads");
 
     /**
      * The Pekko configuration. Every key under {@code spring.actor} except the typed settings is
@@ -228,13 +278,14 @@ public class ActorProperties {
      * different value wins and is logged as a warning.
      *
      * @param springActor the keys bound under {@code spring.actor}
+     * @param springThreadsVirtual the value of {@code spring.threads.virtual.enabled}, which
+     *     {@code spring.actor.virtual-threads.enabled=auto} follows
      * @return the configuration to give Pekko
      */
-    @SuppressWarnings("unchecked")
-    public Map<String, Object> toPekkoConfig(Map<String, Object> springActor) {
+    public Map<String, Object> toPekkoConfig(Map<String, Object> springActor, boolean springThreadsVirtual) {
         Map<String, Object> config = normalizeCommaSeparatedLists(springActor);
         TYPED_ROOTS.forEach(config::remove);
-        for (TypedKey typed : typedKeys()) {
+        for (TypedKey typed : typedKeys(springThreadsVirtual)) {
             Object rawValue = lookup(config, typed.configPath());
             if (rawValue instanceof String single && typed.value() instanceof List) {
                 // Pekko reads this key as a list: a raw single value means a one-item list.
@@ -256,11 +307,20 @@ public class ActorProperties {
         return config;
     }
 
+    /** Pekko's executor that starts one virtual thread per task (Java 21+). */
+    private static final String VIRTUAL_EXECUTOR = "virtual-thread-executor";
+
     /** A typed setting and the config path (from the root, like {@code pekko.name}) it sets. */
     private record TypedKey(String springKey, String configPath, Object value) {}
 
-    private List<TypedKey> typedKeys() {
+    private List<TypedKey> typedKeys(boolean springThreadsVirtual) {
         List<TypedKey> keys = new ArrayList<>();
+        if (virtualThreads.isOn(springThreadsVirtual)) {
+            keys.add(new TypedKey(
+                    "virtual-threads.enabled",
+                    "pekko.actor.default-blocking-io-dispatcher.executor",
+                    VIRTUAL_EXECUTOR));
+        }
         if (name != null) {
             keys.add(new TypedKey("name", "pekko.name", name));
         }
@@ -288,16 +348,26 @@ public class ActorProperties {
                 throw new IllegalArgumentException("spring.actor.dispatchers." + dispatcherName
                         + ": a dispatcher name is letters, digits, '-' and '_', and not one of pekko, " + TYPED_ROOTS);
             }
-            if (dispatcher.executor == null) {
-                throw new IllegalArgumentException("spring.actor." + prefix + "executor must name an Executor bean");
+            if (dispatcher.virtual) {
+                if (dispatcher.executor != null) {
+                    throw new IllegalArgumentException("spring.actor.dispatchers." + dispatcherName
+                            + " sets both executor and virtual; choose one");
+                }
+                keys.add(new TypedKey(prefix + "virtual", dispatcherName + ".type", "Dispatcher"));
+                keys.add(new TypedKey(prefix + "virtual", dispatcherName + ".executor", VIRTUAL_EXECUTOR));
+            } else {
+                if (dispatcher.executor == null) {
+                    throw new IllegalArgumentException(
+                            "spring.actor." + prefix + "executor must name an Executor bean (or set virtual: true)");
+                }
+                keys.add(new TypedKey(prefix + "executor", dispatcherName + ".type", "Dispatcher"));
+                keys.add(new TypedKey(
+                        prefix + "executor", dispatcherName + ".executor", SpringExecutorConfigurator.class.getName()));
+                keys.add(new TypedKey(
+                        prefix + "executor",
+                        dispatcherName + "." + SpringExecutorConfigurator.BEAN_KEY,
+                        dispatcher.executor));
             }
-            keys.add(new TypedKey(prefix + "executor", dispatcherName + ".type", "Dispatcher"));
-            keys.add(new TypedKey(
-                    prefix + "executor", dispatcherName + ".executor", SpringExecutorConfigurator.class.getName()));
-            keys.add(new TypedKey(
-                    prefix + "executor",
-                    dispatcherName + "." + SpringExecutorConfigurator.BEAN_KEY,
-                    dispatcher.executor));
             if (dispatcher.throughput != null) {
                 keys.add(new TypedKey(prefix + "throughput", dispatcherName + ".throughput", dispatcher.throughput));
             }

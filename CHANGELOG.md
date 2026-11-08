@@ -53,6 +53,12 @@
   dispatcher whose actors run on that `Executor` bean (a `ThreadPoolTaskExecutor`, a virtual-thread
   executor, ...); actors pick it with `withDispatcherFromConfig("<name>")`. The Spring context owns
   the executor's lifecycle.
+- **Virtual threads.** `spring.actor.virtual-threads.enabled` (`auto`, `true`, `false`) runs the
+  blocking dispatcher (`withBlockingDispatcher()`) on virtual threads, and
+  `spring.actor.dispatchers.<name>.virtual: true` declares a named dispatcher on virtual threads. The
+  default `auto` follows `spring.threads.virtual.enabled`: an application that already sets it to `true`
+  now runs its blocking actors on virtual threads; set `spring.actor.virtual-threads.enabled=false` to
+  keep platform threads. The default dispatcher stays on platform threads.
 - **The application follows the actor system.** If the actor system terminates while the
   application runs (for example after this node is downed), the Spring context closes and the
   process exits with status 1, so Kubernetes or systemd restarts it. Set

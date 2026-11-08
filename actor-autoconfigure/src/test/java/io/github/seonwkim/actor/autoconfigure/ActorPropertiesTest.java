@@ -57,7 +57,7 @@ class ActorPropertiesTest {
         ActorProperties properties = new ActorProperties();
         properties.setProvider(ActorProperties.Provider.CLUSTER);
 
-        assertThat(properties.toPekkoConfig(Map.of()))
+        assertThat(properties.toPekkoConfig(Map.of(), false))
                 .isEqualTo(Map.of("pekko", Map.of("actor", Map.of("provider", "cluster"))));
     }
 

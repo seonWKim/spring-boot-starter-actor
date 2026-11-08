@@ -1,6 +1,6 @@
 # Virtual Threads Example
 
-This example demonstrates how to use virtual threads (Java 21+) with the spring-boot-starter-actor library.
+This example demonstrates how to use virtual threads (Java 21+) with actor-spring-boot-starter.
 
 ## Requirements
 
@@ -27,11 +27,20 @@ The `IsVirtual: true` indicates the actor is running on a Java 21 virtual thread
 
 ## Configuration
 
-The virtual thread dispatcher is configured in `application.yml`:
+Virtual threads are configured in `application.yml` with typed keys, no Pekko HOCON:
 
 ```yaml
 spring:
   actor:
-    virtual-threads-dispatcher:
-      executor: virtual-thread-executor
+    virtual-threads:
+      enabled: true            # withBlockingDispatcher() runs on virtual threads
+    dispatchers:
+      virtual-threads-dispatcher:
+        virtual: true          # withDispatcherFromConfig("virtual-threads-dispatcher")
 ```
+
+`spring.actor.virtual-threads.enabled` is `auto` by default: it follows Spring Boot's
+`spring.threads.virtual.enabled`. The default dispatcher always stays on platform threads.
+
+A virtual thread that blocks inside a `synchronized` block or a native call pins its carrier
+thread. Prefer `java.util.concurrent` locks in code that blocks on virtual threads.

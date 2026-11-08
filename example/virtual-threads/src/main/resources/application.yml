@@ -8,9 +8,13 @@ spring:
       actor:
         allow-java-serialization: off
         warn-about-java-serializer-usage: on
-      # Custom dispatcher using virtual threads
-    virtual-threads-dispatcher:
-      executor: virtual-thread-executor
+    # withBlockingDispatcher() runs on virtual threads
+    virtual-threads:
+      enabled: true
+    # A named dispatcher on virtual threads: withDispatcherFromConfig("virtual-threads-dispatcher")
+    dispatchers:
+      virtual-threads-dispatcher:
+        virtual: true
 
 server:
   port: 8080

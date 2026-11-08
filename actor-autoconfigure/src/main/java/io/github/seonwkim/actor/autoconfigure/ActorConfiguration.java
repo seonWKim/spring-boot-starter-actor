@@ -132,7 +132,8 @@ public class ActorConfiguration {
         return new DefaultSpringActorSystemBuilder()
                 .withRootGuardianSupplier(rootGuardianSupplierWrapper)
                 .withBeanFactory(beanFactory)
-                .withConfig(actorProperties.toPekkoConfig(springActor))
+                .withConfig(actorProperties.toPekkoConfig(
+                        springActor, environment.getProperty("spring.threads.virtual.enabled", Boolean.class, false)))
                 .withApplicationEventPublisher(applicationEventPublisher);
     }
 
