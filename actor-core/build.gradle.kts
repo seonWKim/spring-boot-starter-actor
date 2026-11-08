@@ -32,3 +32,12 @@ dependencies {
     testImplementation("org.awaitility:awaitility")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
+
+// The test fixtures are for this repository's tests only: keep them out of the published artifact.
+val javaComponent = components["java"] as AdhocComponentWithVariants
+javaComponent.withVariantsFromConfiguration(configurations["testFixturesApiElements"]) { skip() }
+javaComponent.withVariantsFromConfiguration(configurations["testFixturesRuntimeElements"]) { skip() }
+// The publish plugin adds the fixtures sources variant once the project is evaluated.
+afterEvaluate {
+    javaComponent.withVariantsFromConfiguration(configurations["testFixturesSourcesElements"]) { skip() }
+}

@@ -53,8 +53,8 @@ fun MavenPom.commonPom(project: Project) {
     }
 
     scm {
-        connection.set("scm:git:git://github.com/seonwkim/spring-boot-starter-actor.git")
-        developerConnection.set("scm:git:ssh://github.com/seonwkim/spring-boot-starter-actor.git")
+        connection.set("scm:git:git://github.com/seonWKim/actor-spring-boot-starter.git")
+        developerConnection.set("scm:git:ssh://github.com/seonWKim/actor-spring-boot-starter.git")
         url.set(project.findProperty("pomUrl") as String)
     }
 }
@@ -84,7 +84,7 @@ configure(subprojects.filter { it.path.startsWith(":relocation:") }) {
                     groupId.set(project.findProperty("group") as String)
                     artifactId.set(relocationTargets.getValue(project.name))
                     version.set(project.findProperty("version") as String)
-                    message.set("Renamed in 1.0: see https://github.com/seonwkim/spring-boot-starter-actor/blob/main/CHANGELOG.md")
+                    message.set("Renamed in 1.0: see https://github.com/seonWKim/actor-spring-boot-starter/blob/main/CHANGELOG.md")
                 }
             }
         }
