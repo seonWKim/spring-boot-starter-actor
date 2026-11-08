@@ -7,7 +7,7 @@ apply(plugin = "org.springframework.boot")
 apply(plugin = "io.spring.dependency-management")
 
 dependencies {
-	implementation(project(":core-boot3"))
+	implementation(project(":actor-spring-boot-starter"))
 
 	// Spring Boot
 	implementation("org.springframework.boot:spring-boot-starter")

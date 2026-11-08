@@ -155,8 +155,9 @@ jobs:
           java-version: 21
           cache: gradle
 
-      # Publishes every module that defines artifactId.<module> in gradle.properties
-      # (the libraries and the relocation POMs) as one Maven Central deployment.
+      # Publishes every library module (artifactId.<module> in gradle.properties: actor-api,
+      # actor-core, actor-autoconfigure, actor-spring-boot-starter, actor-metrics) and the
+      # relocation POMs under relocation/ as one Maven Central deployment.
       - name: 🚀 Publish to Maven Central (all modules)
         run: |
           ./gradlew build
@@ -193,10 +194,10 @@ jobs:
       - name: 📦 Build metrics agent JAR
         run: |
           echo "🔨 Building metrics agent JAR..."
-          ./gradlew :metrics:agentJar
+          ./gradlew :actor-metrics:agentJar
 
           # Find the agent JAR
-          AGENT_JAR=$(find metrics/build/libs -name "*-agent.jar" | head -n 1)
+          AGENT_JAR=$(find actor-metrics/build/libs -name "*-agent.jar" | head -n 1)
           echo "✅ Agent JAR built: $AGENT_JAR"
           echo "AGENT_JAR_PATH=$AGENT_JAR" >> $GITHUB_ENV
 
@@ -214,29 +215,23 @@ jobs:
 
             Requires Java 21+ and Spring Boot 3.5+.
 
-            **Spring Boot 3.x:**
             ```gradle
             dependencies {
-                implementation 'io.github.seonwkim:spring-boot-starter-actor_3:${{ needs.bump-version.outputs.version }}'
-            }
-            ```
-
-            **Metrics (optional):**
-            ```gradle
-            dependencies {
-                implementation 'io.github.seonwkim:spring-boot-starter-actor-metrics:${{ needs.bump-version.outputs.version }}'
+                implementation 'io.github.seonwkim:actor-spring-boot-starter:${{ needs.bump-version.outputs.version }}'
+                // Metrics (optional)
+                implementation 'io.github.seonwkim:actor-metrics:${{ needs.bump-version.outputs.version }}'
             }
             ```
 
             ### Metrics Agent
 
-            Download the `spring-boot-starter-actor-metrics-${{ needs.bump-version.outputs.version }}-agent.jar` file below and run your application with:
+            Download the `actor-metrics-${{ needs.bump-version.outputs.version }}-agent.jar` file below and run your application with:
 
             ```bash
-            java -javaagent:spring-boot-starter-actor-metrics-${{ needs.bump-version.outputs.version }}-agent.jar -jar your-app.jar
+            java -javaagent:actor-metrics-${{ needs.bump-version.outputs.version }}-agent.jar -jar your-app.jar
             ```
 
-            See [Metrics Documentation](https://github.com/seonwkim/spring-boot-starter-actor/blob/main/metrics/README.md) for detailed setup instructions.
+            See [Metrics Documentation](https://github.com/seonwkim/spring-boot-starter-actor/blob/main/actor-metrics/README.md) for detailed setup instructions.
           files: |
             ${{ env.AGENT_JAR_PATH }}
           draft: false

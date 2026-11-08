@@ -1,6 +1,6 @@
 package io.github.seonwkim.example.persistence;
 
-import io.github.seonwkim.core.*;
+import io.github.seonwkim.actor.*;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.springframework.dao.OptimisticLockingFailureException;

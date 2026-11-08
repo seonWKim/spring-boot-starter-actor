@@ -87,7 +87,7 @@ Add the dependency to your project:
 **Gradle:**
 
 ```gradle
-implementation 'io.github.seonwkim:spring-boot-starter-actor_3:0.10.0'
+implementation 'io.github.seonwkim:actor-spring-boot-starter:1.0.0'
 ```
 
 **Maven:**
@@ -95,8 +95,8 @@ implementation 'io.github.seonwkim:spring-boot-starter-actor_3:0.10.0'
 ```xml
 <dependency>
     <groupId>io.github.seonwkim</groupId>
-    <artifactId>spring-boot-starter-actor_3</artifactId>
-    <version>0.10.0</version>
+    <artifactId>actor-spring-boot-starter</artifactId>
+    <version>1.0.0</version>
 </dependency>
 ```
 

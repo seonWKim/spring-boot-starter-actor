@@ -1,7 +1,7 @@
 package io.github.seonwkim.example;
 
-import io.github.seonwkim.core.*;
-import io.github.seonwkim.core.serialization.JsonSerializable;
+import io.github.seonwkim.actor.*;
+import io.github.seonwkim.actor.serialization.JsonSerializable;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;

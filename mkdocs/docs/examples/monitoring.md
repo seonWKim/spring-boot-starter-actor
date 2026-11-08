@@ -11,7 +11,7 @@ ByteBuddy-based instrumentation for Pekko actors. Tracks lifecycle, mailbox, mes
 
 ```gradle
 dependencies {
-    implementation 'io.github.seonwkim:spring-boot-starter-actor-metrics:{version}'
+    implementation 'io.github.seonwkim:actor-metrics:{version}'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'io.micrometer:micrometer-registry-prometheus'
 }
@@ -22,7 +22,7 @@ dependencies {
 ```bash
 ./gradlew :metrics:agentJar
 
-java -javaagent:spring-boot-starter-actor-metrics-{version}-agent.jar -jar your-app.jar
+java -javaagent:actor-metrics-{version}-agent.jar -jar your-app.jar
 ```
 
 You need **both** the `-javaagent` (bytecode rewriting) **and** the library dependency (metrics backend). Without either, nothing is recorded.

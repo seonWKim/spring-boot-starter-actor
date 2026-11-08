@@ -1,9 +1,9 @@
 package io.github.seonwkim.example.agent.ratelimit;
 
-import io.github.seonwkim.core.AskCommand;
-import io.github.seonwkim.core.SpringActor;
-import io.github.seonwkim.core.SpringActorBehavior;
-import io.github.seonwkim.core.SpringActorContext;
+import io.github.seonwkim.actor.AskCommand;
+import io.github.seonwkim.actor.SpringActor;
+import io.github.seonwkim.actor.SpringActorBehavior;
+import io.github.seonwkim.actor.SpringActorContext;
 import io.github.seonwkim.example.agent.AgentProperties;
 import java.time.Duration;
 import java.util.ArrayDeque;

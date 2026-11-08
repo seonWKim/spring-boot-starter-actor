@@ -1,7 +1,7 @@
 package io.github.seonwkim.example.agent;
 
-import io.github.seonwkim.core.SpringActorHandle;
-import io.github.seonwkim.core.SpringActorSystem;
+import io.github.seonwkim.actor.SpringActorHandle;
+import io.github.seonwkim.actor.SpringActorSystem;
 import io.github.seonwkim.example.agent.approval.ApprovalActor;
 import io.github.seonwkim.example.agent.ratelimit.RateLimiterActor;
 import org.apache.pekko.cluster.typed.Cluster;

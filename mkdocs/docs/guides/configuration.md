@@ -2,7 +2,7 @@
 
 This page lists every configuration key the starter reads, with its default and what it does.
 The same keys are published as Spring Boot configuration metadata
-(`META-INF/spring-configuration-metadata.json` in the `core`, `core-boot3` and `metrics` jars),
+(`META-INF/spring-configuration-metadata.json` in the `actor-autoconfigure` and `actor-metrics` jars),
 so IDEs offer completion and documentation for them in `application.yml` and `application.properties`.
 
 ## Starter keys
@@ -69,5 +69,5 @@ spring:
 ```bash
 ACTOR_METRICS_TAG_APPLICATION=my-app \
 ACTOR_METRICS_INSTRUMENT_MAILBOX=false \
-java -javaagent:spring-boot-starter-actor-metrics-{version}-agent.jar -jar app.jar
+java -javaagent:actor-metrics-{version}-agent.jar -jar app.jar
 ```

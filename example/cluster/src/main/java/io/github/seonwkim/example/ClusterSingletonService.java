@@ -1,7 +1,7 @@
 package io.github.seonwkim.example;
 
-import io.github.seonwkim.core.SpringActorHandle;
-import io.github.seonwkim.core.SpringActorSystem;
+import io.github.seonwkim.actor.SpringActorHandle;
+import io.github.seonwkim.actor.SpringActorSystem;
 import jakarta.annotation.PostConstruct;
 import java.time.Duration;
 import java.util.Map;

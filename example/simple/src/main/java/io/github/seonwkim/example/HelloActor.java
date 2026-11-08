@@ -1,6 +1,6 @@
 package io.github.seonwkim.example;
 
-import io.github.seonwkim.core.*;
+import io.github.seonwkim.actor.*;
 import java.time.Duration;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.PostStop;

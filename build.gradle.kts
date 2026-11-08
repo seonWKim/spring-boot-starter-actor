@@ -1,3 +1,4 @@
+import com.vanniktech.maven.publish.MavenPublishBaseExtension
 import com.vanniktech.maven.publish.SonatypeHost
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
@@ -8,7 +9,7 @@ plugins {
     java
     `java-library`
     id("com.diffplug.spotless") version "6.25.0"
-    id("com.vanniktech.maven.publish") version "0.31.0"
+    id("com.vanniktech.maven.publish") version "0.31.0" apply false
     id("net.ltgt.errorprone") version "3.1.0"
     id("org.springframework.boot") version "3.5.16" apply false
     id("io.spring.dependency-management") version "1.1.7" apply false
@@ -23,7 +24,79 @@ allprojects {
     version = project.findProperty("version") as String
 }
 
-subprojects {
+// The relocation POMs only carry <distributionManagement><relocation>: no code, no Java plugin.
+val relocationTargets = mapOf(
+    "spring-boot-starter-actor" to "actor-spring-boot-starter",
+    "spring-boot-starter-actor_3" to "actor-spring-boot-starter",
+    "spring-boot-starter-actor-metrics" to "actor-metrics",
+)
+
+fun MavenPom.commonPom(project: Project) {
+    name.set(project.findProperty("pomName.${project.name}") as String)
+    description.set(project.findProperty("pomDescription.${project.name}") as String)
+    url.set(project.findProperty("pomUrl") as String)
+    inceptionYear.set("2025")
+
+    licenses {
+        license {
+            name.set("The Apache License, Version 2.0")
+            url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
+        }
+    }
+
+    developers {
+        developer {
+            id.set(project.findProperty("pomDeveloperId") as String)
+            name.set(project.findProperty("pomDeveloperName") as String)
+            email.set(project.findProperty("pomDeveloperEmail") as String)
+        }
+    }
+
+    scm {
+        connection.set("scm:git:git://github.com/seonwkim/spring-boot-starter-actor.git")
+        developerConnection.set("scm:git:ssh://github.com/seonwkim/spring-boot-starter-actor.git")
+        url.set(project.findProperty("pomUrl") as String)
+    }
+}
+
+configure(subprojects.filter { it.path.startsWith(":relocation:") }) {
+    apply(plugin = "java-platform")
+    apply(plugin = "com.vanniktech.maven.publish")
+
+    // Maven follows <relocation>; Gradle does not, and prefers Gradle module metadata over the POM.
+    // So publish the POM only, and let it also depend on the new artifact: Gradle builds that
+    // still name the old coordinates get the new artifact transitively.
+    extensions.configure<JavaPlatformExtension> { allowDependencies() }
+    dependencies { "api"(project(":${relocationTargets.getValue(project.name)}")) }
+    tasks.withType<GenerateModuleMetadata>().configureEach { enabled = false }
+
+    extensions.configure<MavenPublishBaseExtension> {
+        coordinates(
+            groupId = project.findProperty("group") as String,
+            artifactId = project.name,
+            version = project.findProperty("version") as String
+        )
+        pom {
+            packaging = "pom"
+            commonPom(project)
+            distributionManagement {
+                relocation {
+                    groupId.set(project.findProperty("group") as String)
+                    artifactId.set(relocationTargets.getValue(project.name))
+                    version.set(project.findProperty("version") as String)
+                    message.set("Renamed in 1.0: see https://github.com/seonwkim/spring-boot-starter-actor/blob/main/CHANGELOG.md")
+                }
+            }
+        }
+        publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
+        // Release builds pass the key (publish.yml); publishToMavenLocal works without one.
+        if (project.hasProperty("signingInMemoryKey")) {
+            signAllPublications()
+        }
+    }
+}
+
+configure(subprojects.filter { !it.path.startsWith(":relocation") }) {
     apply(plugin = "java")
     apply(plugin = "java-library")
     apply(plugin = "com.diffplug.spotless")
@@ -37,6 +110,9 @@ subprojects {
     }
     tasks.withType<JavaCompile>().configureEach {
         options.release.set(21)
+        // Keep constructor parameter names for Jackson creators and Spring (the Spring Boot
+        // plugin adds this flag only to modules that apply it).
+        options.compilerArgs.add("-parameters")
     }
     val testJavaVersion = project.findProperty("testJavaVersion") as String?
     if (testJavaVersion != null) {
@@ -76,10 +152,7 @@ subprojects {
     if (project.findProperty(artifactIdKey) != null) {
         apply(plugin = "com.vanniktech.maven.publish")
 
-        mavenPublishing {
-            val pomNameKey = "pomName.${project.name}"
-            val pomDescriptionKey = "pomDescription.${project.name}"
-
+        extensions.configure<MavenPublishBaseExtension> {
             coordinates(
                 groupId = project.findProperty("group") as String,
                 artifactId = project.findProperty(artifactIdKey) as String,
@@ -88,48 +161,21 @@ subprojects {
 
             pom {
                 packaging = "jar"
-                name.set(project.findProperty(pomNameKey) as String)
-                description.set(project.findProperty(pomDescriptionKey) as String)
-                url.set(project.findProperty("pomUrl") as String)
-                inceptionYear.set("2025")
-
-                licenses {
-                    license {
-                        name.set("The Apache License, Version 2.0")
-                        url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
-                    }
-                }
-
-                developers {
-                    developer {
-                        id.set(project.findProperty("pomDeveloperId") as String)
-                        name.set(project.findProperty("pomDeveloperName") as String)
-                        email.set(project.findProperty("pomDeveloperEmail") as String)
-                    }
-                }
-
-                scm {
-                    connection.set("scm:git:git://github.com/seonwkim/spring-boot-starter-actor.git")
-                    developerConnection.set("scm:git:ssh://github.com/seonwkim/spring-boot-starter-actor.git")
-                    url.set(project.findProperty("pomUrl") as String)
-                }
+                commonPom(project)
             }
 
             publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
-            signAllPublications()
+            // Release builds pass the key (publish.yml); publishToMavenLocal works without one.
+            if (project.hasProperty("signingInMemoryKey")) {
+                signAllPublications()
+            }
         }
     }
 
     val pekkoVersion: String by project
 
     dependencies {
-        // Only add Pekko dependencies to non-metrics modules
-        if (!project.path.startsWith(":metrics")) {
-            implementation("org.apache.pekko:pekko-actor-typed_3:${pekkoVersion}")
-            implementation("org.apache.pekko:pekko-cluster-typed_3:${pekkoVersion}")
-            implementation("org.apache.pekko:pekko-cluster-sharding-typed_3:${pekkoVersion}")
-            implementation("org.apache.pekko:pekko-serialization-jackson_3:${pekkoVersion}")
-        }
+        // Pekko is declared by each module that uses it (actor-api must never see it).
         implementation("com.google.code.findbugs:jsr305:3.0.2")
 
         // Only add error-prone dependencies for non-example projects
@@ -138,8 +184,7 @@ subprojects {
             errorprone("com.google.errorprone:error_prone_core:2.10.0")
         }
 
-        // Only add Pekko testkit to non-metrics modules
-        if (!project.path.startsWith(":metrics")) {
+        if (project.path == ":actor-core" || project.path.startsWith(":example")) {
             testImplementation("org.apache.pekko:pekko-actor-testkit-typed_3:$pekkoVersion")
         }
         testImplementation("org.awaitility:awaitility:4.3.0")
@@ -168,7 +213,7 @@ spotless {
     }
 }
 
-subprojects {
+configure(subprojects.filter { !it.path.startsWith(":relocation") }) {
     tasks.test {
         useJUnitPlatform()
 
@@ -184,6 +229,9 @@ subprojects {
         )
 
         failFast = false
+
+        // A hung test fails with its name instead of stalling the build.
+        systemProperty("junit.jupiter.execution.timeout.default", "2m")
 
         testLogging {
             // set options for log level LIFECYCLE

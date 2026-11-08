@@ -1,0 +1,237 @@
+package io.github.seonwkim.actor;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.time.Duration;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
+import org.apache.pekko.actor.testkit.typed.javadsl.ActorTestKit;
+import org.apache.pekko.actor.typed.ActorRef;
+import org.apache.pekko.actor.typed.Behavior;
+import org.apache.pekko.actor.typed.javadsl.Behaviors;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+public class SpringActorHandleTest {
+
+    interface Command {}
+
+    public static class Ping extends AskCommand<String> implements Command {
+        public final String message;
+
+        public Ping(String message) {
+            this.message = message;
+        }
+    }
+
+    public static class SimpleMessage implements Command {
+        public final String value;
+
+        public SimpleMessage(String value) {
+            this.value = value;
+        }
+    }
+
+    public static class SlowPing implements Command {
+        public final ActorRef<String> replyTo;
+        public final Duration delay;
+
+        public SlowPing(ActorRef<String> replyTo, Duration delay) {
+            this.replyTo = replyTo;
+            this.delay = delay;
+        }
+    }
+
+    public static Behavior<Command> create(String id, CompletableFuture<String> signal) {
+        return Behaviors.receive(Command.class)
+                .onMessage(Ping.class, msg -> {
+                    msg.reply("pong:" + id);
+                    return Behaviors.same();
+                })
+                .onMessage(SimpleMessage.class, msg -> {
+                    signal.complete("received: " + msg.value);
+                    return Behaviors.same();
+                })
+                .onMessage(SlowPing.class, msg -> {
+                    // Simulate slow response by delaying
+                    Behaviors.withTimers(timers -> {
+                        timers.startSingleTimer(
+                                "delayed-response",
+                                new Command() {}, // dummy command
+                                msg.delay);
+                        return Behaviors.same();
+                    });
+                    // This will timeout before responding
+                    return Behaviors.same();
+                })
+                .build();
+    }
+
+    private ActorTestKit testKit;
+
+    @BeforeEach
+    void setup() {
+        testKit = ActorTestKit.create(); // JUnit 5-compatible
+    }
+
+    @AfterEach
+    void tearDown() {
+        testKit.shutdownTestKit();
+    }
+
+    @Test
+    void testAskWithAskCommand() throws ExecutionException, InterruptedException {
+        String id = UUID.randomUUID().toString();
+        Behavior<Command> behavior = create(id, new CompletableFuture<>());
+
+        ActorRef<Command> actorRef = testKit.spawn(behavior, "ask-command-" + id);
+        SpringActorHandle<Command> springRef =
+                new SpringActorHandle<>(testKit.system().scheduler(), actorRef);
+
+        // New cleaner pattern using AskCommand - no explicit generics needed!
+        String result =
+                springRef.ask(new Ping("hello")).execute().toCompletableFuture().get();
+
+        assertEquals("pong:" + id, result);
+    }
+
+    @Test
+    void testAskWithTimeout() throws ExecutionException, InterruptedException {
+        String id = UUID.randomUUID().toString();
+        Behavior<Command> behavior = create(id, new CompletableFuture<>());
+
+        ActorRef<Command> actorRef = testKit.spawn(behavior, "ask-timeout-" + id);
+        SpringActorHandle<Command> springRef =
+                new SpringActorHandle<>(testKit.system().scheduler(), actorRef);
+
+        // With custom timeout
+        String result = springRef
+                .ask(new Ping("hello"))
+                .withTimeout(Duration.ofSeconds(5))
+                .execute()
+                .toCompletableFuture()
+                .get();
+
+        assertEquals("pong:" + id, result);
+    }
+
+    @Test
+    void testTellMethod() throws ExecutionException, InterruptedException {
+        String id = UUID.randomUUID().toString();
+        CompletableFuture<String> signal = new CompletableFuture<>();
+        Behavior<Command> behavior = create(id, signal);
+
+        ActorRef<Command> actorRef = testKit.spawn(behavior, "tell-" + id);
+        SpringActorHandle<Command> springRef =
+                new SpringActorHandle<>(testKit.system().scheduler(), actorRef);
+
+        springRef.tell(new SimpleMessage("hello"));
+        String result = signal.get();
+
+        assertEquals("received: hello", result);
+    }
+
+    @Test
+    void testAskWithTimeoutHandler() throws ExecutionException, InterruptedException {
+        String id = UUID.randomUUID().toString();
+        Behavior<Command> behavior = Behaviors.receive(Command.class)
+                .onMessage(Ping.class, msg -> {
+                    // Never respond - will timeout
+                    return Behaviors.same();
+                })
+                .build();
+
+        ActorRef<Command> actorRef = testKit.spawn(behavior, "ask-on-timeout-" + id);
+        SpringActorHandle<Command> springRef =
+                new SpringActorHandle<>(testKit.system().scheduler(), actorRef);
+
+        String result = springRef
+                .ask(new Ping("hello"))
+                .withTimeout(Duration.ofMillis(100))
+                .onTimeout(() -> "default-value")
+                .execute()
+                .toCompletableFuture()
+                .get();
+
+        assertEquals("default-value", result);
+    }
+
+    @Test
+    void testAskWithTimeoutHandlerNotTriggered() throws ExecutionException, InterruptedException {
+        String id = UUID.randomUUID().toString();
+        Behavior<Command> behavior = create(id, new CompletableFuture<>());
+
+        ActorRef<Command> actorRef = testKit.spawn(behavior, "ask-no-timeout-" + id);
+        SpringActorHandle<Command> springRef =
+                new SpringActorHandle<>(testKit.system().scheduler(), actorRef);
+
+        String result = springRef
+                .ask(new Ping("hello"))
+                .withTimeout(Duration.ofSeconds(3))
+                .onTimeout(() -> "default-value")
+                .execute()
+                .toCompletableFuture()
+                .get();
+
+        // Should get actual response, not default value
+        assertEquals("pong:" + id, result);
+    }
+
+    @Test
+    void testAskWithoutTimeoutHandlerThrows() {
+        String id = UUID.randomUUID().toString();
+        Behavior<Command> behavior = Behaviors.receive(Command.class)
+                .onMessage(Ping.class, msg -> {
+                    // Never respond - will timeout
+                    return Behaviors.same();
+                })
+                .build();
+
+        ActorRef<Command> actorRef = testKit.spawn(behavior, "ask-throws-" + id);
+        SpringActorHandle<Command> springRef =
+                new SpringActorHandle<>(testKit.system().scheduler(), actorRef);
+
+        ExecutionException exception = assertThrows(ExecutionException.class, () -> {
+            springRef
+                    .ask(new Ping("hello"))
+                    .withTimeout(Duration.ofMillis(100))
+                    .execute()
+                    .toCompletableFuture()
+                    .get();
+        });
+
+        // Verify the cause is a TimeoutException
+        assertTrue(exception.getCause() instanceof TimeoutException);
+    }
+
+    @Test
+    void testAskFluentChaining() throws ExecutionException, InterruptedException {
+        String id = UUID.randomUUID().toString();
+        Behavior<Command> behavior = Behaviors.receive(Command.class)
+                .onMessage(Ping.class, msg -> {
+                    // Never respond - will timeout
+                    return Behaviors.same();
+                })
+                .build();
+
+        ActorRef<Command> actorRef = testKit.spawn(behavior, "ask-fluent-" + id);
+        SpringActorHandle<Command> springRef =
+                new SpringActorHandle<>(testKit.system().scheduler(), actorRef);
+
+        // Test that all methods can be chained fluently
+        String result = springRef
+                .ask(new Ping("hello"))
+                .withTimeout(Duration.ofMillis(100))
+                .onTimeout(() -> "timeout-occurred")
+                .execute()
+                .toCompletableFuture()
+                .get();
+
+        assertEquals("timeout-occurred", result);
+    }
+}

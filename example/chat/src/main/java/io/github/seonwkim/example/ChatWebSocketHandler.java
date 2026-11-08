@@ -2,8 +2,8 @@ package io.github.seonwkim.example;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.github.seonwkim.core.SpringActorHandle;
-import io.github.seonwkim.core.SpringActorSystem;
+import io.github.seonwkim.actor.SpringActorHandle;
+import io.github.seonwkim.actor.SpringActorSystem;
 import io.github.seonwkim.example.UserActor.Connect;
 import io.github.seonwkim.example.UserActor.JoinRoom;
 import io.github.seonwkim.example.UserActor.LeaveRoom;

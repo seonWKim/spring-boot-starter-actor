@@ -1,7 +1,7 @@
 package io.github.seonwkim.example;
 
-import io.github.seonwkim.core.SpringActorSystem;
-import io.github.seonwkim.core.shard.SpringShardedActorHandle;
+import io.github.seonwkim.actor.SpringActorSystem;
+import io.github.seonwkim.actor.shard.SpringShardedActorHandle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;

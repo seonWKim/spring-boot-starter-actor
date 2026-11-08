@@ -1,7 +1,7 @@
 package io.github.seonwkim.example.metrics;
 
-import io.github.seonwkim.core.SpringActorHandle;
-import io.github.seonwkim.core.SpringActorSystem;
+import io.github.seonwkim.actor.SpringActorHandle;
+import io.github.seonwkim.actor.SpringActorSystem;
 import io.github.seonwkim.example.HelloActor;
 import io.github.seonwkim.example.metrics.ClusterShardingMetricsActor.ClusterShardingMetricsExporterContext;
 import io.micrometer.core.instrument.MeterRegistry;

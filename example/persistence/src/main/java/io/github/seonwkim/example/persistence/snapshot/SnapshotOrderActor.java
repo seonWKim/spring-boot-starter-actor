@@ -1,7 +1,7 @@
 package io.github.seonwkim.example.persistence.snapshot;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.github.seonwkim.core.*;
+import io.github.seonwkim.actor.*;
 import io.github.seonwkim.example.persistence.Order;
 import io.github.seonwkim.example.persistence.OrderRepository;
 import io.github.seonwkim.example.persistence.OrderStatus;

@@ -1,8 +1,8 @@
 package io.github.seonwkim.example.supervision;
 
-import io.github.seonwkim.core.SpringActorBehavior;
-import io.github.seonwkim.core.SpringActorContext;
-import io.github.seonwkim.core.SpringActorWithContext;
+import io.github.seonwkim.actor.SpringActorBehavior;
+import io.github.seonwkim.actor.SpringActorContext;
+import io.github.seonwkim.actor.SpringActorWithContext;
 import org.springframework.stereotype.Component;
 
 /**

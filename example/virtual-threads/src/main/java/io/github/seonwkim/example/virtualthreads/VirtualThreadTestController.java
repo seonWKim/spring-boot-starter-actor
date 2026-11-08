@@ -1,7 +1,7 @@
 package io.github.seonwkim.example.virtualthreads;
 
-import io.github.seonwkim.core.SpringActorHandle;
-import io.github.seonwkim.core.SpringActorSystem;
+import io.github.seonwkim.actor.SpringActorHandle;
+import io.github.seonwkim.actor.SpringActorSystem;
 import java.util.HashMap;
 import java.util.Map;
 import org.slf4j.Logger;

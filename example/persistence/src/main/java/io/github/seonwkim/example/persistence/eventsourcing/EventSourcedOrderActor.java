@@ -1,7 +1,7 @@
 package io.github.seonwkim.example.persistence.eventsourcing;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.github.seonwkim.core.*;
+import io.github.seonwkim.actor.*;
 import io.github.seonwkim.example.persistence.OrderStatus;
 import java.util.ArrayList;
 import java.util.List;

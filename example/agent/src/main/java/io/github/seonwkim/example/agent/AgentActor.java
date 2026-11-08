@@ -2,11 +2,11 @@ package io.github.seonwkim.example.agent;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.github.seonwkim.core.AskCommand;
-import io.github.seonwkim.core.serialization.JsonSerializable;
-import io.github.seonwkim.core.shard.SpringShardedActor;
-import io.github.seonwkim.core.shard.SpringShardedActorBehavior;
-import io.github.seonwkim.core.shard.SpringShardedActorContext;
+import io.github.seonwkim.actor.AskCommand;
+import io.github.seonwkim.actor.serialization.JsonSerializable;
+import io.github.seonwkim.actor.shard.SpringShardedActor;
+import io.github.seonwkim.actor.shard.SpringShardedActorBehavior;
+import io.github.seonwkim.actor.shard.SpringShardedActorContext;
 import io.github.seonwkim.example.agent.llm.LlmClient;
 import io.github.seonwkim.example.agent.persistence.AgentSnapshotStore;
 import io.github.seonwkim.example.agent.tool.ToolRegistry;

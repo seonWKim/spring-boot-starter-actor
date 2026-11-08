@@ -99,6 +99,16 @@ flowchart TB
 | `actor-autoconfigure` | Auto-configuration for every module, optional parts behind `@ConditionalOnClass` | `implementation` |
 | `actor-spring-boot-starter*` | Empty POMs that pick a set of modules | n/a |
 
+## Migration status
+
+The modules `actor-api`, `actor-core`, `actor-autoconfigure`, `actor-spring-boot-starter` and `actor-metrics` exist, under the package root `io.github.seonwkim.actor`. Until the public API moves into `actor-api` without Pekko types, the code differs from the target in these places:
+
+- **`actor-api` holds only the types that already had no Pekko in their signatures** (`EnableActorSupport`, `SpringActorContext`, `FrameworkCommand`, `MdcConfig`, `ActorConstants`, `ShardEnvelope`, `ConsistentHashable`, the serialization markers and the topic exceptions). The rest of the public API (`SpringActor`, `SpringActorSystem`, handles, builders, sharding, routers, topics, receptionist) is still in `actor-core`, in the same packages, so `io.github.seonwkim.actor` is split across the two jars for now.
+- **`actor-spring-boot-starter` re-exports Pekko with `api(...)`.** `actor-core` declares Pekko as `implementation`, but the public types still in `actor-core` have Pekko in their signatures, so applications need Pekko to compile. The starter's `api(...)` goes away once those types move to `actor-api`.
+- **Leaks are frozen, not fixed.** Rule 4 runs with an ArchUnit freeze store per module that may only shrink.
+- **The actor system stays opt-in through `@EnableActorSupport`.** It imports `ActorConfiguration` and the Pekko Management configuration from `actor-autoconfigure` by class name, so `actor-api` has no compile dependency on `actor-autoconfigure`. They are not listed in `AutoConfiguration.imports`: that would start an actor system in every application that has the starter, which 0.x never did.
+- **`actor-metrics` keeps its own auto-configuration** (`io.github.seonwkim.actor.metrics.autoconfigure`, registered in its `AutoConfiguration.imports`). Moving it into `actor-autoconfigure` needs `actor-autoconfigure` to depend on `actor-metrics` behind `@ConditionalOnClass`; that comes with the metrics rework.
+
 ## Extension points (SPI)
 
 Every backend follows the same pattern. Here it is for finding peers in a stateless deployment:

@@ -1,13 +1,13 @@
 package io.github.seonwkim.example;
 
-import io.github.seonwkim.core.SpringActorHandle;
-import io.github.seonwkim.core.SpringBehaviorContext;
-import io.github.seonwkim.core.serialization.JsonSerializable;
-import io.github.seonwkim.core.shard.SpringShardedActor;
-import io.github.seonwkim.core.shard.SpringShardedActorBehavior;
-import io.github.seonwkim.core.shard.SpringShardedActorContext;
-import io.github.seonwkim.core.topic.SpringTopicManager;
-import io.github.seonwkim.core.topic.SpringTopicRef;
+import io.github.seonwkim.actor.SpringActorHandle;
+import io.github.seonwkim.actor.SpringBehaviorContext;
+import io.github.seonwkim.actor.serialization.JsonSerializable;
+import io.github.seonwkim.actor.shard.SpringShardedActor;
+import io.github.seonwkim.actor.shard.SpringShardedActorBehavior;
+import io.github.seonwkim.actor.shard.SpringShardedActorContext;
+import io.github.seonwkim.actor.topic.SpringTopicManager;
+import io.github.seonwkim.actor.topic.SpringTopicRef;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;

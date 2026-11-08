@@ -1,9 +1,9 @@
 package io.github.seonwkim.example.logging;
 
-import io.github.seonwkim.core.MdcConfig;
-import io.github.seonwkim.core.SpringActorHandle;
-import io.github.seonwkim.core.SpringActorSystem;
-import io.github.seonwkim.core.TagsConfig;
+import io.github.seonwkim.actor.MdcConfig;
+import io.github.seonwkim.actor.SpringActorHandle;
+import io.github.seonwkim.actor.SpringActorSystem;
+import io.github.seonwkim.actor.TagsConfig;
 import java.time.Duration;
 import java.util.Map;
 import java.util.UUID;

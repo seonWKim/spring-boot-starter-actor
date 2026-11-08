@@ -1,8 +1,8 @@
 package io.github.seonwkim.example.supervision;
 
-import io.github.seonwkim.core.SpringActorContext;
-import io.github.seonwkim.core.SpringActorHandle;
-import io.github.seonwkim.core.SpringBehaviorContext;
+import io.github.seonwkim.actor.SpringActorContext;
+import io.github.seonwkim.actor.SpringActorHandle;
+import io.github.seonwkim.actor.SpringBehaviorContext;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;

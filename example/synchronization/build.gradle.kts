@@ -11,7 +11,7 @@ repositories {
 }
 
 dependencies {
-	implementation(project(":core-boot3"))
+	implementation(project(":actor-spring-boot-starter"))
 
 	implementation("org.springframework.boot:spring-boot-starter")
 	implementation("org.springframework.boot:spring-boot-starter-webflux")

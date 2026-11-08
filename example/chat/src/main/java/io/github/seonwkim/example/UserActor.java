@@ -1,9 +1,9 @@
 package io.github.seonwkim.example;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
-import io.github.seonwkim.core.*;
-import io.github.seonwkim.core.serialization.JsonSerializable;
-import io.github.seonwkim.core.shard.SpringShardedActorHandle;
+import io.github.seonwkim.actor.*;
+import io.github.seonwkim.actor.serialization.JsonSerializable;
+import io.github.seonwkim.actor.shard.SpringShardedActorHandle;
 import javax.annotation.Nullable;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;

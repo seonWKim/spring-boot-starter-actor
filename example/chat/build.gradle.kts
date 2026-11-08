@@ -13,8 +13,8 @@ configurations {
 }
 
 dependencies {
-	implementation(project(":core-boot3"))
-	implementation(project(":metrics"))
+	implementation(project(":actor-spring-boot-starter"))
+	implementation(project(":actor-metrics"))
 
 	implementation("org.springframework.boot:spring-boot-starter")
 	implementation("org.springframework.boot:spring-boot-starter-webflux")
@@ -34,6 +34,6 @@ dependencies {
 
 tasks.named<org.springframework.boot.gradle.tasks.run.BootRun>("bootRun") {
 	jvmArgs = listOf(
-		"-javaagent:${rootProject.projectDir}/metrics/build/libs/spring-boot-starter-actor-metrics-${rootProject.version}-agent.jar"
+		"-javaagent:${rootProject.projectDir}/actor-metrics/build/libs/actor-metrics-${rootProject.version}-agent.jar"
 	)
 }

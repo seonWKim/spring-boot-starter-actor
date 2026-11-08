@@ -8,7 +8,7 @@ apply(plugin = "io.spring.dependency-management")
 
 // No LLM SDK on purpose: the example ships a fake LlmClient, so it runs without an API key or network.
 dependencies {
-	implementation(project(":core-boot3"))
+	implementation(project(":actor-spring-boot-starter"))
 
 	implementation("org.springframework.boot:spring-boot-starter")
 	implementation("com.fasterxml.jackson.core:jackson-databind")

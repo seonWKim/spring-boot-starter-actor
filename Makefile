@@ -19,10 +19,10 @@ test:
 
 ## Run tests per module
 test-core:
-	./gradlew :core-boot3:test
+	./gradlew :actor-core:test
 
 test-metrics:
-	./gradlew :metrics:test
+	./gradlew :actor-metrics:test
 
 ## Build (includes Spotless check)
 build:

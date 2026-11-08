@@ -1,7 +1,7 @@
 package io.github.seonwkim.example.config;
 
-import io.github.seonwkim.metrics.core.MetricsRegistry;
-import io.github.seonwkim.metrics.micrometer.MicrometerMetricsRegistryBuilder;
+import io.github.seonwkim.actor.metrics.core.MetricsRegistry;
+import io.github.seonwkim.actor.metrics.micrometer.MicrometerMetricsRegistryBuilder;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

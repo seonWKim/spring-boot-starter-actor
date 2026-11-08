@@ -2,7 +2,7 @@ package io.github.seonwkim.example.agent;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.github.seonwkim.core.SpringActorSystem;
+import io.github.seonwkim.actor.SpringActorSystem;
 import io.github.seonwkim.example.agent.llm.ChatMessage;
 import java.nio.file.Path;
 import java.nio.file.Paths;

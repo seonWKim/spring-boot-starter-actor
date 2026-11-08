@@ -1,6 +1,6 @@
 package io.github.seonwkim.example;
 
-import io.github.seonwkim.core.SpringActorSystem;
+import io.github.seonwkim.actor.SpringActorSystem;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
