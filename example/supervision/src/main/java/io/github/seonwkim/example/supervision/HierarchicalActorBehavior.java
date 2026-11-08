@@ -3,6 +3,7 @@ package io.github.seonwkim.example.supervision;
 import io.github.seonwkim.actor.SpringActorContext;
 import io.github.seonwkim.actor.SpringActorHandle;
 import io.github.seonwkim.actor.SpringBehaviorContext;
+import io.github.seonwkim.actor.SupervisionStrategy;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -14,7 +15,6 @@ import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.PostStop;
 import org.apache.pekko.actor.typed.PreRestart;
-import org.apache.pekko.actor.typed.SupervisorStrategy;
 import org.apache.pekko.actor.typed.javadsl.AskPattern;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 
@@ -77,24 +77,24 @@ public class HierarchicalActorBehavior<C> {
         String actorId = actorContext.actorId();
 
         // Parse supervision strategy
-        SupervisorStrategy strategy;
+        SupervisionStrategy strategy;
         String strategyDescription;
         switch (msg.strategy) {
             case "restart-limited":
-                strategy = SupervisorStrategy.restart().withLimit(3, Duration.ofMinutes(1));
+                strategy = SupervisionStrategy.restart().withLimit(3, Duration.ofMinutes(1));
                 strategyDescription = "Restart (max 3 times in 1 min)";
                 break;
             case "stop":
-                strategy = SupervisorStrategy.stop();
+                strategy = SupervisionStrategy.stop();
                 strategyDescription = "Stop on failure";
                 break;
             case "resume":
-                strategy = SupervisorStrategy.resume();
+                strategy = SupervisionStrategy.resume();
                 strategyDescription = "Resume (ignore failure)";
                 break;
             case "restart":
             default:
-                strategy = SupervisorStrategy.restart();
+                strategy = SupervisionStrategy.restart();
                 strategyDescription = "Restart on failure";
                 break;
         }

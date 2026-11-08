@@ -5,12 +5,13 @@ import io.github.seonwkim.actor.SpringActor;
 import io.github.seonwkim.actor.SpringActorBehavior;
 import io.github.seonwkim.actor.SpringActorContext;
 import io.github.seonwkim.actor.SpringActorWithContext;
+import io.github.seonwkim.actor.SupervisionStrategy;
 import io.github.seonwkim.actor.internal.DefaultSpringActorContext;
+import io.github.seonwkim.actor.internal.PekkoProps;
 import java.util.Objects;
 import java.util.UUID;
 import javax.annotation.Nullable;
 import org.apache.pekko.actor.typed.Behavior;
-import org.apache.pekko.actor.typed.SupervisorStrategy;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.apache.pekko.actor.typed.javadsl.PoolRouter;
 import org.apache.pekko.actor.typed.javadsl.Routers;
@@ -60,14 +61,14 @@ public final class SpringRouterBehavior<C> {
     private final Class<? extends SpringActorWithContext<C, ?>> workerActorClass;
     private final SpringActorContext actorContext;
 
-    @Nullable private final SupervisorStrategy supervisionStrategy;
+    @Nullable private final SupervisionStrategy supervisionStrategy;
 
     private SpringRouterBehavior(
             RoutingStrategy routingStrategy,
             int poolSize,
             Class<? extends SpringActorWithContext<C, ?>> workerActorClass,
             SpringActorContext actorContext,
-            @Nullable SupervisorStrategy supervisionStrategy) {
+            @Nullable SupervisionStrategy supervisionStrategy) {
         this.routingStrategy = routingStrategy;
         this.poolSize = poolSize;
         this.workerActorClass = workerActorClass;
@@ -107,7 +108,8 @@ public final class SpringRouterBehavior<C> {
 
             // Apply supervision strategy if specified
             if (supervisionStrategy != null) {
-                workerBehavior = Behaviors.supervise(workerBehavior).onFailure(supervisionStrategy);
+                workerBehavior =
+                        Behaviors.supervise(workerBehavior).onFailure(PekkoProps.supervisor(supervisionStrategy));
             }
 
             // Create pool router with the configured routing strategy
@@ -137,7 +139,7 @@ public final class SpringRouterBehavior<C> {
 
         @Nullable private Class<? extends SpringActorWithContext<C, ?>> workerActorClass;
 
-        @Nullable private SupervisorStrategy supervisionStrategy;
+        @Nullable private SupervisionStrategy supervisionStrategy;
 
         private Builder(Class<C> commandClass, SpringActorContext actorContext) {
             this.commandClass = Objects.requireNonNull(commandClass, "Command class cannot be null");
@@ -187,7 +189,7 @@ public final class SpringRouterBehavior<C> {
          * @param strategy The supervision strategy
          * @return This builder for chaining
          */
-        public Builder<C> withSupervisionStrategy(SupervisorStrategy strategy) {
+        public Builder<C> withSupervisionStrategy(SupervisionStrategy strategy) {
             this.supervisionStrategy = Objects.requireNonNull(strategy, "Supervision strategy cannot be null");
             return this;
         }

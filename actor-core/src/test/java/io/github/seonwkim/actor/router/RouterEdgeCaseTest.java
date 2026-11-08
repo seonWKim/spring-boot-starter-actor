@@ -9,11 +9,11 @@ import io.github.seonwkim.actor.SpringActorBehavior;
 import io.github.seonwkim.actor.SpringActorContext;
 import io.github.seonwkim.actor.SpringActorHandle;
 import io.github.seonwkim.actor.SpringActorSystem;
+import io.github.seonwkim.actor.SupervisionStrategy;
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.pekko.actor.typed.SupervisorStrategy;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -149,7 +149,7 @@ class RouterEdgeCaseTest {
                     .withRoutingStrategy(RoutingStrategy.roundRobin())
                     .withPoolSize(3)
                     .withWorkerActors(SupervisedWorkerActor.class)
-                    .withSupervisionStrategy(SupervisorStrategy.restart())
+                    .withSupervisionStrategy(SupervisionStrategy.restart())
                     .build();
         }
     }

@@ -173,14 +173,14 @@ public class SpringActorHandle<T> {
      * // Spawn new child
      * SpringActorHandle<ChildCommand> child = parentRef
      *     .child(ChildActor.class, "child-1")
-     *     .spawn(SupervisorStrategy.restart())
+     *     .spawn(SupervisionStrategy.restart())
      *     .toCompletableFuture()
      *     .get();
      *
      * // Get or spawn (convenience)
      * SpringActorHandle<ChildCommand> child = parentRef
      *     .child(ChildActor.class, "child-1")
-     *     .getOrSpawn(SupervisorStrategy.restart())
+     *     .getOrSpawn(SupervisionStrategy.restart())
      *     .toCompletableFuture()
      *     .get();
      * }
@@ -212,7 +212,7 @@ public class SpringActorHandle<T> {
      * SpringActorHandle<ChildCommand> child = parentRef
      *     .child(ChildActor.class)
      *     .withId("child-1")
-     *     .withSupervisionStrategy(SupervisorStrategy.restart())
+     *     .withSupervisionStrategy(SupervisionStrategy.restart())
      *     .withTimeout(Duration.ofSeconds(5))
      *     .spawn()
      *     .toCompletableFuture()

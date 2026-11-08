@@ -1,10 +1,9 @@
 package io.github.seonwkim.actor;
 
+import io.github.seonwkim.actor.internal.PekkoProps;
 import javax.annotation.Nullable;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
-import org.apache.pekko.actor.typed.Props;
-import org.apache.pekko.actor.typed.SupervisorStrategy;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.apache.pekko.cluster.typed.ClusterSingleton;
@@ -98,7 +97,7 @@ public final class ActorSpawner {
             Class<?> actorClass,
             SpringActorContext actorContext,
             String actorName,
-            @Nullable SupervisorStrategy supervisorStrategy,
+            @Nullable SupervisionStrategy supervisorStrategy,
             MailboxConfig mailboxConfig,
             DispatcherConfig dispatcherConfig,
             TagsConfig tagsConfig,
@@ -110,7 +109,7 @@ public final class ActorSpawner {
                 ActorTypeRegistry.createBehavior(actorClass, actorContext).asBehavior();
 
         if (supervisorStrategy != null) {
-            behavior = Behaviors.supervise(behavior).onFailure(supervisorStrategy);
+            behavior = Behaviors.supervise(behavior).onFailure(PekkoProps.supervisor(supervisorStrategy));
         }
 
         ActorRef<?> ref;
@@ -123,54 +122,15 @@ public final class ActorSpawner {
 
             SingletonActor<?> singletonActor = SingletonActor.of(behavior, actorName);
 
-            // Build Props with dispatcher, mailbox, and tags
-            Props props = buildProps(dispatcherConfig, mailboxConfig, tagsConfig);
-            if (props != Props.empty()) {
-                singletonActor = singletonActor.withProps(props);
-            }
+            singletonActor = singletonActor.withProps(PekkoProps.of(dispatcherConfig, mailboxConfig, tagsConfig));
 
             ref = clusterSingleton.init(singletonActor);
         } else {
-            // Build Props with dispatcher, mailbox, and tags
-            Props props = buildProps(dispatcherConfig, mailboxConfig, tagsConfig);
-
-            if (props != Props.empty()) {
-                ref = ctx.spawn(behavior, actorName, props);
-            } else {
-                // If no props needed, use mailbox selector (more efficient)
-                ref = ctx.spawn(behavior, actorName, mailboxConfig.toMailboxSelector());
-            }
+            ref = ctx.spawn(behavior, actorName, PekkoProps.of(dispatcherConfig, mailboxConfig, tagsConfig));
         }
 
         @SuppressWarnings("unchecked")
         ActorRef<T> typedRef = (ActorRef<T>) ref;
         return typedRef;
-    }
-
-    /**
-     * Builds Props by combining dispatcher, mailbox, and tags configurations.
-     * Returns Props.empty() if no configuration is needed.
-     *
-     * <p>Props are combined using the {@code withNext()} method, allowing multiple
-     * configurations to be applied together (e.g., dispatcher + mailbox + tags).
-     *
-     * @param dispatcherConfig The dispatcher configuration
-     * @param mailboxConfig The mailbox configuration
-     * @param tagsConfig The tags configuration
-     * @return Combined Props or Props.empty()
-     */
-    private static Props buildProps(
-            DispatcherConfig dispatcherConfig, MailboxConfig mailboxConfig, TagsConfig tagsConfig) {
-
-        // Start with either dispatcher props or empty props
-        Props props = dispatcherConfig.shouldUseProps() ? dispatcherConfig.toProps() : Props.empty();
-
-        // Apply mailbox configuration
-        props = mailboxConfig.applyToProps(props);
-
-        // Apply tags configuration
-        props = tagsConfig.applyToProps(props);
-
-        return props;
     }
 }

@@ -8,7 +8,6 @@ import java.util.concurrent.CompletionStage;
 import javax.annotation.Nullable;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Scheduler;
-import org.apache.pekko.actor.typed.SupervisorStrategy;
 import org.apache.pekko.actor.typed.javadsl.AskPattern;
 import org.springframework.util.ObjectUtils;
 
@@ -22,7 +21,7 @@ import org.springframework.util.ObjectUtils;
  * SpringActorHandle&lt;ChildCommand&gt; child = parentRef
  *     .child(ChildActor.class)
  *     .withId("child-1")
- *     .withSupervisionStrategy(SupervisorStrategy.restart())
+ *     .withSupervisionStrategy(SupervisionStrategy.restart())
  *     .withTimeout(Duration.ofSeconds(5))
  *     .spawn()
  *     .toCompletableFuture()
@@ -42,7 +41,7 @@ public class SpringChildActorBuilder<P, C> {
 
     @Nullable private SpringActorContext childContext;
 
-    @Nullable private SupervisorStrategy supervisionStrategy;
+    @Nullable private SupervisionStrategy supervisionStrategy;
 
     @Nullable private MailboxConfig mailboxConfig;
 
@@ -116,7 +115,7 @@ public class SpringChildActorBuilder<P, C> {
      * @param strategy The supervision strategy
      * @return This builder for method chaining
      */
-    public SpringChildActorBuilder<P, C> withSupervisionStrategy(SupervisorStrategy strategy) {
+    public SpringChildActorBuilder<P, C> withSupervisionStrategy(SupervisionStrategy strategy) {
         this.supervisionStrategy = strategy;
         return this;
     }
@@ -262,7 +261,7 @@ public class SpringChildActorBuilder<P, C> {
         ActorRef<Object> parentAsObject = (ActorRef<Object>) parentRef;
 
         final SpringActorContext context = childContext;
-        final SupervisorStrategy strategy = supervisionStrategy;
+        final SupervisionStrategy strategy = supervisionStrategy;
         final MailboxConfig mailbox = mailboxConfig;
         final DispatcherConfig dispatcher = dispatcherConfig;
         final TagsConfig tags = tagsConfig;

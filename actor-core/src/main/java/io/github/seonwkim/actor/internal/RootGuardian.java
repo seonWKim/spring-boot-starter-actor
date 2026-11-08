@@ -3,12 +3,12 @@ package io.github.seonwkim.actor.internal;
 import io.github.seonwkim.actor.DispatcherConfig;
 import io.github.seonwkim.actor.MailboxConfig;
 import io.github.seonwkim.actor.SpringActorContext;
+import io.github.seonwkim.actor.SupervisionStrategy;
 import io.github.seonwkim.actor.TagsConfig;
 import io.github.seonwkim.actor.topic.SpringTopicRef;
 import javax.annotation.Nullable;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
-import org.apache.pekko.actor.typed.SupervisorStrategy;
 
 /**
  * Root guardian interface for the actor system. The root guardian is the top-level actor that
@@ -41,7 +41,7 @@ public interface RootGuardian {
         /** Whether the ActorRef should be cluster singleton * */
         public final Boolean isClusterSingleton;
         /** The supervisor strategy to use for this actor */
-        @Nullable public final SupervisorStrategy supervisorStrategy;
+        @Nullable public final SupervisionStrategy supervisorStrategy;
 
         /**
          * Creates a new SpawnActor command.
@@ -62,7 +62,7 @@ public interface RootGuardian {
                 DispatcherConfig dispatcherConfig,
                 TagsConfig tagsConfig,
                 Boolean isClusterSingleton,
-                @Nullable SupervisorStrategy supervisorStrategy) {
+                @Nullable SupervisionStrategy supervisorStrategy) {
             this.actorClass = actorClass;
             this.actorContext = actorContext;
             this.replyTo = replyTo;

@@ -1,6 +1,7 @@
 package io.github.seonwkim.actor;
 
 import io.github.seonwkim.actor.internal.FrameworkCommands;
+import io.github.seonwkim.actor.internal.PekkoProps;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -11,7 +12,6 @@ import javax.annotation.Nullable;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.Signal;
-import org.apache.pekko.actor.typed.SupervisorStrategy;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.BehaviorBuilder;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
@@ -127,7 +127,7 @@ public final class SpringActorBehavior<C> {
         private final List<SignalHandler<C, S, ?>> signalHandlers = new ArrayList<>();
         private boolean enableFrameworkCommands = false;
 
-        @Nullable private SupervisorStrategy supervisionStrategy = null;
+        @Nullable private SupervisionStrategy supervisionStrategy = null;
 
         @Nullable private Function<C, Map<String, String>> mdcForMessage = null;
 
@@ -152,14 +152,14 @@ public final class SpringActorBehavior<C> {
          * <p>Example usage:
          * <pre>
          * {@code
-         * .withSupervisionStrategy(SupervisorStrategy.restart().withLimit(10, Duration.ofMinutes(1)))
+         * .withSupervisionStrategy(SupervisionStrategy.restart().withLimit(10, Duration.ofMinutes(1)))
          * }
          * </pre>
          *
          * @param strategy the supervision strategy to apply
          * @return this builder for chaining
          */
-        public Builder<C, S> withSupervisionStrategy(SupervisorStrategy strategy) {
+        public Builder<C, S> withSupervisionStrategy(SupervisionStrategy strategy) {
             this.supervisionStrategy = strategy;
             return this;
         }
@@ -277,7 +277,7 @@ public final class SpringActorBehavior<C> {
 
                     // Apply supervision strategy if provided
                     if (supervisionStrategy != null) {
-                        behavior = Behaviors.supervise(behavior).onFailure(supervisionStrategy);
+                        behavior = Behaviors.supervise(behavior).onFailure(PekkoProps.supervisor(supervisionStrategy));
                     }
 
                     // Wrap with MDC if configured
@@ -310,7 +310,7 @@ public final class SpringActorBehavior<C> {
 
                     // Apply supervision strategy if provided
                     if (supervisionStrategy != null) {
-                        behavior = Behaviors.supervise(behavior).onFailure(supervisionStrategy);
+                        behavior = Behaviors.supervise(behavior).onFailure(PekkoProps.supervisor(supervisionStrategy));
                     }
 
                     // Wrap with MDC if configured

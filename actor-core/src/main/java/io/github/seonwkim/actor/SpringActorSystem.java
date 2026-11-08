@@ -325,7 +325,7 @@ public class SpringActorSystem implements DisposableBean {
             DispatcherConfig dispatcherConfig,
             TagsConfig tagsConfig,
             boolean isClusterSingleton,
-            @Nullable SupervisorStrategy supervisorStrategy,
+            @Nullable SupervisionStrategy supervisorStrategy,
             Duration timeout) {
 
         // If cluster singleton is requested, validate cluster mode

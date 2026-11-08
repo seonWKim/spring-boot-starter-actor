@@ -5,10 +5,10 @@ import io.github.seonwkim.actor.FrameworkCommand;
 import io.github.seonwkim.actor.MailboxConfig;
 import io.github.seonwkim.actor.SpringActorContext;
 import io.github.seonwkim.actor.SpringActorWithContext;
+import io.github.seonwkim.actor.SupervisionStrategy;
 import io.github.seonwkim.actor.TagsConfig;
 import javax.annotation.Nullable;
 import org.apache.pekko.actor.typed.ActorRef;
-import org.apache.pekko.actor.typed.SupervisorStrategy;
 
 /**
  * Framework-provided commands that actors can use when their Command interface
@@ -58,7 +58,7 @@ public final class FrameworkCommands {
      * getContext().getSelf().tell(new FrameworkCommands.SpawnChild<>(
      *     ChildActor.class,
      *     childContext,
-     *     SupervisorStrategy.restart(),
+     *     SupervisionStrategy.restart(),
      *     replyTo
      * ));
      *
@@ -69,7 +69,7 @@ public final class FrameworkCommands {
      *         replyTo -> new FrameworkCommands.SpawnChild<>(
      *             ChildActor.class,
      *             childContext,
-     *             SupervisorStrategy.restart(),
+     *             SupervisionStrategy.restart(),
      *             replyTo
      *         ),
      *         Duration.ofSeconds(3),
@@ -84,7 +84,7 @@ public final class FrameworkCommands {
         public final Class<? extends SpringActorWithContext<C, ?>> actorClass;
         public final SpringActorContext childContext;
 
-        @Nullable public final SupervisorStrategy strategy;
+        @Nullable public final SupervisionStrategy strategy;
 
         public final MailboxConfig mailboxConfig;
         public final DispatcherConfig dispatcherConfig;
@@ -94,7 +94,7 @@ public final class FrameworkCommands {
         public SpawnChild(
                 Class<? extends SpringActorWithContext<C, ?>> actorClass,
                 SpringActorContext childContext,
-                @Nullable SupervisorStrategy strategy,
+                @Nullable SupervisionStrategy strategy,
                 @Nullable MailboxConfig mailboxConfig,
                 @Nullable DispatcherConfig dispatcherConfig,
                 @Nullable TagsConfig tagsConfig,

@@ -7,7 +7,6 @@ import io.github.seonwkim.actor.internal.DefaultSpringActorContext;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import org.apache.pekko.actor.typed.Behavior;
-import org.apache.pekko.actor.typed.SupervisorStrategy;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -160,7 +159,7 @@ class SpringChildActorBuilderTest {
             // When: Using the builder with withSupervisionStrategy()
             SpringActorHandle<SimpleChildActor.Command> child = parent.child(SimpleChildActor.class)
                     .withId("supervised-child")
-                    .withSupervisionStrategy(SupervisorStrategy.restart())
+                    .withSupervisionStrategy(SupervisionStrategy.restart())
                     .spawnAndWait();
 
             // Then: Child should be spawned (strategy is applied internally)
@@ -202,7 +201,7 @@ class SpringChildActorBuilderTest {
             // When: Chaining multiple builder methods
             SpringActorHandle<SimpleChildActor.Command> child = parent.child(SimpleChildActor.class)
                     .withId("fluent-child")
-                    .withSupervisionStrategy(SupervisorStrategy.restart())
+                    .withSupervisionStrategy(SupervisionStrategy.restart())
                     .withTimeout(Duration.ofSeconds(5))
                     .spawnAndWait();
 
@@ -686,12 +685,12 @@ class SpringChildActorBuilderTest {
             // When: Spawning children using both the builder API and unified reference API
             SpringActorHandle<SimpleChildActor.Command> childViaBuilder = parent.child(SimpleChildActor.class)
                     .withId("builder-child")
-                    .withSupervisionStrategy(SupervisorStrategy.restart())
+                    .withSupervisionStrategy(SupervisionStrategy.restart())
                     .spawnAndWait();
 
             SpringActorHandle<SimpleChildActor.Command> childViaUnifiedAPI = parent.child(SimpleChildActor.class)
                     .withId("unified-child")
-                    .withSupervisionStrategy(SupervisorStrategy.restart())
+                    .withSupervisionStrategy(SupervisionStrategy.restart())
                     .spawn()
                     .toCompletableFuture()
                     .get(5, TimeUnit.SECONDS);

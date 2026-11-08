@@ -1,11 +1,11 @@
 package io.github.seonwkim.example;
 
 import io.github.seonwkim.actor.*;
+import io.github.seonwkim.actor.SupervisionStrategy;
 import java.time.Duration;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.PostStop;
 import org.apache.pekko.actor.typed.PreRestart;
-import org.apache.pekko.actor.typed.SupervisorStrategy;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.springframework.stereotype.Component;
 
@@ -57,7 +57,7 @@ public class HelloActor implements SpringActor<HelloActor.Command> {
                 .onMessage(TriggerFailure.class, HelloActorBehavior::onTriggerFailure)
                 .onSignal(PreRestart.class, HelloActorBehavior::onPreRestart)
                 .onSignal(PostStop.class, HelloActorBehavior::onPostStop)
-                .withSupervisionStrategy(SupervisorStrategy.restart().withLimit(10, Duration.ofMinutes(1)))
+                .withSupervisionStrategy(SupervisionStrategy.restart().withLimit(10, Duration.ofMinutes(1)))
                 .build();
     }
 

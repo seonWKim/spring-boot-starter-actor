@@ -4,7 +4,6 @@ import io.github.seonwkim.actor.internal.DefaultSpringActorContext;
 import java.time.Duration;
 import java.util.concurrent.CompletionStage;
 import javax.annotation.Nullable;
-import org.apache.pekko.actor.typed.SupervisorStrategy;
 import org.springframework.util.ObjectUtils;
 
 /**
@@ -29,7 +28,7 @@ public class SpringActorSpawnBuilder<A extends SpringActorWithContext<C, ?>, C> 
     private MdcConfig mdcConfig = MdcConfig.empty();
     private boolean isClusterSingleton = false;
 
-    @Nullable private SupervisorStrategy supervisorStrategy = null;
+    @Nullable private SupervisionStrategy supervisorStrategy = null;
 
     /**
      * Creates a new SpringActorSpawnBuilder.
@@ -250,10 +249,10 @@ public class SpringActorSpawnBuilder<A extends SpringActorWithContext<C, ?>, C> 
      * Sets the supervisor strategy for this actor. The supervisor strategy determines how the
      * actor will be supervised by its parent (the root guardian).
      *
-     * @param supervisorStrategy The supervisor strategy (e.g., SupervisorStrategy.restart())
+     * @param supervisorStrategy The supervisor strategy (e.g., SupervisionStrategy.restart())
      * @return This builder
      */
-    public SpringActorSpawnBuilder<A, C> withSupervisionStrategy(SupervisorStrategy supervisorStrategy) {
+    public SpringActorSpawnBuilder<A, C> withSupervisionStrategy(SupervisionStrategy supervisorStrategy) {
         this.supervisorStrategy = supervisorStrategy;
         return this;
     }

@@ -3,7 +3,9 @@ package io.github.seonwkim.actor;
 import static org.junit.jupiter.api.Assertions.*;
 
 import io.github.seonwkim.actor.autoconfigure.ActorConfiguration;
-import java.util.concurrent.CompletionStage;
+import java.util.concurrent.TimeUnit;
+import org.apache.pekko.actor.ActorCell;
+import org.apache.pekko.actor.typed.javadsl.Adapter;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,18 +39,13 @@ public class MailboxConfigIntegrationTest {
     @Configuration
     static class TestConfig {
         @Bean
+        public ProbeActor mailboxProbeActor() {
+            return new ProbeActor();
+        }
+
+        @Bean
         public TestActor mailboxTestActor() {
             return new TestActor();
-        }
-
-        @Bean
-        public TestParentActor mailboxTestParentActor() {
-            return new TestParentActor();
-        }
-
-        @Bean
-        public TestChildActor mailboxTestChildActor() {
-            return new TestChildActor();
         }
     }
 
@@ -73,101 +70,6 @@ public class MailboxConfigIntegrationTest {
                     })
                     .build();
         }
-    }
-
-    public static class TestParentActor implements SpringActorWithContext<TestCommand, SpringActorContext> {
-        @Override
-        public SpringActorBehavior<TestCommand> create(SpringActorContext actorContext) {
-            return SpringActorBehavior.builder(TestCommand.class, actorContext)
-                    .onMessage(Ping.class, (ctx, msg) -> {
-                        ctx.getLog().info("Parent received: {}", msg.message);
-                        return Behaviors.same();
-                    })
-                    .build();
-        }
-    }
-
-    public static class TestChildActor implements SpringActorWithContext<TestCommand, SpringActorContext> {
-        @Override
-        public SpringActorBehavior<TestCommand> create(SpringActorContext actorContext) {
-            return SpringActorBehavior.builder(TestCommand.class, actorContext)
-                    .onMessage(Ping.class, (ctx, msg) -> {
-                        ctx.getLog().info("Child received: {}", msg.message);
-                        return Behaviors.same();
-                    })
-                    .build();
-        }
-    }
-
-    @Test
-    void testDefaultMailbox() {
-        SpringActorHandle<TestCommand> actor = actorSystem
-                .actor(TestActor.class)
-                .withId("default-mailbox-actor")
-                .withMailbox(MailboxConfig.defaultMailbox())
-                .spawnAndWait();
-
-        assertNotNull(actor);
-        actor.tell(new Ping("Hello with default mailbox"));
-    }
-
-    @Test
-    void testBoundedMailbox() {
-        SpringActorHandle<TestCommand> actor = actorSystem
-                .actor(TestActor.class)
-                .withId("bounded-mailbox-actor")
-                .withMailbox(MailboxConfig.bounded(100))
-                .spawnAndWait();
-
-        assertNotNull(actor);
-        actor.tell(new Ping("Hello with bounded mailbox"));
-    }
-
-    @Test
-    void testFromConfigMailbox() {
-        SpringActorHandle<TestCommand> actor = actorSystem
-                .actor(TestActor.class)
-                .withId("config-mailbox-actor")
-                .withMailbox(MailboxConfig.fromConfig("my-test-mailbox"))
-                .spawnAndWait();
-
-        assertNotNull(actor);
-        actor.tell(new Ping("Hello with config mailbox"));
-    }
-
-    @Test
-    void testCombinedWithDispatcher() {
-        SpringActorHandle<TestCommand> actor = actorSystem
-                .actor(TestActor.class)
-                .withId("combined-actor")
-                .withMailbox(MailboxConfig.bounded(50))
-                .withBlockingDispatcher()
-                .spawnAndWait();
-
-        assertNotNull(actor);
-        actor.tell(new Ping("Hello with bounded mailbox and blocking dispatcher"));
-    }
-
-    @Test
-    void testChildActorWithMailbox() throws Exception {
-        // Spawn parent actor
-        SpringActorHandle<TestCommand> parent = actorSystem
-                .actor(TestParentActor.class)
-                .withId("parent-with-child")
-                .spawnAndWait();
-
-        assertNotNull(parent);
-
-        // Spawn child actor with bounded mailbox
-        CompletionStage<SpringActorHandle<TestCommand>> childFuture = parent.child(TestChildActor.class)
-                .withId("bounded-child")
-                .withMailbox(MailboxConfig.bounded(25))
-                .spawn();
-
-        SpringActorHandle<TestCommand> child = childFuture.toCompletableFuture().get();
-        assertNotNull(child);
-
-        child.tell(new Ping("Hello from child with bounded mailbox"));
     }
 
     @Test
@@ -279,49 +181,88 @@ public class MailboxConfigIntegrationTest {
     }
 
     @Test
-    void testChildActorWithDispatcher() throws Exception {
-        // Spawn parent actor
-        SpringActorHandle<TestCommand> parent = actorSystem
-                .actor(TestParentActor.class)
-                .withId("parent-with-dispatcher-child")
-                .spawnAndWait();
+    void boundedMailboxIsUsed() throws Exception {
+        RunsOn runsOn =
+                probe(actorSystem.actor(ProbeActor.class).withId("bounded").withMailbox(MailboxConfig.bounded(50)));
 
-        assertNotNull(parent);
-
-        // Spawn child actor with blocking dispatcher
-        CompletionStage<SpringActorHandle<TestCommand>> childFuture = parent.child(TestChildActor.class)
-                .withId("blocking-dispatcher-child")
-                .withDispatcher(DispatcherConfig.blocking())
-                .spawn();
-
-        SpringActorHandle<TestCommand> child = childFuture.toCompletableFuture().get();
-        assertNotNull(child);
-
-        // Send a message to verify the child is working with the blocking dispatcher
-        child.tell(new Ping("Hello from child with blocking dispatcher"));
+        assertTrue(runsOn.boundedQueue(), runsOn.toString());
+        assertEquals(DEFAULT_DISPATCHER, runsOn.dispatcher());
     }
 
     @Test
-    void testChildActorWithMailboxAndDispatcher() throws Exception {
-        // Spawn parent actor
-        SpringActorHandle<TestCommand> parent = actorSystem
-                .actor(TestParentActor.class)
-                .withId("parent-with-configured-child")
-                .spawnAndWait();
-
-        assertNotNull(parent);
-
-        // Spawn child actor with both bounded mailbox and blocking dispatcher
-        CompletionStage<SpringActorHandle<TestCommand>> childFuture = parent.child(TestChildActor.class)
-                .withId("configured-child")
+    void boundedMailboxIsKeptWithBlockingDispatcher() throws Exception {
+        RunsOn runsOn = probe(actorSystem
+                .actor(ProbeActor.class)
+                .withId("bounded-blocking")
                 .withMailbox(MailboxConfig.bounded(50))
+                .withBlockingDispatcher());
+
+        assertTrue(runsOn.boundedQueue(), runsOn.toString());
+        assertEquals(BLOCKING_DISPATCHER, runsOn.dispatcher());
+    }
+
+    @Test
+    void configuredMailboxIsKeptWithBlockingDispatcher() throws Exception {
+        RunsOn runsOn = probe(actorSystem
+                .actor(ProbeActor.class)
+                .withId("configured-blocking")
+                .withMailbox(MailboxConfig.fromConfig("my-test-mailbox"))
+                .withBlockingDispatcher());
+
+        assertEquals("org.apache.pekko.dispatch.UnboundedMailbox$MessageQueue", runsOn.messageQueue());
+        assertEquals(BLOCKING_DISPATCHER, runsOn.dispatcher());
+    }
+
+    @Test
+    void childGetsBoundedMailboxAndBlockingDispatcher() throws Exception {
+        SpringActorHandle<TestCommand> parent =
+                actorSystem.actor(ProbeActor.class).withId("parent").spawnAndWait();
+        SpringActorHandle<TestCommand> child = parent.child(ProbeActor.class)
+                .withId("child")
+                .withMailbox(MailboxConfig.bounded(25))
                 .withDispatcher(DispatcherConfig.blocking())
-                .spawn();
+                .spawn()
+                .toCompletableFuture()
+                .get(5, TimeUnit.SECONDS);
 
-        SpringActorHandle<TestCommand> child = childFuture.toCompletableFuture().get();
-        assertNotNull(child);
+        RunsOn runsOn = child.ask(new Probe()).execute().toCompletableFuture().get(5, TimeUnit.SECONDS);
 
-        // Send a message to verify the child is working with both configurations
-        child.tell(new Ping("Hello from child with bounded mailbox and blocking dispatcher"));
+        assertTrue(runsOn.boundedQueue(), runsOn.toString());
+        assertEquals(BLOCKING_DISPATCHER, runsOn.dispatcher());
+    }
+
+    private static final String DEFAULT_DISPATCHER = "pekko.actor.default-dispatcher";
+    private static final String BLOCKING_DISPATCHER = "pekko.actor.default-blocking-io-dispatcher";
+
+    private static RunsOn probe(SpringActorSpawnBuilder<ProbeActor, TestCommand> spawn) throws Exception {
+        return spawn.spawnAndWait()
+                .ask(new Probe())
+                .execute()
+                .toCompletableFuture()
+                .get(5, TimeUnit.SECONDS);
+    }
+
+    /** The message queue and dispatcher the actor really runs on. */
+    public record RunsOn(String messageQueue, String dispatcher) {
+        boolean boundedQueue() {
+            return messageQueue.contains("Bounded");
+        }
+    }
+
+    public static class Probe extends AskCommand<RunsOn> implements TestCommand {}
+
+    public static class ProbeActor implements SpringActorWithContext<TestCommand, SpringActorContext> {
+        @Override
+        public SpringActorBehavior<TestCommand> create(SpringActorContext actorContext) {
+            return SpringActorBehavior.builder(TestCommand.class, actorContext)
+                    .onMessage(Probe.class, (ctx, msg) -> {
+                        ActorCell cell = (ActorCell) Adapter.toClassic(ctx.getUnderlying());
+                        msg.reply(new RunsOn(
+                                cell.mailbox().messageQueue().getClass().getName(),
+                                cell.dispatcher().id()));
+                        return Behaviors.same();
+                    })
+                    .build();
+        }
     }
 }
