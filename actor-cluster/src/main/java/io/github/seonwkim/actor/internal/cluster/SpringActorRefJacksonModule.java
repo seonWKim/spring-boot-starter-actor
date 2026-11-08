@@ -1,4 +1,4 @@
-package io.github.seonwkim.actor.internal;
+package io.github.seonwkim.actor.internal.cluster;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import io.github.seonwkim.actor.SpringActorRef;
+import io.github.seonwkim.actor.internal.PekkoActorRef;
 import java.io.IOException;
 import org.apache.pekko.actor.typed.ActorRef;
 

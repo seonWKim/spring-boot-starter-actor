@@ -11,6 +11,7 @@ import io.github.seonwkim.actor.internal.RootGuardianSupplierWrapper;
 import io.github.seonwkim.actor.receptionist.SpringReceptionist;
 import io.github.seonwkim.actor.topic.SpringTopicManager;
 import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.ApplicationEventPublisher;
@@ -121,8 +122,10 @@ public class ActorConfiguration {
     public SpringActorSystemBuilder actorSystemBuilder(
             ActorProperties actorProperties,
             RootGuardianSupplierWrapper rootGuardianSupplierWrapper,
-            ApplicationEventPublisher applicationEventPublisher) {
+            ApplicationEventPublisher applicationEventPublisher,
+            BeanFactory beanFactory) {
         return new DefaultSpringActorSystemBuilder()
+                .withBeanFactory(beanFactory)
                 .withConfig(actorProperties.getConfig())
                 .withRootGuardianSupplier(rootGuardianSupplierWrapper)
                 .withApplicationEventPublisher(applicationEventPublisher);

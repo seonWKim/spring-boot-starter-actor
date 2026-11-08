@@ -1,22 +1,18 @@
 package io.github.seonwkim.actor.internal;
 
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
 import io.github.seonwkim.actor.SpringActorSystem;
 import io.github.seonwkim.actor.SpringActorSystemBuilder;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import javax.annotation.Nullable;
 import org.apache.pekko.actor.BootstrapSetup;
 import org.apache.pekko.actor.setup.ActorSystemSetup;
 import org.apache.pekko.actor.typed.ActorSystem;
-import org.apache.pekko.serialization.jackson.JacksonObjectMapperFactory;
-import org.apache.pekko.serialization.jackson.JacksonObjectMapperProviderSetup;
+import org.springframework.beans.factory.BeanFactory;
 import org.springframework.context.ApplicationEventPublisher;
 
 /**
@@ -32,6 +28,8 @@ public class DefaultSpringActorSystemBuilder implements SpringActorSystemBuilder
     private Map<String, Object> configMap = Collections.emptyMap();
     /** The Spring application event publisher */
     @Nullable private ApplicationEventPublisher applicationEventPublisher;
+    /** Application beans the engine may use (the cluster module reads the ObjectMapper) */
+    @Nullable private BeanFactory beanFactory;
     /** The default actor system name */
     private final String DEFAULT_SYSTEM_NAME = "system";
 
@@ -81,6 +79,12 @@ public class DefaultSpringActorSystemBuilder implements SpringActorSystemBuilder
      * @throws IllegalArgumentException If in cluster mode and the application event publisher is not
      *     set
      */
+    /** Application beans the engine may use, such as the {@code ObjectMapper} for serialization. */
+    public DefaultSpringActorSystemBuilder withBeanFactory(BeanFactory beanFactory) {
+        this.beanFactory = beanFactory;
+        return this;
+    }
+
     @Override
     public SpringActorSystem build() {
         if (supplier == null) {
@@ -88,19 +92,22 @@ public class DefaultSpringActorSystemBuilder implements SpringActorSystemBuilder
                     "RootGuardianSupplierWrapper is not set. Call withRootGuardianSupplier() before build().");
         }
 
-        final Config config = ConfigFactory.parseMap(ConfigValueFactory.fromMap(applyDefaultSerializers(configMap)))
-                .withFallback(ConfigFactory.load());
+        // The cluster module, when present, adds serialization (messages cross nodes only there).
+        final ClusterSupport found = ClusterSupport.find().orElse(null);
+        final Map<String, Object> withDefaults = found == null ? configMap : found.withDefaults(configMap);
+        final Config config =
+                ConfigFactory.parseMap(ConfigValueFactory.fromMap(withDefaults)).withFallback(ConfigFactory.load());
         final String name = config.hasPath("pekko.name") ? config.getString("pekko.name") : DEFAULT_SYSTEM_NAME;
 
         final boolean isClusterMode = Objects.equals(config.getString("pekko.actor.provider"), "cluster");
         // Fail with the missing module's name before Pekko fails on its missing classes.
-        final ClusterSupport clusterSupport = isClusterMode ? ClusterSupport.require() : null;
+        final ClusterSupport clusterSupport = !isClusterMode ? null : found != null ? found : ClusterSupport.require();
 
-        final ActorSystem<RootGuardian.Command> actorSystem = ActorSystem.create(
-                supplier.get(),
-                name,
-                ActorSystemSetup.create(BootstrapSetup.create(config))
-                        .withSetup(new JacksonObjectMapperProviderSetup(new StarterObjectMapperFactory())));
+        ActorSystemSetup setup = ActorSystemSetup.create(BootstrapSetup.create(config));
+        if (found != null) {
+            setup = found.withSetup(setup, beanFactory);
+        }
+        final ActorSystem<RootGuardian.Command> actorSystem = ActorSystem.create(supplier.get(), name, setup);
 
         if (clusterSupport == null) {
             return new PekkoActorSystem(actorSystem);
@@ -111,55 +118,5 @@ public class DefaultSpringActorSystemBuilder implements SpringActorSystemBuilder
         }
         // Sharded actors are registered later, once every bean exists (initializeClusterSharding).
         return new PekkoActorSystem(actorSystem, clusterSupport.start(actorSystem, applicationEventPublisher));
-    }
-
-    /**
-     * Applies default serializers to the configuration map. This method adds Jackson JSON and CBOR
-     * serializers to the configuration if they are not already present. It also adds default
-     * serialization bindings for JsonSerializable and CborSerializable interfaces.
-     *
-     * @param configMap The original configuration map
-     * @return A new configuration map with default serializers applied
-     */
-    @SuppressWarnings("unchecked")
-    private Map<String, Object> applyDefaultSerializers(Map<String, Object> configMap) {
-        final Map<String, Object> result = new HashMap<>(configMap);
-
-        final String jacksonJsonSerializerName = "jackson-json";
-        final String jacksonCborSerializerName = "jackson-cbor";
-
-        // Default serializers
-        final Map<String, Object> defaultSerializers = new HashMap<>();
-        defaultSerializers.put(
-                jacksonJsonSerializerName, "org.apache.pekko.serialization.jackson.JacksonJsonSerializer");
-        defaultSerializers.put(
-                jacksonCborSerializerName, "org.apache.pekko.serialization.jackson.JacksonCborSerializer");
-
-        // Default bindings
-        final Map<String, Object> defaultBindings = new HashMap<>();
-        defaultBindings.put("io.github.seonwkim.actor.serialization.JsonSerializable", jacksonJsonSerializerName);
-        defaultBindings.put("io.github.seonwkim.actor.serialization.CborSerializable", jacksonCborSerializerName);
-
-        // Get or create pekko.actor.serializers
-        Map<String, Object> pekko = (Map<String, Object>) result.computeIfAbsent("pekko", k -> new HashMap<>());
-        Map<String, Object> actor = (Map<String, Object>) pekko.computeIfAbsent("actor", k -> new HashMap<>());
-        Map<String, Object> serializers =
-                (Map<String, Object>) actor.computeIfAbsent("serializers", k -> new HashMap<>());
-        Map<String, Object> bindings =
-                (Map<String, Object>) actor.computeIfAbsent("serialization-bindings", k -> new HashMap<>());
-
-        // Merge without overwriting existing entries
-        defaultSerializers.forEach(serializers::putIfAbsent);
-        defaultBindings.forEach(bindings::putIfAbsent);
-
-        return result;
-    }
-
-    /** Adds the starter's Jackson modules before Pekko adds the configured ones. */
-    private static final class StarterObjectMapperFactory extends JacksonObjectMapperFactory {
-        @Override
-        public ObjectMapper newObjectMapper(String bindingName, JsonFactory jsonFactory) {
-            return super.newObjectMapper(bindingName, jsonFactory).registerModule(new SpringActorRefJacksonModule());
-        }
     }
 }

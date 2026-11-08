@@ -19,6 +19,7 @@ dependencies {
     implementation("org.apache.pekko:pekko-actor-typed_3:$pekkoVersion")
     implementation("org.apache.pekko:pekko-cluster-typed_3:$pekkoVersion")
     implementation("org.apache.pekko:pekko-cluster-sharding-typed_3:$pekkoVersion")
+    implementation("org.apache.pekko:pekko-serialization-jackson_3:$pekkoVersion")
 
     // Optional: Cluster Bootstrap & Management HTTP
     // Additionally, add a discovery method dependency (e.g., pekko-discovery-kubernetes-api_3)

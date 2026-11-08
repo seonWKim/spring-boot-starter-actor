@@ -3,12 +3,16 @@ package io.github.seonwkim.actor.internal;
 import io.github.seonwkim.actor.shard.SpringShardedActor;
 import io.github.seonwkim.actor.shard.SpringShardedActorBuilder;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.ServiceLoader;
+import javax.annotation.Nullable;
+import org.apache.pekko.actor.setup.ActorSystemSetup;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.ActorSystem;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.Props;
+import org.springframework.beans.factory.BeanFactory;
 import org.springframework.context.ApplicationEventPublisher;
 
 /**
@@ -16,6 +20,15 @@ import org.springframework.context.ApplicationEventPublisher;
  * Without that module on the classpath the actor system runs in local mode only.
  */
 public interface ClusterSupport {
+
+    /** {@code config} plus the cluster's defaults (serializers and bindings) where the application hasn't set them. */
+    Map<String, Object> withDefaults(Map<String, Object> config);
+
+    /**
+     * {@code setup} plus the cluster's engine setups. {@code beans} gives access to application beans
+     * such as the {@code ObjectMapper}; null outside a Spring context.
+     */
+    ActorSystemSetup withSetup(ActorSystemSetup setup, @Nullable BeanFactory beans);
 
     /** Starts the cluster features of a system whose provider is {@code cluster}. */
     ClusterRuntime start(ActorSystem<?> system, ApplicationEventPublisher publisher);

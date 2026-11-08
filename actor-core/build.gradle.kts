@@ -18,7 +18,6 @@ dependencies {
 
     // Pekko is the engine and an implementation detail (ARCHITECTURE.md).
     implementation("org.apache.pekko:pekko-actor-typed_3:$pekkoVersion")
-    implementation("org.apache.pekko:pekko-serialization-jackson_3:$pekkoVersion")
 
     implementation("com.google.code.findbugs:jsr305")
     implementation("org.springframework.boot:spring-boot-starter")

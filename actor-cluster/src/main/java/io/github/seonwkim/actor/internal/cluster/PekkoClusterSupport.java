@@ -1,5 +1,6 @@
 package io.github.seonwkim.actor.internal.cluster;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.seonwkim.actor.internal.ClusterSupport;
 import io.github.seonwkim.actor.internal.shard.PekkoShardedActorBuilder;
 import io.github.seonwkim.actor.internal.shard.PekkoSharding;
@@ -7,6 +8,9 @@ import io.github.seonwkim.actor.internal.shard.ShardedActorRegistry;
 import io.github.seonwkim.actor.shard.SpringShardedActor;
 import io.github.seonwkim.actor.shard.SpringShardedActorBuilder;
 import java.util.List;
+import java.util.Map;
+import javax.annotation.Nullable;
+import org.apache.pekko.actor.setup.ActorSystemSetup;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.ActorSystem;
 import org.apache.pekko.actor.typed.Behavior;
@@ -17,10 +21,23 @@ import org.apache.pekko.cluster.typed.Cluster;
 import org.apache.pekko.cluster.typed.ClusterSingleton;
 import org.apache.pekko.cluster.typed.SingletonActor;
 import org.apache.pekko.cluster.typed.Subscribe;
+import org.springframework.beans.factory.BeanFactory;
 import org.springframework.context.ApplicationEventPublisher;
 
 /** {@link ClusterSupport} on Pekko Cluster, Cluster Sharding and Cluster Singleton. */
 public final class PekkoClusterSupport implements ClusterSupport {
+
+    @Override
+    public Map<String, Object> withDefaults(Map<String, Object> config) {
+        return PekkoJackson.withSerializers(config);
+    }
+
+    @Override
+    public ActorSystemSetup withSetup(ActorSystemSetup setup, @Nullable BeanFactory beans) {
+        ObjectMapper applicationMapper =
+                beans == null ? null : beans.getBeanProvider(ObjectMapper.class).getIfUnique();
+        return setup.withSetup(PekkoJackson.setup(applicationMapper));
+    }
 
     @Override
     public ClusterRuntime start(ActorSystem<?> system, ApplicationEventPublisher publisher) {
