@@ -18,8 +18,8 @@ class FilterEngineTest {
                 .includeActors(List.of("pekko://system/user/myactor"))
                 .build();
 
-        ActorContext matching = new ActorContext("pekko://system/user/myactor", "MyActor", null);
-        ActorContext notMatching = new ActorContext("pekko://system/user/other", "Other", null);
+        ActorContext matching = new ActorContext("pekko://system/user/myactor", "MyActor");
+        ActorContext notMatching = new ActorContext("pekko://system/user/other", "Other");
 
         assertTrue(engine.matches(matching), "Exact path should match");
         assertFalse(engine.matches(notMatching), "Different path should not match");
@@ -31,9 +31,9 @@ class FilterEngineTest {
                 .includeActors(List.of("pekko://system/user/*"))
                 .build();
 
-        ActorContext matching1 = new ActorContext("pekko://system/user/actor1", "Actor1", null);
-        ActorContext matching2 = new ActorContext("pekko://system/user/actor2", "Actor2", null);
-        ActorContext notMatching = new ActorContext("pekko://system/user/foo/bar", "Bar", null);
+        ActorContext matching1 = new ActorContext("pekko://system/user/actor1", "Actor1");
+        ActorContext matching2 = new ActorContext("pekko://system/user/actor2", "Actor2");
+        ActorContext notMatching = new ActorContext("pekko://system/user/foo/bar", "Bar");
 
         assertTrue(engine.matches(matching1), "Single level should match *");
         assertTrue(engine.matches(matching2), "Single level should match *");
@@ -45,10 +45,10 @@ class FilterEngineTest {
         FilterEngine engine =
                 FilterEngine.builder().includeActors(List.of("**/user/**")).build();
 
-        ActorContext matching1 = new ActorContext("pekko://system/user/actor", "Actor", null);
-        ActorContext matching2 = new ActorContext("pekko://system/user/foo/bar", "Bar", null);
-        ActorContext matching3 = new ActorContext("pekko://other-system/user/nested/deep/actor", "Actor", null);
-        ActorContext notMatching = new ActorContext("pekko://system/system/actor", "Actor", null);
+        ActorContext matching1 = new ActorContext("pekko://system/user/actor", "Actor");
+        ActorContext matching2 = new ActorContext("pekko://system/user/foo/bar", "Bar");
+        ActorContext matching3 = new ActorContext("pekko://other-system/user/nested/deep/actor", "Actor");
+        ActorContext notMatching = new ActorContext("pekko://system/system/actor", "Actor");
 
         assertTrue(engine.matches(matching1), "User actor should match **/user/**");
         assertTrue(engine.matches(matching2), "Nested user actor should match **/user/**");
@@ -62,10 +62,10 @@ class FilterEngineTest {
                 .includeActors(List.of("pekko://system/user/actor?"))
                 .build();
 
-        ActorContext matching1 = new ActorContext("pekko://system/user/actor1", "Actor1", null);
-        ActorContext matching2 = new ActorContext("pekko://system/user/actorX", "ActorX", null);
-        ActorContext notMatching1 = new ActorContext("pekko://system/user/actor", "Actor", null);
-        ActorContext notMatching2 = new ActorContext("pekko://system/user/actor12", "Actor12", null);
+        ActorContext matching1 = new ActorContext("pekko://system/user/actor1", "Actor1");
+        ActorContext matching2 = new ActorContext("pekko://system/user/actorX", "ActorX");
+        ActorContext notMatching1 = new ActorContext("pekko://system/user/actor", "Actor");
+        ActorContext notMatching2 = new ActorContext("pekko://system/user/actor12", "Actor12");
 
         assertTrue(engine.matches(matching1), "actor1 should match actor?");
         assertTrue(engine.matches(matching2), "actorX should match actor?");
@@ -79,9 +79,9 @@ class FilterEngineTest {
                 .includeActors(List.of("**/user/*/worker-?"))
                 .build();
 
-        ActorContext matching = new ActorContext("pekko://system/user/group1/worker-1", "Worker", null);
-        ActorContext notMatching1 = new ActorContext("pekko://system/user/worker-1", "Worker", null);
-        ActorContext notMatching2 = new ActorContext("pekko://system/user/group1/worker-12", "Worker", null);
+        ActorContext matching = new ActorContext("pekko://system/user/group1/worker-1", "Worker");
+        ActorContext notMatching1 = new ActorContext("pekko://system/user/worker-1", "Worker");
+        ActorContext notMatching2 = new ActorContext("pekko://system/user/group1/worker-12", "Worker");
 
         assertTrue(engine.matches(matching), "Should match mixed pattern");
         assertFalse(engine.matches(notMatching1), "Should not match without middle level");
@@ -95,8 +95,8 @@ class FilterEngineTest {
                 .excludeActors(List.of("**/temp/**"))
                 .build();
 
-        ActorContext included = new ActorContext("pekko://system/user/actor", "Actor", null);
-        ActorContext excluded = new ActorContext("pekko://system/user/temp/actor", "Actor", null);
+        ActorContext included = new ActorContext("pekko://system/user/actor", "Actor");
+        ActorContext excluded = new ActorContext("pekko://system/user/temp/actor", "Actor");
 
         assertTrue(engine.matches(included), "User actor should be included");
         assertFalse(engine.matches(excluded), "Temp actor should be excluded");
@@ -108,9 +108,9 @@ class FilterEngineTest {
                 .includeActors(List.of("**/user/**", "**/admin/**"))
                 .build();
 
-        ActorContext userActor = new ActorContext("pekko://system/user/actor", "Actor", null);
-        ActorContext adminActor = new ActorContext("pekko://system/admin/actor", "Actor", null);
-        ActorContext systemActor = new ActorContext("pekko://system/system/actor", "Actor", null);
+        ActorContext userActor = new ActorContext("pekko://system/user/actor", "Actor");
+        ActorContext adminActor = new ActorContext("pekko://system/admin/actor", "Actor");
+        ActorContext systemActor = new ActorContext("pekko://system/system/actor", "Actor");
 
         assertTrue(engine.matches(userActor), "User actor should match");
         assertTrue(engine.matches(adminActor), "Admin actor should match");
@@ -121,7 +121,7 @@ class FilterEngineTest {
     void testEmptyIncludePatternsMatchesAll() {
         FilterEngine engine = FilterEngine.builder().includeActors(List.of()).build();
 
-        ActorContext anyActor = new ActorContext("pekko://system/user/actor", "Actor", null);
+        ActorContext anyActor = new ActorContext("pekko://system/user/actor", "Actor");
 
         assertTrue(engine.matches(anyActor), "Empty include patterns should match all");
     }
@@ -133,8 +133,8 @@ class FilterEngineTest {
                 .excludeActors(List.of("**/temp/**"))
                 .build();
 
-        ActorContext normalActor = new ActorContext("pekko://my-system/user/actor", "Actor", null);
-        ActorContext tempActor = new ActorContext("pekko://my-system/user/temp/actor", "Actor", null);
+        ActorContext normalActor = new ActorContext("pekko://my-system/user/actor", "Actor");
+        ActorContext tempActor = new ActorContext("pekko://my-system/user/temp/actor", "Actor");
 
         assertTrue(engine.matches(normalActor), "Normal actor should match (no include = match all)");
         assertFalse(engine.matches(tempActor), "Temp actor should be excluded");
@@ -147,8 +147,8 @@ class FilterEngineTest {
                 .includeActors(List.of("pekko://system/user/actor.test"))
                 .build();
 
-        ActorContext exactMatch = new ActorContext("pekko://system/user/actor.test", "Actor", null);
-        ActorContext notMatch = new ActorContext("pekko://system/user/actorXtest", "Actor", null);
+        ActorContext exactMatch = new ActorContext("pekko://system/user/actor.test", "Actor");
+        ActorContext notMatch = new ActorContext("pekko://system/user/actorXtest", "Actor");
 
         assertTrue(engine.matches(exactMatch), "Dot should be treated as literal");
         assertFalse(engine.matches(notMatch), "Dot should not act as regex wildcard");
@@ -180,10 +180,10 @@ class FilterEngineTest {
         FilterEngine engine =
                 FilterEngine.builder().includeActors(List.of("**/actor")).build();
 
-        ActorContext matching1 = new ActorContext("pekko://system/actor", "Actor", null);
-        ActorContext matching2 = new ActorContext("pekko://system/user/actor", "Actor", null);
-        ActorContext matching3 = new ActorContext("pekko://system/user/deep/nested/actor", "Actor", null);
-        ActorContext notMatching = new ActorContext("pekko://system/user/actor2", "Actor", null);
+        ActorContext matching1 = new ActorContext("pekko://system/actor", "Actor");
+        ActorContext matching2 = new ActorContext("pekko://system/user/actor", "Actor");
+        ActorContext matching3 = new ActorContext("pekko://system/user/deep/nested/actor", "Actor");
+        ActorContext notMatching = new ActorContext("pekko://system/user/actor2", "Actor");
 
         assertTrue(engine.matches(matching1), "Should match with ** at beginning (short path)");
         assertTrue(engine.matches(matching2), "Should match with ** at beginning (medium path)");
@@ -197,9 +197,9 @@ class FilterEngineTest {
                 .includeActors(List.of("pekko://system/user/**"))
                 .build();
 
-        ActorContext matching1 = new ActorContext("pekko://system/user/actor", "Actor", null);
-        ActorContext matching2 = new ActorContext("pekko://system/user/foo/bar", "Actor", null);
-        ActorContext notMatching = new ActorContext("pekko://system/admin/actor", "Actor", null);
+        ActorContext matching1 = new ActorContext("pekko://system/user/actor", "Actor");
+        ActorContext matching2 = new ActorContext("pekko://system/user/foo/bar", "Actor");
+        ActorContext notMatching = new ActorContext("pekko://system/admin/actor", "Actor");
 
         assertTrue(engine.matches(matching1), "Should match with ** at end (single level)");
         assertTrue(engine.matches(matching2), "Should match with ** at end (multi level)");
@@ -216,8 +216,8 @@ class FilterEngineTest {
 
         FilterEngine engine = FilterEngine.from(config);
 
-        ActorContext userActor = new ActorContext("pekko://system/user/actor", "Actor", null);
-        ActorContext tempActor = new ActorContext("pekko://system/user/temp/actor", "Actor", null);
+        ActorContext userActor = new ActorContext("pekko://system/user/actor", "Actor");
+        ActorContext tempActor = new ActorContext("pekko://system/user/temp/actor", "Actor");
 
         assertTrue(engine.matches(userActor), "Should match user actor from config");
         assertFalse(engine.matches(tempActor), "Should exclude temp actor from config");
@@ -230,8 +230,8 @@ class FilterEngineTest {
                 .includeActors(List.of("pekko://system/user/actor[1]"))
                 .build();
 
-        ActorContext exactMatch = new ActorContext("pekko://system/user/actor[1]", "Actor", null);
-        ActorContext notMatch = new ActorContext("pekko://system/user/actor1", "Actor", null);
+        ActorContext exactMatch = new ActorContext("pekko://system/user/actor[1]", "Actor");
+        ActorContext notMatch = new ActorContext("pekko://system/user/actor1", "Actor");
 
         assertTrue(engine.matches(exactMatch), "Brackets should be treated as literal");
         assertFalse(engine.matches(notMatch), "Brackets should not act as regex character class");
@@ -243,7 +243,7 @@ class FilterEngineTest {
                 .includeActors(List.of("pekko://system/user/actor(test)"))
                 .build();
 
-        ActorContext exactMatch = new ActorContext("pekko://system/user/actor(test)", "Actor", null);
+        ActorContext exactMatch = new ActorContext("pekko://system/user/actor(test)", "Actor");
 
         assertTrue(engine.matches(exactMatch), "Parentheses should be treated as literal");
     }
@@ -254,8 +254,8 @@ class FilterEngineTest {
                 .includeActors(List.of("pekko://system/user/actor+"))
                 .build();
 
-        ActorContext exactMatch = new ActorContext("pekko://system/user/actor+", "Actor", null);
-        ActorContext notMatch = new ActorContext("pekko://system/user/actorr", "Actor", null);
+        ActorContext exactMatch = new ActorContext("pekko://system/user/actor+", "Actor");
+        ActorContext notMatch = new ActorContext("pekko://system/user/actorr", "Actor");
 
         assertTrue(engine.matches(exactMatch), "Plus should be treated as literal");
         assertFalse(engine.matches(notMatch), "Plus should not act as regex quantifier");
@@ -270,11 +270,11 @@ class FilterEngineTest {
                         ))
                 .build();
 
-        ActorContext userActor = new ActorContext("pekko://system/user/actor", "Actor", null);
-        ActorContext adminActor = new ActorContext("pekko://system/admin/manager", "Manager", null);
-        ActorContext tempActor = new ActorContext("pekko://system/user/temp/worker", "Worker", null);
-        ActorContext tempNameActor = new ActorContext("pekko://system/user/$a", "TempActor", null);
-        ActorContext systemActor = new ActorContext("pekko://system/system/logger", "Logger", null);
+        ActorContext userActor = new ActorContext("pekko://system/user/actor", "Actor");
+        ActorContext adminActor = new ActorContext("pekko://system/admin/manager", "Manager");
+        ActorContext tempActor = new ActorContext("pekko://system/user/temp/worker", "Worker");
+        ActorContext tempNameActor = new ActorContext("pekko://system/user/$a", "TempActor");
+        ActorContext systemActor = new ActorContext("pekko://system/system/logger", "Logger");
 
         assertTrue(engine.matches(userActor), "User actor should match");
         assertTrue(engine.matches(adminActor), "Admin actor should match");

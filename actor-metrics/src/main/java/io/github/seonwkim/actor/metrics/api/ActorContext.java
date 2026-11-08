@@ -1,7 +1,7 @@
 package io.github.seonwkim.actor.metrics.api;
 
+import io.github.seonwkim.actor.metrics.internal.ActorCells;
 import java.util.Objects;
-import org.apache.pekko.actor.ActorCell;
 
 /**
  * Immutable context of an actor for filtering and tagging.
@@ -15,40 +15,15 @@ public final class ActorContext {
     private final String actorClass;
     private final String guardian;
 
-    /**
-     * Create an ActorContext directly (for testing and manual construction).
-     * The third parameter is ignored — kept for backward compatibility with tests.
-     */
-    public ActorContext(String path, String actorClass, Object ignored) {
-        this(path, actorClass);
-    }
-
-    private ActorContext(String path, String actorClass) {
+    public ActorContext(String path, String actorClass) {
         this.path = Objects.requireNonNull(path, "path cannot be null");
         this.actorClass = Objects.requireNonNull(actorClass, "actorClass cannot be null");
         this.guardian = parseGuardian(path);
     }
 
-    /**
-     * Extract actor context from a Pekko ActorCell.
-     */
+    /** Extract actor context from a Pekko ActorCell. */
     public static ActorContext from(Object actorCell) {
-        try {
-            ActorCell cell = (ActorCell) actorCell;
-            String pathString = cell.self().path().toString();
-
-            // actor() may not be available at all lifecycle points (e.g. pre-init)
-            String actorClassName;
-            try {
-                actorClassName = cell.actor().getClass().getSimpleName();
-            } catch (Exception e) {
-                actorClassName = "Unknown";
-            }
-
-            return new ActorContext(pathString, actorClassName);
-        } catch (Exception e) {
-            throw new IllegalArgumentException("Failed to extract actor context from cell", e);
-        }
+        return ActorCells.contextOf(actorCell);
     }
 
     public String getPath() {

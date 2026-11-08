@@ -9,6 +9,7 @@ import io.github.seonwkim.actor.metrics.agent.MetricsAgent;
 import io.github.seonwkim.actor.metrics.core.MetricsConfiguration;
 import io.github.seonwkim.actor.metrics.core.MetricsRegistry;
 import io.github.seonwkim.actor.metrics.testing.TestMetricsBackend;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import org.apache.pekko.actor.*;
 import org.junit.jupiter.api.AfterEach;
@@ -76,8 +77,6 @@ class MailboxModuleIntegrationTest {
 
     @Test
     void testMailboxSizeIncrementsOnEnqueue() throws Exception {
-        // Wait for system to stabilize
-        Thread.sleep(200);
 
         // Create actor
         ActorRef actor = actorSystem.actorOf(Props.create(SlowActor.class), "slow-actor");
@@ -96,8 +95,6 @@ class MailboxModuleIntegrationTest {
 
     @Test
     void testMailboxSizeMaxCapturesPeak() throws Exception {
-        Thread.sleep(200);
-
         ActorRef actor = actorSystem.actorOf(Props.create(SlowActor.class), "max-actor");
 
         // Send many messages so mailbox queues up (slow actor processes one every 500ms)
@@ -116,36 +113,24 @@ class MailboxModuleIntegrationTest {
     }
 
     @Test
-    void testMailboxSizeDecrementsOnProcessing() throws Exception {
-        // Wait for system to stabilize
-        Thread.sleep(200);
-
-        // Create fast actor that processes immediately
-        ActorRef actor = actorSystem.actorOf(Props.create(FastActor.class), "fast-actor");
-
-        // Send messages
+    void mailboxSizeReturnsToZeroForMessagesSentBeforeTheActorStarted() throws Exception {
+        // The actor's constructor blocks until both messages are sent, so they are enqueued while
+        // the cell has no actor instance yet. Enqueue and dequeue must still count them under the
+        // same actor class, or the size gauge stays at 2 forever.
+        GatedActor.gate = new CountDownLatch(1);
+        ActorRef actor = actorSystem.actorOf(Props.create(GatedActor.class), "gated-actor");
         actor.tell(new TestMessage("msg1"), ActorRef.noSender());
         actor.tell(new TestMessage("msg2"), ActorRef.noSender());
+        GatedActor.gate.countDown();
 
-        // Wait until both messages have been dequeued. The dequeue advice decrements the size
-        // gauge before it records actor.mailbox.time, so a count of 2 means both decrements ran.
-        // Polling the size alone would pass at once, before anything was processed.
-        eventually(() -> {
-            long dequeued = metricsBackend.getTimerCount("actor.mailbox.time");
-            assertTrue(dequeued >= 2, String.format("Both messages should be dequeued, got: %d", dequeued));
-        });
+        // The dequeue advice decrements the size before it records actor.mailbox.time.
+        eventually(() -> assertEquals(2, metricsBackend.getTimerCount("actor.mailbox.time")));
 
-        // Mailbox should be empty (or close to it) after processing
-        double mailboxSize = metricsBackend.getGaugeValue("actor.mailbox.size");
-        assertTrue(
-                mailboxSize <= 1,
-                String.format("Mailbox size should be 0 or 1 after processing, got: %.0f", mailboxSize));
+        assertEquals(0, metricsBackend.getGaugeValue("actor.mailbox.size"));
     }
 
     @Test
     void testMailboxTimeIsRecorded() throws Exception {
-        // Wait for system to stabilize
-        Thread.sleep(200);
 
         // Create actor and send message
         ActorRef actor = actorSystem.actorOf(Props.create(FastActor.class), "timer-actor");
@@ -164,8 +149,6 @@ class MailboxModuleIntegrationTest {
 
     @Test
     void testMultipleActorsHaveSeparateMailboxes() throws Exception {
-        // Wait for system to stabilize
-        Thread.sleep(200);
 
         // Create actors of different classes (to get separate gauges per class)
         ActorRef actor1 = actorSystem.actorOf(Props.create(SlowActor.class), "actor-1");
@@ -187,8 +170,6 @@ class MailboxModuleIntegrationTest {
 
     @Test
     void testMailboxMetricsHaveActorClassTag() throws Exception {
-        // Wait for system to stabilize
-        Thread.sleep(200);
 
         // Create actor and send message
         ActorRef actor = actorSystem.actorOf(Props.create(FastActor.class), "tagged-actor");
@@ -240,8 +221,6 @@ class MailboxModuleIntegrationTest {
 
     @Test
     void testMailboxTimeHasMessageTypeTag() throws Exception {
-        // Wait for system to stabilize
-        Thread.sleep(200);
 
         // Create actor and send message
         ActorRef actor = actorSystem.actorOf(Props.create(FastActor.class), "message-type-actor");
@@ -263,6 +242,21 @@ class MailboxModuleIntegrationTest {
                         Thread.sleep(500);
                     })
                     .build();
+        }
+    }
+
+    public static class GatedActor extends AbstractActor {
+        static volatile CountDownLatch gate = new CountDownLatch(0);
+
+        public GatedActor() throws InterruptedException {
+            if (!gate.await(10, TimeUnit.SECONDS)) {
+                throw new IllegalStateException("gate was never opened");
+            }
+        }
+
+        @Override
+        public Receive createReceive() {
+            return receiveBuilder().match(TestMessage.class, msg -> {}).build();
         }
     }
 
