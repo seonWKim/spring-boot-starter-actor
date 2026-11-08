@@ -199,10 +199,17 @@ public final class PekkoActorSystem implements SpringActorSystem, DisposableBean
                                 supervisorStrategy),
                         timeout,
                         actorSystem.scheduler())
-                .thenApply(spawned -> {
+                .thenCompose(spawned -> {
+                    if (spawned.error != null || spawned.ref == null) {
+                        return CompletableFuture.failedFuture(new IllegalStateException(
+                                "Could not spawn " + actorClass.getName() + " with id '" + actorContext.actorId()
+                                        + "': " + (spawned.error == null ? "no actor" : spawned.error.getMessage()),
+                                spawned.error));
+                    }
                     @SuppressWarnings("unchecked")
                     ActorRef<C> typedRef = (ActorRef<C>) spawned.ref;
-                    return new PekkoActorHandle<>(actorSystem.scheduler(), typedRef, defaultActorRefTimeout);
+                    return CompletableFuture.completedFuture(
+                            new PekkoActorHandle<>(actorSystem.scheduler(), typedRef, defaultActorRefTimeout));
                 });
     }
 

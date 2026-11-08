@@ -1,11 +1,14 @@
 package io.github.seonwkim.actor;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.seonwkim.actor.SpringActorSystemTest.TestHelloActor.SayHello;
 import java.time.Duration;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.junit.jupiter.api.Nested;
@@ -468,6 +471,29 @@ class SpringActorSystemTest {
 
             // Custom dispatcher should contain "pekko.actor.my-custom-dispatcher"
             assertThat(dispatcherName).contains("my-custom-dispatcher");
+        }
+
+        @Test
+        void aSpawnThatCannotStartFailsAndTheSystemKeepsWorking(ApplicationContext context) throws Exception {
+            SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
+
+            CompletableFuture<SpringActorHandle<DispatcherTestActor.Command>> failed = actorSystem
+                    .actor(DispatcherTestActor.class)
+                    .withId("unknown-dispatcher-actor")
+                    .withDispatcherFromConfig("no-such-dispatcher")
+                    .spawn()
+                    .toCompletableFuture();
+
+            assertThatThrownBy(() -> failed.get(5, TimeUnit.SECONDS))
+                    .isInstanceOf(ExecutionException.class)
+                    .hasMessageContaining("no-such-dispatcher");
+            assertThat(actorSystem
+                            .actor(TestHelloActor.class)
+                            .withId("after-failed-spawn")
+                            .spawn()
+                            .toCompletableFuture()
+                            .get(5, TimeUnit.SECONDS))
+                    .isNotNull();
         }
     }
 }

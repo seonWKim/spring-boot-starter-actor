@@ -70,18 +70,23 @@ public class DefaultRootGuardian implements RootGuardian {
     public Behavior<RootGuardian.Command> handleSpawnActor(SpawnActor msg) {
         String key = buildActorKey(msg.actorClass, msg.actorContext);
 
-        ActorRef<?> ref = ActorSpawner.spawnActor(
-                ctx,
-                msg.actorClass,
-                msg.actorContext,
-                key,
-                msg.supervisorStrategy,
-                msg.mailboxConfig,
-                msg.dispatcherConfig,
-                msg.tagsConfig,
-                msg.isClusterSingleton);
-
-        msg.replyTo.tell(new Spawned<>(ref));
+        try {
+            ActorRef<?> ref = ActorSpawner.spawnActor(
+                    ctx,
+                    msg.actorClass,
+                    msg.actorContext,
+                    key,
+                    msg.supervisorStrategy,
+                    msg.mailboxConfig,
+                    msg.dispatcherConfig,
+                    msg.tagsConfig,
+                    msg.isClusterSingleton);
+            msg.replyTo.tell(new Spawned<>(ref));
+        } catch (RuntimeException e) {
+            // A bad request (unknown dispatcher, duplicate name, ...) must not stop the guardian:
+            // that would terminate the actor system and leave every pending ask hanging.
+            msg.replyTo.tell(Spawned.failed(e));
+        }
         return Behaviors.same();
     }
 

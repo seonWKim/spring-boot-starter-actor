@@ -135,8 +135,11 @@ public interface RootGuardian {
      * @param <T> The type of messages that the actor can handle
      */
     class Spawned<T> {
-        /** The reference to the spawned actor */
-        public final ActorRef<T> ref;
+        /** The reference to the spawned actor; null when the spawn failed. */
+        @Nullable public final ActorRef<T> ref;
+
+        /** Why the spawn failed; null when it succeeded. */
+        @Nullable public final RuntimeException error;
 
         /**
          * Creates a new Spawned message with the given actor reference.
@@ -145,6 +148,17 @@ public interface RootGuardian {
          */
         public Spawned(ActorRef<T> ref) {
             this.ref = ref;
+            this.error = null;
+        }
+
+        private Spawned(RuntimeException error) {
+            this.ref = null;
+            this.error = error;
+        }
+
+        /** A reply saying the actor could not be spawned. */
+        public static <T> Spawned<T> failed(RuntimeException error) {
+            return new Spawned<>(error);
         }
     }
 
