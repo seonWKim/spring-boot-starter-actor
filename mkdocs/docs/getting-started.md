@@ -106,3 +106,9 @@ Now that you have set up Spring Boot Starter Actor in your project, you can:
 2. [Explore pub/sub topics for distributed messaging](guides/pub-sub-topics.md)
 3. [Create sharded actors for clustered environments](guides/sharded-actors.md)
 4. [Add metrics and monitoring to your actor system](examples/monitoring.md)
+
+## Using an AI assistant
+
+If an AI assistant helps you write code with the starter, point it to [llms.txt](llms.txt).
+It is a short index of these docs, following the [llms.txt](https://llmstxt.org/) convention, with one line per page.
+For the full text of this page and every guide in one file, use [llms-full.txt](https://seonwkim.github.io/spring-boot-starter-actor/llms-full.txt).
