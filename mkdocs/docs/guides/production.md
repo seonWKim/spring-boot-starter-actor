@@ -76,3 +76,83 @@ spring:
 ```
 
 Here the worst case is 10s (`preStop`) + 10s (web drain) + 20s (actor system) = 40s, inside the 45s grace period. If you must keep `terminationGracePeriodSeconds: 30` with a 10s `preStop` sleep, lower `spring.actor.shutdown.timeout` (for example to `15s`) and the web drain timeout so the sum stays under 30s.
+
+## Health checks
+
+With Spring Boot Actuator on the classpath, the starter adds two health indicators to `/actuator/health`. Actuator is optional: without it the starter registers no indicator and the application starts as before.
+
+```kotlin
+implementation("org.springframework.boot:spring-boot-starter-actuator")
+```
+
+| Contributor | When | Status |
+|---|---|---|
+| `actorSystem` | always | `UP` while the actor system runs, `DOWN` once it has terminated |
+| `actorCluster` | cluster mode only (`spring.actor.pekko.actor.provider=cluster`) | `UP` while this member is `Up`; `OUT_OF_SERVICE` while it is joining, leaving or exiting; `DOWN` when it is unreachable, downed or removed |
+
+The `actorCluster` details hold only counts and this node's status, never member addresses:
+
+```json
+"actorCluster": {
+  "status": "UP",
+  "details": { "members": 3, "unreachable": 0, "status": "Up" }
+}
+```
+
+Turn both indicators off with:
+
+```yaml
+management:
+  health:
+    actor:
+      enabled: false   # default: true
+```
+
+### Readiness group
+
+Both indicators join the `readiness` health group by default, next to Spring Boot's `readinessState`. Spring Boot creates the `liveness` and `readiness` groups on Kubernetes, or anywhere with `management.endpoint.health.probes.enabled=true`. A node that is leaving the cluster reports `OUT_OF_SERVICE`, so `/actuator/health/readiness` returns `503` and Kubernetes stops routing traffic to it before it shuts down.
+
+If you set `management.endpoint.health.group.readiness.include` yourself, the starter keeps your list as written; add `actorSystem` and `actorCluster` to it to keep them in the group:
+
+```yaml
+management:
+  endpoint:
+    health:
+      group:
+        readiness:
+          include: readinessState, actorSystem, actorCluster, db
+```
+
+The `liveness` group is left unchanged: a cluster problem should take the pod out of rotation, not restart it.
+
+### Kubernetes probes
+
+```yaml
+management:
+  endpoint:
+    health:
+      probes:
+        enabled: true   # on by default when running on Kubernetes
+```
+
+```yaml
+spec:
+  containers:
+    - name: app
+      livenessProbe:
+        httpGet:
+          path: /actuator/health/liveness
+          port: 8080
+        initialDelaySeconds: 10
+        periodSeconds: 10
+        failureThreshold: 3
+      readinessProbe:
+        httpGet:
+          path: /actuator/health/readiness
+          port: 8080
+        initialDelaySeconds: 5
+        periodSeconds: 5
+        failureThreshold: 3
+```
+
+Keep the readiness `periodSeconds × failureThreshold` shorter than the `preStop` sleep above, so the pod is out of the load balancer before the application starts shutting down. In cluster mode a new pod reports `OUT_OF_SERVICE` until it has joined the cluster and become `Up`, so it gets no traffic before it can reach sharded entities and singletons.
