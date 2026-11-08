@@ -4,11 +4,6 @@ import io.github.seonwkim.actor.shard.SpringShardedActor;
 import io.github.seonwkim.actor.shard.SpringShardedActorBuilder;
 import java.time.Duration;
 import java.util.concurrent.CompletionStage;
-import javax.annotation.Nullable;
-import org.apache.pekko.actor.typed.*;
-import org.apache.pekko.cluster.sharding.typed.javadsl.ClusterSharding;
-import org.apache.pekko.cluster.typed.Cluster;
-import org.apache.pekko.cluster.typed.ClusterSingleton;
 
 /**
  * A wrapper around Pekko's ActorSystem that provides methods for spawning actors and getting
@@ -50,22 +45,6 @@ public interface SpringActorSystem {
      * @throws IllegalArgumentException when the actor system has no object of that type
      */
     <X> X unwrap(Class<X> type);
-
-    /**
-     * Returns the Pekko Cluster if this SpringActorSystem is in cluster mode.
-     *
-     * @return The Pekko Cluster, or null if this SpringActorSystem is in local mode
-     */
-    @Nullable Cluster getCluster();
-
-    @Nullable ClusterSharding getClusterSharding();
-
-    /**
-     * Returns the Pekko ClusterSingleton if this SpringActorSystem is in cluster mode.
-     *
-     * @return The Pekko ClusterSingleton, or null if this SpringActorSystem is in local mode
-     */
-    @Nullable ClusterSingleton getClusterSingleton();
 
     /**
      * Creates a fluent builder for configuring and spawning an actor with the given actor class.

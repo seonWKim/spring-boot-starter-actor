@@ -10,19 +10,16 @@ import io.github.seonwkim.actor.internal.DefaultSpringActorContext;
 import io.github.seonwkim.actor.internal.PekkoActorSystem;
 import io.github.seonwkim.actor.internal.RootGuardian;
 import io.github.seonwkim.actor.internal.RootGuardianSupplierWrapper;
-import io.github.seonwkim.actor.internal.shard.DefaultShardingMessageExtractor;
+import io.github.seonwkim.actor.internal.shard.ShardedActorRegistry;
 import io.github.seonwkim.actor.shard.*;
-import io.github.seonwkim.actor.shard.ShardEnvelope;
-import io.github.seonwkim.actor.shard.ShardedActorRegistry;
+import io.github.seonwkim.actor.shard.ShardedEntityType;
+import io.github.seonwkim.actor.shard.ShardingStrategy;
 import io.github.seonwkim.actor.shard.SpringShardedActor;
-import io.github.seonwkim.actor.shard.SpringShardedActorBehavior;
 import io.github.seonwkim.actor.shard.SpringShardedActorContext;
 import io.github.seonwkim.test.CustomOverrideConfiguration;
 import io.github.seonwkim.test.CustomTestRootGuardian;
 import org.apache.pekko.actor.typed.Behavior;
-import org.apache.pekko.actor.typed.javadsl.Behaviors;
-import org.apache.pekko.cluster.sharding.typed.ShardingMessageExtractor;
-import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
+import org.apache.pekko.cluster.typed.Cluster;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -115,7 +112,7 @@ public class ActorAutoConfigurationTest {
         @Test
         void clusterShouldBeConfigured(ApplicationContext context) {
             SpringActorSystem springActorSystem = context.getBean(SpringActorSystem.class);
-            assertNotNull(springActorSystem.getCluster());
+            assertNotNull(springActorSystem.unwrap(Cluster.class));
         }
     }
 
@@ -159,8 +156,8 @@ public class ActorAutoConfigurationTest {
 
         private final SpringActorSystem actorSystem;
 
-        public static final EntityTypeKey<Command> TYPE_KEY =
-                EntityTypeKey.create(Command.class, "ShardedActorWithSystemInjection");
+        public static final ShardedEntityType<Command> TYPE_KEY =
+                ShardedEntityType.of(Command.class, "ShardedActorWithSystemInjection");
 
         public ShardedActorWithSystemInjection(SpringActorSystem actorSystem) {
             this.actorSystem = actorSystem;
@@ -171,23 +168,23 @@ public class ActorAutoConfigurationTest {
         public static class GetSystemName implements Command {}
 
         @Override
-        public EntityTypeKey<Command> typeKey() {
+        public ShardedEntityType<Command> entityType() {
             return TYPE_KEY;
         }
 
         @Override
-        public SpringShardedActorBehavior<Command> create(SpringShardedActorContext<Command> ctx) {
-            return SpringShardedActorBehavior.builder(Command.class, ctx)
+        public SpringActorBehavior<Command> create(SpringShardedActorContext<Command> ctx) {
+            return SpringActorBehavior.builder(Command.class, ctx)
                     .onMessage(GetSystemName.class, (context, msg) -> {
                         context.getLog().info("Sharded actor system name: {}", actorSystem.getName());
-                        return Behaviors.same();
+                        return SpringActorBehavior.same();
                     })
                     .build();
         }
 
         @Override
-        public ShardingMessageExtractor<ShardEnvelope<Command>, Command> extractor() {
-            return new DefaultShardingMessageExtractor<>(5);
+        public ShardingStrategy sharding() {
+            return ShardingStrategy.hashed(5);
         }
 
         public SpringActorSystem getActorSystem() {

@@ -4,19 +4,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
-import io.github.seonwkim.actor.internal.shard.DefaultShardingMessageExtractor;
 import io.github.seonwkim.actor.serialization.JsonSerializable;
-import io.github.seonwkim.actor.shard.ShardEnvelope;
+import io.github.seonwkim.actor.shard.ShardedEntityType;
+import io.github.seonwkim.actor.shard.ShardingStrategy;
 import io.github.seonwkim.actor.shard.SpringShardedActor;
-import io.github.seonwkim.actor.shard.SpringShardedActorBehavior;
 import io.github.seonwkim.actor.shard.SpringShardedActorContext;
 import io.github.seonwkim.actor.shard.SpringShardedActorHandle;
 import java.time.Duration;
 import java.util.Optional;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
-import org.apache.pekko.actor.typed.javadsl.Behaviors;
-import org.apache.pekko.cluster.sharding.typed.ShardingMessageExtractor;
-import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
+import org.apache.pekko.cluster.typed.Cluster;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
@@ -95,8 +92,8 @@ public class RoleBasedClusterShardingTest extends AbstractClusterTest {
      * with the "worker" role. On other nodes, a proxy will be created instead.
      */
     public static class WorkerRoleShardedActor implements SpringShardedActor<WorkerRoleShardedActor.Command> {
-        public static final EntityTypeKey<Command> TYPE_KEY =
-                EntityTypeKey.create(Command.class, "WorkerRoleShardedActor");
+        public static final ShardedEntityType<Command> TYPE_KEY =
+                ShardedEntityType.of(Command.class, "WorkerRoleShardedActor");
 
         public interface Command extends JsonSerializable {}
 
@@ -112,7 +109,7 @@ public class RoleBasedClusterShardingTest extends AbstractClusterTest {
         public static class GetNodeInfo extends GetNodeInfoCommand<Command> implements Command {}
 
         @Override
-        public EntityTypeKey<Command> typeKey() {
+        public ShardedEntityType<Command> entityType() {
             return TYPE_KEY;
         }
 
@@ -122,12 +119,12 @@ public class RoleBasedClusterShardingTest extends AbstractClusterTest {
         }
 
         @Override
-        public SpringShardedActorBehavior<Command> create(SpringShardedActorContext<Command> ctx) {
-            return SpringShardedActorBehavior.builder(Command.class, ctx)
+        public SpringActorBehavior<Command> create(SpringShardedActorContext<Command> ctx) {
+            return SpringActorBehavior.builder(Command.class, ctx)
                     .withState(context -> new ActorState(context, ctx.getEntityId()))
                     .onMessage(Process.class, (state, msg) -> {
                         state.context.getLog().info("Worker actor {} processed task: {}", state.entityId, msg.task);
-                        return Behaviors.same();
+                        return SpringActorBehavior.same();
                     })
                     .onMessage(GetNodeInfo.class, (state, cmd) -> {
                         // Get the address from the actor system (this is the node's address)
@@ -138,7 +135,7 @@ public class RoleBasedClusterShardingTest extends AbstractClusterTest {
                                 .toString();
                         int port = RoleBasedClusterShardingTest.extractPortFromAddress(address);
                         cmd.reply(new RoleBasedClusterShardingTest.NodeInfo(address, port));
-                        return Behaviors.same();
+                        return SpringActorBehavior.same();
                     })
                     .build();
         }
@@ -154,8 +151,8 @@ public class RoleBasedClusterShardingTest extends AbstractClusterTest {
         }
 
         @Override
-        public ShardingMessageExtractor<ShardEnvelope<Command>, Command> extractor() {
-            return new DefaultShardingMessageExtractor<>(SHARD_COUNT);
+        public ShardingStrategy sharding() {
+            return ShardingStrategy.hashed(SHARD_COUNT);
         }
     }
 
@@ -164,8 +161,8 @@ public class RoleBasedClusterShardingTest extends AbstractClusterTest {
      * nodes with the "coordinator" role. On other nodes, a proxy will be created instead.
      */
     public static class CoordinatorRoleShardedActor implements SpringShardedActor<CoordinatorRoleShardedActor.Command> {
-        public static final EntityTypeKey<Command> TYPE_KEY =
-                EntityTypeKey.create(Command.class, "CoordinatorRoleShardedActor");
+        public static final ShardedEntityType<Command> TYPE_KEY =
+                ShardedEntityType.of(Command.class, "CoordinatorRoleShardedActor");
 
         public interface Command extends JsonSerializable {}
 
@@ -181,7 +178,7 @@ public class RoleBasedClusterShardingTest extends AbstractClusterTest {
         public static class GetNodeInfo extends GetNodeInfoCommand<Command> implements Command {}
 
         @Override
-        public EntityTypeKey<Command> typeKey() {
+        public ShardedEntityType<Command> entityType() {
             return TYPE_KEY;
         }
 
@@ -191,14 +188,14 @@ public class RoleBasedClusterShardingTest extends AbstractClusterTest {
         }
 
         @Override
-        public SpringShardedActorBehavior<Command> create(SpringShardedActorContext<Command> ctx) {
-            return SpringShardedActorBehavior.builder(Command.class, ctx)
+        public SpringActorBehavior<Command> create(SpringShardedActorContext<Command> ctx) {
+            return SpringActorBehavior.builder(Command.class, ctx)
                     .withState(context -> new ActorState(context, ctx.getEntityId()))
                     .onMessage(Coordinate.class, (state, msg) -> {
                         state.context
                                 .getLog()
                                 .info("Coordinator actor {} coordinated operation: {}", state.entityId, msg.operation);
-                        return Behaviors.same();
+                        return SpringActorBehavior.same();
                     })
                     .onMessage(GetNodeInfo.class, (state, cmd) -> {
                         // Get the address from the actor system (this is the node's address)
@@ -209,7 +206,7 @@ public class RoleBasedClusterShardingTest extends AbstractClusterTest {
                                 .toString();
                         int port = RoleBasedClusterShardingTest.extractPortFromAddress(address);
                         cmd.reply(new RoleBasedClusterShardingTest.NodeInfo(address, port));
-                        return Behaviors.same();
+                        return SpringActorBehavior.same();
                     })
                     .build();
         }
@@ -225,8 +222,8 @@ public class RoleBasedClusterShardingTest extends AbstractClusterTest {
         }
 
         @Override
-        public ShardingMessageExtractor<ShardEnvelope<Command>, Command> extractor() {
-            return new DefaultShardingMessageExtractor<>(SHARD_COUNT);
+        public ShardingStrategy sharding() {
+            return ShardingStrategy.hashed(SHARD_COUNT);
         }
     }
 
@@ -278,9 +275,13 @@ public class RoleBasedClusterShardingTest extends AbstractClusterTest {
 
         // Get the artery ports for each node from the cluster configuration
         int workerPort = (Integer)
-                systemWorker.getCluster().selfMember().address().port().get();
-        int coordinatorPort = (Integer)
-                systemCoordinator.getCluster().selfMember().address().port().get();
+                systemWorker.unwrap(Cluster.class).selfMember().address().port().get();
+        int coordinatorPort = (Integer) systemCoordinator
+                .unwrap(Cluster.class)
+                .selfMember()
+                .address()
+                .port()
+                .get();
 
         // Test WorkerRoleShardedActor - create multiple entities with different IDs
         // This ensures entities are distributed across different shards, but all still

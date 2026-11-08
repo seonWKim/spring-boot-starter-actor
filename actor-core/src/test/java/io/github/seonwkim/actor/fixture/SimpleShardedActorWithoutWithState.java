@@ -1,15 +1,12 @@
 package io.github.seonwkim.actor.fixture;
 
 import io.github.seonwkim.actor.AskCommand;
-import io.github.seonwkim.actor.internal.shard.DefaultShardingMessageExtractor;
+import io.github.seonwkim.actor.SpringActorBehavior;
 import io.github.seonwkim.actor.serialization.JsonSerializable;
-import io.github.seonwkim.actor.shard.ShardEnvelope;
+import io.github.seonwkim.actor.shard.ShardedEntityType;
+import io.github.seonwkim.actor.shard.ShardingStrategy;
 import io.github.seonwkim.actor.shard.SpringShardedActor;
-import io.github.seonwkim.actor.shard.SpringShardedActorBehavior;
 import io.github.seonwkim.actor.shard.SpringShardedActorContext;
-import org.apache.pekko.actor.typed.javadsl.Behaviors;
-import org.apache.pekko.cluster.sharding.typed.ShardingMessageExtractor;
-import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
 
 /**
  * Test sharded actor that demonstrates building a sharded actor WITHOUT using withState().
@@ -18,8 +15,8 @@ import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
 public class SimpleShardedActorWithoutWithState
         implements SpringShardedActor<SimpleShardedActorWithoutWithState.Command> {
 
-    public static final EntityTypeKey<Command> TYPE_KEY =
-            EntityTypeKey.create(Command.class, "SimpleShardedActorWithoutWithState");
+    public static final ShardedEntityType<Command> TYPE_KEY =
+            ShardedEntityType.of(Command.class, "SimpleShardedActorWithoutWithState");
 
     public interface Command extends JsonSerializable {}
 
@@ -36,30 +33,30 @@ public class SimpleShardedActorWithoutWithState
     }
 
     @Override
-    public EntityTypeKey<Command> typeKey() {
+    public ShardedEntityType<Command> entityType() {
         return TYPE_KEY;
     }
 
     @Override
-    public SpringShardedActorBehavior<Command> create(SpringShardedActorContext<Command> ctx) {
+    public SpringActorBehavior<Command> create(SpringShardedActorContext<Command> ctx) {
         final String entityId = ctx.getEntityId();
 
-        return SpringShardedActorBehavior.builder(Command.class, ctx)
+        return SpringActorBehavior.builder(Command.class, ctx)
                 // No withState() - message handlers work directly with ActorContext
                 .onMessage(Echo.class, (actorCtx, msg) -> {
                     actorCtx.getLog().info("Entity {} received echo: {}", entityId, msg.message);
                     msg.reply("Echo from entity [" + entityId + "]: " + msg.message);
-                    return Behaviors.same();
+                    return SpringActorBehavior.same();
                 })
                 .onMessage(GetEntityId.class, (actorCtx, msg) -> {
                     msg.reply(entityId);
-                    return Behaviors.same();
+                    return SpringActorBehavior.same();
                 })
                 .build();
     }
 
     @Override
-    public ShardingMessageExtractor<ShardEnvelope<Command>, Command> extractor() {
-        return new DefaultShardingMessageExtractor<>(5);
+    public ShardingStrategy sharding() {
+        return ShardingStrategy.hashed(5);
     }
 }

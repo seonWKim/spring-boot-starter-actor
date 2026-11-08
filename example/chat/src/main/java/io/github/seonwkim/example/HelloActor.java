@@ -1,14 +1,12 @@
 package io.github.seonwkim.example;
 
 import io.github.seonwkim.actor.AskCommand;
+import io.github.seonwkim.actor.SpringActorBehavior;
 import io.github.seonwkim.actor.serialization.JsonSerializable;
+import io.github.seonwkim.actor.shard.ShardedEntityType;
 import io.github.seonwkim.actor.shard.SpringShardedActor;
-import io.github.seonwkim.actor.shard.SpringShardedActorBehavior;
 import io.github.seonwkim.actor.shard.SpringShardedActorContext;
-import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
-import org.apache.pekko.actor.typed.javadsl.Behaviors;
-import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
 import org.springframework.stereotype.Component;
 
 /**
@@ -18,7 +16,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class HelloActor implements SpringShardedActor<HelloActor.Command> {
 
-    public static final EntityTypeKey<Command> TYPE_KEY = EntityTypeKey.create(Command.class, "HelloActor");
+    public static final ShardedEntityType<Command> TYPE_KEY = ShardedEntityType.of(Command.class, "HelloActor");
 
     /** Base interface for all commands that can be sent to the hello actor. */
     public interface Command extends JsonSerializable {}
@@ -33,7 +31,7 @@ public class HelloActor implements SpringShardedActor<HelloActor.Command> {
     }
 
     @Override
-    public EntityTypeKey<Command> typeKey() {
+    public ShardedEntityType<Command> entityType() {
         return TYPE_KEY;
     }
 
@@ -44,10 +42,10 @@ public class HelloActor implements SpringShardedActor<HelloActor.Command> {
      * @return The behavior for the actor
      */
     @Override
-    public SpringShardedActorBehavior<Command> create(SpringShardedActorContext<Command> ctx) {
+    public SpringActorBehavior<Command> create(SpringShardedActorContext<Command> ctx) {
         final String entityId = ctx.getEntityId();
 
-        return SpringShardedActorBehavior.builder(Command.class, ctx)
+        return SpringActorBehavior.builder(Command.class, ctx)
                 .withState(actorCtx -> new HelloActorBehavior(actorCtx.unwrap(ActorContext.class), entityId))
                 .onMessage(SayHello.class, (state, msg) -> state.onSayHello(msg))
                 .build();
@@ -71,7 +69,7 @@ public class HelloActor implements SpringShardedActor<HelloActor.Command> {
          * @param msg The SayHello message
          * @return The next behavior (same in this case)
          */
-        private Behavior<Command> onSayHello(SayHello msg) {
+        private SpringActorBehavior<Command> onSayHello(SayHello msg) {
             // Get information about the current node and entity
             final String nodeAddress = ctx.getSystem().address().toString();
 
@@ -84,7 +82,7 @@ public class HelloActor implements SpringShardedActor<HelloActor.Command> {
             // Log the message for debugging
             ctx.getLog().info(message);
 
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
     }
 }

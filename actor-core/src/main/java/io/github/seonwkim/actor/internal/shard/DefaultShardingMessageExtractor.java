@@ -23,20 +23,7 @@ import org.apache.pekko.cluster.sharding.typed.ShardingMessageExtractor;
  */
 public class DefaultShardingMessageExtractor<T> extends ShardingMessageExtractor<ShardEnvelope<T>, T> {
 
-    /**
-     * Default number of shards (100). This value provides a good balance for most use cases,
-     * supporting up to ~10,000 entities with good distribution.
-     */
-    public static final int DEFAULT_SHARDS = 100;
-
     private final int numberOfShards;
-
-    /**
-     * Creates a new DefaultShardingMessageExtractor with the default number of shards (100).
-     */
-    public DefaultShardingMessageExtractor() {
-        this(DEFAULT_SHARDS);
-    }
 
     /**
      * Creates a new DefaultShardingMessageExtractor with the given number of shards.

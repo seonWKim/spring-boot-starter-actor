@@ -2,19 +2,15 @@ package io.github.seonwkim.actor;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import io.github.seonwkim.actor.internal.shard.DefaultShardingMessageExtractor;
 import io.github.seonwkim.actor.serialization.CborSerializable;
 import io.github.seonwkim.actor.serialization.JsonSerializable;
 import io.github.seonwkim.actor.shard.*;
-import io.github.seonwkim.actor.shard.ShardEnvelope;
+import io.github.seonwkim.actor.shard.ShardedEntityType;
+import io.github.seonwkim.actor.shard.ShardingStrategy;
 import io.github.seonwkim.actor.shard.SpringShardedActor;
-import io.github.seonwkim.actor.shard.SpringShardedActorBehavior;
 import io.github.seonwkim.actor.shard.SpringShardedActorContext;
 import io.github.seonwkim.actor.shard.SpringShardedActorHandle;
 import java.time.Duration;
-import org.apache.pekko.actor.typed.javadsl.Behaviors;
-import org.apache.pekko.cluster.sharding.typed.ShardingMessageExtractor;
-import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
@@ -40,8 +36,8 @@ public class SerializationClusterTest extends AbstractClusterTest {
      */
     public static class SerializationTestActor implements SpringShardedActor<SerializationTestActor.Command> {
 
-        public static final EntityTypeKey<SerializationTestActor.Command> TYPE_KEY =
-                EntityTypeKey.create(SerializationTestActor.Command.class, "SerializationTestActor");
+        public static final ShardedEntityType<SerializationTestActor.Command> TYPE_KEY =
+                ShardedEntityType.of(SerializationTestActor.Command.class, "SerializationTestActor");
 
         // Base command interface
         public interface Command {}
@@ -133,14 +129,14 @@ public class SerializationClusterTest extends AbstractClusterTest {
         }
 
         @Override
-        public EntityTypeKey<SerializationTestActor.Command> typeKey() {
+        public ShardedEntityType<SerializationTestActor.Command> entityType() {
             return TYPE_KEY;
         }
 
         @Override
-        public SpringShardedActorBehavior<SerializationTestActor.Command> create(
+        public SpringActorBehavior<SerializationTestActor.Command> create(
                 SpringShardedActorContext<SerializationTestActor.Command> ctx) {
-            return SpringShardedActorBehavior.builder(SerializationTestActor.Command.class, ctx)
+            return SpringActorBehavior.builder(SerializationTestActor.Command.class, ctx)
                     .withState(context -> new SerializationTestActor.ActorState(context, ctx.getEntityId()))
                     .onMessage(SerializationTestActor.JsonMessageWithoutRef.class, (state, msg) -> {
                         state.jsonMessagesReceived++;
@@ -152,7 +148,7 @@ public class SerializationClusterTest extends AbstractClusterTest {
                                         msg.data,
                                         msg.value,
                                         state.jsonMessagesReceived);
-                        return Behaviors.same();
+                        return SpringActorBehavior.same();
                     })
                     .onMessage(SerializationTestActor.JsonMessageWithRef.class, (state, msg) -> {
                         state.jsonMessagesReceived++;
@@ -166,7 +162,7 @@ public class SerializationClusterTest extends AbstractClusterTest {
                                         state.jsonMessagesReceived);
                         // Reply with processed data
                         msg.reply(new SerializationTestActor.JsonResponse("Processed: " + msg.data, msg.value * 2));
-                        return Behaviors.same();
+                        return SpringActorBehavior.same();
                     })
                     .onMessage(SerializationTestActor.CborMessageWithoutRef.class, (state, msg) -> {
                         state.cborMessagesReceived++;
@@ -178,7 +174,7 @@ public class SerializationClusterTest extends AbstractClusterTest {
                                         msg.data,
                                         msg.value,
                                         state.cborMessagesReceived);
-                        return Behaviors.same();
+                        return SpringActorBehavior.same();
                     })
                     .onMessage(SerializationTestActor.CborMessageWithRef.class, (state, msg) -> {
                         state.cborMessagesReceived++;
@@ -192,15 +188,14 @@ public class SerializationClusterTest extends AbstractClusterTest {
                                         state.cborMessagesReceived);
                         // Reply with processed data
                         msg.reply(new SerializationTestActor.CborResponse("Processed: " + msg.data, msg.value * 2));
-                        return Behaviors.same();
+                        return SpringActorBehavior.same();
                     })
                     .build();
         }
 
         @Override
-        public ShardingMessageExtractor<ShardEnvelope<SerializationTestActor.Command>, SerializationTestActor.Command>
-                extractor() {
-            return new DefaultShardingMessageExtractor<>(5);
+        public ShardingStrategy sharding() {
+            return ShardingStrategy.hashed(5);
         }
     }
 

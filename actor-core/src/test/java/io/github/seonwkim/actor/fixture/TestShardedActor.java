@@ -2,20 +2,17 @@ package io.github.seonwkim.actor.fixture;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import io.github.seonwkim.actor.AskCommand;
+import io.github.seonwkim.actor.SpringActorBehavior;
 import io.github.seonwkim.actor.SpringBehaviorContext;
-import io.github.seonwkim.actor.internal.shard.DefaultShardingMessageExtractor;
 import io.github.seonwkim.actor.serialization.JsonSerializable;
-import io.github.seonwkim.actor.shard.ShardEnvelope;
+import io.github.seonwkim.actor.shard.ShardedEntityType;
+import io.github.seonwkim.actor.shard.ShardingStrategy;
 import io.github.seonwkim.actor.shard.SpringShardedActor;
-import io.github.seonwkim.actor.shard.SpringShardedActorBehavior;
 import io.github.seonwkim.actor.shard.SpringShardedActorContext;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.pekko.actor.typed.javadsl.Behaviors;
-import org.apache.pekko.cluster.sharding.typed.ShardingMessageExtractor;
-import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
 
 public class TestShardedActor implements SpringShardedActor<TestShardedActor.Command> {
-    public static final EntityTypeKey<Command> TYPE_KEY = EntityTypeKey.create(Command.class, "TestShardedActor");
+    public static final ShardedEntityType<Command> TYPE_KEY = ShardedEntityType.of(Command.class, "TestShardedActor");
 
     public interface Command extends JsonSerializable {}
 
@@ -46,22 +43,22 @@ public class TestShardedActor implements SpringShardedActor<TestShardedActor.Com
     }
 
     @Override
-    public EntityTypeKey<Command> typeKey() {
+    public ShardedEntityType<Command> entityType() {
         return TYPE_KEY;
     }
 
     @Override
-    public SpringShardedActorBehavior<Command> create(SpringShardedActorContext<Command> ctx) {
-        return SpringShardedActorBehavior.builder(Command.class, ctx)
+    public SpringActorBehavior<Command> create(SpringShardedActorContext<Command> ctx) {
+        return SpringActorBehavior.builder(Command.class, ctx)
                 .withState(context -> new ActorState(context, ctx.getEntityId()))
                 .onMessage(Ping.class, (state, msg) -> {
                     state.counter.incrementAndGet();
                     state.context.getLog().info("entityId: {} received message: {}", state.entityId, msg.message);
-                    return Behaviors.same();
+                    return SpringActorBehavior.same();
                 })
                 .onMessage(GetState.class, (state, cmd) -> {
                     cmd.reply(new State(state.counter.get()));
-                    return Behaviors.same();
+                    return SpringActorBehavior.same();
                 })
                 .build();
     }
@@ -79,7 +76,7 @@ public class TestShardedActor implements SpringShardedActor<TestShardedActor.Com
     }
 
     @Override
-    public ShardingMessageExtractor<ShardEnvelope<Command>, Command> extractor() {
-        return new DefaultShardingMessageExtractor<>(5);
+    public ShardingStrategy sharding() {
+        return ShardingStrategy.hashed(5);
     }
 }

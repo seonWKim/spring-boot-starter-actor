@@ -1,16 +1,14 @@
 package io.github.seonwkim.example;
 
+import io.github.seonwkim.actor.SpringActorBehavior;
 import io.github.seonwkim.actor.SpringActorRef;
 import io.github.seonwkim.actor.SpringBehaviorContext;
 import io.github.seonwkim.actor.serialization.JsonSerializable;
+import io.github.seonwkim.actor.shard.ShardedEntityType;
 import io.github.seonwkim.actor.shard.SpringShardedActor;
-import io.github.seonwkim.actor.shard.SpringShardedActorBehavior;
 import io.github.seonwkim.actor.shard.SpringShardedActorContext;
 import io.github.seonwkim.actor.topic.SpringTopicManager;
 import io.github.seonwkim.actor.topic.SpringTopicRef;
-import org.apache.pekko.actor.typed.Behavior;
-import org.apache.pekko.actor.typed.javadsl.Behaviors;
-import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
 import org.springframework.stereotype.Component;
 
 /**
@@ -33,7 +31,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> {
 
-    public static final EntityTypeKey<Command> TYPE_KEY = EntityTypeKey.create(Command.class, "ChatRoomActor");
+    public static final ShardedEntityType<Command> TYPE_KEY = ShardedEntityType.of(Command.class, "ChatRoomActor");
 
     private final SpringTopicManager topicManager;
 
@@ -78,19 +76,19 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
     }
 
     @Override
-    public EntityTypeKey<Command> typeKey() {
+    public ShardedEntityType<Command> entityType() {
         return TYPE_KEY;
     }
 
     @Override
-    public SpringShardedActorBehavior<Command> create(SpringShardedActorContext<Command> ctx) {
+    public SpringActorBehavior<Command> create(SpringShardedActorContext<Command> ctx) {
         final String roomId = ctx.getEntityId();
         final SpringTopicRef<UserActor.Command> roomTopic = topicManager
                 .topic(UserActor.Command.class)
                 .withName("chat-room-" + roomId)
                 .getOrCreate();
 
-        return SpringShardedActorBehavior.builder(Command.class, ctx)
+        return SpringActorBehavior.builder(Command.class, ctx)
                 .withState(behaviorCtx -> new ChatRoomBehavior(behaviorCtx, roomId, roomTopic))
                 .onMessage(JoinRoom.class, ChatRoomBehavior::onJoinRoom)
                 .onMessage(LeaveRoom.class, ChatRoomBehavior::onLeaveRoom)
@@ -121,7 +119,7 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
          * @param msg The JoinRoom message
          * @return The next behavior (same in this case)
          */
-        private Behavior<Command> onJoinRoom(JoinRoom msg) {
+        private SpringActorBehavior<Command> onJoinRoom(JoinRoom msg) {
 
             // Subscribe the user to the room topic
             roomTopic.subscribe(msg.userActorRef);
@@ -132,7 +130,7 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
             UserActor.JoinRoomEvent joinRoomEvent = new UserActor.JoinRoomEvent(msg.userId);
             roomTopic.publish(joinRoomEvent);
 
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
 
         /**
@@ -141,7 +139,7 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
          * @param msg The LeaveRoom message
          * @return The next behavior (same in this case)
          */
-        private Behavior<Command> onLeaveRoom(LeaveRoom msg) {
+        private SpringActorBehavior<Command> onLeaveRoom(LeaveRoom msg) {
 
             // Unsubscribe the user from the topic
             roomTopic.unsubscribe(msg.userActorRef);
@@ -152,7 +150,7 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
             UserActor.LeaveRoomEvent leaveRoomEvent = new UserActor.LeaveRoomEvent(msg.userId);
             roomTopic.publish(leaveRoomEvent);
 
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
 
         /**
@@ -161,7 +159,7 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
          * @param msg The SendMessage message
          * @return The next behavior (same in this case)
          */
-        private Behavior<Command> onSendMessage(SendMessage msg) {
+        private SpringActorBehavior<Command> onSendMessage(SendMessage msg) {
             ctx.getLog().debug("Broadcasting message from {} in room {}", msg.userId, roomId);
 
             // Create a message event
@@ -170,7 +168,7 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
             // Publish the message to all subscribers via the topic
             roomTopic.publish(messageEvent);
 
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
     }
 }

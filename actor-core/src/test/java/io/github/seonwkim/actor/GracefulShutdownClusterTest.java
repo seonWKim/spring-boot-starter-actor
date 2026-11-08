@@ -5,15 +5,13 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-import io.github.seonwkim.actor.behavior.ClusterEventBehavior.ClusterDomainWrappedEvent;
+import io.github.seonwkim.actor.cluster.ClusterEvent;
+import io.github.seonwkim.actor.cluster.MemberStatus;
 import io.github.seonwkim.actor.internal.PekkoActorSystem;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
-import org.apache.pekko.actor.Address;
-import org.apache.pekko.cluster.ClusterEvent;
-import org.apache.pekko.cluster.MemberStatus;
 import org.apache.pekko.cluster.typed.Cluster;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -39,11 +37,11 @@ class GracefulShutdownClusterTest {
     }
 
     public static class MembershipEvents {
-        final List<ClusterEvent.ClusterDomainEvent> events = new CopyOnWriteArrayList<>();
+        final List<ClusterEvent> events = new CopyOnWriteArrayList<>();
 
         @EventListener
-        public void on(ClusterDomainWrappedEvent event) {
-            events.add(event.getEvent());
+        public void on(ClusterEvent event) {
+            events.add(event);
         }
     }
 
@@ -69,18 +67,18 @@ class GracefulShutdownClusterTest {
         node1 = startNode(port1, seeds);
         node2 = startNode(port2, seeds);
 
-        Cluster cluster1 = context(node1).getCluster();
+        Cluster cluster1 = context(node1).unwrap(Cluster.class);
         assertThat(cluster1).isNotNull();
         await().atMost(20, SECONDS)
                 .pollInterval(200, MILLISECONDS)
                 .until(() -> cluster1.state()
                                 .members()
-                                .filter(m -> m.status() == MemberStatus.up())
+                                .filter(m -> m.status() == org.apache.pekko.cluster.MemberStatus.up())
                                 .size()
                         == 2);
 
         SpringActorSystem system2 = context(node2);
-        Address address2 = system2.getCluster().selfMember().address();
+        String address2 = system2.unwrap(Cluster.class).selfMember().address().toString();
         MembershipEvents events1 = node1.getBean(MembershipEvents.class);
 
         node2.close();
@@ -100,9 +98,9 @@ class GracefulShutdownClusterTest {
                 .filter(e -> e.member().address().equals(address2))
                 .findFirst()
                 .orElseThrow();
-        assertThat(removed.member().status()).isEqualTo(MemberStatus.removed());
+        assertThat(removed.member().status()).isEqualTo(MemberStatus.REMOVED);
         // Graceful leave goes Leaving -> Exiting -> Removed; a crashed node would be Down first.
-        assertThat(removed.previousStatus()).isEqualTo(MemberStatus.exiting());
+        assertThat(removed.previousStatus()).isEqualTo(MemberStatus.EXITING);
         assertThat(events1.events)
                 .noneMatch(e -> e instanceof ClusterEvent.UnreachableMember
                         && ((ClusterEvent.UnreachableMember) e)

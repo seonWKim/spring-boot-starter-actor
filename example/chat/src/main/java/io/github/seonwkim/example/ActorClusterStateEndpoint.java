@@ -22,7 +22,7 @@ public class ActorClusterStateEndpoint {
 
     @ReadOperation
     public Map<String, Object> getClusterState() {
-        Cluster cluster = springActorSystem.getCluster();
+        Cluster cluster = springActorSystem.unwrap(Cluster.class);
         if (cluster == null) {
             return Map.of();
         }

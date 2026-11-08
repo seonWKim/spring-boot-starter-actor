@@ -222,7 +222,7 @@ public abstract class AbstractClusterTest {
      * @throws AssertionError if the cluster doesn't initialize within the timeout
      */
     protected void waitUntilClusterInitialized() {
-        Cluster cluster = context1.getBean(SpringActorSystem.class).getCluster();
+        Cluster cluster = context1.getBean(SpringActorSystem.class).unwrap(Cluster.class);
         // Wait until all 3 cluster nodes are UP
         await().atMost(10, SECONDS).pollInterval(200, TimeUnit.MILLISECONDS).until(() -> {
             Assertions.assertNotNull(cluster);
@@ -241,7 +241,7 @@ public abstract class AbstractClusterTest {
      * @param expectedNodeCount The expected number of nodes in UP state
      */
     protected void waitUntilClusterHasMembers(int expectedNodeCount) {
-        Cluster cluster = context1.getBean(SpringActorSystem.class).getCluster();
+        Cluster cluster = context1.getBean(SpringActorSystem.class).unwrap(Cluster.class);
         await().atMost(10, SECONDS).pollInterval(200, TimeUnit.MILLISECONDS).until(() -> {
             Assertions.assertNotNull(cluster);
             return cluster.state()

@@ -63,7 +63,7 @@ public class PekkoManagementAutoConfiguration {
     @PostConstruct
     public void startManagement() {
         // Only start management if in cluster mode
-        if (actorSystem.getCluster() == null) {
+        if (!actorSystem.isClusterMode()) {
             log.debug("Pekko Management not started - actor system is not in cluster mode");
             return;
         }

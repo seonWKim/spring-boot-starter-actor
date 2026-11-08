@@ -3,7 +3,9 @@ package io.github.seonwkim.actor;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.seonwkim.actor.behavior.ClusterEventBehavior.ClusterDomainWrappedEvent;
+import io.github.seonwkim.actor.cluster.ClusterEvent;
+import io.github.seonwkim.actor.cluster.ClusterEvent.MemberLeft;
+import io.github.seonwkim.actor.cluster.ClusterEvent.MemberUp;
 import io.github.seonwkim.actor.fixture.SimpleShardedActorWithoutWithState;
 import io.github.seonwkim.actor.fixture.TestShardedActor;
 import io.github.seonwkim.actor.fixture.TestShardedActor.GetState;
@@ -11,8 +13,6 @@ import io.github.seonwkim.actor.shard.SpringShardedActorHandle;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
-import org.apache.pekko.cluster.ClusterEvent.MemberLeft;
-import org.apache.pekko.cluster.ClusterEvent.MemberUp;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
@@ -44,8 +44,8 @@ public class ClusterTest extends AbstractClusterTest {
         private final List<Object> events = new CopyOnWriteArrayList<>();
 
         @org.springframework.context.event.EventListener
-        public void onMemberUp(ClusterDomainWrappedEvent event) {
-            events.add(event.getEvent());
+        public void on(ClusterEvent event) {
+            events.add(event);
         }
 
         public int eventCount(Class<?> eventType) {

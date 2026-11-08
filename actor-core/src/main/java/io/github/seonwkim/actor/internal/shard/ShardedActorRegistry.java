@@ -1,10 +1,11 @@
-package io.github.seonwkim.actor.shard;
+package io.github.seonwkim.actor.internal.shard;
 
+import io.github.seonwkim.actor.shard.ShardedEntityType;
+import io.github.seonwkim.actor.shard.SpringShardedActor;
 import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import javax.annotation.Nullable;
-import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
 
 /**
  * Static registry for sharded actors. Maintains thread-safe mappings between entity type keys
@@ -15,7 +16,8 @@ import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
  */
 public final class ShardedActorRegistry {
 
-    private static final ConcurrentMap<EntityTypeKey<?>, SpringShardedActor<?>> registry = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<ShardedEntityType<?>, SpringShardedActor<?>> registry =
+            new ConcurrentHashMap<>();
     private static final ConcurrentMap<Class<?>, SpringShardedActor<?>> classIndex = new ConcurrentHashMap<>();
 
     // Prevent instantiation
@@ -41,7 +43,7 @@ public final class ShardedActorRegistry {
      * @param actor Sharded actor to register
      */
     public static <T> void register(SpringShardedActor<T> actor) {
-        registry.put(actor.typeKey(), actor);
+        registry.put(actor.entityType(), actor);
         classIndex.put(actor.getClass(), actor);
     }
 
@@ -53,7 +55,7 @@ public final class ShardedActorRegistry {
      * @return Sharded actor, or null if not found
      */
     @Nullable @SuppressWarnings("unchecked")
-    public static <T> SpringShardedActor<T> get(EntityTypeKey<T> typeKey) {
+    public static <T> SpringShardedActor<T> get(ShardedEntityType<T> typeKey) {
         // Safe cast: registry maintains T type consistency between key and value
         return (SpringShardedActor<T>) registry.get(typeKey);
     }

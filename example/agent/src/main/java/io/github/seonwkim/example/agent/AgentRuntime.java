@@ -32,7 +32,7 @@ public class AgentRuntime {
         this.approvals =
                 actorSystem.actor(ApprovalActor.class).withId("approvals").spawnAndWait();
 
-        Cluster cluster = actorSystem.getCluster();
+        Cluster cluster = actorSystem.unwrap(Cluster.class);
         if (properties.isSelfJoin() && cluster != null) {
             cluster.manager().tell(Join.create(cluster.selfMember().address()));
         }

@@ -11,10 +11,11 @@ import io.github.seonwkim.actor.SpringActorSystem;
 import io.github.seonwkim.actor.SpringActorWithContext;
 import io.github.seonwkim.actor.SupervisionStrategy;
 import io.github.seonwkim.actor.TagsConfig;
-import io.github.seonwkim.actor.behavior.ClusterEventBehavior;
 import io.github.seonwkim.actor.internal.RootGuardian.Spawned;
-import io.github.seonwkim.actor.shard.ShardEnvelope;
-import io.github.seonwkim.actor.shard.ShardedActorRegistry;
+import io.github.seonwkim.actor.internal.cluster.PekkoClusterEvents;
+import io.github.seonwkim.actor.internal.shard.PekkoShardedActorBuilder;
+import io.github.seonwkim.actor.internal.shard.PekkoSharding;
+import io.github.seonwkim.actor.internal.shard.ShardedActorRegistry;
 import io.github.seonwkim.actor.shard.SpringShardedActor;
 import io.github.seonwkim.actor.shard.SpringShardedActorBuilder;
 import java.time.Duration;
@@ -30,7 +31,6 @@ import org.apache.pekko.actor.typed.*;
 import org.apache.pekko.actor.typed.javadsl.AskPattern;
 import org.apache.pekko.cluster.ClusterEvent;
 import org.apache.pekko.cluster.sharding.typed.javadsl.ClusterSharding;
-import org.apache.pekko.cluster.sharding.typed.javadsl.Entity;
 import org.apache.pekko.cluster.typed.Cluster;
 import org.apache.pekko.cluster.typed.ClusterSingleton;
 import org.apache.pekko.cluster.typed.Subscribe;
@@ -120,7 +120,7 @@ public final class PekkoActorSystem implements SpringActorSystem, DisposableBean
         this.clusterSingleton = clusterSingleton;
 
         ActorRef<ClusterEvent.ClusterDomainEvent> listener = actorSystem.systemActorOf(
-                ClusterEventBehavior.create(publisher), "cluster-event-listener", Props.empty());
+                PekkoClusterEvents.publisher(publisher), "cluster-event-listener", Props.empty());
         cluster.subscriptions().tell(new Subscribe<>(listener, ClusterEvent.ClusterDomainEvent.class));
     }
 
@@ -150,17 +150,14 @@ public final class PekkoActorSystem implements SpringActorSystem, DisposableBean
         return actorSystem;
     }
 
-    @Override
     @Nullable public Cluster getCluster() {
         return cluster;
     }
 
-    @Override
     @Nullable public ClusterSharding getClusterSharding() {
         return clusterSharding;
     }
 
-    @Override
     @Nullable public ClusterSingleton getClusterSingleton() {
         return clusterSingleton;
     }
@@ -280,7 +277,12 @@ public final class PekkoActorSystem implements SpringActorSystem, DisposableBean
         if (clusterSharding == null) {
             throw new IllegalStateException("Cluster sharding not configured. Sharded actors require cluster mode.");
         }
-        return new SpringShardedActorBuilder<>(this, actorClass);
+        SpringShardedActor<T> actor = ShardedActorRegistry.getByClass(actorClass);
+        if (actor == null) {
+            throw new IllegalStateException("SpringShardedActor " + actorClass.getName() + " not found in registry. "
+                    + "Ensure the actor is annotated with @Component and implements SpringShardedActor.");
+        }
+        return new PekkoShardedActorBuilder<>(actor.entityType(), clusterSharding, actorSystem.scheduler());
     }
 
     @Override
@@ -305,32 +307,8 @@ public final class PekkoActorSystem implements SpringActorSystem, DisposableBean
 
         // Initialize all sharded actors from static registry
         for (SpringShardedActor<?> actor : ShardedActorRegistry.getAll()) {
-            initShardedActor(actor);
+            PekkoSharding.init(clusterSharding, actor);
         }
-    }
-
-    /**
-     * Initializes a single sharded actor with cluster sharding.
-     * If the actor specifies a role, the entity will only be created on nodes with that role.
-     * On nodes without the role, a proxy will be created to forward messages.
-     */
-    private <T> void initShardedActor(SpringShardedActor<T> actor) {
-        if (clusterSharding == null) {
-            return;
-        }
-
-        Entity<T, ShardEnvelope<T>> entity = Entity.of(actor.typeKey(), entityCtx -> {
-                    var shardedActorContext = actor.createContext(entityCtx);
-                    return actor.create(shardedActorContext).asBehavior();
-                })
-                .withMessageExtractor(actor.extractor());
-
-        // Apply role if specified - Entity.withRole() returns a new Entity object
-        if (actor.role().isPresent()) {
-            entity = entity.withRole(actor.role().get());
-        }
-
-        clusterSharding.init(entity);
     }
 
     @Override
