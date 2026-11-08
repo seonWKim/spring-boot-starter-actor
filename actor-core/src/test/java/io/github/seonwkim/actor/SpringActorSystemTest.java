@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.github.seonwkim.actor.SpringActorSystemTest.TestHelloActor.SayHello;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
+import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -51,8 +52,9 @@ class SpringActorSystemTest {
             return SpringActorBehavior.builder(Command.class, id)
                     .onMessage(GetDispatcherName.class, (ctx, msg) -> {
                         // Get the dispatcher name from the execution context
-                        String dispatcherName =
-                                ctx.getUnderlying().getExecutionContext().toString();
+                        String dispatcherName = ctx.unwrap(ActorContext.class)
+                                .getExecutionContext()
+                                .toString();
                         msg.reply(dispatcherName);
                         return SpringActorBehavior.same();
                     })

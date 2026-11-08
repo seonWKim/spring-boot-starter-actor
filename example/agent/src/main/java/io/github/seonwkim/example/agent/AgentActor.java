@@ -11,6 +11,7 @@ import io.github.seonwkim.example.agent.llm.LlmClient;
 import io.github.seonwkim.example.agent.persistence.AgentSnapshotStore;
 import io.github.seonwkim.example.agent.tool.ToolRegistry;
 import org.apache.pekko.actor.typed.ActorRef;
+import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
 import org.springframework.stereotype.Component;
@@ -63,8 +64,8 @@ public class AgentActor implements SpringShardedActor<AgentActor.Command> {
                 llm,
                 tools,
                 snapshots,
-                runtime.rateLimiter().getUnderlying(),
-                runtime.approvals().getUnderlying(),
+                runtime.rateLimiter().unwrap(ActorRef.class),
+                runtime.approvals().unwrap(ActorRef.class),
                 properties.getApprovalTimeout(),
                 properties.getMaxToolSteps());
     }
@@ -79,11 +80,12 @@ public class AgentActor implements SpringShardedActor<AgentActor.Command> {
         String agentId = ctx.getEntityId();
         return SpringShardedActorBehavior.builder(Command.class, ctx)
                 .withState(behaviorCtx -> {
-                    ActorRef<AgentBrain.Message> brain =
-                            behaviorCtx.spawn(AgentBrain.create(agentId, dependencies), "brain");
+                    ActorRef<AgentBrain.Message> brain = behaviorCtx
+                            .unwrap(ActorContext.class)
+                            .spawn(AgentBrain.create(agentId, dependencies), "brain");
                     // If the brain stops for good (restart limit hit), the shell stops too and
                     // sharding starts a fresh agent on the next message.
-                    behaviorCtx.getUnderlying().watch(brain);
+                    behaviorCtx.unwrap(ActorContext.class).watch(brain);
                     return brain;
                 })
                 .onMessage(Command.class, (brain, command) -> {

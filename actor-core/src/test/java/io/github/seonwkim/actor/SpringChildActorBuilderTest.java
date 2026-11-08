@@ -368,7 +368,7 @@ class SpringChildActorBuilderTest {
             // Then: Both references should point to the same actor
             assertThat(child1).isNotNull();
             assertThat(child2).isNotNull();
-            assertThat(child1.getUnderlying()).isEqualTo(child2.getUnderlying());
+            assertThat(child1).isEqualTo(child2);
         }
     }
 
@@ -399,7 +399,7 @@ class SpringChildActorBuilderTest {
 
             // Then: Should retrieve the same child
             assertThat(retrievedChild).isNotNull();
-            assertThat(retrievedChild.getUnderlying()).isEqualTo(spawnedChild.getUnderlying());
+            assertThat(retrievedChild).isEqualTo(spawnedChild);
         }
 
         @Test
@@ -498,7 +498,7 @@ class SpringChildActorBuilderTest {
 
             // Then: Should return the existing child
             assertThat(retrievedChild).isNotNull();
-            assertThat(retrievedChild.getUnderlying()).isEqualTo(spawnedChild.getUnderlying());
+            assertThat(retrievedChild).isEqualTo(spawnedChild);
         }
 
         @Test
@@ -552,7 +552,7 @@ class SpringChildActorBuilderTest {
             // Then: Both should return the same child
             assertThat(child1).isNotNull();
             assertThat(child2).isNotNull();
-            assertThat(child1.getUnderlying()).isEqualTo(child2.getUnderlying());
+            assertThat(child1).isEqualTo(child2);
         }
     }
 
@@ -581,9 +581,9 @@ class SpringChildActorBuilderTest {
                     parent.child(SimpleChildActor.class).withId("child-3").spawnAndWait();
 
             // Then: All children should be distinct and functional
-            assertThat(child1.getUnderlying()).isNotEqualTo(child2.getUnderlying());
-            assertThat(child2.getUnderlying()).isNotEqualTo(child3.getUnderlying());
-            assertThat(child1.getUnderlying()).isNotEqualTo(child3.getUnderlying());
+            assertThat(child1).isNotEqualTo(child2);
+            assertThat(child2).isNotEqualTo(child3);
+            assertThat(child1).isNotEqualTo(child3);
 
             // Verify all can respond
             String response1 = child1.ask(new SimpleChildActor.Ping())
@@ -737,7 +737,7 @@ class SpringChildActorBuilderTest {
 
             // Then: Should retrieve the same child reference
             assertThat(retrievedChild).isNotNull();
-            assertThat(retrievedChild.getUnderlying()).isEqualTo(spawnedChild.getUnderlying());
+            assertThat(retrievedChild).isEqualTo(spawnedChild);
         }
 
         @Test

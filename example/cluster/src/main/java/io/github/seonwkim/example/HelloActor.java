@@ -7,6 +7,7 @@ import io.github.seonwkim.actor.shard.SpringShardedActor;
 import io.github.seonwkim.actor.shard.SpringShardedActorBehavior;
 import io.github.seonwkim.actor.shard.SpringShardedActorContext;
 import org.apache.pekko.actor.typed.Behavior;
+import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
 import org.springframework.stereotype.Component;
@@ -84,7 +85,8 @@ public class HelloActor implements SpringShardedActor<HelloActor.Command> {
          */
         private Behavior<Command> onSayHello(SayHello msg) {
             // Get information about the current node and entity
-            final String nodeAddress = ctx.getUnderlying().getSystem().address().toString();
+            final String nodeAddress =
+                    ctx.unwrap(ActorContext.class).getSystem().address().toString();
 
             // Create a response message with node and entity information
             final String message = "Received from entity [" + entityId + "] on node [" + nodeAddress + "]";

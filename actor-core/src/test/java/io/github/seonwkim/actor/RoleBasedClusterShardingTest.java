@@ -13,6 +13,7 @@ import io.github.seonwkim.actor.shard.SpringShardedActorContext;
 import io.github.seonwkim.actor.shard.SpringShardedActorHandle;
 import java.time.Duration;
 import java.util.Optional;
+import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.apache.pekko.cluster.sharding.typed.ShardingMessageExtractor;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
@@ -131,7 +132,7 @@ public class RoleBasedClusterShardingTest extends AbstractClusterTest {
                     .onMessage(GetNodeInfo.class, (state, cmd) -> {
                         // Get the address from the actor system (this is the node's address)
                         String address = state.context
-                                .getUnderlying()
+                                .unwrap(ActorContext.class)
                                 .getSystem()
                                 .address()
                                 .toString();
@@ -202,7 +203,7 @@ public class RoleBasedClusterShardingTest extends AbstractClusterTest {
                     .onMessage(GetNodeInfo.class, (state, cmd) -> {
                         // Get the address from the actor system (this is the node's address)
                         String address = state.context
-                                .getUnderlying()
+                                .unwrap(ActorContext.class)
                                 .getSystem()
                                 .address()
                                 .toString();

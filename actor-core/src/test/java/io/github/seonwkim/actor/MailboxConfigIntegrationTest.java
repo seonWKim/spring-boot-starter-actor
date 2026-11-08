@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import io.github.seonwkim.actor.autoconfigure.ActorConfiguration;
 import java.util.concurrent.TimeUnit;
 import org.apache.pekko.actor.ActorCell;
+import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.Adapter;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -255,7 +256,7 @@ public class MailboxConfigIntegrationTest {
         public SpringActorBehavior<TestCommand> create(SpringActorContext actorContext) {
             return SpringActorBehavior.builder(TestCommand.class, actorContext)
                     .onMessage(Probe.class, (ctx, msg) -> {
-                        ActorCell cell = (ActorCell) Adapter.toClassic(ctx.getUnderlying());
+                        ActorCell cell = (ActorCell) Adapter.toClassic(ctx.unwrap(ActorContext.class));
                         msg.reply(new RunsOn(
                                 cell.mailbox().messageQueue().getClass().getName(),
                                 cell.dispatcher().id()));

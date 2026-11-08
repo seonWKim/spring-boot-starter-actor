@@ -2,161 +2,64 @@ package io.github.seonwkim.actor;
 
 import java.util.List;
 import java.util.Optional;
-import org.apache.pekko.actor.ActorPath;
-import org.apache.pekko.actor.typed.ActorRef;
-import org.apache.pekko.actor.typed.Behavior;
-import org.apache.pekko.actor.typed.Scheduler;
-import org.apache.pekko.actor.typed.javadsl.ActorContext;
-import org.apache.pekko.actor.typed.receptionist.Receptionist;
+import java.util.concurrent.CompletionStage;
+import java.util.function.BiFunction;
 import org.apache.pekko.actor.typed.receptionist.ServiceKey;
 import org.slf4j.Logger;
 
 /**
- * Spring-enhanced wrapper around Pekko's ActorContext used during behavior creation.
+ * What an actor can do from inside its handlers: reach itself, log, and manage its children. The
+ * default state of a {@link SpringActorBehavior.Builder} is this context.
  *
- * <p>This class provides a bridge between Pekko's actor system and Spring Boot Starter Actor,
- * offering convenient methods for common actor operations.
+ * <pre>{@code
+ * return SpringActorBehavior.builder(Command.class, actorContext)
+ *     .withState(ctx -> {
+ *         ctx.getLog().info("Actor starting");
+ *         return new MyBehavior(ctx);
+ *     })
+ *     .onMessage(DoWork.class, MyBehavior::handleWork)
+ *     .build();
+ * }</pre>
  *
- * <p>Key features:
- * <ul>
- *   <li>Full access to underlying Pekko ActorContext via {@link #getUnderlying()}
- *   <li>Convenient delegate methods for common ActorContext operations
- *   <li>Child actor spawning and management
- * </ul>
- *
- * <p>Example usage in behavior creation:
- * <pre>
- * {@code
- * @Override
- * public SpringActorBehavior<Command> create(MyContext myContext) {
- *     return SpringActorBehavior.builder(Command.class, myContext)
- *         .withState(ctx -> {
- *             // Access context methods
- *             ctx.getLog().info("Actor starting");
- *             return new MyBehavior(ctx);
- *         })
- *         .onMessage(DoWork.class, MyBehavior::handleWork)
- *         .build();
- * }
- * }
- * </pre>
- *
- * @param <T> The message type that the actor handles
+ * @param <T> the message type the actor handles
  * @see SpringActorBehavior
  */
-public final class SpringBehaviorContext<T> {
+public interface SpringBehaviorContext<T> {
 
-    private final ActorContext<T> underlying;
+    /** A handle to this actor, e.g. to pass as a reply address. */
+    SpringActorHandle<T> getSelf();
 
-    /**
-     * Creates a new SpringBehaviorContext wrapping the given ActorContext.
-     *
-     * @param underlying The Pekko ActorContext to wrap
-     */
-    public SpringBehaviorContext(ActorContext<T> underlying) {
-        this.underlying = underlying;
-    }
+    /** The actor's logger; its lines carry the actor's path and MDC. */
+    Logger getLog();
 
-    /**
-     * Returns the underlying Pekko ActorContext.
-     *
-     * <p>Use this when you need direct access to Pekko-specific functionality not exposed
-     * through this wrapper's convenience methods.
-     *
-     * @return The underlying ActorContext
-     */
-    public ActorContext<T> getUnderlying() {
-        return underlying;
-    }
+    /** This actor's path. */
+    String path();
 
-    // Convenience delegate methods for common ActorContext operations
+    /** The child actor with this name, if it is running. */
+    Optional<SpringActorRef<Void>> getChild(String name);
+
+    /** The running child actors. */
+    List<SpringActorRef<Void>> getChildren();
+
+    /** Stops a child actor of this actor. */
+    void stop(SpringActorRef<?> child);
 
     /**
-     * Returns the ActorRef for this actor.
-     *
-     * @return This actor's reference
+     * Sends this actor a message when {@code future} completes, built from its value or failure.
+     * Use it instead of acting on the result in the future's callback, which runs outside the
+     * actor and must not touch its state.
      */
-    public SpringActorHandle<T> getSelf() {
-        return new SpringActorHandle<>(underlying.getSystem().scheduler(), underlying.getSelf());
-    }
+    <V> void pipeToSelf(CompletionStage<V> future, BiFunction<? super V, Throwable, ? extends T> toMessage);
+
+    /** Registers this actor with the receptionist under {@code key}. */
+    void registerWithReceptionist(ServiceKey<T> key);
 
     /**
-     * Returns the logger for this actor.
+     * Escape hatch: the underlying engine's context, e.g. Pekko's
+     * {@code org.apache.pekko.actor.typed.javadsl.ActorContext}. Code that uses it depends on the
+     * engine and gets no compatibility promise from the starter.
      *
-     * @return The SLF4J logger instance
+     * @throws IllegalArgumentException when the context is not of that type
      */
-    public Logger getLog() {
-        return underlying.getLog();
-    }
-
-    /**
-     * Returns the scheduler for this actor system.
-     *
-     * @return The scheduler
-     */
-    public Scheduler getScheduler() {
-        return underlying.getSystem().scheduler();
-    }
-
-    /**
-     * Spawns a child actor with the given behavior and name.
-     *
-     * @param behavior The behavior for the child actor
-     * @param name The name for the child actor
-     * @param <M> The message type the child handles
-     * @return Reference to the spawned child actor
-     */
-    public <M> ActorRef<M> spawn(Behavior<M> behavior, String name) {
-        return underlying.spawn(behavior, name);
-    }
-
-    /**
-     * Returns the actor path of this actor.
-     *
-     * @return The actor path
-     */
-    public ActorPath path() {
-        return underlying.getSelf().path();
-    }
-
-    /**
-     * Returns a child actor by name if it exists.
-     *
-     * @param name The name of the child actor
-     * @return Optional containing the child actor reference, or empty if not found
-     */
-    public Optional<ActorRef<Void>> getChild(String name) {
-        return underlying.getChild(name);
-    }
-
-    /**
-     * Returns all child actors of this actor.
-     *
-     * @return List of child actor references
-     */
-    public List<ActorRef<Void>> getChildren() {
-        return underlying.getChildren();
-    }
-
-    /**
-     * Stops a child actor.
-     *
-     * @param child The child actor to stop
-     */
-    public void stop(ActorRef<?> child) {
-        underlying.stop(child);
-    }
-
-    /**
-     * Registers this actor with Pekko's Receptionist under the given service key.
-     *
-     * <p>Call this from behavior setup (for example inside {@code withState}) so the actor
-     * can be found through {@code SpringReceptionist#find} or a subscription. The actor is
-     * removed from the listing automatically when it stops.
-     *
-     * @param key The service key to register under
-     */
-    public void registerWithReceptionist(ServiceKey<T> key) {
-        underlying.getSystem().receptionist().tell(Receptionist.register(key, underlying.getSelf()));
-    }
+    <X> X unwrap(Class<X> type);
 }

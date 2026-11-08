@@ -41,7 +41,6 @@ public class ClusterSingletonClusterModeTest extends AbstractClusterTest {
 
         // Then: The singleton should be created successfully
         assertThat(singleton).isNotNull();
-        assertThat(singleton.getUnderlying()).isNotNull();
     }
 
     /**

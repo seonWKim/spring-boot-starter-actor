@@ -1,6 +1,7 @@
 package io.github.seonwkim.actor.shard;
 
 import io.github.seonwkim.actor.SpringBehaviorContext;
+import io.github.seonwkim.actor.internal.PekkoBehaviorContext;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiFunction;
@@ -151,7 +152,7 @@ public final class SpringShardedActorBehavior<T> {
         public SpringShardedActorBehavior<T> build() {
             Behavior<T> userBehavior = Behaviors.setup(ctx -> {
                 // Wrap ActorContext with SpringBehaviorContext
-                SpringBehaviorContext<T> springCtx = new SpringBehaviorContext<>(ctx);
+                SpringBehaviorContext<T> springCtx = new PekkoBehaviorContext<>(ctx);
                 // Create the state object
                 S state = stateFactory.apply(springCtx);
 

@@ -3,6 +3,8 @@ package io.github.seonwkim.actor.receptionist;
 import io.github.seonwkim.actor.ActorConstants;
 import io.github.seonwkim.actor.SpringActorHandle;
 import io.github.seonwkim.actor.SpringActorSystem;
+import io.github.seonwkim.actor.internal.PekkoActorHandle;
+import io.github.seonwkim.actor.internal.PekkoActorRef;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -83,7 +85,7 @@ public class SpringReceptionist {
      * @param <T> The message type
      */
     public <T> void register(ServiceKey<T> key, SpringActorHandle<T> actor) {
-        register(key, actor.getUnderlying());
+        register(key, PekkoActorRef.toPekko(actor));
     }
 
     /**
@@ -105,7 +107,7 @@ public class SpringReceptionist {
      * @param <T> The message type
      */
     public <T> void deregister(ServiceKey<T> key, SpringActorHandle<T> actor) {
-        system().receptionist().tell(Receptionist.deregister(key, actor.getUnderlying()));
+        system().receptionist().tell(Receptionist.deregister(key, PekkoActorRef.toPekko(actor)));
     }
 
     /**
@@ -199,7 +201,7 @@ public class SpringReceptionist {
             ServiceKey<T> key, Receptionist.Listing listing, Scheduler scheduler) {
         Set<SpringActorHandle<T>> handles = new LinkedHashSet<>();
         for (ActorRef<T> ref : listing.getServiceInstances(key)) {
-            handles.add(new SpringActorHandle<>(scheduler, ref));
+            handles.add(new PekkoActorHandle<>(scheduler, ref));
         }
         return Collections.unmodifiableSet(handles);
     }

@@ -1,6 +1,7 @@
 package io.github.seonwkim.actor.topic;
 
-import io.github.seonwkim.actor.SpringActorHandle;
+import io.github.seonwkim.actor.SpringActorRef;
+import io.github.seonwkim.actor.internal.PekkoActorRef;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.pubsub.Topic;
 
@@ -102,11 +103,11 @@ public class SpringTopicRef<T> {
      *
      * @param subscriber The Spring actor reference to subscribe
      */
-    public void subscribe(SpringActorHandle<T> subscriber) {
+    public void subscribe(SpringActorRef<T> subscriber) {
         if (subscriber == null) {
             throw new IllegalArgumentException("subscriber must not be null");
         }
-        topicRef.tell(Topic.subscribe(subscriber.getUnderlying()));
+        topicRef.tell(Topic.subscribe(PekkoActorRef.toPekko(subscriber)));
     }
 
     /**
@@ -121,11 +122,11 @@ public class SpringTopicRef<T> {
      *
      * @param subscriber The Spring actor reference to unsubscribe
      */
-    public void unsubscribe(SpringActorHandle<T> subscriber) {
+    public void unsubscribe(SpringActorRef<T> subscriber) {
         if (subscriber == null) {
             throw new IllegalArgumentException("subscriber must not be null");
         }
-        topicRef.tell(Topic.unsubscribe(subscriber.getUnderlying()));
+        topicRef.tell(Topic.unsubscribe(PekkoActorRef.toPekko(subscriber)));
     }
 
     /**

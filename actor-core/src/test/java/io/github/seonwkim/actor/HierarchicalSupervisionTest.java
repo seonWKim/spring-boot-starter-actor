@@ -196,12 +196,9 @@ class HierarchicalSupervisionTest {
                 SpringActorHandle<Command> self = ctx.getSelf();
 
                 // Try to get existing child first
-                ctx.getUnderlying()
-                        .pipeToSelf(
-                                self.child(ChildWorkerActor.class, msg.workerId)
-                                        .get()
-                                        .thenApply(opt -> opt.orElse(null)),
-                                (childRef, failure) -> new ChildReady(msg, childRef, failure));
+                ctx.pipeToSelf(
+                        self.child(ChildWorkerActor.class, msg.workerId).get().thenApply(opt -> opt.orElse(null)),
+                        (childRef, failure) -> new ChildReady(msg, childRef, failure));
 
                 return SpringActorBehavior.same();
             }
@@ -231,13 +228,12 @@ class HierarchicalSupervisionTest {
                 SpringActorHandle<Command> self = ctx.getSelf();
 
                 // Spawn child using SpringActorHandle unified API
-                ctx.getUnderlying()
-                        .pipeToSelf(
-                                self.child(ChildWorkerActor.class)
-                                        .withId(msg.workerId)
-                                        .withSupervisionStrategy(strategy)
-                                        .spawn(),
-                                (childRef, failure) -> new ChildReady(msg, childRef, failure));
+                ctx.pipeToSelf(
+                        self.child(ChildWorkerActor.class)
+                                .withId(msg.workerId)
+                                .withSupervisionStrategy(strategy)
+                                .spawn(),
+                        (childRef, failure) -> new ChildReady(msg, childRef, failure));
 
                 return SpringActorBehavior.same();
             }

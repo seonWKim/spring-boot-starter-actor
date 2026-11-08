@@ -119,7 +119,7 @@ class SpringChildActorReferenceTest {
 
             // Then: Should retrieve the child in an Optional
             assertThat(retrievedChild).isPresent();
-            assertThat(retrievedChild.get().getUnderlying()).isEqualTo(spawnedChild.getUnderlying());
+            assertThat(retrievedChild.get()).isEqualTo(spawnedChild);
         }
 
         @Test
@@ -323,7 +323,7 @@ class SpringChildActorReferenceTest {
             // Then: All should point to the same actor
             assertThat(child1).isPresent();
             assertThat(child2).isPresent();
-            assertThat(child1.get().getUnderlying()).isEqualTo(child2.get().getUnderlying());
+            assertThat(child1.get()).isEqualTo(child2.get());
         }
     }
 }

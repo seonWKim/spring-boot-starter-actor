@@ -4,17 +4,6 @@
 <io.github.seonwkim.actor.ActorSpawner.spawnActor(org.apache.pekko.actor.typed.javadsl.ActorContext, java.lang.Class, io.github.seonwkim.actor.SpringActorContext, java.lang.String, io.github.seonwkim.actor.SupervisionStrategy, io.github.seonwkim.actor.MailboxConfig, io.github.seonwkim.actor.DispatcherConfig, io.github.seonwkim.actor.TagsConfig, org.apache.pekko.cluster.typed.ClusterSingleton, boolean)> exposes Pekko type <org.apache.pekko.actor.typed.ActorRef>
 <io.github.seonwkim.actor.ActorSpawner.spawnActor(org.apache.pekko.actor.typed.javadsl.ActorContext, java.lang.Class, io.github.seonwkim.actor.SpringActorContext, java.lang.String, io.github.seonwkim.actor.SupervisionStrategy, io.github.seonwkim.actor.MailboxConfig, io.github.seonwkim.actor.DispatcherConfig, io.github.seonwkim.actor.TagsConfig, org.apache.pekko.cluster.typed.ClusterSingleton, boolean)> exposes Pekko type <org.apache.pekko.actor.typed.javadsl.ActorContext>
 <io.github.seonwkim.actor.ActorSpawner.spawnActor(org.apache.pekko.actor.typed.javadsl.ActorContext, java.lang.Class, io.github.seonwkim.actor.SpringActorContext, java.lang.String, io.github.seonwkim.actor.SupervisionStrategy, io.github.seonwkim.actor.MailboxConfig, io.github.seonwkim.actor.DispatcherConfig, io.github.seonwkim.actor.TagsConfig, org.apache.pekko.cluster.typed.ClusterSingleton, boolean)> exposes Pekko type <org.apache.pekko.cluster.typed.ClusterSingleton>
-<io.github.seonwkim.actor.AskCommand.getReplyTo()> exposes Pekko type <org.apache.pekko.actor.typed.ActorRef>
-<io.github.seonwkim.actor.AskCommand.withReplyTo(org.apache.pekko.actor.typed.ActorRef)> exposes Pekko type <org.apache.pekko.actor.typed.ActorRef>
-<io.github.seonwkim.actor.SpringActorHandle.<init>(org.apache.pekko.actor.typed.Scheduler, org.apache.pekko.actor.typed.ActorRef)> exposes Pekko type <org.apache.pekko.actor.typed.ActorRef>
-<io.github.seonwkim.actor.SpringActorHandle.<init>(org.apache.pekko.actor.typed.Scheduler, org.apache.pekko.actor.typed.ActorRef)> exposes Pekko type <org.apache.pekko.actor.typed.Scheduler>
-<io.github.seonwkim.actor.SpringActorHandle.<init>(org.apache.pekko.actor.typed.Scheduler, org.apache.pekko.actor.typed.ActorRef, java.time.Duration)> exposes Pekko type <org.apache.pekko.actor.typed.ActorRef>
-<io.github.seonwkim.actor.SpringActorHandle.<init>(org.apache.pekko.actor.typed.Scheduler, org.apache.pekko.actor.typed.ActorRef, java.time.Duration)> exposes Pekko type <org.apache.pekko.actor.typed.Scheduler>
-<io.github.seonwkim.actor.SpringActorHandle.builder(org.apache.pekko.actor.typed.Scheduler, org.apache.pekko.actor.typed.ActorRef)> exposes Pekko type <org.apache.pekko.actor.typed.ActorRef>
-<io.github.seonwkim.actor.SpringActorHandle.builder(org.apache.pekko.actor.typed.Scheduler, org.apache.pekko.actor.typed.ActorRef)> exposes Pekko type <org.apache.pekko.actor.typed.Scheduler>
-<io.github.seonwkim.actor.SpringActorHandle.getUnderlying()> exposes Pekko type <org.apache.pekko.actor.typed.ActorRef>
-<io.github.seonwkim.actor.SpringActorRefBuilder.<init>(org.apache.pekko.actor.typed.Scheduler, org.apache.pekko.actor.typed.ActorRef)> exposes Pekko type <org.apache.pekko.actor.typed.ActorRef>
-<io.github.seonwkim.actor.SpringActorRefBuilder.<init>(org.apache.pekko.actor.typed.Scheduler, org.apache.pekko.actor.typed.ActorRef)> exposes Pekko type <org.apache.pekko.actor.typed.Scheduler>
 <io.github.seonwkim.actor.SpringActorSystem.<init>(org.apache.pekko.actor.typed.ActorSystem)> exposes Pekko type <org.apache.pekko.actor.typed.ActorSystem>
 <io.github.seonwkim.actor.SpringActorSystem.<init>(org.apache.pekko.actor.typed.ActorSystem, org.apache.pekko.cluster.typed.Cluster, org.apache.pekko.cluster.sharding.typed.javadsl.ClusterSharding, org.apache.pekko.cluster.typed.ClusterSingleton, org.springframework.context.ApplicationEventPublisher)> exposes Pekko type <org.apache.pekko.actor.typed.ActorSystem>
 <io.github.seonwkim.actor.SpringActorSystem.<init>(org.apache.pekko.actor.typed.ActorSystem, org.apache.pekko.cluster.typed.Cluster, org.apache.pekko.cluster.sharding.typed.javadsl.ClusterSharding, org.apache.pekko.cluster.typed.ClusterSingleton, org.springframework.context.ApplicationEventPublisher)> exposes Pekko type <org.apache.pekko.cluster.sharding.typed.javadsl.ClusterSharding>
@@ -28,16 +17,7 @@
 <io.github.seonwkim.actor.SpringActorSystem.getClusterSharding()> exposes Pekko type <org.apache.pekko.cluster.sharding.typed.javadsl.ClusterSharding>
 <io.github.seonwkim.actor.SpringActorSystem.getClusterSingleton()> exposes Pekko type <org.apache.pekko.cluster.typed.ClusterSingleton>
 <io.github.seonwkim.actor.SpringActorSystem.getRaw()> exposes Pekko type <org.apache.pekko.actor.typed.ActorSystem>
-<io.github.seonwkim.actor.SpringBehaviorContext.<init>(org.apache.pekko.actor.typed.javadsl.ActorContext)> exposes Pekko type <org.apache.pekko.actor.typed.javadsl.ActorContext>
-<io.github.seonwkim.actor.SpringBehaviorContext.getChild(java.lang.String)> exposes Pekko type <org.apache.pekko.actor.typed.ActorRef>
-<io.github.seonwkim.actor.SpringBehaviorContext.getChildren()> exposes Pekko type <org.apache.pekko.actor.typed.ActorRef>
-<io.github.seonwkim.actor.SpringBehaviorContext.getScheduler()> exposes Pekko type <org.apache.pekko.actor.typed.Scheduler>
-<io.github.seonwkim.actor.SpringBehaviorContext.getUnderlying()> exposes Pekko type <org.apache.pekko.actor.typed.javadsl.ActorContext>
-<io.github.seonwkim.actor.SpringBehaviorContext.path()> exposes Pekko type <org.apache.pekko.actor.ActorPath>
 <io.github.seonwkim.actor.SpringBehaviorContext.registerWithReceptionist(org.apache.pekko.actor.typed.receptionist.ServiceKey)> exposes Pekko type <org.apache.pekko.actor.typed.receptionist.ServiceKey>
-<io.github.seonwkim.actor.SpringBehaviorContext.spawn(org.apache.pekko.actor.typed.Behavior, java.lang.String)> exposes Pekko type <org.apache.pekko.actor.typed.ActorRef>
-<io.github.seonwkim.actor.SpringBehaviorContext.spawn(org.apache.pekko.actor.typed.Behavior, java.lang.String)> exposes Pekko type <org.apache.pekko.actor.typed.Behavior>
-<io.github.seonwkim.actor.SpringBehaviorContext.stop(org.apache.pekko.actor.typed.ActorRef)> exposes Pekko type <org.apache.pekko.actor.typed.ActorRef>
 <io.github.seonwkim.actor.SpringChildActorBuilder.<init>(org.apache.pekko.actor.typed.ActorRef, org.apache.pekko.actor.typed.Scheduler, java.lang.Class, java.time.Duration)> exposes Pekko type <org.apache.pekko.actor.typed.ActorRef>
 <io.github.seonwkim.actor.SpringChildActorBuilder.<init>(org.apache.pekko.actor.typed.ActorRef, org.apache.pekko.actor.typed.Scheduler, java.lang.Class, java.time.Duration)> exposes Pekko type <org.apache.pekko.actor.typed.Scheduler>
 <io.github.seonwkim.actor.SpringChildActorReference.<init>(org.apache.pekko.actor.typed.ActorRef, org.apache.pekko.actor.typed.Scheduler, java.lang.Class, java.lang.String, java.time.Duration)> exposes Pekko type <org.apache.pekko.actor.typed.ActorRef>

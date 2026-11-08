@@ -8,6 +8,7 @@ import io.github.seonwkim.example.agent.AgentProperties;
 import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import javax.annotation.Nullable;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
@@ -31,11 +32,27 @@ public class RateLimiterActor implements SpringActor<RateLimiterActor.Command> {
     /** Ask for one permit. The reply comes when the call may start. */
     public static final class Acquire extends AskCommand<Permit> implements Command {
 
+        @Nullable private final ActorRef<Permit> adapter;
+
+        public Acquire() {
+            this(null);
+        }
+
+        private Acquire(@Nullable ActorRef<Permit> adapter) {
+            this.adapter = adapter;
+        }
+
         /** For actors that want the permit as a message instead of a future. */
         public static Acquire replyingTo(ActorRef<Permit> replyTo) {
-            Acquire acquire = new Acquire();
-            acquire.withReplyTo(replyTo);
-            return acquire;
+            return new Acquire(replyTo);
+        }
+
+        void grant(Permit permit) {
+            if (adapter != null) {
+                adapter.tell(permit);
+            } else {
+                reply(permit);
+            }
         }
     }
 
@@ -90,7 +107,7 @@ public class RateLimiterActor implements SpringActor<RateLimiterActor.Command> {
             }
             while (!waiting.isEmpty() && granted.size() < limit) {
                 granted.addLast(now);
-                waiting.removeFirst().reply(new Permit(now));
+                waiting.removeFirst().grant(new Permit(now));
             }
             if (!waiting.isEmpty()) {
                 long untilFree = windowNanos - (now - granted.peekFirst());

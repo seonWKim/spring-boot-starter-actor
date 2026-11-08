@@ -4,6 +4,7 @@ import io.github.seonwkim.actor.*;
 import io.github.seonwkim.actor.serialization.JsonSerializable;
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.springframework.stereotype.Component;
 
 /**
@@ -116,7 +117,7 @@ public class ClusterMetricsAggregator
             ctx.getLog()
                     .info(
                             "Cluster Metrics Aggregator singleton started on node: {}",
-                            ctx.getUnderlying().getSystem().address());
+                            ctx.unwrap(ActorContext.class).getSystem().address());
         }
 
         /**
@@ -140,7 +141,8 @@ public class ClusterMetricsAggregator
         private SpringActorBehavior<Command> onGetMetrics(GetMetrics msg) {
             ctx.getLog().debug("Getting all metrics (nodes: {})", metrics.size());
 
-            String nodeAddress = ctx.getUnderlying().getSystem().address().toString();
+            String nodeAddress =
+                    ctx.unwrap(ActorContext.class).getSystem().address().toString();
             MetricsResponse response = new MetricsResponse(new HashMap<>(metrics), nodeAddress);
 
             msg.reply(response);
@@ -160,7 +162,8 @@ public class ClusterMetricsAggregator
                 result.put(msg.nodeAddress, new HashMap<>(nodeMetrics));
             }
 
-            String nodeAddress = ctx.getUnderlying().getSystem().address().toString();
+            String nodeAddress =
+                    ctx.unwrap(ActorContext.class).getSystem().address().toString();
             MetricsResponse response = new MetricsResponse(result, nodeAddress);
 
             msg.reply(response);

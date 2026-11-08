@@ -2,16 +2,12 @@ package io.github.seonwkim.actor.shard;
 
 import io.github.seonwkim.actor.ActorConstants;
 import io.github.seonwkim.actor.AskCommand;
+import io.github.seonwkim.actor.SpringActorHandle;
+import io.github.seonwkim.actor.internal.PekkoActorRef;
+import io.github.seonwkim.actor.internal.PekkoAskBuilder;
 import java.time.Duration;
-import java.util.concurrent.CompletionStage;
-import java.util.concurrent.TimeoutException;
-import java.util.function.Supplier;
-import javax.annotation.Nullable;
-import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Scheduler;
-import org.apache.pekko.actor.typed.javadsl.AskPattern;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityRef;
-import org.apache.pekko.japi.function.Function;
 
 /**
  * A wrapper around Pekko's EntityRef that provides methods for asking and telling messages to a
@@ -102,8 +98,9 @@ public class SpringShardedActorHandle<T> {
      * @return An AskBuilder for configuring and executing the ask operation
      */
     @SuppressWarnings("unchecked")
-    public <RES> AskBuilder<T, RES> ask(AskCommand<RES> command) {
-        return new AskBuilder<>(replyTo -> (T) command.withReplyTo(replyTo), entityRef, scheduler, defaultTimeout);
+    public <RES> SpringActorHandle.AskBuilder<RES> ask(AskCommand<RES> command) {
+        return new PekkoAskBuilder<T, RES>(
+                entityRef, scheduler, defaultTimeout, replyTo -> (T) command.withReplyTo(new PekkoActorRef<>(replyTo)));
     }
 
     /**
@@ -122,96 +119,5 @@ public class SpringShardedActorHandle<T> {
      */
     public EntityRef<T> getUnderlying() {
         return entityRef;
-    }
-
-    /**
-     * Fluent builder for asking the sharded actor a question with advanced configuration options.
-     * This builder provides a more flexible API compared to the simple ask() methods,
-     * allowing configuration of timeouts and error handling.
-     *
-     * @param <REQ> The type of the request message
-     * @param <RES> The type of the response message
-     */
-    public static class AskBuilder<REQ, RES> {
-        private final Function<ActorRef<RES>, REQ> messageFactory;
-        private final EntityRef<REQ> entityRef;
-        private final Scheduler scheduler;
-        private Duration timeout;
-
-        @Nullable private Supplier<RES> timeoutHandler;
-
-        /**
-         * Creates a new AskBuilder.
-         *
-         * @param messageFactory The message factory function
-         * @param entityRef The entity reference to ask
-         * @param scheduler The scheduler for the ask pattern
-         * @param defaultTimeout The default timeout
-         */
-        AskBuilder(
-                Function<ActorRef<RES>, REQ> messageFactory,
-                EntityRef<REQ> entityRef,
-                Scheduler scheduler,
-                Duration defaultTimeout) {
-            this.messageFactory = messageFactory;
-            this.entityRef = entityRef;
-            this.scheduler = scheduler;
-            this.timeout = defaultTimeout;
-        }
-
-        /**
-         * Sets the timeout for this ask operation.
-         *
-         * @param timeout The maximum time to wait for a response
-         * @return This builder for method chaining
-         */
-        public AskBuilder<REQ, RES> withTimeout(Duration timeout) {
-            if (timeout == null) {
-                throw new IllegalArgumentException("timeout must not be null");
-            }
-            this.timeout = timeout;
-            return this;
-        }
-
-        /**
-         * Sets a handler that provides a default value if the ask operation times out.
-         * If this handler is set, timeout exceptions will be caught and replaced with
-         * the default value provided by the supplier.
-         *
-         * @param defaultValueSupplier A supplier that provides the default value on timeout
-         * @return This builder for method chaining
-         */
-        public AskBuilder<REQ, RES> onTimeout(Supplier<RES> defaultValueSupplier) {
-            this.timeoutHandler = defaultValueSupplier;
-            return this;
-        }
-
-        /**
-         * Executes the ask operation with the configured options.
-         *
-         * @return A CompletionStage that will be completed with the response, or with the
-         *         default value if a timeout occurs and a timeout handler was configured
-         */
-        public CompletionStage<RES> execute() {
-            CompletionStage<RES> result = AskPattern.ask(entityRef, messageFactory::apply, timeout, scheduler);
-
-            // Apply timeout handler if configured
-            if (timeoutHandler != null) {
-                final Supplier<RES> handler = timeoutHandler;
-                result = result.exceptionally(throwable -> {
-                    if (throwable instanceof TimeoutException
-                            || (throwable.getCause() != null && throwable.getCause() instanceof TimeoutException)) {
-                        return handler.get();
-                    }
-                    // Re-throw non-timeout exceptions
-                    if (throwable instanceof RuntimeException) {
-                        throw (RuntimeException) throwable;
-                    }
-                    throw new RuntimeException(throwable);
-                });
-            }
-
-            return result;
-        }
     }
 }

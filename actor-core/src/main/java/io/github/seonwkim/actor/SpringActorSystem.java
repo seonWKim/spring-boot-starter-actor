@@ -2,6 +2,7 @@ package io.github.seonwkim.actor;
 
 import io.github.seonwkim.actor.behavior.ClusterEventBehavior;
 import io.github.seonwkim.actor.internal.DefaultSpringActorContext;
+import io.github.seonwkim.actor.internal.PekkoActorHandle;
 import io.github.seonwkim.actor.internal.RootGuardian;
 import io.github.seonwkim.actor.internal.RootGuardian.Spawned;
 import io.github.seonwkim.actor.shard.ShardEnvelope;
@@ -269,14 +270,14 @@ public class SpringActorSystem implements DisposableBean {
                                 new RootGuardian.GetActor(actorClass, actorContext, replyTo),
                         timeout,
                         actorSystem.scheduler())
-                .thenApply(response -> {
+                .<SpringActorHandle<C>>thenApply(response -> {
                     if (response.ref == null) {
                         return null;
                     }
 
                     @SuppressWarnings("unchecked")
                     ActorRef<C> typedRef = (ActorRef<C>) response.ref;
-                    return new SpringActorHandle<>(actorSystem.scheduler(), typedRef, defaultActorRefTimeout);
+                    return new PekkoActorHandle<>(actorSystem.scheduler(), typedRef, defaultActorRefTimeout);
                 })
                 .exceptionally(throwable -> null);
     }
@@ -351,7 +352,7 @@ public class SpringActorSystem implements DisposableBean {
                 .thenApply(spawned -> {
                     @SuppressWarnings("unchecked")
                     ActorRef<C> typedRef = (ActorRef<C>) spawned.ref;
-                    return new SpringActorHandle<>(actorSystem.scheduler(), typedRef, defaultActorRefTimeout);
+                    return new PekkoActorHandle<>(actorSystem.scheduler(), typedRef, defaultActorRefTimeout);
                 });
     }
 

@@ -1,5 +1,7 @@
 package io.github.seonwkim.actor.internal;
 
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
@@ -10,10 +12,14 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import javax.annotation.Nullable;
+import org.apache.pekko.actor.BootstrapSetup;
+import org.apache.pekko.actor.setup.ActorSystemSetup;
 import org.apache.pekko.actor.typed.ActorSystem;
 import org.apache.pekko.cluster.sharding.typed.javadsl.ClusterSharding;
 import org.apache.pekko.cluster.typed.Cluster;
 import org.apache.pekko.cluster.typed.ClusterSingleton;
+import org.apache.pekko.serialization.jackson.JacksonObjectMapperFactory;
+import org.apache.pekko.serialization.jackson.JacksonObjectMapperProviderSetup;
 import org.springframework.context.ApplicationEventPublisher;
 
 /**
@@ -89,7 +95,11 @@ public class DefaultSpringActorSystemBuilder implements SpringActorSystemBuilder
                 .withFallback(ConfigFactory.load());
         final String name = config.hasPath("pekko.name") ? config.getString("pekko.name") : DEFAULT_SYSTEM_NAME;
 
-        final ActorSystem<RootGuardian.Command> actorSystem = ActorSystem.create(supplier.get(), name, config);
+        final ActorSystem<RootGuardian.Command> actorSystem = ActorSystem.create(
+                supplier.get(),
+                name,
+                ActorSystemSetup.create(BootstrapSetup.create(config))
+                        .withSetup(new JacksonObjectMapperProviderSetup(new StarterObjectMapperFactory())));
         final boolean isClusterMode = Objects.equals(config.getString("pekko.actor.provider"), "cluster");
 
         if (!isClusterMode) {
@@ -150,5 +160,13 @@ public class DefaultSpringActorSystemBuilder implements SpringActorSystemBuilder
         defaultBindings.forEach(bindings::putIfAbsent);
 
         return result;
+    }
+
+    /** Adds the starter's Jackson modules before Pekko adds the configured ones. */
+    private static final class StarterObjectMapperFactory extends JacksonObjectMapperFactory {
+        @Override
+        public ObjectMapper newObjectMapper(String bindingName, JsonFactory jsonFactory) {
+            return super.newObjectMapper(bindingName, jsonFactory).registerModule(new SpringActorRefJacksonModule());
+        }
     }
 }

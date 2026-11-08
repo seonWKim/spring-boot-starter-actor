@@ -1,6 +1,7 @@
 package io.github.seonwkim.actor;
 
 import io.github.seonwkim.actor.internal.FrameworkCommands;
+import io.github.seonwkim.actor.internal.PekkoActorHandle;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
@@ -122,7 +123,7 @@ public class SpringChildActorReference<P, C> {
                         scheduler)
                 .thenApply(response -> {
                     if (response.found && response.childRef != null) {
-                        return Optional.of(new SpringActorHandle<>(scheduler, response.childRef, defaultTimeout));
+                        return Optional.of(new PekkoActorHandle<>(scheduler, response.childRef, defaultTimeout));
                     } else {
                         return Optional.empty();
                     }

@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.github.seonwkim.actor.internal.PekkoActorHandle;
 import java.time.Duration;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -91,7 +92,7 @@ public class SpringActorHandleTest {
 
         ActorRef<Command> actorRef = testKit.spawn(behavior, "ask-command-" + id);
         SpringActorHandle<Command> springRef =
-                new SpringActorHandle<>(testKit.system().scheduler(), actorRef);
+                new PekkoActorHandle<>(testKit.system().scheduler(), actorRef);
 
         // New cleaner pattern using AskCommand - no explicit generics needed!
         String result =
@@ -107,7 +108,7 @@ public class SpringActorHandleTest {
 
         ActorRef<Command> actorRef = testKit.spawn(behavior, "ask-timeout-" + id);
         SpringActorHandle<Command> springRef =
-                new SpringActorHandle<>(testKit.system().scheduler(), actorRef);
+                new PekkoActorHandle<>(testKit.system().scheduler(), actorRef);
 
         // With custom timeout
         String result = springRef
@@ -128,7 +129,7 @@ public class SpringActorHandleTest {
 
         ActorRef<Command> actorRef = testKit.spawn(behavior, "tell-" + id);
         SpringActorHandle<Command> springRef =
-                new SpringActorHandle<>(testKit.system().scheduler(), actorRef);
+                new PekkoActorHandle<>(testKit.system().scheduler(), actorRef);
 
         springRef.tell(new SimpleMessage("hello"));
         String result = signal.get();
@@ -148,7 +149,7 @@ public class SpringActorHandleTest {
 
         ActorRef<Command> actorRef = testKit.spawn(behavior, "ask-on-timeout-" + id);
         SpringActorHandle<Command> springRef =
-                new SpringActorHandle<>(testKit.system().scheduler(), actorRef);
+                new PekkoActorHandle<>(testKit.system().scheduler(), actorRef);
 
         String result = springRef
                 .ask(new Ping("hello"))
@@ -168,7 +169,7 @@ public class SpringActorHandleTest {
 
         ActorRef<Command> actorRef = testKit.spawn(behavior, "ask-no-timeout-" + id);
         SpringActorHandle<Command> springRef =
-                new SpringActorHandle<>(testKit.system().scheduler(), actorRef);
+                new PekkoActorHandle<>(testKit.system().scheduler(), actorRef);
 
         String result = springRef
                 .ask(new Ping("hello"))
@@ -194,7 +195,7 @@ public class SpringActorHandleTest {
 
         ActorRef<Command> actorRef = testKit.spawn(behavior, "ask-throws-" + id);
         SpringActorHandle<Command> springRef =
-                new SpringActorHandle<>(testKit.system().scheduler(), actorRef);
+                new PekkoActorHandle<>(testKit.system().scheduler(), actorRef);
 
         ExecutionException exception = assertThrows(ExecutionException.class, () -> {
             springRef
@@ -221,7 +222,7 @@ public class SpringActorHandleTest {
 
         ActorRef<Command> actorRef = testKit.spawn(behavior, "ask-fluent-" + id);
         SpringActorHandle<Command> springRef =
-                new SpringActorHandle<>(testKit.system().scheduler(), actorRef);
+                new PekkoActorHandle<>(testKit.system().scheduler(), actorRef);
 
         // Test that all methods can be chained fluently
         String result = springRef

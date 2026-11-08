@@ -1,11 +1,6 @@
 package io.github.seonwkim.actor;
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import javax.annotation.Nullable;
-import org.apache.pekko.actor.typed.ActorRef;
-import org.apache.pekko.serialization.jackson.PekkoSerializationDeserializer;
-import org.apache.pekko.serialization.jackson.PekkoSerializationSerializer;
 
 /**
  * Base class for commands that expect a reply from the actor.
@@ -39,17 +34,16 @@ import org.apache.pekko.serialization.jackson.PekkoSerializationSerializer;
  */
 public abstract class AskCommand<RES> {
 
-    @JsonSerialize(using = PekkoSerializationSerializer.class)
-    @JsonDeserialize(using = PekkoSerializationDeserializer.class)
-    @Nullable private ActorRef<RES> replyTo;
+    // Serialized by the starter's Jackson module for SpringActorRef, so a command can cross nodes.
+    @Nullable private SpringActorRef<RES> replyTo;
 
     /**
-     * Gets the ActorRef that should receive the reply.
+     * Gets the reference that should receive the reply.
      * This method is managed by the framework and should not be called by user code.
      *
-     * @return The ActorRef for the reply
+     * @return The reference for the reply
      */
-    @Nullable public final ActorRef<RES> getReplyTo() {
+    @Nullable public final SpringActorRef<RES> getReplyTo() {
         return replyTo;
     }
 
@@ -57,10 +51,10 @@ public abstract class AskCommand<RES> {
      * Sets the reply-to reference for this command.
      * This method is called by the framework and should not be called by user code.
      *
-     * @param replyTo The ActorRef that should receive the reply
+     * @param replyTo The reference that should receive the reply
      * @return This command instance
      */
-    public final AskCommand<RES> withReplyTo(ActorRef<RES> replyTo) {
+    public final AskCommand<RES> withReplyTo(SpringActorRef<RES> replyTo) {
         this.replyTo = replyTo;
         return this;
     }

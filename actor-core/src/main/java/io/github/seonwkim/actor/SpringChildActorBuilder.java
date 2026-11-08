@@ -2,6 +2,7 @@ package io.github.seonwkim.actor;
 
 import io.github.seonwkim.actor.internal.DefaultSpringActorContext;
 import io.github.seonwkim.actor.internal.FrameworkCommands;
+import io.github.seonwkim.actor.internal.PekkoActorHandle;
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -276,7 +277,7 @@ public class SpringChildActorBuilder<P, C> {
                 .thenApply(response -> {
                     if ((response.success || "Child already exists".equals(response.message))
                             && response.childRef != null) {
-                        return new SpringActorHandle<>(scheduler, response.childRef, defaultTimeout);
+                        return new PekkoActorHandle<>(scheduler, response.childRef, defaultTimeout);
                     } else {
                         throw new RuntimeException("Failed to spawn child actor "
                                 + childActorClass.getName()
@@ -330,7 +331,7 @@ public class SpringChildActorBuilder<P, C> {
                     if (response.found && response.childRef != null) {
                         // Child exists, return it
                         return CompletableFuture.completedFuture(
-                                new SpringActorHandle<>(scheduler, response.childRef, defaultTimeout));
+                                new PekkoActorHandle<>(scheduler, response.childRef, defaultTimeout));
                     } else {
                         // Child doesn't exist, spawn it
                         return spawn();
@@ -365,7 +366,7 @@ public class SpringChildActorBuilder<P, C> {
                         scheduler)
                 .thenApply(response -> {
                     if (response.found && response.childRef != null) {
-                        return new SpringActorHandle<>(scheduler, response.childRef, defaultTimeout);
+                        return new PekkoActorHandle<>(scheduler, response.childRef, defaultTimeout);
                     } else {
                         return null;
                     }

@@ -167,8 +167,7 @@ public class UserActor implements SpringActorWithContext<UserActor.Command, User
             // TODO: how can we send SpringActorHandle across the clusters?
             // currently we have schedulers as field under the ref, that's why it's hard to send it across the cluster
             // because we now have to serde scheduler which isn't possible(and shouldn't be)
-            roomActor.tell(
-                    new ChatRoomActor.JoinRoom(userId, context.getUnderlying().getSelf()));
+            roomActor.tell(new ChatRoomActor.JoinRoom(userId, context.getSelf()));
             return SpringActorBehavior.same();
         }
 
@@ -183,8 +182,7 @@ public class UserActor implements SpringActorWithContext<UserActor.Command, User
             });
 
             final var roomActor = getRoomActor();
-            roomActor.tell(
-                    new ChatRoomActor.LeaveRoom(userId, context.getUnderlying().getSelf()));
+            roomActor.tell(new ChatRoomActor.LeaveRoom(userId, context.getSelf()));
 
             return SpringActorBehavior.same();
         }

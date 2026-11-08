@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import org.apache.pekko.actor.typed.ActorRef;
+import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.AskPattern;
 
 /**
@@ -112,7 +113,7 @@ public class HierarchicalActorBehavior<C> {
         // Use spring-boot-starter-actor API to spawn child
         SpringActorHandle<C> self = ctx.getSelf();
 
-        ctx.getUnderlying()
+        ctx.unwrap(ActorContext.class)
                 .pipeToSelf(
                         self.child((Class) childActorClass)
                                 .withId(msg.childId)
@@ -352,7 +353,7 @@ public class HierarchicalActorBehavior<C> {
                                 return (C) cmd;
                             },
                             Duration.ofSeconds(3),
-                            ctx.getUnderlying().getSystem().scheduler())
+                            ctx.unwrap(ActorContext.class).getSystem().scheduler())
                     .toCompletableFuture();
 
             childFutures.add(future);

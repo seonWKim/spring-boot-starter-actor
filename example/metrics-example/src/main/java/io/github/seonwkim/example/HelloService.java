@@ -14,7 +14,7 @@ public class HelloService {
 
     public Mono<String> getActorPath() {
         return Mono.fromCompletionStage(
-                actorSystem.getOrSpawn(HelloActor.class, "hello-actor").thenApply(actor -> actor.getPath()));
+                actorSystem.getOrSpawn(HelloActor.class, "hello-actor").thenApply(actor -> actor.path()));
     }
 
     public Mono<String> hello() {

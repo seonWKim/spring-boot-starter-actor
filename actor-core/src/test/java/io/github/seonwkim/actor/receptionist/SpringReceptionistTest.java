@@ -92,7 +92,7 @@ class SpringReceptionistTest {
     }
 
     private static Set<String> paths(Set<SpringActorHandle<Command>> handles) {
-        return handles.stream().map(SpringActorHandle::getPath).collect(Collectors.toSet());
+        return handles.stream().map(SpringActorHandle::path).collect(Collectors.toSet());
     }
 
     @Test
@@ -107,7 +107,7 @@ class SpringReceptionistTest {
 
         registrar.register(key, actor);
 
-        await().atMost(5, SECONDS).until(() -> paths(finder.find(key)).contains(actor.getPath()));
+        await().atMost(5, SECONDS).until(() -> paths(finder.find(key)).contains(actor.path()));
     }
 
     @Test
@@ -120,7 +120,7 @@ class SpringReceptionistTest {
         await().atMost(5, SECONDS).until(() -> !finder.find(key).isEmpty());
         Set<SpringActorHandle<Command>> found = finder.find(key);
         for (SpringActorHandle<Command> handle : found) {
-            assertEquals(actor.getPath(), handle.getPath());
+            assertEquals(actor.path(), handle.path());
             handle.tell(new ReceptionistTestActor.Ping("hello"));
         }
 
@@ -137,11 +137,11 @@ class SpringReceptionistTest {
             SpringActorHandle<Command> actor = spawn("subscribe-updates-actor", new LinkedBlockingQueue<>(), null);
             receptionist.register(key, actor);
 
-            awaitUpdate(updates, set -> set.contains(actor.getPath()));
+            awaitUpdate(updates, set -> set.contains(actor.path()));
 
             actor.tell(new ReceptionistTestActor.Stop());
 
-            awaitUpdate(updates, set -> !set.contains(actor.getPath()));
+            awaitUpdate(updates, set -> !set.contains(actor.path()));
         } finally {
             subscription.cancel();
         }
@@ -168,7 +168,7 @@ class SpringReceptionistTest {
         try {
             SpringActorHandle<Command> actor = spawn("subscribe-cancel-actor", new LinkedBlockingQueue<>(), null);
             receptionist.register(key, actor);
-            awaitUpdate(liveUpdates, set -> set.contains(actor.getPath()));
+            awaitUpdate(liveUpdates, set -> set.contains(actor.path()));
         } finally {
             live.cancel();
         }
@@ -182,7 +182,7 @@ class SpringReceptionistTest {
         BlockingQueue<String> received = new LinkedBlockingQueue<>();
         SpringActorHandle<Command> actor = spawn("self-register-actor", received, key);
 
-        await().atMost(5, SECONDS).until(() -> paths(finder.find(key)).contains(actor.getPath()));
+        await().atMost(5, SECONDS).until(() -> paths(finder.find(key)).contains(actor.path()));
 
         finder.find(key).forEach(handle -> handle.tell(new ReceptionistTestActor.Ping("from-lookup")));
         assertEquals("from-lookup", received.poll(5, SECONDS));

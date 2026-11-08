@@ -6,7 +6,6 @@ import io.github.seonwkim.actor.PostStop;
 import io.github.seonwkim.actor.PreRestart;
 import io.github.seonwkim.actor.SpringActorBehavior;
 import io.github.seonwkim.actor.SpringActorContext;
-import io.github.seonwkim.actor.SpringBehaviorContext;
 import java.util.Map;
 import java.util.function.Function;
 import javax.annotation.Nullable;
@@ -40,7 +39,7 @@ public final class PekkoBehaviors {
 
     private static <C, S> Behavior<C> compile(SpringActorBehavior.Definition<C, S> definition) {
         Behavior<C> behavior = Behaviors.setup(ctx -> {
-            S state = definition.stateFactory().apply(new SpringBehaviorContext<>(ctx));
+            S state = definition.stateFactory().apply(new PekkoBehaviorContext<>(ctx));
             return receive(ctx, definition, state);
         });
         if (definition.supervisionStrategy() != null) {

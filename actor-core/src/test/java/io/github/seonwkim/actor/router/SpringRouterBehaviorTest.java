@@ -37,7 +37,7 @@ class SpringRouterBehaviorTest {
         public SpringActorBehavior<TestRouterActor.Command> create(SpringActorContext ctx) {
             return SpringActorBehavior.builder(TestRouterActor.Command.class, ctx)
                     .onMessage(TestRouterActor.ProcessMessage.class, (context, msg) -> {
-                        String workerId = context.path().name();
+                        String workerId = actorName(context.path());
                         workerState.recordMessage(workerId, msg.message);
                         context.getLog().info("Worker {} processed: {}", workerId, msg.message);
                         return SpringActorBehavior.same();
@@ -186,7 +186,7 @@ class SpringRouterBehaviorTest {
         public SpringActorBehavior<BroadcastRouterActor.Command> create(SpringActorContext ctx) {
             return SpringActorBehavior.builder(BroadcastRouterActor.Command.class, ctx)
                     .onMessage(BroadcastRouterActor.ProcessMessage.class, (context, msg) -> {
-                        String workerId = context.path().name();
+                        String workerId = actorName(context.path());
                         state.recordMessage(workerId, msg.message);
                         return SpringActorBehavior.same();
                     })
@@ -268,7 +268,7 @@ class SpringRouterBehaviorTest {
         public SpringActorBehavior<ConsistentHashingRouterActor.Command> create(SpringActorContext ctx) {
             return SpringActorBehavior.builder(ConsistentHashingRouterActor.Command.class, ctx)
                     .onMessage(ConsistentHashingRouterActor.ProcessHashableMessage.class, (context, msg) -> {
-                        String workerId = context.path().name();
+                        String workerId = actorName(context.path());
                         state.recordMessage(workerId, msg.getConsistentHashKey());
                         return SpringActorBehavior.same();
                     })
@@ -843,5 +843,9 @@ class SpringRouterBehaviorTest {
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("Pool size must be positive");
         }
+    }
+
+    private static String actorName(String path) {
+        return path.substring(path.lastIndexOf('/') + 1);
     }
 }
