@@ -1,6 +1,6 @@
 # Introduction
 
-Spring Boot Starter Actor is a library that integrates Spring Boot with the actor model using [Pekko](https://pekko.apache.org/) (an open-source, community-driven fork of Akka).
+Actor Spring Boot Starter is a library that integrates Spring Boot with the actor model using [Pekko](https://pekko.apache.org/) (an open-source, community-driven fork of Akka).
 
 ## What is this project about?
 
@@ -30,13 +30,13 @@ This project aims to bring together the best of both worlds:
 
 ## Getting Started
 
-Check out the [Getting Started](getting-started.md) guide to begin using Spring Boot Starter Actor in your projects.
+Check out the [Getting Started](getting-started.md) guide to begin using Actor Spring Boot Starter in your projects.
 
 ## Examples
 
-Explore our example applications to see Spring Boot Starter Actor in action:
+Explore our example applications to see Actor Spring Boot Starter in action:
 
-- [**Simple Example**](https://github.com/seonWKim/spring-boot-starter-actor/tree/main/example/simple): Demonstrates basic actor usage in a non-clustered environment
-- [**Cluster Example**](https://github.com/seonWKim/spring-boot-starter-actor/tree/main/example/cluster): Shows how to use sharded actors in a clustered environment
-- [**Chat Example**](https://github.com/seonWKim/spring-boot-starter-actor/tree/main/example/chat): A complete chat application using actors
-- [**Synchronization Example**](https://github.com/seonWKim/spring-boot-starter-actor/tree/main/example/synchronization): Demonstrates synchronization patterns with actors
+- [**Simple Example**](https://github.com/seonWKim/actor-spring-boot-starter/tree/main/example/simple): Demonstrates basic actor usage in a non-clustered environment
+- [**Cluster Example**](https://github.com/seonWKim/actor-spring-boot-starter/tree/main/example/cluster): Shows how to use sharded actors in a clustered environment
+- [**Chat Example**](https://github.com/seonWKim/actor-spring-boot-starter/tree/main/example/chat): A complete chat application using actors
+- [**Synchronization Example**](https://github.com/seonWKim/actor-spring-boot-starter/tree/main/example/synchronization): Demonstrates synchronization patterns with actors

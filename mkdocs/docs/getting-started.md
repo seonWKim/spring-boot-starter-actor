@@ -1,6 +1,6 @@
 # Getting Started
 
-This guide will help you get started with Spring Boot Starter Actor in your Spring Boot application.
+This guide will help you get started with Actor Spring Boot Starter in your Spring Boot application.
 
 ## Prerequisites
 
@@ -34,7 +34,7 @@ To view the latest version, see [actor-spring-boot-starter](https://central.sona
 
 ## Basic Configuration
 
-Spring Boot Starter Actor uses Spring Boot's auto-configuration to set up the actor system. By default, it creates a local actor system with sensible defaults.
+Actor Spring Boot Starter uses Spring Boot's auto-configuration to set up the actor system. By default, it creates a local actor system with sensible defaults.
 
 ### Enable Actor Support
 
@@ -60,14 +60,12 @@ spring:
   application:
     name: spring-pekko
   actor:
-    pekko:
-      actor:
-        provider: local
+    provider: local
 ```
 
 ## Next Steps
 
-Now that you have set up Spring Boot Starter Actor in your project, you can:
+Now that you have set up Actor Spring Boot Starter in your project, you can:
 
 1. [Learn how to register actors and send messages](guides/actor-registration-messaging.md)
 2. [Explore pub/sub topics for distributed messaging](guides/pub-sub-topics.md)

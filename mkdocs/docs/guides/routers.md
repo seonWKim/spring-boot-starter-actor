@@ -33,7 +33,7 @@ public class WorkerActor implements SpringActor<ProcessorRouter.Command> {
                 // Process the message
                 String result = processData(msg.data);
                 context.getLog().info("Processed: {}", result);
-                return Behaviors.same();
+                return SpringActorBehavior.same();
             })
             .build();
     }
@@ -98,7 +98,7 @@ public class ProcessingService {
 
 ## Routing Strategies
 
-Spring Boot Starter Actor provides four routing strategies, all wrapping Apache Pekko's built-in routers.
+Actor Spring Boot Starter provides four routing strategies, all wrapping Apache Pekko's built-in routers.
 
 ### Round Robin
 
@@ -234,7 +234,7 @@ return SpringRouterBehavior.builder(Command.class, ctx)
     .withRoutingStrategy(RoutingStrategy.roundRobin())
     .withPoolSize(10)
     .withWorkerActors(WorkerActor.class)
-    .withSupervisionStrategy(SupervisorStrategy.restart())  // Restart failed workers
+    .withSupervisionStrategy(SupervisionStrategy.restart())  // Restart failed workers
     .build();
 ```
 
@@ -249,7 +249,7 @@ return SpringRouterBehavior.builder(Command.class, ctx)
 ```java
 // Restart up to 3 times within 1 minute, then stop
 .withSupervisionStrategy(
-    SupervisorStrategy.restart().withLimit(3, Duration.ofMinutes(1))
+    SupervisionStrategy.restart().withLimit(3, Duration.ofMinutes(1))
 )
 ```
 
@@ -274,7 +274,7 @@ public class DatabaseWorkerActor implements SpringActor<Command> {
                 // Use injected Spring beans
                 databaseService.save(msg.data);
                 metricsService.recordSave();
-                return Behaviors.same();
+                return SpringActorBehavior.same();
             })
             .build();
     }
@@ -349,7 +349,7 @@ public class OrderProcessorWorker implements SpringActor<OrderRouter.Command> {
                 orderService.processOrder(msg.orderId, msg.customerId);
                 context.getLog().info("Processed order {} for customer {}",
                     msg.orderId, msg.customerId);
-                return Behaviors.same();
+                return SpringActorBehavior.same();
             })
             .build();
     }
@@ -382,7 +382,7 @@ public class OrderRouter implements SpringActor<OrderRouter.Command> {
             .withRoutingStrategy(RoutingStrategy.consistentHashing())
             .withPoolSize(10)
             .withWorkerActors(OrderProcessorWorker.class)
-            .withSupervisionStrategy(SupervisorStrategy.restart())
+            .withSupervisionStrategy(SupervisionStrategy.restart())
             .build();
     }
 }

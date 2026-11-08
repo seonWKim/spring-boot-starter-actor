@@ -7,10 +7,10 @@ is written up as an RFC first, so the fix is agreed before any code is written.
 See the [RFC index](rfcs/index.md).
 
 !!! note "Snapshot"
-    "This starter today" describes `main` at version 0.10.0. The core configuration is
-    [`ActorConfiguration`](https://github.com/seonWKim/spring-boot-starter-actor/blob/main/core/src/main/java/io/github/seonwkim/core/ActorConfiguration.java),
+    "This starter today" describes the 0.10.0 release (the last 0.x `main`), before the 1.0 refactor. The 1.0 changes are in the [changelog](https://github.com/seonWKim/actor-spring-boot-starter/blob/main/CHANGELOG.md). The core configuration is
+    [`ActorConfiguration`](https://github.com/seonWKim/actor-spring-boot-starter/blob/14d6a9805e0ccab6a14ec90520cb182a8fde7b7b/core/src/main/java/io/github/seonwkim/core/ActorConfiguration.java),
     which is imported by
-    [`@EnableActorSupport`](https://github.com/seonWKim/spring-boot-starter-actor/blob/main/core/src/main/java/io/github/seonwkim/core/EnableActorSupport.java).
+    [`@EnableActorSupport`](https://github.com/seonWKim/actor-spring-boot-starter/blob/14d6a9805e0ccab6a14ec90520cb182a8fde7b7b/core/src/main/java/io/github/seonwkim/core/EnableActorSupport.java).
     `core-boot3` is generated from `core` sources by the `syncAllBoot3Sources` Gradle task,
     so anything said about `core` also holds for `core-boot3`.
 
@@ -27,7 +27,7 @@ Every row has four parts:
 - **Source**: a link to the official documentation of the reference.
 
 Rows 1 to 17 cover the eight topics of
-[issue #105](https://github.com/seonWKim/spring-boot-starter-actor/issues/105).
+[issue #105](https://github.com/seonWKim/actor-spring-boot-starter/issues/105).
 Rows 18 to 24 are other conventions found in the same libraries that apply to this
 starter; each names the library it comes from.
 
@@ -79,7 +79,7 @@ The RFC and issue links are in each row below.
   `PekkoManagementAutoConfiguration` are plain `@Configuration` classes. The `metrics` module has a
   `spring.factories` entry only, so Boot 3 never loads `ActorMetricsAutoConfiguration` on its own.
   The core tests pass without `@EnableActorSupport` only because the test application sits in the
-  `io.github.seonwkim.core` package, and component scanning picks `ActorConfiguration` up.
+  `io.github.seonwkim.actor` package, and component scanning picks `ActorConfiguration` up.
 - **Verdict**: Change: [RFC 0001](rfcs/0001-auto-configuration-registration.md).
 - **Source**: [Spring Boot: Creating your own auto-configuration](https://docs.spring.io/spring-boot/reference/features/developing-auto-configuration.html),
   [Spring Boot 2.7 release notes](https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-2.7-Release-Notes),
@@ -146,7 +146,7 @@ The RFC and issue links are in each row below.
   keys are marked.
 - **This starter today**: `ActorProperties` is a plain class that binds `spring.actor.*` into a
   `Map<String, Object>` with the `Binder`. There is no metadata file.
-- **Verdict**: Tracked: [#97](https://github.com/seonWKim/spring-boot-starter-actor/issues/97). Not
+- **Verdict**: Tracked: [#97](https://github.com/seonWKim/actor-spring-boot-starter/issues/97). Not
   re-specified here.
 - **Source**: [Spring Boot: Type-safe configuration properties](https://docs.spring.io/spring-boot/reference/features/external-config.html),
   [Spring Boot: Configuration metadata](https://docs.spring.io/spring-boot/specification/configuration-metadata/index.html).
@@ -161,7 +161,7 @@ The RFC and issue links are in each row below.
   Pekko configuration.
 - **Verdict**: Keep. Moving every key breaks every user's configuration, and Temporal shows that a
   `spring.*` prefix is accepted in practice. If the typed properties work in
-  [#97](https://github.com/seonWKim/spring-boot-starter-actor/issues/97) wants to revisit the prefix,
+  [#97](https://github.com/seonWKim/actor-spring-boot-starter/issues/97) wants to revisit the prefix,
   it should do so there, with deprecation metadata for the old keys.
 - **Source**: [Spring Boot: Creating your own starter, configuration keys](https://docs.spring.io/spring-boot/reference/features/developing-auto-configuration.html),
   [Temporal: Spring Boot integration](https://docs.temporal.io/develop/java/spring-boot-integration).
@@ -178,7 +178,7 @@ The RFC and issue links are in each row below.
 - **This starter today**: The Pekko actor system starts when the `actorSystem` bean is built.
   `SpringActorSystem` implements `DisposableBean`, and `destroy()` calls `terminate()` and then waits on
   `getWhenTerminated()` with no timeout.
-- **Verdict**: Tracked: [#99](https://github.com/seonWKim/spring-boot-starter-actor/issues/99). Not
+- **Verdict**: Tracked: [#99](https://github.com/seonWKim/actor-spring-boot-starter/issues/99). Not
   re-specified here.
 - **Source**: [Spring Framework: Startup and shutdown callbacks](https://docs.spring.io/spring-framework/reference/core/beans/factory-nature.html),
   [Spring for Apache Kafka: Message listener containers](https://docs.spring.io/spring-kafka/reference/kafka/receiving-messages/message-listener-container.html),
@@ -221,7 +221,7 @@ The RFC and issue links are in each row below.
   enabled by `management.health.<name>.enabled`.
 - **This starter today**: No health indicator. Cluster membership is visible only through Pekko
   Management HTTP when it is on the classpath.
-- **Verdict**: Tracked: [#100](https://github.com/seonWKim/spring-boot-starter-actor/issues/100). Not
+- **Verdict**: Tracked: [#100](https://github.com/seonWKim/actor-spring-boot-starter/issues/100). Not
   re-specified here.
 - **Source**: [Spring Boot: Actuator endpoints, health](https://docs.spring.io/spring-boot/reference/actuator/endpoints.html).
 

@@ -1,6 +1,6 @@
 # Sharded Actors
 
-This guide explains how to create and use sharded actors in a clustered environment using Spring Boot Starter Actor.
+This guide explains how to create and use sharded actors in a clustered environment using Actor Spring Boot Starter.
 
 ## What are Sharded Actors?
 
@@ -17,30 +17,35 @@ Sharded actors are actors that are distributed across multiple nodes in a cluste
 
 ## Setting Up a Cluster
 
-Before you can use sharded actors, you need to set up a Pekko cluster. Add the following configuration to your `application.yml` file:
+Sharded actors need the cluster starter:
+
+```gradle
+implementation 'io.github.seonwkim:actor-spring-boot-starter-cluster:1.0.0'
+```
+
+Then configure the cluster in your `application.yml` file:
 
 ```yaml 
 spring:
   application:
     name: spring-pekko
   actor:
+    name: spring-pekko-example
+    provider: cluster
+    remote:
+      hostname: 127.0.0.1
+      port: 2551
+    cluster:
+      seed-nodes:
+        - pekko://spring-pekko-example@127.0.0.1:2551
+        - pekko://spring-pekko-example@127.0.0.1:2552
+        - pekko://spring-pekko-example@127.0.0.1:2553
     pekko:
-      name: spring-pekko-example
       actor:
-        provider: cluster
         allow-java-serialization: off
         warn-about-java-serializer-usage: on
-      remote:
-        artery:
-          canonical:
-            hostname: 127.0.0.1
-            port: 2551
       cluster:
         name: spring-pekko-example
-        seed-nodes:
-          - pekko://spring-pekko-example@127.0.0.1:2551
-          - pekko://spring-pekko-example@127.0.0.1:2552
-          - pekko://spring-pekko-example@127.0.0.1:2553
         downing-provider-class: org.apache.pekko.cluster.sbr.SplitBrainResolverProvider
 
 server:
@@ -60,8 +65,8 @@ To create a sharded actor, implement the `SpringShardedActor` interface and anno
 @Component
 public class HelloActor implements SpringShardedActor<HelloActor.Command> {
 
-    public static final EntityTypeKey<Command> TYPE_KEY =
-            EntityTypeKey.create(Command.class, "HelloActor");
+    public static final ShardedEntityType<Command> TYPE_KEY =
+            ShardedEntityType.of(Command.class, "HelloActor");
 
     // Define the command interface for messages this actor can handle
     public interface Command extends JsonSerializable {}
@@ -76,15 +81,15 @@ public class HelloActor implements SpringShardedActor<HelloActor.Command> {
     }
 
     @Override
-    public EntityTypeKey<Command> typeKey() {
+    public ShardedEntityType<Command> entityType() {
         return TYPE_KEY;
     }
 
     @Override
-    public SpringShardedActorBehavior<Command> create(SpringShardedActorContext<Command> ctx) {
+    public SpringActorBehavior<Command> create(SpringShardedActorContext<Command> ctx) {
         final String entityId = ctx.getEntityId();
 
-        return SpringShardedActorBehavior.builder(Command.class, ctx)
+        return SpringActorBehavior.builder(Command.class, ctx)
                 .withState(actorCtx -> new HelloActorBehavior(actorCtx, entityId))
                 .onMessage(SayHello.class, HelloActorBehavior::onSayHello)
                 .build();
@@ -94,10 +99,10 @@ public class HelloActor implements SpringShardedActor<HelloActor.Command> {
      * Behavior handler for hello actor. Holds the entity ID and handles messages.
      */
     private static class HelloActorBehavior {
-        private final ActorContext<Command> ctx;
+        private final SpringBehaviorContext<Command> ctx;
         private final String entityId;
 
-        HelloActorBehavior(ActorContext<Command> ctx, String entityId) {
+        HelloActorBehavior(SpringBehaviorContext<Command> ctx, String entityId) {
             this.ctx = ctx;
             this.entityId = entityId;
         }
@@ -108,12 +113,9 @@ public class HelloActor implements SpringShardedActor<HelloActor.Command> {
          * @param msg The SayHello message
          * @return The next behavior (same in this case)
          */
-        private Behavior<Command> onSayHello(SayHello msg) {
-            // Get information about the current node and entity
-            final String nodeAddress = ctx.getSystem().address().toString();
-
-            // Create a response message with node and entity information
-            final String message = "Received from entity [" + entityId + "] on node [" + nodeAddress + "]";
+        private SpringActorBehavior<Command> onSayHello(SayHello msg) {
+            // Create a response message with the entity's information
+            final String message = "Received from entity [" + entityId + "] at [" + ctx.path() + "]";
 
             // Send the response back to the caller
             msg.reply(message);
@@ -121,13 +123,14 @@ public class HelloActor implements SpringShardedActor<HelloActor.Command> {
             // Log the message for debugging
             ctx.getLog().info(message);
 
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
     }
 
+    // Optional: the default is ShardingStrategy.defaults() (100 shards)
     @Override
-    public ShardingMessageExtractor<ShardEnvelope<Command>, Command> extractor() {
-        return new DefaultShardingMessageExtractor<>(3);
+    public ShardingStrategy sharding() {
+        return ShardingStrategy.hashed(3);
     }
 }
 ```
@@ -136,11 +139,11 @@ public class HelloActor implements SpringShardedActor<HelloActor.Command> {
 
 1. Implement `SpringShardedActor<T>` instead of `SpringActor<T>`
 2. Commands must implement `JsonSerializable` (or `CborSerializable`) for serialization across the network
-3. Define an `EntityTypeKey` for the actor type
-4. Override `typeKey()` to return the EntityTypeKey
-5. Override `create(SpringShardedActorContext<T>)` to return `SpringShardedActorBehavior<T>` instead of `SpringActorBehavior<T>`
-6. Use `SpringShardedActorBehavior.builder()` instead of `SpringActorBehavior.builder()`
-7. Override `extractor()` to provide a sharding message extractor
+3. Define a `ShardedEntityType` for the actor type (`ShardedEntityType.of(Command.class, "name")`)
+4. Override `entityType()` to return it
+5. `create(SpringShardedActorContext<T>)` receives the entity id (`ctx.getEntityId()`) and returns a
+   `SpringActorBehavior<T>` built with `SpringActorBehavior.builder()`, like a regular actor
+6. Optionally override `sharding()` to choose the number of shards
 
 !!! tip "Serialization"
     Always use `JsonSerializable` or `CborSerializable` for sharded actor messages to ensure they can be sent across the cluster.
@@ -266,18 +269,22 @@ The entity ID is a crucial part of sharding. It determines which shard an entity
 
 ## Sharding Configuration
 
-You can configure sharding behavior using the `extractor()` method in your sharded actor:
+You can choose the number of shards with the `sharding()` method in your sharded actor:
 
 ```java
 
 @Override
-public ShardingMessageExtractor<ShardEnvelope<Command>, Command> extractor() {
-    return new DefaultShardingMessageExtractor<>(numberOfShards);
+public ShardingStrategy sharding() {
+    return ShardingStrategy.hashed(numberOfShards);
 }
 ```
 
-The `DefaultShardingMessageExtractor` takes a parameter that specifies the number of shards to use. More shards
-allow for finer-grained distribution but increase overhead.
+Entities are placed by a hash of their id. More shards allow for finer-grained distribution but
+increase overhead. Keep the number the same on every node and across deployments: changing it moves
+entities to other shards. The default is 100.
+
+To run an entity type only on some nodes, override `role()` and set `spring.actor.cluster.roles` on
+those nodes.
 
 ## Best Practices for Sharded Actors
 

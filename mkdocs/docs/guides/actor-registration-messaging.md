@@ -1,10 +1,10 @@
 # Actor Registration and Messaging
 
-This guide explains how to register actors, spawn them, and send messages using Spring Boot Starter Actor.
+This guide explains how to register actors, spawn them, and send messages using Actor Spring Boot Starter.
 
 ## Registering Actors
 
-In Spring Boot Starter Actor, actors are registered as Spring components. This allows them to be automatically discovered and managed by the Spring container.
+In Actor Spring Boot Starter, actors are registered as Spring components. This allows them to be automatically discovered and managed by the Spring container.
 
 ### Creating a Simple Actor
 
@@ -37,23 +37,23 @@ public class HelloActor implements SpringActor<HelloActor.Command> {
 
     // Inner class to handle the actor's behavior
     private static class HelloActorBehavior {
-        private final ActorContext<Command> ctx;
+        private final SpringBehaviorContext<Command> ctx;
         private final SpringActorContext actorContext;
 
-        HelloActorBehavior(ActorContext<Command> ctx, SpringActorContext actorContext) {
+        HelloActorBehavior(SpringBehaviorContext<Command> ctx, SpringActorContext actorContext) {
             this.ctx = ctx;
             this.actorContext = actorContext;
         }
 
-        private Behavior<Command> onSayHi(SayHi msg) {
+        private SpringActorBehavior<Command> onSayHi(SayHi msg) {
             ctx.getLog().info("Received SayHi for id={}", actorContext.actorId());
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
 
-        private Behavior<Command> onSayHello(SayHello msg) {
+        private SpringActorBehavior<Command> onSayHello(SayHello msg) {
             ctx.getLog().info("Received SayHello for id={}", actorContext.actorId());
             msg.reply("Hello from actor " + actorContext.actorId());
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
     }
 }
@@ -351,14 +351,12 @@ public class ParentActor implements SpringActor<ParentActor.Command> {
     public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
         return SpringActorBehavior.builder(Command.class, actorContext)
             .withState(ctx -> {
-                // Get reference to self
-                SpringActorHandle<Command> self = new SpringActorHandle<>(
-                    ctx.getSystem().scheduler(), ctx.getSelf());
+                SpringActorHandle<Command> self = ctx.getSelf();
 
                 // Spawn a child actor using fluent API
                 self.child(ChildActor.class)
                     .withId("worker-1")
-                    .withSupervisionStrategy(SupervisorStrategy.restart())
+                    .withSupervisionStrategy(SupervisionStrategy.restart())
                     .withTimeout(Duration.ofSeconds(5))
                     .spawn();  // Returns CompletionStage<SpringActorHandle>
 
@@ -378,14 +376,14 @@ The child builder API supports several operations:
 CompletionStage<SpringActorHandle<Command>> child = parentRef
     .child(ChildActor.class)
     .withId("child-1")
-    .withSupervisionStrategy(SupervisorStrategy.restart())
+    .withSupervisionStrategy(SupervisionStrategy.restart())
     .spawn();  // Async
 
 // Or synchronous spawning
 SpringActorHandle<Command> child = parentRef
     .child(ChildActor.class)
     .withId("child-2")
-    .withSupervisionStrategy(SupervisorStrategy.restart())
+    .withSupervisionStrategy(SupervisionStrategy.restart())
     .spawnAndWait();  // Blocks until spawned
 ```
 
@@ -428,7 +426,7 @@ SpringActorContext customContext = new SpringActorContext() {
 SpringActorHandle<Command> child = parentRef
     .child(ChildActor.class)
     .withContext(customContext)
-    .withSupervisionStrategy(SupervisorStrategy.restart())
+    .withSupervisionStrategy(SupervisionStrategy.restart())
     .spawnAndWait();
 ```
 
@@ -440,25 +438,25 @@ Apply different supervision strategies based on the child's role:
 // Restart strategy for stateless workers
 self.child(WorkerActor.class)
     .withId("worker")
-    .withSupervisionStrategy(SupervisorStrategy.restart())
+    .withSupervisionStrategy(SupervisionStrategy.restart())
     .spawn();
 
 // Limited restart for production systems
 self.child(WorkerActor.class)
     .withId("critical-worker")
-    .withSupervisionStrategy(SupervisorStrategy.restart().withLimit(3, Duration.ofMinutes(1)))
+    .withSupervisionStrategy(SupervisionStrategy.restart().withLimit(3, Duration.ofMinutes(1)))
     .spawn();
 
 // Stop strategy for actors that should fail fast
 self.child(ValidatorActor.class)
     .withId("validator")
-    .withSupervisionStrategy(SupervisorStrategy.stop())
+    .withSupervisionStrategy(SupervisionStrategy.stop())
     .spawn();
 
 // Resume strategy for non-critical failures
 self.child(LoggerActor.class)
     .withId("logger")
-    .withSupervisionStrategy(SupervisorStrategy.resume())
+    .withSupervisionStrategy(SupervisionStrategy.resume())
     .spawn();
 ```
 

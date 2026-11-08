@@ -5,7 +5,7 @@ a supervised child that keeps the conversation, `pipeToSelf` for model calls, a 
 limiter, a human approval step with ask and a timeout, and snapshots that survive a restart.
 
 All code on this page is included from the runnable example in
-[`example/agent`](https://github.com/seonWKim/spring-boot-starter-actor/tree/main/example/agent).
+[`example/agent`](https://github.com/seonWKim/actor-spring-boot-starter/tree/main/example/agent).
 The example uses a fake model, so it needs no API key and no network:
 
 ```bash

@@ -1,6 +1,6 @@
 # Spring Boot Integration
 
-How to leverage spring-boot-starter-actor with Spring Boot's ecosystem.
+How to use actor-spring-boot-starter with Spring Boot's ecosystem.
 
 ## Core Philosophy
 
@@ -46,19 +46,19 @@ public class OrderActor implements SpringActor<Command> {
     }
 
     private static class OrderBehavior {
-        private final ActorContext<Command> ctx;
+        private final SpringBehaviorContext<Command> ctx;
         private final OrderRepository repository;
         private final OrderService service;
 
-        public OrderBehavior(ActorContext<Command> ctx, OrderRepository repository, OrderService service) {
+        public OrderBehavior(SpringBehaviorContext<Command> ctx, OrderRepository repository, OrderService service) {
             this.ctx = ctx;
             this.repository = repository;
             this.service = service;
         }
 
-        private Behavior<Command> handleCreate(CreateOrder cmd) {
+        private SpringActorBehavior<Command> handleCreate(CreateOrder cmd) {
             // Implementation here
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
     }
 }
@@ -116,27 +116,27 @@ public class OrderActor implements SpringActor<Command> {
     }
 
     private static class OrderBehavior {
-        private final ActorContext<Command> ctx;
+        private final SpringBehaviorContext<Command> ctx;
         private final OrderRepository orderRepository;
         private Order currentOrder;
 
-        public OrderBehavior(ActorContext<Command> ctx, OrderRepository orderRepository, Order order) {
+        public OrderBehavior(SpringBehaviorContext<Command> ctx, OrderRepository orderRepository, Order order) {
             this.ctx = ctx;
             this.orderRepository = orderRepository;
             this.currentOrder = order;
         }
 
-        private Behavior<Command> handleUpdate(UpdateOrder cmd) {
+        private SpringActorBehavior<Command> handleUpdate(UpdateOrder cmd) {
             if (currentOrder == null) {
                 cmd.reply(new OrderResponse(false, null, "Order not found"));
-                return Behaviors.same();
+                return SpringActorBehavior.same();
             }
 
             currentOrder.setAmount(cmd.getNewAmount());
             currentOrder = orderRepository.save(currentOrder);  // Explicit save
             ctx.getLog().info("Order updated: {}", currentOrder.getOrderId());
             cmd.reply(new OrderResponse(true, currentOrder, "Order updated"));
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
     }
 }
@@ -168,28 +168,28 @@ public class ReactiveOrderActor implements SpringActor<Command> {
     private record SaveComplete(Order order) implements Command {}
 
     private static class ReactiveBehavior {
-        private final ActorContext<Command> ctx;
+        private final SpringBehaviorContext<Command> ctx;
         private final ReactiveOrderRepository repository;
         private Order currentOrder;
 
-        public ReactiveBehavior(ActorContext<Command> ctx, ReactiveOrderRepository repository) {
+        public ReactiveBehavior(SpringBehaviorContext<Command> ctx, ReactiveOrderRepository repository) {
             this.ctx = ctx;
             this.repository = repository;
         }
 
-        private Behavior<Command> handleSave(SaveOrder cmd) {
+        private SpringActorBehavior<Command> handleSave(SaveOrder cmd) {
             repository.save(currentOrder)
                 .subscribe(
                     saved -> ctx.getSelf().tell(new SaveComplete(saved)),
                     error -> ctx.getLog().error("Save failed", error)
                 );
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
 
-        private Behavior<Command> handleComplete(SaveComplete msg) {
+        private SpringActorBehavior<Command> handleComplete(SaveComplete msg) {
             this.currentOrder = msg.order();
             ctx.getLog().info("Order saved successfully: {}", currentOrder.getId());
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
     }
 }
@@ -320,21 +320,21 @@ public class OrderActor implements SpringActor<Command> {
     }
 
     private static class OrderBehavior {
-        private final ActorContext<Command> ctx;
+        private final SpringBehaviorContext<Command> ctx;
         private final OrderService orderService;
 
-        public OrderBehavior(ActorContext<Command> ctx, OrderService orderService) {
+        public OrderBehavior(SpringBehaviorContext<Command> ctx, OrderService orderService) {
             this.ctx = ctx;
             this.orderService = orderService;
         }
 
-        private Behavior<Command> handleCreate(CreateOrder cmd) {
+        private SpringActorBehavior<Command> handleCreate(CreateOrder cmd) {
             List<OrderItem> items = cmd.getItems();
             Order order = orderService.createOrderWithItems(ctx.actorId(), items);
             // Transaction is managed by Spring
             ctx.getLog().info("Order created with items: {}", order.getOrderId());
             cmd.reply(new OrderResponse(true, order, "Order created"));
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
     }
 }

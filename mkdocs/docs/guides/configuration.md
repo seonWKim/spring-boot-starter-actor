@@ -5,51 +5,65 @@ The same keys are published as Spring Boot configuration metadata
 (`META-INF/spring-configuration-metadata.json` in the `actor-autoconfigure` and `actor-metrics` jars),
 so IDEs offer completion and documentation for them in `application.yml` and `application.properties`.
 
-## Starter keys
+## Typed keys
 
-These keys are read by the starter itself.
+These keys are bound to `ActorProperties` and validated at startup: a bad value stops the
+application with a message that names the key.
 
-| Key | Module | Default | Description |
+| Key | Default | Sets Pekko key | Description |
 |---|---|---|---|
-| `spring.actor.pekko.management.enabled` | core | `true` | Whether to start the Pekko Management HTTP server and Cluster Bootstrap when the actor system runs in cluster mode and the Pekko Management libraries are on the classpath. |
-| `spring.actor.metrics.enabled` | metrics | `true` | Whether to register the actor `MetricsRegistry` bean that publishes actor metrics to the application's Micrometer `MeterRegistry`. |
+| `spring.actor.name` | `system` | `pekko.name` | Name of the actor system. Nodes of one cluster must use the same name. |
+| `spring.actor.provider` | `local` | `pekko.actor.provider` | `local`, `remote` or `cluster`. `cluster` needs `actor-spring-boot-starter-cluster`. |
+| `spring.actor.remote.hostname` | Pekko's default | `pekko.remote.artery.canonical.hostname` | Host name or address other nodes use to reach this node. |
+| `spring.actor.remote.port` | Pekko's default (`25520`) | `pekko.remote.artery.canonical.port` | Port for other nodes, `0` to `65535`; `0` picks a free port. |
+| `spring.actor.cluster.seed-nodes` | none | `pekko.cluster.seed-nodes` | Nodes to join at startup, as `pekko://<name>@<host>:<port>`. |
+| `spring.actor.cluster.roles` | none | `pekko.cluster.roles` | Roles of this node. Sharded actors and singletons can be limited to a role. |
+| `spring.actor.dispatchers.<name>.executor` | none | `<name>.*` | Declares a dispatcher that runs on the named Spring `Executor` bean. See [Dispatchers](dispatchers.md). |
+| `spring.actor.dispatchers.<name>.throughput` | Pekko's default (`5`) | `<name>.throughput` | Messages an actor processes before its thread moves on. |
+| `spring.actor.shutdown.timeout` | `20s` | | How long closing the Spring context waits for the actor system's coordinated shutdown. |
+| `spring.actor.shutdown.exit-process` | `true` | | When the actor system terminates by itself (for example after this node is downed), the context closes; with this set, the process then exits with status 1. |
+| `spring.actor.pekko.management.enabled` | `true` | | Whether to start the Pekko Management HTTP server and Cluster Bootstrap in cluster mode, when the Pekko Management libraries are on the classpath. |
+| `spring.actor.metrics.enabled` | `true` | | Whether to register the actor `MetricsRegistry` bean (`actor-metrics`). |
 
 ```yaml
 spring:
   actor:
-    pekko:
-      management:
-        enabled: false   # do not start Pekko Management / Cluster Bootstrap
-    metrics:
-      enabled: false     # do not register the actor MetricsRegistry bean
+    name: orders
+    provider: cluster
+    remote:
+      hostname: 10.0.0.7
+      port: 25520
+    cluster:
+      seed-nodes:
+        - pekko://orders@10.0.0.7:25520
+        - pekko://orders@10.0.0.8:25520
+      roles: api
+    shutdown:
+      timeout: 25s
 ```
 
-## Pekko pass-through block (`spring.actor.*`)
+## Raw Pekko keys (`spring.actor.*`)
 
 Every other key under `spring.actor.*` is passed unchanged to the Pekko actor system configuration,
 with the `spring.actor` prefix removed. For example, `spring.actor.pekko.loglevel` becomes
-`pekko.loglevel`. Comma-separated string values are turned into lists. See the
+`pekko.loglevel`, and a dispatcher defined at `spring.actor.my-dispatcher` becomes `my-dispatcher`.
+Comma-separated string values are turned into lists. See the
 [Pekko reference configuration](https://pekko.apache.org/docs/pekko/current/general/configuration-reference.html)
 for the available keys.
-
-The starter reads two of the pass-through keys while it builds the actor system:
-
-| Key | Default | Description |
-|---|---|---|
-| `spring.actor.pekko.name` | `system` | Name of the Pekko actor system created by the starter. Passed through to Pekko as `pekko.name`. |
-| `spring.actor.pekko.actor.provider` | `local` (Pekko default) | Pekko actor reference provider, passed through as `pekko.actor.provider`. Set to `cluster` to run the actor system in cluster mode. |
 
 ```yaml
 spring:
   actor:
     pekko:
-      name: my-system
       loglevel: INFO
-      actor:
-        provider: cluster
       cluster:
-        seed-nodes: pekko://my-system@127.0.0.1:2551,pekko://my-system@127.0.0.1:2552
+        downing-provider-class: org.apache.pekko.cluster.sbr.SplitBrainResolverProvider
 ```
+
+!!! note "Raw keys win"
+    When a raw key and a typed key set the same Pekko key to different values, the raw key wins and
+    the starter logs a warning that names both, for example
+    `spring.actor.pekko.name=raw overrides spring.actor.name=typed`. Prefer the typed key.
 
 ## Metrics agent environment variables (`ACTOR_METRICS_*`)
 
