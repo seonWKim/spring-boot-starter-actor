@@ -14,7 +14,6 @@ import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicReference;
-import org.apache.pekko.actor.typed.receptionist.ServiceKey;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
@@ -46,7 +45,7 @@ class SpringReceptionistClusterTest extends AbstractClusterTest {
         SpringReceptionist receptionist1 = context1.getBean(SpringReceptionist.class);
         SpringReceptionist receptionist2 = context2.getBean(SpringReceptionist.class);
 
-        ServiceKey<Command> key = SpringReceptionist.serviceKey(Command.class, "cluster-find");
+        ServiceName<Command> key = ServiceName.of(Command.class, "cluster-find");
         BlockingQueue<String> received = new LinkedBlockingQueue<>();
         SpringActorHandle<Command> actor = system1.actor(ReceptionistTestActor.class)
                 .withContext(new ReceptionistTestActor.Ctx("cluster-find-actor", received, null))

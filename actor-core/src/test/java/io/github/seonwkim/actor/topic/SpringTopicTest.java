@@ -13,6 +13,7 @@ import io.github.seonwkim.actor.serialization.JsonSerializable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.pekko.actor.typed.ActorRef;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -71,8 +72,9 @@ class SpringTopicTest {
         AtomicInteger messageCount = new AtomicInteger(0);
 
         // Create topic
-        SpringTopicRef<TestMessage> topic =
-                topicManager.topic(TestMessage.class).withName("basic-topic").create();
+        SpringTopicRef<TestMessage> topic = topicManager
+                .topic(TopicName.of(TestMessage.class, "basic-topic"))
+                .create();
 
         // Create subscriber
         SpringActorHandle<TestMessage> subscriber = actorSystem
@@ -96,8 +98,7 @@ class SpringTopicTest {
         AtomicInteger messageCount = new AtomicInteger(0);
 
         SpringTopicRef<TestMessage> topic = topicManager
-                .topic(TestMessage.class)
-                .withName("multi-sub-topic")
+                .topic(TopicName.of(TestMessage.class, "multi-sub-topic"))
                 .create();
 
         // Create 3 subscribers
@@ -133,8 +134,9 @@ class SpringTopicTest {
         CountDownLatch secondLatch = new CountDownLatch(1);
         AtomicInteger messageCount = new AtomicInteger(0);
 
-        SpringTopicRef<TestMessage> topic =
-                topicManager.topic(TestMessage.class).withName("unsub-topic").create();
+        SpringTopicRef<TestMessage> topic = topicManager
+                .topic(TopicName.of(TestMessage.class, "unsub-topic"))
+                .create();
 
         SpringActorHandle<TestMessage> subscriber = actorSystem
                 .actor(SubscriberActor.class)
@@ -167,8 +169,7 @@ class SpringTopicTest {
         AtomicInteger count3 = new AtomicInteger(0);
 
         SpringTopicRef<TestMessage> topic = topicManager
-                .topic(TestMessage.class)
-                .withName("partial-unsub-topic")
+                .topic(TopicName.of(TestMessage.class, "partial-unsub-topic"))
                 .create();
 
         SpringActorHandle<TestMessage> sub1 = actorSystem
@@ -211,8 +212,9 @@ class SpringTopicTest {
 
     @Test
     void publishToTopicWithNoSubscribers() throws Exception {
-        SpringTopicRef<TestMessage> topic =
-                topicManager.topic(TestMessage.class).withName("empty-topic").create();
+        SpringTopicRef<TestMessage> topic = topicManager
+                .topic(TopicName.of(TestMessage.class, "empty-topic"))
+                .create();
 
         // Should not throw exception
         assertDoesNotThrow(() -> topic.publish(new TestMessage("No subscribers")));
@@ -223,8 +225,9 @@ class SpringTopicTest {
         CountDownLatch latch = new CountDownLatch(1);
         AtomicInteger messageCount = new AtomicInteger(0);
 
-        SpringTopicRef<TestMessage> topic =
-                topicManager.topic(TestMessage.class).withName("dup-sub-topic").create();
+        SpringTopicRef<TestMessage> topic = topicManager
+                .topic(TopicName.of(TestMessage.class, "dup-sub-topic"))
+                .create();
 
         SpringActorHandle<TestMessage> subscriber = actorSystem
                 .actor(SubscriberActor.class)
@@ -247,8 +250,7 @@ class SpringTopicTest {
     @Test
     void unsubscribeNonSubscribedActorIsSafe() throws Exception {
         SpringTopicRef<TestMessage> topic = topicManager
-                .topic(TestMessage.class)
-                .withName("safe-unsub-topic")
+                .topic(TopicName.of(TestMessage.class, "safe-unsub-topic"))
                 .create();
 
         SpringActorHandle<TestMessage> subscriber = actorSystem
@@ -264,17 +266,17 @@ class SpringTopicTest {
     @Test
     void getOrCreateIsIdempotent() throws Exception {
         SpringTopicRef<TestMessage> topic1 = topicManager
-                .topic(TestMessage.class)
-                .withName("idempotent-topic")
+                .topic(TopicName.of(TestMessage.class, "idempotent-topic"))
                 .getOrCreate();
 
         SpringTopicRef<TestMessage> topic2 = topicManager
-                .topic(TestMessage.class)
-                .withName("idempotent-topic")
+                .topic(TopicName.of(TestMessage.class, "idempotent-topic"))
                 .getOrCreate();
 
         // Should return the same topic
-        assertEquals(topic1.getUnderlying().path(), topic2.getUnderlying().path());
+        assertEquals(
+                topic1.unwrap(ActorRef.class).path(),
+                topic2.unwrap(ActorRef.class).path());
 
         // Both references should work
         CountDownLatch latch = new CountDownLatch(1);
@@ -302,10 +304,10 @@ class SpringTopicTest {
         AtomicInteger countB = new AtomicInteger(0);
 
         SpringTopicRef<TestMessage> topicA =
-                topicManager.topic(TestMessage.class).withName("topic-a").create();
+                topicManager.topic(TopicName.of(TestMessage.class, "topic-a")).create();
 
         SpringTopicRef<TestMessage> topicB =
-                topicManager.topic(TestMessage.class).withName("topic-b").create();
+                topicManager.topic(TopicName.of(TestMessage.class, "topic-b")).create();
 
         SpringActorHandle<TestMessage> subA = actorSystem
                 .actor(SubscriberActor.class)
@@ -340,21 +342,23 @@ class SpringTopicTest {
         // Topics with the same name but different message types should be distinct topics.
 
         // Create first topic with TestMessage type
-        SpringTopicRef<TestMessage> topic1 =
-                topicManager.topic(TestMessage.class).withName("shared-name").getOrCreate();
+        SpringTopicRef<TestMessage> topic1 = topicManager
+                .topic(TopicName.of(TestMessage.class, "shared-name"))
+                .getOrCreate();
         assertNotNull(topic1);
 
         // Create second topic with same name but different type
         // This should create a different topic
-        SpringTopicRef<AnotherMessage> topic2 =
-                topicManager.topic(AnotherMessage.class).withName("shared-name").getOrCreate();
+        SpringTopicRef<AnotherMessage> topic2 = topicManager
+                .topic(TopicName.of(AnotherMessage.class, "shared-name"))
+                .getOrCreate();
         assertNotNull(topic2);
 
         // Both should reference different underlying actors because the topic identity
         // includes both the name and the message type
         assertNotEquals(
-                topic1.getUnderlying().path(),
-                topic2.getUnderlying().path(),
+                topic1.unwrap(ActorRef.class).path(),
+                topic2.unwrap(ActorRef.class).path(),
                 "Topics with same name but different message types should be different");
     }
 
@@ -362,8 +366,7 @@ class SpringTopicTest {
     void createCalledTwiceThrowsTopicAlreadyExistsException() {
         // Create a topic for the first time
         SpringTopicRef<TestMessage> topic1 = topicManager
-                .topic(TestMessage.class)
-                .withName("duplicate-create-topic")
+                .topic(TopicName.of(TestMessage.class, "duplicate-create-topic"))
                 .create();
         assertNotNull(topic1);
 
@@ -371,8 +374,7 @@ class SpringTopicTest {
         TopicAlreadyExistsException exception = assertThrows(
                 TopicAlreadyExistsException.class,
                 () -> topicManager
-                        .topic(TestMessage.class)
-                        .withName("duplicate-create-topic")
+                        .topic(TopicName.of(TestMessage.class, "duplicate-create-topic"))
                         .create(),
                 "Creating the same topic twice should throw TopicAlreadyExistsException");
 
@@ -463,8 +465,7 @@ class SpringTopicTest {
 
             CreatorBehavior(SpringTopicManager topicManager, String topicName) {
                 this.topic = topicManager
-                        .topic(TestMessage.class)
-                        .withName(topicName)
+                        .topic(TopicName.of(TestMessage.class, topicName))
                         .create();
             }
         }

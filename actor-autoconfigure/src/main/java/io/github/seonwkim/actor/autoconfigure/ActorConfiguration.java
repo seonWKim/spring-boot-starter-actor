@@ -6,6 +6,8 @@ import io.github.seonwkim.actor.SpringActorSystemBuilder;
 import io.github.seonwkim.actor.SpringActorWithContext;
 import io.github.seonwkim.actor.internal.ActorTypeRegistry;
 import io.github.seonwkim.actor.internal.DefaultSpringActorSystemBuilder;
+import io.github.seonwkim.actor.internal.PekkoReceptionist;
+import io.github.seonwkim.actor.internal.PekkoTopicManager;
 import io.github.seonwkim.actor.internal.RootGuardian;
 import io.github.seonwkim.actor.internal.RootGuardianSupplierWrapper;
 import io.github.seonwkim.actor.receptionist.SpringReceptionist;
@@ -125,9 +127,9 @@ public class ActorConfiguration {
             ApplicationEventPublisher applicationEventPublisher,
             BeanFactory beanFactory) {
         return new DefaultSpringActorSystemBuilder()
+                .withRootGuardianSupplier(rootGuardianSupplierWrapper)
                 .withBeanFactory(beanFactory)
                 .withConfig(actorProperties.getConfig())
-                .withRootGuardianSupplier(rootGuardianSupplierWrapper)
                 .withApplicationEventPublisher(applicationEventPublisher);
     }
 
@@ -165,7 +167,7 @@ public class ActorConfiguration {
     @Bean
     @ConditionalOnMissingBean(SpringTopicManager.class)
     public SpringTopicManager topicManager(SpringActorSystem actorSystem) {
-        return new SpringTopicManager(actorSystem);
+        return new PekkoTopicManager(actorSystem);
     }
 
     /**
@@ -174,6 +176,6 @@ public class ActorConfiguration {
     @Bean
     @ConditionalOnMissingBean(SpringReceptionist.class)
     public SpringReceptionist springReceptionist(SpringActorSystem actorSystem) {
-        return new SpringReceptionist(actorSystem);
+        return new PekkoReceptionist(actorSystem);
     }
 }

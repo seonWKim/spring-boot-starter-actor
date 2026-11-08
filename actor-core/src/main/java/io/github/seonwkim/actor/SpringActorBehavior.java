@@ -1,5 +1,6 @@
 package io.github.seonwkim.actor;
 
+import io.github.seonwkim.actor.router.RouterPool;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -60,12 +61,14 @@ public final class SpringActorBehavior<C> {
         /** A behavior built with {@link #builder}: see {@link #definition()}. */
         DEFINED,
         /** A behavior of the underlying engine, passed to {@link #wrap(Object)}. */
-        NATIVE
+        NATIVE,
+        /** A pool of workers built with {@code SpringRouterBehavior}: see {@link #routerPool()}. */
+        ROUTER
     }
 
-    private static final SpringActorBehavior<?> SAME = new SpringActorBehavior<>(Kind.SAME, null, null);
-    private static final SpringActorBehavior<?> STOPPED = new SpringActorBehavior<>(Kind.STOPPED, null, null);
-    private static final SpringActorBehavior<?> UNHANDLED = new SpringActorBehavior<>(Kind.UNHANDLED, null, null);
+    private static final SpringActorBehavior<?> SAME = new SpringActorBehavior<>(Kind.SAME, null, null, null);
+    private static final SpringActorBehavior<?> STOPPED = new SpringActorBehavior<>(Kind.STOPPED, null, null, null);
+    private static final SpringActorBehavior<?> UNHANDLED = new SpringActorBehavior<>(Kind.UNHANDLED, null, null, null);
 
     private final Kind kind;
 
@@ -73,10 +76,17 @@ public final class SpringActorBehavior<C> {
 
     @Nullable private final Object nativeBehavior;
 
-    private SpringActorBehavior(Kind kind, @Nullable Definition<C, ?> definition, @Nullable Object nativeBehavior) {
+    @Nullable private final RouterPool<C> routerPool;
+
+    private SpringActorBehavior(
+            Kind kind,
+            @Nullable Definition<C, ?> definition,
+            @Nullable Object nativeBehavior,
+            @Nullable RouterPool<C> routerPool) {
         this.kind = kind;
         this.definition = definition;
         this.nativeBehavior = nativeBehavior;
+        this.routerPool = routerPool;
     }
 
     /** Keep handling messages the same way. */
@@ -105,7 +115,13 @@ public final class SpringActorBehavior<C> {
      * @throws IllegalArgumentException when the engine can't run it (checked when the actor starts)
      */
     public static <C> SpringActorBehavior<C> wrap(Object engineBehavior) {
-        return new SpringActorBehavior<>(Kind.NATIVE, null, Objects.requireNonNull(engineBehavior, "engineBehavior"));
+        return new SpringActorBehavior<>(
+                Kind.NATIVE, null, Objects.requireNonNull(engineBehavior, "engineBehavior"), null);
+    }
+
+    /** A router; {@code SpringRouterBehavior.builder(...).build()} is the way to get a {@link RouterPool}. */
+    public static <C> SpringActorBehavior<C> router(RouterPool<C> pool) {
+        return new SpringActorBehavior<>(Kind.ROUTER, null, null, Objects.requireNonNull(pool, "pool"));
     }
 
     /**
@@ -129,6 +145,14 @@ public final class SpringActorBehavior<C> {
             throw new IllegalStateException("Not a built behavior: " + kind);
         }
         return definition;
+    }
+
+    /** The pool when {@link #kind()} is {@link Kind#ROUTER}. */
+    public RouterPool<C> routerPool() {
+        if (routerPool == null) {
+            throw new IllegalStateException("Not a router: " + kind);
+        }
+        return routerPool;
     }
 
     /** The engine behavior when {@link #kind()} is {@link Kind#NATIVE}. */
@@ -332,6 +356,7 @@ public final class SpringActorBehavior<C> {
                             supervisionStrategy,
                             mdcForMessage,
                             FrameworkCommand.class.isAssignableFrom(commandClass)),
+                    null,
                     null);
         }
     }

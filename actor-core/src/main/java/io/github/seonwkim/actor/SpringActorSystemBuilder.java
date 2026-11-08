@@ -1,6 +1,5 @@
 package io.github.seonwkim.actor;
 
-import io.github.seonwkim.actor.internal.RootGuardianSupplierWrapper;
 import java.util.Map;
 import org.springframework.context.ApplicationEventPublisher;
 
@@ -12,14 +11,6 @@ import org.springframework.context.ApplicationEventPublisher;
  * and are automatically populated via BeanPostProcessor, so they no longer need to be passed to the builder.
  */
 public interface SpringActorSystemBuilder {
-
-    /**
-     * Sets the root guardian supplier for the actor system.
-     *
-     * @param supplier The root guardian supplier wrapper
-     * @return This builder for method chaining
-     */
-    SpringActorSystemBuilder withRootGuardianSupplier(RootGuardianSupplierWrapper supplier);
 
     /**
      * Sets the configuration for the actor system.

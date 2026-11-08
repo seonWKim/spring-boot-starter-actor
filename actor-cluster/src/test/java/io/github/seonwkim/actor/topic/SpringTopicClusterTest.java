@@ -68,19 +68,19 @@ class SpringTopicClusterTest extends AbstractClusterTest {
         SpringActorSystem system3 = context3.getBean(SpringActorSystem.class);
 
         // Create topic on node 1
-        SpringTopicRef<ClusterMessage> topic1 = manager1.topic(ClusterMessage.class)
-                .withName("messageDistributesAcrossAllNodesInCluster-topic")
+        SpringTopicRef<ClusterMessage> topic1 = manager1.topic(
+                        TopicName.of(ClusterMessage.class, "messageDistributesAcrossAllNodesInCluster-topic"))
                 .create();
 
         Thread.sleep(1000); // Wait for cluster propagation
 
         // Get same topic on other nodes
-        SpringTopicRef<ClusterMessage> topic2 = manager2.topic(ClusterMessage.class)
-                .withName("messageDistributesAcrossAllNodesInCluster-topic")
+        SpringTopicRef<ClusterMessage> topic2 = manager2.topic(
+                        TopicName.of(ClusterMessage.class, "messageDistributesAcrossAllNodesInCluster-topic"))
                 .getOrCreate();
 
-        SpringTopicRef<ClusterMessage> topic3 = manager3.topic(ClusterMessage.class)
-                .withName("messageDistributesAcrossAllNodesInCluster-topic")
+        SpringTopicRef<ClusterMessage> topic3 = manager3.topic(
+                        TopicName.of(ClusterMessage.class, "messageDistributesAcrossAllNodesInCluster-topic"))
                 .getOrCreate();
 
         // Create subscribers on each node
@@ -126,18 +126,18 @@ class SpringTopicClusterTest extends AbstractClusterTest {
         SpringActorSystem system2 = context2.getBean(SpringActorSystem.class);
 
         // Create topic
-        SpringTopicRef<ClusterMessage> topic1 = manager1.topic(ClusterMessage.class)
-                .withName("publishFromDifferentNodesReachesAllSubscribers-topic")
+        SpringTopicRef<ClusterMessage> topic1 = manager1.topic(
+                        TopicName.of(ClusterMessage.class, "publishFromDifferentNodesReachesAllSubscribers-topic"))
                 .create();
 
         Thread.sleep(1000); // Wait for topic creation to propagate
 
-        SpringTopicRef<ClusterMessage> topic2 = manager2.topic(ClusterMessage.class)
-                .withName("publishFromDifferentNodesReachesAllSubscribers-topic")
+        SpringTopicRef<ClusterMessage> topic2 = manager2.topic(
+                        TopicName.of(ClusterMessage.class, "publishFromDifferentNodesReachesAllSubscribers-topic"))
                 .getOrCreate();
 
-        SpringTopicRef<ClusterMessage> topic3 = manager3.topic(ClusterMessage.class)
-                .withName("publishFromDifferentNodesReachesAllSubscribers-topic")
+        SpringTopicRef<ClusterMessage> topic3 = manager3.topic(
+                        TopicName.of(ClusterMessage.class, "publishFromDifferentNodesReachesAllSubscribers-topic"))
                 .getOrCreate();
 
         // Create 2 subscribers on different nodes
@@ -180,14 +180,14 @@ class SpringTopicClusterTest extends AbstractClusterTest {
         SpringActorSystem system1 = context1.getBean(SpringActorSystem.class);
         SpringActorSystem system2 = context2.getBean(SpringActorSystem.class);
 
-        SpringTopicRef<ClusterMessage> topic1 = manager1.topic(ClusterMessage.class)
-                .withName("unsubscribeOnOneNodeStopsMessagesOnlyForThatNode-topic")
+        SpringTopicRef<ClusterMessage> topic1 = manager1.topic(
+                        TopicName.of(ClusterMessage.class, "unsubscribeOnOneNodeStopsMessagesOnlyForThatNode-topic"))
                 .create();
 
         Thread.sleep(1000); // Wait for topic creation to propagate
 
-        SpringTopicRef<ClusterMessage> topic2 = manager2.topic(ClusterMessage.class)
-                .withName("unsubscribeOnOneNodeStopsMessagesOnlyForThatNode-topic")
+        SpringTopicRef<ClusterMessage> topic2 = manager2.topic(
+                        TopicName.of(ClusterMessage.class, "unsubscribeOnOneNodeStopsMessagesOnlyForThatNode-topic"))
                 .getOrCreate();
 
         // Create subscribers
@@ -241,22 +241,22 @@ class SpringTopicClusterTest extends AbstractClusterTest {
         SpringActorSystem system2 = context2.getBean(SpringActorSystem.class);
 
         // Create two different topics
-        SpringTopicRef<ClusterMessage> topicA1 = manager1.topic(ClusterMessage.class)
-                .withName("multipleTopicsWorkIndependentlyAcrossCluster-topic-a")
+        SpringTopicRef<ClusterMessage> topicA1 = manager1.topic(
+                        TopicName.of(ClusterMessage.class, "multipleTopicsWorkIndependentlyAcrossCluster-topic-a"))
                 .create();
 
-        SpringTopicRef<ClusterMessage> topicB1 = manager1.topic(ClusterMessage.class)
-                .withName("multipleTopicsWorkIndependentlyAcrossCluster-topic-b")
+        SpringTopicRef<ClusterMessage> topicB1 = manager1.topic(
+                        TopicName.of(ClusterMessage.class, "multipleTopicsWorkIndependentlyAcrossCluster-topic-b"))
                 .create();
 
         Thread.sleep(1000); // Wait for topic creation to propagate
 
-        SpringTopicRef<ClusterMessage> topicA2 = manager2.topic(ClusterMessage.class)
-                .withName("multipleTopicsWorkIndependentlyAcrossCluster-topic-a")
+        SpringTopicRef<ClusterMessage> topicA2 = manager2.topic(
+                        TopicName.of(ClusterMessage.class, "multipleTopicsWorkIndependentlyAcrossCluster-topic-a"))
                 .getOrCreate();
 
-        SpringTopicRef<ClusterMessage> topicB2 = manager2.topic(ClusterMessage.class)
-                .withName("multipleTopicsWorkIndependentlyAcrossCluster-topic-b")
+        SpringTopicRef<ClusterMessage> topicB2 = manager2.topic(
+                        TopicName.of(ClusterMessage.class, "multipleTopicsWorkIndependentlyAcrossCluster-topic-b"))
                 .getOrCreate();
 
         // Subscribers for topic A
@@ -313,14 +313,14 @@ class SpringTopicClusterTest extends AbstractClusterTest {
         SpringActorSystem system2 = context2.getBean(SpringActorSystem.class);
 
         // Create topic on node 1
-        SpringTopicRef<ClusterMessage> topic1 = manager1.topic(ClusterMessage.class)
-                .withName("subscriberOnOneNodeCanReceiveFromAnotherNode-topic")
+        SpringTopicRef<ClusterMessage> topic1 = manager1.topic(
+                        TopicName.of(ClusterMessage.class, "subscriberOnOneNodeCanReceiveFromAnotherNode-topic"))
                 .create();
 
         Thread.sleep(1000); // Wait for topic creation to propagate
 
-        SpringTopicRef<ClusterMessage> topic2 = manager2.topic(ClusterMessage.class)
-                .withName("subscriberOnOneNodeCanReceiveFromAnotherNode-topic")
+        SpringTopicRef<ClusterMessage> topic2 = manager2.topic(
+                        TopicName.of(ClusterMessage.class, "subscriberOnOneNodeCanReceiveFromAnotherNode-topic"))
                 .getOrCreate();
 
         // Create subscriber ONLY on node 2

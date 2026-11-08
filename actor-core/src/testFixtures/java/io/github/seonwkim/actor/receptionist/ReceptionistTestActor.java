@@ -8,7 +8,6 @@ import io.github.seonwkim.actor.SpringActorWithContext;
 import io.github.seonwkim.actor.serialization.JsonSerializable;
 import java.util.concurrent.BlockingQueue;
 import javax.annotation.Nullable;
-import org.apache.pekko.actor.typed.receptionist.ServiceKey;
 
 /**
  * Test actor that records received pings and, when its context carries a service key,
@@ -41,9 +40,9 @@ public class ReceptionistTestActor
         final String actorId;
         final BlockingQueue<String> received;
 
-        @Nullable final ServiceKey<Command> selfRegisterKey;
+        @Nullable final ServiceName<Command> selfRegisterKey;
 
-        public Ctx(String actorId, BlockingQueue<String> received, @Nullable ServiceKey<Command> selfRegisterKey) {
+        public Ctx(String actorId, BlockingQueue<String> received, @Nullable ServiceName<Command> selfRegisterKey) {
             this.actorId = actorId;
             this.received = received;
             this.selfRegisterKey = selfRegisterKey;

@@ -5,17 +5,8 @@ import io.github.seonwkim.actor.SpringActorBehavior;
 import io.github.seonwkim.actor.SpringActorContext;
 import io.github.seonwkim.actor.SpringActorWithContext;
 import io.github.seonwkim.actor.SupervisionStrategy;
-import io.github.seonwkim.actor.internal.ActorTypeRegistry;
-import io.github.seonwkim.actor.internal.DefaultSpringActorContext;
-import io.github.seonwkim.actor.internal.PekkoBehaviors;
-import io.github.seonwkim.actor.internal.PekkoProps;
 import java.util.Objects;
-import java.util.UUID;
 import javax.annotation.Nullable;
-import org.apache.pekko.actor.typed.Behavior;
-import org.apache.pekko.actor.typed.javadsl.Behaviors;
-import org.apache.pekko.actor.typed.javadsl.PoolRouter;
-import org.apache.pekko.actor.typed.javadsl.Routers;
 
 /**
  * Utility class for creating router behaviors that distribute messages across a pool of worker
@@ -57,25 +48,7 @@ import org.apache.pekko.actor.typed.javadsl.Routers;
  */
 public final class SpringRouterBehavior<C> {
 
-    private final RoutingStrategy routingStrategy;
-    private final int poolSize;
-    private final Class<? extends SpringActorWithContext<C, ?>> workerActorClass;
-    private final SpringActorContext actorContext;
-
-    @Nullable private final SupervisionStrategy supervisionStrategy;
-
-    private SpringRouterBehavior(
-            RoutingStrategy routingStrategy,
-            int poolSize,
-            Class<? extends SpringActorWithContext<C, ?>> workerActorClass,
-            SpringActorContext actorContext,
-            @Nullable SupervisionStrategy supervisionStrategy) {
-        this.routingStrategy = routingStrategy;
-        this.poolSize = poolSize;
-        this.workerActorClass = workerActorClass;
-        this.actorContext = actorContext;
-        this.supervisionStrategy = supervisionStrategy;
-    }
+    private SpringRouterBehavior() {}
 
     /**
      * Creates a new builder for constructing a router behavior.
@@ -87,42 +60,6 @@ public final class SpringRouterBehavior<C> {
      */
     public static <C> Builder<C> builder(Class<C> commandClass, SpringActorContext actorContext) {
         return new Builder<>(commandClass, actorContext);
-    }
-
-    /**
-     * Convert this router configuration to a Spring Actor Behavior. This method creates a Pekko
-     * router pool based on the configuration.
-     *
-     * @return A SpringActorBehavior that implements the configured router
-     */
-    public SpringActorBehavior<C> toSpringActorBehavior() {
-        // Create the Pekko router behavior
-        Behavior<C> routerBehavior = Behaviors.setup(ctx -> {
-            // Create worker context
-            SpringActorContext workerContext = new DefaultSpringActorContext("worker-" + UUID.randomUUID());
-
-            // Create worker behavior using the static registry
-            @SuppressWarnings("unchecked")
-            SpringActorBehavior<C> workerSpringBehavior =
-                    (SpringActorBehavior<C>) ActorTypeRegistry.createBehavior(workerActorClass, workerContext);
-            Behavior<C> workerBehavior = PekkoBehaviors.toPekko(workerSpringBehavior);
-
-            // Apply supervision strategy if specified
-            if (supervisionStrategy != null) {
-                workerBehavior =
-                        Behaviors.supervise(workerBehavior).onFailure(PekkoProps.supervisor(supervisionStrategy));
-            }
-
-            // Create pool router with the configured routing strategy
-            PoolRouter<C> poolRouter = Routers.pool(poolSize, workerBehavior);
-            // Apply the routing strategy configuration
-            poolRouter = routingStrategy.applyToPool(poolRouter);
-
-            return poolRouter.narrow();
-        });
-
-        // Wrap in a SpringActorBehavior
-        return SpringActorBehavior.wrap(routerBehavior);
     }
 
     /**
@@ -214,9 +151,8 @@ public final class SpringRouterBehavior<C> {
                         + "Call withWorkerActors(YourWorkerActor.class) before building.");
             }
 
-            SpringRouterBehavior<C> config = new SpringRouterBehavior<>(
-                    routingStrategy, poolSize, workerActorClass, actorContext, supervisionStrategy);
-            return config.toSpringActorBehavior();
+            return SpringActorBehavior.router(
+                    new RouterPool<>(routingStrategy, poolSize, workerActorClass, supervisionStrategy));
         }
     }
 }

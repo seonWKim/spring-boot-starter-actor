@@ -33,6 +33,7 @@ public final class PekkoBehaviors {
                 yield (Behavior<C>) pekko;
             }
             case DEFINED -> compile(behavior.definition());
+            case ROUTER -> PekkoRouters.pool(behavior.routerPool());
         };
     }
 

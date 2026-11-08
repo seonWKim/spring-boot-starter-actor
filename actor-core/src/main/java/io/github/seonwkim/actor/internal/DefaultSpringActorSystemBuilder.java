@@ -39,8 +39,7 @@ public class DefaultSpringActorSystemBuilder implements SpringActorSystemBuilder
      * @param supplier The root guardian supplier wrapper
      * @return This builder for method chaining
      */
-    @Override
-    public SpringActorSystemBuilder withRootGuardianSupplier(RootGuardianSupplierWrapper supplier) {
+    public DefaultSpringActorSystemBuilder withRootGuardianSupplier(RootGuardianSupplierWrapper supplier) {
         this.supplier = supplier;
         return this;
     }

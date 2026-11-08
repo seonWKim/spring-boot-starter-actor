@@ -2,6 +2,7 @@ package io.github.seonwkim.actor.internal;
 
 import io.github.seonwkim.actor.SpringActorContext;
 import io.github.seonwkim.actor.topic.SpringTopicRef;
+import io.github.seonwkim.actor.topic.TopicName;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
@@ -143,7 +144,7 @@ public class DefaultRootGuardian implements RootGuardian {
         }
 
         ActorRef<Topic.Command<T>> topicActor = ctx.spawn(Topic.create(msg.messageType, msg.topicName), actorName);
-        SpringTopicRef<T> topicRef = new SpringTopicRef<>(topicActor, msg.topicName);
+        SpringTopicRef<T> topicRef = new PekkoTopicRef<>(topicActor, TopicName.of(msg.messageType, msg.topicName));
 
         msg.replyTo.tell(TopicCreated.success(topicRef));
         return Behaviors.same();
@@ -172,7 +173,7 @@ public class DefaultRootGuardian implements RootGuardian {
         SpringTopicRef<T> topicRef;
         if (existingRef != null) {
             // Reuse existing topic - cast is type-safe due to actor name uniqueness
-            topicRef = castToTopicRef(existingRef, msg.topicName);
+            topicRef = castToTopicRef(existingRef, TopicName.of(msg.messageType, msg.topicName));
         } else {
             // Create new topic with full identity
             topicRef = createNewTopic(msg.topicName, msg.messageType, actorName);
@@ -203,14 +204,14 @@ public class DefaultRootGuardian implements RootGuardian {
      * @return A type-safe SpringTopicRef
      */
     @SuppressWarnings("unchecked")
-    private <T> SpringTopicRef<T> castToTopicRef(ActorRef<?> actorRef, String topicName) {
+    private <T> SpringTopicRef<T> castToTopicRef(ActorRef<?> actorRef, TopicName<T> topicName) {
         // The cast is safe because:
         // 1. We looked up the actor using buildTopicActorName(topicName, messageType)
         // 2. That actor name encodes both the topic name AND the message type
         // 3. Only topics created with messageType would have this actor name
         // 4. Therefore, the actor must be ActorRef<Topic.Command<T>>
         ActorRef<Topic.Command<T>> typedRef = (ActorRef<Topic.Command<T>>) actorRef;
-        return new SpringTopicRef<>(typedRef, topicName);
+        return new PekkoTopicRef<>(typedRef, topicName);
     }
 
     /**
@@ -224,7 +225,7 @@ public class DefaultRootGuardian implements RootGuardian {
      */
     private <T> SpringTopicRef<T> createNewTopic(String topicName, Class<T> messageType, String actorName) {
         ActorRef<Topic.Command<T>> topicActor = ctx.spawn(Topic.create(messageType, topicName), actorName);
-        return new SpringTopicRef<>(topicActor, topicName);
+        return new PekkoTopicRef<>(topicActor, TopicName.of(messageType, topicName));
     }
 
     /**

@@ -14,7 +14,6 @@ import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.stream.Collectors;
-import org.apache.pekko.actor.typed.receptionist.ServiceKey;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -51,7 +50,7 @@ class SpringReceptionistTest {
             this.receptionist = receptionist;
         }
 
-        void register(ServiceKey<Command> key, SpringActorHandle<Command> actor) {
+        void register(ServiceName<Command> key, SpringActorHandle<Command> actor) {
             receptionist.register(key, actor);
         }
     }
@@ -64,7 +63,7 @@ class SpringReceptionistTest {
             this.receptionist = receptionist;
         }
 
-        Set<SpringActorHandle<Command>> find(ServiceKey<Command> key) throws Exception {
+        Set<SpringActorHandle<Command>> find(ServiceName<Command> key) throws Exception {
             return receptionist
                     .find(key, Duration.ofSeconds(3))
                     .toCompletableFuture()
@@ -84,7 +83,7 @@ class SpringReceptionistTest {
     @Autowired
     private Finder finder;
 
-    private SpringActorHandle<Command> spawn(String id, BlockingQueue<String> received, ServiceKey<Command> selfKey) {
+    private SpringActorHandle<Command> spawn(String id, BlockingQueue<String> received, ServiceName<Command> selfKey) {
         return actorSystem
                 .actor(ReceptionistTestActor.class)
                 .withContext(new ReceptionistTestActor.Ctx(id, received, selfKey))
@@ -102,7 +101,7 @@ class SpringReceptionistTest {
 
     @Test
     void beanRegistersAndAnotherBeanFinds() {
-        ServiceKey<Command> key = SpringReceptionist.serviceKey(Command.class, "register-find");
+        ServiceName<Command> key = ServiceName.of(Command.class, "register-find");
         SpringActorHandle<Command> actor = spawn("register-find-actor", new LinkedBlockingQueue<>(), null);
 
         registrar.register(key, actor);
@@ -112,7 +111,7 @@ class SpringReceptionistTest {
 
     @Test
     void findReturnsHandlesThatReceiveTell() throws Exception {
-        ServiceKey<Command> key = SpringReceptionist.serviceKey(Command.class, "find-tell");
+        ServiceName<Command> key = ServiceName.of(Command.class, "find-tell");
         BlockingQueue<String> received = new LinkedBlockingQueue<>();
         SpringActorHandle<Command> actor = spawn("find-tell-actor", received, null);
         receptionist.register(key, actor);
@@ -129,7 +128,7 @@ class SpringReceptionistTest {
 
     @Test
     void subscriberSeesRegistrationAndStop() throws Exception {
-        ServiceKey<Command> key = SpringReceptionist.serviceKey(Command.class, "subscribe-updates");
+        ServiceName<Command> key = ServiceName.of(Command.class, "subscribe-updates");
         BlockingQueue<Set<String>> updates = new LinkedBlockingQueue<>();
         SpringReceptionistSubscription<Command> subscription =
                 receptionist.subscribe(key, set -> updates.add(paths(set)));
@@ -149,7 +148,7 @@ class SpringReceptionistTest {
 
     @Test
     void cancelledSubscriptionStopsHelperAndGetsNoMoreCallbacks() throws Exception {
-        ServiceKey<Command> key = SpringReceptionist.serviceKey(Command.class, "subscribe-cancel");
+        ServiceName<Command> key = ServiceName.of(Command.class, "subscribe-cancel");
         BlockingQueue<Set<String>> cancelledUpdates = new LinkedBlockingQueue<>();
         SpringReceptionistSubscription<Command> subscription =
                 receptionist.subscribe(key, set -> cancelledUpdates.add(paths(set)));
@@ -178,7 +177,7 @@ class SpringReceptionistTest {
 
     @Test
     void actorRegistersItselfFromBehaviorSetup() throws Exception {
-        ServiceKey<Command> key = SpringReceptionist.serviceKey(Command.class, "self-register");
+        ServiceName<Command> key = ServiceName.of(Command.class, "self-register");
         BlockingQueue<String> received = new LinkedBlockingQueue<>();
         SpringActorHandle<Command> actor = spawn("self-register-actor", received, key);
 

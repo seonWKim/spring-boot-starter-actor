@@ -3,13 +3,13 @@ package io.github.seonwkim.actor.internal;
 import io.github.seonwkim.actor.SpringActorHandle;
 import io.github.seonwkim.actor.SpringActorRef;
 import io.github.seonwkim.actor.SpringBehaviorContext;
+import io.github.seonwkim.actor.receptionist.ServiceName;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.receptionist.Receptionist;
-import org.apache.pekko.actor.typed.receptionist.ServiceKey;
 import org.slf4j.Logger;
 
 /** A {@link SpringBehaviorContext} backed by a Pekko {@link ActorContext}. */
@@ -59,8 +59,8 @@ public final class PekkoBehaviorContext<T> implements SpringBehaviorContext<T> {
     }
 
     @Override
-    public void registerWithReceptionist(ServiceKey<T> key) {
-        ctx.getSystem().receptionist().tell(Receptionist.register(key, ctx.getSelf()));
+    public void registerWithReceptionist(ServiceName<T> name) {
+        ctx.getSystem().receptionist().tell(Receptionist.register(PekkoReceptionist.serviceKey(name), ctx.getSelf()));
     }
 
     @Override

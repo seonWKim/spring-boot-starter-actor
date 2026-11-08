@@ -82,3 +82,16 @@
     - `SpringShardedActorHandle` is an interface; `getUnderlying()` → `unwrap(EntityRef.class)`.
       Set the ask timeout with `sharded(...).withId(id).withTimeout(d).get()`;
       `SpringShardedActorHandle.builder(...)` is removed.
+12. Topics: `topicManager.topic(Message.class).withName("news")` →
+    `topicManager.topic(TopicName.of(Message.class, "news"))`; `withTimeout`, `create()` and
+    `getOrCreate()` are unchanged. `SpringTopicManager` and `SpringTopicRef` are interfaces you get as
+    beans. `SpringTopicRef.getTopicName()` → `name().name()`, `getUnderlying()` → `unwrap(ActorRef.class)`.
+13. Receptionist: `ServiceKey<T>` → `ServiceName<T>`, and `SpringReceptionist.serviceKey(Message.class, "id")`
+    → `ServiceName.of(Message.class, "id")`. `register` and `deregister` take any `SpringActorRef`, so the
+    `ActorRef` overload is removed: pass the actor's handle or `ctx.self()`. In a behavior,
+    `ctx.registerWithReceptionist(ServiceName.of(...))`. `SpringReceptionist` is an interface you get as
+    a bean; `SpringReceptionistSubscription.getServiceKey()` → `serviceName()`, and `getHelperPath()` is removed.
+14. Routers: `RoutingStrategy.roundRobin()`, `.random()`, `.broadcast()` and `.consistentHashing(n)` are
+    unchanged. The `router.strategy` classes (`RoundRobinRoutingStrategy`, ...) are removed, and
+    `RoutingStrategy` is a sealed type: `getName()` and `applyToPool(...)` are gone. Code that branched on
+    `getName()` can switch on the type.

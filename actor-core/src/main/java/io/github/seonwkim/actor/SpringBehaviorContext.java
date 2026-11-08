@@ -1,10 +1,10 @@
 package io.github.seonwkim.actor;
 
+import io.github.seonwkim.actor.receptionist.ServiceName;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
-import org.apache.pekko.actor.typed.receptionist.ServiceKey;
 import org.slf4j.Logger;
 
 /**
@@ -52,7 +52,7 @@ public interface SpringBehaviorContext<T> {
     <V> void pipeToSelf(CompletionStage<V> future, BiFunction<? super V, Throwable, ? extends T> toMessage);
 
     /** Registers this actor with the receptionist under {@code key}. */
-    void registerWithReceptionist(ServiceKey<T> key);
+    void registerWithReceptionist(ServiceName<T> name);
 
     /**
      * Escape hatch: the underlying engine's context, e.g. Pekko's

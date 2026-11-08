@@ -9,6 +9,7 @@ import io.github.seonwkim.actor.shard.SpringShardedActor;
 import io.github.seonwkim.actor.shard.SpringShardedActorContext;
 import io.github.seonwkim.actor.topic.SpringTopicManager;
 import io.github.seonwkim.actor.topic.SpringTopicRef;
+import io.github.seonwkim.actor.topic.TopicName;
 import org.springframework.stereotype.Component;
 
 /**
@@ -84,8 +85,7 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
     public SpringActorBehavior<Command> create(SpringShardedActorContext<Command> ctx) {
         final String roomId = ctx.getEntityId();
         final SpringTopicRef<UserActor.Command> roomTopic = topicManager
-                .topic(UserActor.Command.class)
-                .withName("chat-room-" + roomId)
+                .topic(TopicName.of(UserActor.Command.class, "chat-room-" + roomId))
                 .getOrCreate();
 
         return SpringActorBehavior.builder(Command.class, ctx)
