@@ -1,6 +1,5 @@
 package io.github.seonwkim.actor.metrics.api;
 
-import io.github.seonwkim.actor.metrics.internal.ActorCells;
 import java.util.Objects;
 
 /**
@@ -19,11 +18,6 @@ public final class ActorContext {
         this.path = Objects.requireNonNull(path, "path cannot be null");
         this.actorClass = Objects.requireNonNull(actorClass, "actorClass cannot be null");
         this.guardian = parseGuardian(path);
-    }
-
-    /** Extract actor context from a Pekko ActorCell. */
-    public static ActorContext from(Object actorCell) {
-        return ActorCells.contextOf(actorCell);
     }
 
     public String getPath() {

@@ -103,13 +103,12 @@ flowchart TB
 
 The modules `actor-api`, `actor-core`, `actor-cluster`, `actor-autoconfigure`, `actor-spring-boot-starter`, `actor-spring-boot-starter-cluster` and `actor-metrics` exist, under the package root `io.github.seonwkim.actor`.
 
-- The public API is in `actor-api`, which depends on Spring (`spring-context`) and SLF4J (`SpringBehaviorContext.getLog()`) and never on Pekko. `actor-core` holds only `..internal..`, and its freeze store is empty.
+- The public API is in `actor-api`, which depends on Spring (`spring-context`) and SLF4J (`SpringBehaviorContext.getLog()`) and never on Pekko. `actor-core` holds only `..internal..`. Every module's ArchUnit freeze store is empty; the stores stay so that a new violation fails the build.
 - `actor-core` has no Pekko Cluster dependency: it finds `actor-cluster` at runtime through `ServiceLoader` (`internal.ClusterSupport`) and fails at startup, naming the cluster starter, when `pekko.actor.provider` is `cluster` and the module is missing.
 - Pekko is not on the application's compile classpath: `actor-core` and `actor-cluster` declare it as `implementation`, and neither starter exports it. An application that unwraps Pekko objects declares the Pekko modules it uses (the `cluster` and `supervision` examples do).
 
 The code still differs from the target in these places:
 
-- **`actor-metrics` still has frozen leaks.** Rule 4 runs with an ArchUnit freeze store per module that may only shrink; only `actor-metrics` has entries left (its `modules` advice classes and `api.ActorContext.from` use Pekko or `internal`).
 - **The actor system stays opt-in through `@EnableActorSupport`.** It imports `ActorConfiguration` and the Pekko Management configuration from `actor-autoconfigure` by class name, so `actor-api` has no compile dependency on `actor-autoconfigure`. They are not listed in `AutoConfiguration.imports`: that would start an actor system in every application that has the starter, which 0.x never did.
 - **`actor-metrics` keeps its own auto-configuration** (`io.github.seonwkim.actor.metrics.autoconfigure`, registered in its `AutoConfiguration.imports`). Moving it into `actor-autoconfigure` needs `actor-autoconfigure` to depend on `actor-metrics` behind `@ConditionalOnClass`; that comes with the metrics rework.
 

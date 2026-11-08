@@ -23,7 +23,9 @@
   to `..internal..` (`RootGuardian`, `RootGuardianSupplierWrapper`, `FrameworkCommands`,
   `DefaultShardingMessageExtractor`, the former `impl` and `utils` packages) and carry no compatibility
   promise. `ActorConfiguration`, `ActorProperties`, `ActorSystemShutdownLifecycle` and the Pekko Management
-  configuration moved to `io.github.seonwkim.actor.autoconfigure`.
+  configuration moved to `io.github.seonwkim.actor.autoconfigure`. The metrics instrumentation modules
+  (`metrics.modules.*`) moved to `io.github.seonwkim.actor.metrics.internal.modules`, and
+  `metrics.api.ActorContext.from(Object)` is removed: it took a Pekko `ActorCell` and only the agent used it.
 
 - **No Pekko types in the public API.** Pekko is now an implementation detail. Each change below is
   listed with its replacement under "Migrating from 0.x". When you need a Pekko feature the starter
