@@ -239,6 +239,11 @@ public final class PekkoActorSystem implements SpringActorSystem, DisposableBean
     }
 
     @Override
+    public CompletionStage<Void> whenTerminated() {
+        return actorSystem.getWhenTerminated().thenApply(done -> null);
+    }
+
+    @Override
     public ShutdownOutcome shutdown(Duration timeout) {
         CompletableFuture<?> terminated = actorSystem.getWhenTerminated().toCompletableFuture();
         if (terminated.isDone()) {

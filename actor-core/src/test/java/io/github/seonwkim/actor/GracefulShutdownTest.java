@@ -1,7 +1,7 @@
 package io.github.seonwkim.actor;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.awaitility.Awaitility.await;
 
 import io.github.seonwkim.actor.SpringActorSystem.ShutdownOutcome;
 import io.github.seonwkim.actor.autoconfigure.ActorSystemShutdownLifecycle;
@@ -217,15 +217,13 @@ class GracefulShutdownTest {
 
     @Test
     void closingContextAfterActorSystemAlreadyTerminatedDoesNothingMore() throws Exception {
-        context = start(LocalApp.class);
+        context = start(LocalApp.class, "spring.actor.shutdown.exit-process=false");
         SpringActorSystem system = context.getBean(SpringActorSystem.class);
         ActorSystemShutdownLifecycle lifecycle = context.getBean(ActorSystemShutdownLifecycle.class);
 
-        // Terminated outside Spring, as happens when the node is downed.
+        // Terminated outside Spring, as happens when the node is downed: the context follows.
         PekkoActorSystem.raw(system).terminate();
-        PekkoActorSystem.raw(system).getWhenTerminated().toCompletableFuture().get(10, TimeUnit.SECONDS);
-
-        assertThatCode(() -> context.close()).doesNotThrowAnyException();
+        await().atMost(Duration.ofSeconds(10)).until(() -> !context.isActive());
 
         assertThat(lifecycle.getLastOutcome()).isEqualTo(ShutdownOutcome.ALREADY_TERMINATED);
         assertThat(CoordinatedShutdown.get(PekkoActorSystem.raw(system)).getShutdownReason())
@@ -237,7 +235,7 @@ class GracefulShutdownTest {
     void secondShutdownCallDoesNotWaitAgain() throws Exception {
         blockStarted.set(new CountDownLatch(1));
         blockRelease.set(new CountDownLatch(1));
-        context = start(BlockingApp.class);
+        context = start(BlockingApp.class, "spring.actor.shutdown.exit-process=false");
         SpringActorSystem system = context.getBean(SpringActorSystem.class);
         system.actor(BlockingActor.class)
                 .withId("blocker")

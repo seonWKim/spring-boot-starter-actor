@@ -12,14 +12,18 @@ import io.github.seonwkim.actor.internal.RootGuardianSupplierWrapper;
 import io.github.seonwkim.actor.receptionist.SpringReceptionist;
 import io.github.seonwkim.actor.topic.SpringTopicManager;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.config.BeanPostProcessor;
+import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.context.properties.bind.Bindable;
 import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
@@ -41,6 +45,8 @@ import org.springframework.core.env.Environment;
 @Configuration
 @EnableConfigurationProperties(ActorProperties.class)
 public class ActorConfiguration {
+
+    private static final Logger log = LoggerFactory.getLogger(ActorConfiguration.class);
 
     // ==================================================================================
     // PHASE 1: Actor Registration (BeanPostProcessor)
@@ -150,9 +156,18 @@ public class ActorConfiguration {
     @Bean
     @ConditionalOnMissingBean(ActorSystemShutdownLifecycle.class)
     public ActorSystemShutdownLifecycle actorSystemShutdownLifecycle(
-            SpringActorSystem actorSystem, ActorProperties actorProperties) {
+            SpringActorSystem actorSystem, ActorProperties actorProperties, ConfigurableApplicationContext context) {
+        boolean exitProcess = actorProperties.getShutdown().isExitProcess();
         return new ActorSystemShutdownLifecycle(
-                actorSystem, actorProperties.getShutdown().getTimeout());
+                actorSystem, actorProperties.getShutdown().getTimeout(), () -> {
+                    log.error(
+                            "The actor system terminated while the application was running: closing the application context"
+                                    + (exitProcess ? " and exiting with status 1" : ""));
+                    int status = SpringApplication.exit(context, () -> 1);
+                    if (exitProcess) {
+                        System.exit(status);
+                    }
+                });
     }
 
     // ==================================================================================

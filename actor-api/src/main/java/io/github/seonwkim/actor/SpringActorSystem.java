@@ -183,8 +183,21 @@ public interface SpringActorSystem {
      * <p>Safe to call more than once: only the first call runs coordinated shutdown and waits. If the
      * actor system has already terminated (for example after being downed), the call does nothing.
      *
+     * <p>In a Spring application the context follows the actor system: a shutdown that the context
+     * did not start closes the context and, unless {@code spring.actor.shutdown.exit-process=false},
+     * exits the process with status 1. To stop the application, close the context instead.
+     *
      * @param timeout The maximum time to wait for the actor system to terminate
      * @return What this call did
      */
     ShutdownOutcome shutdown(Duration timeout);
+
+    /**
+     * Completes when the actor system has terminated, whether through {@link #shutdown(Duration)},
+     * the Spring context closing, or the actor system stopping by itself (for example after this
+     * node was downed).
+     *
+     * @return A stage that completes once the actor system has terminated
+     */
+    CompletionStage<Void> whenTerminated();
 }

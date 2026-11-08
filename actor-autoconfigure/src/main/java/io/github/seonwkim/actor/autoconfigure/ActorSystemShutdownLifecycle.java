@@ -28,7 +28,11 @@ public class ActorSystemShutdownLifecycle implements SmartLifecycle {
     private final SpringActorSystem actorSystem;
     private final Duration timeout;
 
+    private final Runnable onUnexpectedTermination;
+
     private volatile boolean running;
+
+    private volatile boolean stopping;
 
     @Nullable private volatile SpringActorSystem.ShutdownOutcome lastOutcome;
 
@@ -37,19 +41,31 @@ public class ActorSystemShutdownLifecycle implements SmartLifecycle {
      *
      * @param actorSystem The actor system to shut down when the context closes
      * @param timeout The maximum time to wait for the actor system to terminate
+     * @param onUnexpectedTermination What to do when the actor system terminates while the context
+     *     is running (run on its own thread)
      */
-    public ActorSystemShutdownLifecycle(SpringActorSystem actorSystem, Duration timeout) {
+    public ActorSystemShutdownLifecycle(
+            SpringActorSystem actorSystem, Duration timeout, Runnable onUnexpectedTermination) {
         this.actorSystem = actorSystem;
         this.timeout = timeout;
+        this.onUnexpectedTermination = onUnexpectedTermination;
     }
 
     @Override
     public void start() {
         running = true;
+        actorSystem.whenTerminated().thenRun(() -> {
+            if (!stopping) {
+                // Not on a Pekko thread: those belong to the terminated system.
+                Thread handler = new Thread(onUnexpectedTermination, "actor-system-terminated");
+                handler.start();
+            }
+        });
     }
 
     @Override
     public void stop() {
+        stopping = true;
         try {
             lastOutcome = actorSystem.shutdown(timeout);
         } finally {

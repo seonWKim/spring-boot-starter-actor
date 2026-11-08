@@ -47,6 +47,18 @@
   with the prefix removed, as in 0.x (`spring.actor.pekko.loglevel`, a dispatcher at `spring.actor.my-dispatcher`). When a raw key and a typed key
   set the same Pekko key to different values, the raw key wins and a warning names both.
 
+- **Dispatchers on Spring executors.** `spring.actor.dispatchers.<name>.executor=<bean>` declares a
+  dispatcher whose actors run on that `Executor` bean (a `ThreadPoolTaskExecutor`, a virtual-thread
+  executor, ...); actors pick it with `withDispatcherFromConfig("<name>")`. The Spring context owns
+  the executor's lifecycle.
+- **The application follows the actor system.** If the actor system terminates while the
+  application runs (for example after this node is downed), the Spring context closes and the
+  process exits with status 1, so Kubernetes or systemd restarts it. Set
+  `spring.actor.shutdown.exit-process=false` to only close the context.
+  `SpringActorSystem.whenTerminated()` completes when the actor system has terminated.
+- A spawn that cannot start (an unknown dispatcher, for example) now fails the returned stage
+  with the cause. In 0.x it stopped the actor system and `spawnAndWait()` never returned.
+
 ### Migrating from 0.x
 
 1. Upgrade to Java 21 and Spring Boot 3.5 or later. Boot 2 applications stay on 0.x.

@@ -103,6 +103,9 @@ public class DefaultSpringActorSystemBuilder implements SpringActorSystemBuilder
         final ClusterSupport clusterSupport = !isClusterMode ? null : found != null ? found : ClusterSupport.require();
 
         ActorSystemSetup setup = ActorSystemSetup.create(BootstrapSetup.create(config));
+        if (beanFactory != null) {
+            setup = setup.withSetup(new SpringBeansSetup(beanFactory));
+        }
         if (found != null) {
             setup = found.withSetup(setup, beanFactory);
         }

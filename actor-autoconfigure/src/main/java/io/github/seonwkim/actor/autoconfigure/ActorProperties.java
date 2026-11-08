@@ -1,6 +1,7 @@
 package io.github.seonwkim.actor.autoconfigure;
 
 import io.github.seonwkim.actor.ActorConstants;
+import io.github.seonwkim.actor.internal.SpringExecutorConfigurator;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -48,6 +49,12 @@ public class ActorProperties {
 
     private final Shutdown shutdown = new Shutdown();
 
+    /**
+     * Dispatchers that run on Spring Executor beans, by dispatcher name. An actor uses one with
+     * withDispatcherFromConfig("<name>").
+     */
+    private final Map<String, Dispatcher> dispatchers = new LinkedHashMap<>();
+
     @Nullable public String getName() {
         return name;
     }
@@ -79,6 +86,40 @@ public class ActorProperties {
 
     public Shutdown getShutdown() {
         return shutdown;
+    }
+
+    public Map<String, Dispatcher> getDispatchers() {
+        return dispatchers;
+    }
+
+    /** A dispatcher that runs its actors on a Spring Executor bean. */
+    public static class Dispatcher {
+
+        /** Name of the Executor bean (for example a ThreadPoolTaskExecutor) the actors run on. */
+        @Nullable private String executor;
+
+        /** Messages an actor processes before its thread goes to the next actor. Pekko's default is 5. */
+        @Nullable private Integer throughput;
+
+        @Nullable public String getExecutor() {
+            return executor;
+        }
+
+        public void setExecutor(@Nullable String executor) {
+            this.executor = executor;
+        }
+
+        @Nullable public Integer getThroughput() {
+            return throughput;
+        }
+
+        public void setThroughput(@Nullable Integer throughput) {
+            if (throughput != null && throughput < 1) {
+                throw new IllegalArgumentException(
+                        "spring.actor.dispatchers.*.throughput must be at least 1, got " + throughput);
+            }
+            this.throughput = throughput;
+        }
     }
 
     /** Where this node listens for other nodes (remote and cluster providers). */
@@ -149,6 +190,21 @@ public class ActorProperties {
         /** How long closing the context waits for the actor system's coordinated shutdown. */
         private Duration timeout = DEFAULT_SHUTDOWN_TIMEOUT;
 
+        /**
+         * When the actor system terminates by itself (for example after this node is downed), the
+         * context closes; with this set, the process then exits with status 1 so an orchestrator
+         * restarts it.
+         */
+        private boolean exitProcess = true;
+
+        public boolean isExitProcess() {
+            return exitProcess;
+        }
+
+        public void setExitProcess(boolean exitProcess) {
+            this.exitProcess = exitProcess;
+        }
+
         public Duration getTimeout() {
             return timeout;
         }
@@ -162,7 +218,7 @@ public class ActorProperties {
     }
 
     /** The keys under {@code spring.actor} that are typed settings rather than Pekko configuration. */
-    static final List<String> TYPED_ROOTS = List.of("name", "provider", "remote", "cluster", "shutdown");
+    static final List<String> TYPED_ROOTS = List.of("name", "provider", "remote", "cluster", "shutdown", "dispatchers");
 
     /**
      * The Pekko configuration. Every key under {@code spring.actor} except the typed settings is
@@ -178,52 +234,74 @@ public class ActorProperties {
     public Map<String, Object> toPekkoConfig(Map<String, Object> springActor) {
         Map<String, Object> config = normalizeCommaSeparatedLists(springActor);
         TYPED_ROOTS.forEach(config::remove);
-        Object raw = config.get("pekko");
-        Map<String, Object> pekko = raw instanceof Map ? (Map<String, Object>) raw : new LinkedHashMap<>();
         for (TypedKey typed : typedKeys()) {
-            Object rawValue = lookup(pekko, typed.pekkoPath());
+            Object rawValue = lookup(config, typed.configPath());
             if (rawValue instanceof String single && typed.value() instanceof List) {
                 // Pekko reads this key as a list: a raw single value means a one-item list.
                 rawValue = List.of(single);
-                put(pekko, typed.pekkoPath(), rawValue);
+                put(config, typed.configPath(), rawValue);
             }
             if (rawValue == null) {
-                put(pekko, typed.pekkoPath(), typed.value());
+                put(config, typed.configPath(), typed.value());
             } else if (!String.valueOf(rawValue).equals(String.valueOf(typed.value()))) {
                 log.warn(
-                        "spring.actor.pekko.{}={} overrides spring.actor.{}={}",
-                        typed.pekkoPath(),
+                        "spring.actor.{}={} overrides spring.actor.{}={}",
+                        typed.configPath(),
                         rawValue,
                         typed.springKey(),
                         typed.value());
             }
         }
-        config.put("pekko", pekko);
+        config.computeIfAbsent("pekko", key -> new LinkedHashMap<String, Object>());
         return config;
     }
 
-    private record TypedKey(String springKey, String pekkoPath, Object value) {}
+    /** A typed setting and the config path (from the root, like {@code pekko.name}) it sets. */
+    private record TypedKey(String springKey, String configPath, Object value) {}
 
     private List<TypedKey> typedKeys() {
         List<TypedKey> keys = new ArrayList<>();
         if (name != null) {
-            keys.add(new TypedKey("name", "name", name));
+            keys.add(new TypedKey("name", "pekko.name", name));
         }
         if (provider != null) {
-            keys.add(new TypedKey("provider", "actor.provider", provider.name().toLowerCase(Locale.ROOT)));
+            keys.add(new TypedKey(
+                    "provider", "pekko.actor.provider", provider.name().toLowerCase(Locale.ROOT)));
         }
         if (remote.hostname != null) {
-            keys.add(new TypedKey("remote.hostname", "remote.artery.canonical.hostname", remote.hostname));
+            keys.add(new TypedKey("remote.hostname", "pekko.remote.artery.canonical.hostname", remote.hostname));
         }
         if (remote.port != null) {
-            keys.add(new TypedKey("remote.port", "remote.artery.canonical.port", remote.port));
+            keys.add(new TypedKey("remote.port", "pekko.remote.artery.canonical.port", remote.port));
         }
         if (!cluster.seedNodes.isEmpty()) {
-            keys.add(new TypedKey("cluster.seed-nodes", "cluster.seed-nodes", cluster.seedNodes));
+            keys.add(new TypedKey("cluster.seed-nodes", "pekko.cluster.seed-nodes", cluster.seedNodes));
         }
         if (!cluster.roles.isEmpty()) {
-            keys.add(new TypedKey("cluster.roles", "cluster.roles", cluster.roles));
+            keys.add(new TypedKey("cluster.roles", "pekko.cluster.roles", cluster.roles));
         }
+        dispatchers.forEach((dispatcherName, dispatcher) -> {
+            String prefix = "dispatchers." + dispatcherName + ".";
+            if (!dispatcherName.matches("[A-Za-z0-9][A-Za-z0-9_-]*")
+                    || TYPED_ROOTS.contains(dispatcherName)
+                    || dispatcherName.equals("pekko")) {
+                throw new IllegalArgumentException("spring.actor.dispatchers." + dispatcherName
+                        + ": a dispatcher name is letters, digits, '-' and '_', and not one of pekko, " + TYPED_ROOTS);
+            }
+            if (dispatcher.executor == null) {
+                throw new IllegalArgumentException("spring.actor." + prefix + "executor must name an Executor bean");
+            }
+            keys.add(new TypedKey(prefix + "executor", dispatcherName + ".type", "Dispatcher"));
+            keys.add(new TypedKey(
+                    prefix + "executor", dispatcherName + ".executor", SpringExecutorConfigurator.class.getName()));
+            keys.add(new TypedKey(
+                    prefix + "executor",
+                    dispatcherName + "." + SpringExecutorConfigurator.BEAN_KEY,
+                    dispatcher.executor));
+            if (dispatcher.throughput != null) {
+                keys.add(new TypedKey(prefix + "throughput", dispatcherName + ".throughput", dispatcher.throughput));
+            }
+        });
         return keys;
     }
 
