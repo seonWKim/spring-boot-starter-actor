@@ -231,7 +231,7 @@ jobs:
             java -javaagent:actor-metrics-${{ needs.bump-version.outputs.version }}-agent.jar -jar your-app.jar
             ```
 
-            See [Metrics Documentation](https://github.com/seonwkim/spring-boot-starter-actor/blob/main/actor-metrics/README.md) for detailed setup instructions.
+            See [Metrics Documentation](https://github.com/seonWKim/actor-spring-boot-starter/blob/main/actor-metrics/README.md) for detailed setup instructions.
           files: |
             ${{ env.AGENT_JAR_PATH }}
           draft: false

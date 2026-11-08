@@ -110,7 +110,7 @@ public class HierarchicalActorBehavior<C> {
         logPublisher.publish(String.format(
                 "[%s] 🚀 Spawning child '%s' with strategy: %s", actorId, msg.childId, strategyDescription));
 
-        // Use spring-boot-starter-actor API to spawn child
+        // Use actor-spring-boot-starter API to spawn child
         SpringActorHandle<C> self = ctx.getSelf();
 
         ctx.unwrap(ActorContext.class)

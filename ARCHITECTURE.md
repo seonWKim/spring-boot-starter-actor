@@ -26,7 +26,7 @@ Today the starter declares Pekko with Gradle `api(...)`, so every Pekko class is
 ```mermaid
 flowchart LR
   subgraph Today
-    A1["Your app"] -->|compile| C1["spring-boot-starter-actor"]
+    A1["Your app"] -->|compile| C1["actor-spring-boot-starter"]
     C1 -->|"api(...) re-exports"| P1["Pekko"]
     A1 -. "Pekko types in your code" .-> P1
   end

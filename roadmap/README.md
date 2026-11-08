@@ -1,6 +1,6 @@
 # Feature Roadmap
 
-This directory contains the comprehensive feature roadmap for spring-boot-starter-actor, organized for AI agent implementation.
+This directory contains the comprehensive feature roadmap for actor-spring-boot-starter, organized for AI agent implementation.
 
 ## 🎯 Start Here
 

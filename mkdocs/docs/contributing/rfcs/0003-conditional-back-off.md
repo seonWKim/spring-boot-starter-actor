@@ -8,7 +8,7 @@ Proposed
 
 ## Problem
 
-In [`ActorConfiguration`](https://github.com/seonWKim/spring-boot-starter-actor/blob/main/core/src/main/java/io/github/seonwkim/core/ActorConfiguration.java):
+In [`ActorConfiguration`](https://github.com/seonWKim/actor-spring-boot-starter/blob/main/core/src/main/java/io/github/seonwkim/core/ActorConfiguration.java):
 
 - `actorRegistrationBeanPostProcessor()` has no `@ConditionalOnMissingBean`, and it is an instance method.
   A non-static `@Bean` method returning a `BeanPostProcessor` forces Spring to create `ActorConfiguration`

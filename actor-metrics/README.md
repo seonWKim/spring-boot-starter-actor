@@ -103,7 +103,7 @@ public MetricsRegistry actorMetricsRegistry(MeterRegistry meterRegistry) {
 | `system.unhandled-messages`     | Counter | --                            | Unhandled messages                 |
 | `scheduler.tasks.scheduled`     | Counter | --                            | Tasks scheduled via `scheduleOnce` |
 
-Typed actors (from `spring-boot-starter-actor`) use `actor.class=TypedActor`. Use `message.type` to distinguish
+Typed actors (from `actor-spring-boot-starter`) use `actor.class=TypedActor`. Use `message.type` to distinguish
 behaviors.
 
 ## Configuration

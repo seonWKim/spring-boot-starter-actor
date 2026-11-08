@@ -152,7 +152,7 @@ The library includes:
 
 ### Core Module Structure
 ```
-spring-boot-starter-actor/
+actor-spring-boot-starter/
 ├── core/                                    # Spring Boot 2.x support
 │   └── src/main/java/io/github/seonwkim/core/
 │       ├── SpringActor.java               # Main actor interface
@@ -204,8 +204,8 @@ src/main/resources/
 ### 1. Setting Up Development Environment
 ```bash
 # Clone the repository
-git clone https://github.com/seonwkim/spring-boot-starter-actor.git
-cd spring-boot-starter-actor
+git clone https://github.com/seonWKim/actor-spring-boot-starter.git
+cd actor-spring-boot-starter
 
 # Build the project
 ./gradlew clean build

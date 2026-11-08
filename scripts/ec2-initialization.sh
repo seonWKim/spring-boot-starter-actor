@@ -8,10 +8,10 @@ sudo apt update
 echo "[INFO] Installing OpenJDK 17..."
 sudo apt install -y openjdk-17-jdk
 
-echo "[INFO] Cloning spring-boot-starter-actor repository..."
-git clone https://github.com/seonWKim/spring-boot-starter-actor.git
+echo "[INFO] Cloning actor-spring-boot-starter repository..."
+git clone https://github.com/seonWKim/actor-spring-boot-starter.git
 
-cd spring-boot-starter-actor/
+cd actor-spring-boot-starter/
 
 echo "[INFO] Making cluster start script executable..."
 chmod +x example/chat/ec2-cluster-start.sh

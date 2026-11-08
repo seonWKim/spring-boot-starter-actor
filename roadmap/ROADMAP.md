@@ -8,7 +8,7 @@
 
 ## 🎯 Executive Summary
 
-This roadmap transforms spring-boot-starter-actor into a production-ready, enterprise-grade actor framework. Based on comprehensive analysis, we've optimized the implementation plan by:
+This roadmap transforms actor-spring-boot-starter into a production-ready, enterprise-grade actor framework. Based on comprehensive analysis, we've optimized the implementation plan by:
 
 - **Simplifying over-engineered features** (persistence, streams, throttling)
 - **Removing unnecessary features** (adaptive concurrency, hot reload, websocket)

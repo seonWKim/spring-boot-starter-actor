@@ -1,4 +1,4 @@
-rootProject.name = "spring-boot-starter-actor"
+rootProject.name = "actor-spring-boot-starter"
 
 include(":actor-api")
 include(":actor-core")
