@@ -26,15 +26,15 @@ Today the starter declares Pekko with Gradle `api(...)`, so every Pekko class is
 ```mermaid
 flowchart LR
   subgraph Today
-    A1[Your app] -->|compile| C1[spring-boot-starter-actor]
-    C1 -->|"api(...) re-exports"| P1[Pekko]
+    A1["Your app"] -->|compile| C1["spring-boot-starter-actor"]
+    C1 -->|"api(...) re-exports"| P1["Pekko"]
     A1 -. "Pekko types in your code" .-> P1
   end
   subgraph Target
-    A2[Your app] -->|compile| API[actor-api<br/>no Pekko]
-    A2 -. runtime only .-> CORE[actor-core]
+    A2["Your app"] -->|compile| API["actor-api<br/>no Pekko"]
+    A2 -. runtime only .-> CORE["actor-core"]
     CORE -->|implements| API
-    CORE -->|"implementation (hidden)"| P2[Pekko]
+    CORE -->|"implementation (hidden)"| P2["Pekko"]
   end
 ```
 
@@ -42,11 +42,11 @@ flowchart LR
 
 ```mermaid
 flowchart TB
-  AC[autoconfigure<br/>@AutoConfiguration, @ConfigurationProperties] -->|wires| IN[internal<br/>Pekko adapters, implementation]
-  IN -->|implements| API[api<br/>what users code against]
-  IN -->|calls| SPI[spi<br/>extension points]
+  AC["autoconfigure<br/>@AutoConfiguration, @ConfigurationProperties"] -->|wires| IN["internal<br/>Pekko adapters, implementation"]
+  IN -->|implements| API["api<br/>what users code against"]
+  IN -->|calls| SPI["spi<br/>extension points"]
   IN -->|only layer that may use| PEKKO[(Pekko)]
-  BE[actor-jdbc / actor-redis / your bean] -->|implements| SPI
+  BE["actor-jdbc / actor-redis / your bean"] -->|implements| SPI
 ```
 
 | Layer | Package | May depend on | Must not |
@@ -68,19 +68,19 @@ Rules enforced by tests:
 
 ```mermaid
 flowchart TB
-  S1[actor-spring-boot-starter] --> AUTO
-  S2[actor-spring-boot-starter-cluster] --> AUTO
-  S3[actor-spring-boot-starter-persistence] --> AUTO
-  AUTO[actor-autoconfigure] --> CORE & CLUSTER & PERSIST & PROJ & STREAMS & METRICS
-  CORE[actor-core] --> API
-  CLUSTER[actor-cluster] --> API
-  PERSIST[actor-persistence] --> API
-  PROJ[actor-projection] --> API
-  STREAMS[actor-streams] --> API
-  METRICS[actor-metrics] --> API
-  JDBC[actor-jdbc] -->|implements spi| API
-  REDIS[actor-redis] -->|implements spi| API
-  API[actor-api<br/>api + spi, no Pekko]
+  S1["actor-spring-boot-starter"] --> AUTO
+  S2["actor-spring-boot-starter-cluster"] --> AUTO
+  S3["actor-spring-boot-starter-persistence"] --> AUTO
+  AUTO["actor-autoconfigure"] --> CORE & CLUSTER & PERSIST & PROJ & STREAMS & METRICS
+  CORE["actor-core"] --> API
+  CLUSTER["actor-cluster"] --> API
+  PERSIST["actor-persistence"] --> API
+  PROJ["actor-projection"] --> API
+  STREAMS["actor-streams"] --> API
+  METRICS["actor-metrics"] --> API
+  JDBC["actor-jdbc"] -->|implements spi| API
+  REDIS["actor-redis"] -->|implements spi| API
+  API["actor-api<br/>api + spi, no Pekko"]
 ```
 
 | Module | Contents | Pekko |
@@ -105,11 +105,11 @@ Every backend follows the same pattern. Here it is for finding peers in a statel
 
 ```mermaid
 flowchart LR
-  B[Pekko Cluster Bootstrap] -->|"lookup()"| D["PeerRegistryServiceDiscovery<br/>(internal: heartbeat, shutdown)"]
-  D -->|"peers(service, ttl)"| R[PeerRegistry<br/>spi]
-  J[JdbcPeerRegistry<br/>your DataSource] -->|implements| R
-  X[RedisPeerRegistry<br/>your RedisConnectionFactory] -->|implements| R
-  U[your own bean] -->|implements| R
+  B["Pekko Cluster Bootstrap"] -->|"lookup()"| D["PeerRegistryServiceDiscovery<br/>(internal: heartbeat, shutdown)"]
+  D -->|"peers(service, ttl)"| R["PeerRegistry<br/>spi"]
+  J["JdbcPeerRegistry<br/>your DataSource"] -->|implements| R
+  X["RedisPeerRegistry<br/>your RedisConnectionFactory"] -->|implements| R
+  U["your own bean"] -->|implements| R
 ```
 
 - The adapter is the only class that touches Pekko's discovery types. Backends store and read data, and nothing else: no timers, no Pekko.
