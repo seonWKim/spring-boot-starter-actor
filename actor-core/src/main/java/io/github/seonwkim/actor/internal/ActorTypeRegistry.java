@@ -1,5 +1,9 @@
-package io.github.seonwkim.actor;
+package io.github.seonwkim.actor.internal;
 
+import io.github.seonwkim.actor.SpringActor;
+import io.github.seonwkim.actor.SpringActorBehavior;
+import io.github.seonwkim.actor.SpringActorContext;
+import io.github.seonwkim.actor.SpringActorWithContext;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;

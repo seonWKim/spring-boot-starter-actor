@@ -6,6 +6,7 @@ import jakarta.annotation.PostConstruct;
 import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
+import org.apache.pekko.actor.typed.ActorSystem;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
@@ -83,7 +84,8 @@ public class ClusterSingletonService {
      * @return A Mono indicating completion
      */
     public Mono<Void> recordMetric(String metricName, long value) {
-        String nodeAddress = springActorSystem.getRaw().address().toString();
+        String nodeAddress =
+                springActorSystem.unwrap(ActorSystem.class).address().toString();
         long timestamp = System.currentTimeMillis();
 
         ClusterMetricsAggregator.RecordMetric message =
@@ -153,6 +155,6 @@ public class ClusterSingletonService {
      * @return The current node's address
      */
     public String getCurrentNodeAddress() {
-        return springActorSystem.getRaw().address().toString();
+        return springActorSystem.unwrap(ActorSystem.class).address().toString();
     }
 }

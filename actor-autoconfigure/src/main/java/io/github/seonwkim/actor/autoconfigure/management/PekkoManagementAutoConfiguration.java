@@ -1,6 +1,7 @@
 package io.github.seonwkim.actor.autoconfigure.management;
 
 import io.github.seonwkim.actor.SpringActorSystem;
+import io.github.seonwkim.actor.internal.PekkoActorSystem;
 import jakarta.annotation.PostConstruct;
 import org.apache.pekko.management.cluster.bootstrap.ClusterBootstrap;
 import org.apache.pekko.management.javadsl.PekkoManagement;
@@ -70,13 +71,13 @@ public class PekkoManagementAutoConfiguration {
         try {
             // Start Pekko Management HTTP server
             PekkoManagement management =
-                    PekkoManagement.get(actorSystem.getRaw().classicSystem());
+                    PekkoManagement.get(PekkoActorSystem.raw(actorSystem).classicSystem());
             management.start();
             log.info("Pekko Management HTTP server started");
 
             // Start Cluster Bootstrap for dynamic cluster formation
             ClusterBootstrap bootstrap =
-                    ClusterBootstrap.get(actorSystem.getRaw().classicSystem());
+                    ClusterBootstrap.get(PekkoActorSystem.raw(actorSystem).classicSystem());
             bootstrap.start();
             log.info("Pekko Cluster Bootstrap started - cluster will form dynamically");
 

@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 
 import io.github.seonwkim.actor.SpringActorSystem.ShutdownOutcome;
 import io.github.seonwkim.actor.autoconfigure.ActorProperties;
+import io.github.seonwkim.actor.internal.PekkoActorSystem;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
@@ -137,8 +138,8 @@ class GracefulShutdownTest {
         @Bean
         public SmartInitializingSingleton recordActorShutdown(SpringActorSystem actorSystem) {
             return () -> {
-                rawSystem.set(actorSystem.getRaw());
-                CoordinatedShutdown.get(actorSystem.getRaw())
+                rawSystem.set(PekkoActorSystem.raw(actorSystem));
+                CoordinatedShutdown.get(PekkoActorSystem.raw(actorSystem))
                         .addTask(CoordinatedShutdown.PhaseBeforeServiceUnbind(), "record-start", (Supplier<
                                         CompletionStage<Done>>)
                                 () -> {
@@ -175,10 +176,13 @@ class GracefulShutdownTest {
 
         context.close();
 
-        assertThat(system.getRaw().getWhenTerminated().toCompletableFuture().isDone())
+        assertThat(PekkoActorSystem.raw(system)
+                        .getWhenTerminated()
+                        .toCompletableFuture()
+                        .isDone())
                 .isTrue();
-        assertThat(CoordinatedShutdown.get(system.getRaw()).getShutdownReason())
-                .isEqualTo(Optional.of(SpringActorSystem.SPRING_CONTEXT_CLOSED));
+        assertThat(CoordinatedShutdown.get(PekkoActorSystem.raw(system)).getShutdownReason())
+                .isEqualTo(Optional.of(PekkoActorSystem.SPRING_CONTEXT_CLOSED));
         assertThat(lifecycle.getLastOutcome()).isEqualTo(ShutdownOutcome.TERMINATED);
         assertThat(lifecycle.isRunning()).isFalse();
     }
@@ -209,7 +213,7 @@ class GracefulShutdownTest {
 
         // Once the actor is released the actor system finishes terminating.
         blockRelease.get().countDown();
-        system.getRaw().getWhenTerminated().toCompletableFuture().get(15, TimeUnit.SECONDS);
+        PekkoActorSystem.raw(system).getWhenTerminated().toCompletableFuture().get(15, TimeUnit.SECONDS);
     }
 
     @Test
@@ -219,14 +223,14 @@ class GracefulShutdownTest {
         ActorSystemShutdownLifecycle lifecycle = context.getBean(ActorSystemShutdownLifecycle.class);
 
         // Terminated outside Spring, as happens when the node is downed.
-        system.getRaw().terminate();
-        system.getRaw().getWhenTerminated().toCompletableFuture().get(10, TimeUnit.SECONDS);
+        PekkoActorSystem.raw(system).terminate();
+        PekkoActorSystem.raw(system).getWhenTerminated().toCompletableFuture().get(10, TimeUnit.SECONDS);
 
         assertThatCode(() -> context.close()).doesNotThrowAnyException();
 
         assertThat(lifecycle.getLastOutcome()).isEqualTo(ShutdownOutcome.ALREADY_TERMINATED);
-        assertThat(CoordinatedShutdown.get(system.getRaw()).getShutdownReason())
-                .isNotEqualTo(Optional.of(SpringActorSystem.SPRING_CONTEXT_CLOSED));
+        assertThat(CoordinatedShutdown.get(PekkoActorSystem.raw(system)).getShutdownReason())
+                .isNotEqualTo(Optional.of(PekkoActorSystem.SPRING_CONTEXT_CLOSED));
         assertThat(system.shutdown(Duration.ofSeconds(1))).isEqualTo(ShutdownOutcome.ALREADY_TERMINATED);
     }
 
@@ -248,7 +252,7 @@ class GracefulShutdownTest {
         assertThat(system.shutdown(Duration.ofSeconds(30))).isEqualTo(ShutdownOutcome.ALREADY_IN_PROGRESS);
 
         blockRelease.get().countDown();
-        system.getRaw().getWhenTerminated().toCompletableFuture().get(15, TimeUnit.SECONDS);
+        PekkoActorSystem.raw(system).getWhenTerminated().toCompletableFuture().get(15, TimeUnit.SECONDS);
         assertThat(system.shutdown(Duration.ofSeconds(1))).isEqualTo(ShutdownOutcome.ALREADY_TERMINATED);
     }
 

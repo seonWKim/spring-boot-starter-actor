@@ -1,7 +1,6 @@
 package io.github.seonwkim.actor.internal;
 
 import io.github.seonwkim.actor.ActorSignal;
-import io.github.seonwkim.actor.ActorSpawner;
 import io.github.seonwkim.actor.PostStop;
 import io.github.seonwkim.actor.PreRestart;
 import io.github.seonwkim.actor.SpringActorBehavior;

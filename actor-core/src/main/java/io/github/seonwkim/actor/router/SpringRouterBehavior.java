@@ -1,11 +1,11 @@
 package io.github.seonwkim.actor.router;
 
-import io.github.seonwkim.actor.ActorTypeRegistry;
 import io.github.seonwkim.actor.SpringActor;
 import io.github.seonwkim.actor.SpringActorBehavior;
 import io.github.seonwkim.actor.SpringActorContext;
 import io.github.seonwkim.actor.SpringActorWithContext;
 import io.github.seonwkim.actor.SupervisionStrategy;
+import io.github.seonwkim.actor.internal.ActorTypeRegistry;
 import io.github.seonwkim.actor.internal.DefaultSpringActorContext;
 import io.github.seonwkim.actor.internal.PekkoBehaviors;
 import io.github.seonwkim.actor.internal.PekkoProps;

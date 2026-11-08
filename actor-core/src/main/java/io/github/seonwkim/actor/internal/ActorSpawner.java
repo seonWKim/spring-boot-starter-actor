@@ -1,7 +1,10 @@
-package io.github.seonwkim.actor;
+package io.github.seonwkim.actor.internal;
 
-import io.github.seonwkim.actor.internal.PekkoBehaviors;
-import io.github.seonwkim.actor.internal.PekkoProps;
+import io.github.seonwkim.actor.DispatcherConfig;
+import io.github.seonwkim.actor.MailboxConfig;
+import io.github.seonwkim.actor.SpringActorContext;
+import io.github.seonwkim.actor.SupervisionStrategy;
+import io.github.seonwkim.actor.TagsConfig;
 import javax.annotation.Nullable;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;

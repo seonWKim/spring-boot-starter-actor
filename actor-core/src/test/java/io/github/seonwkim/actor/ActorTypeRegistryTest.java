@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.github.seonwkim.actor.ActorTypeRegistryTest.DummyActor.Command;
+import io.github.seonwkim.actor.internal.ActorTypeRegistry;
 import io.github.seonwkim.actor.internal.DefaultSpringActorContext;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;

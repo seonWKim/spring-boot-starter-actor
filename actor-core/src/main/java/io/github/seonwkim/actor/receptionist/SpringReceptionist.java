@@ -5,6 +5,7 @@ import io.github.seonwkim.actor.SpringActorHandle;
 import io.github.seonwkim.actor.SpringActorSystem;
 import io.github.seonwkim.actor.internal.PekkoActorHandle;
 import io.github.seonwkim.actor.internal.PekkoActorRef;
+import io.github.seonwkim.actor.internal.PekkoActorSystem;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -163,7 +164,7 @@ public class SpringReceptionist {
     }
 
     private ActorSystem<?> system() {
-        return actorSystem.getRaw();
+        return PekkoActorSystem.raw(actorSystem);
     }
 
     private static <T> Behavior<HelperCommand> helperBehavior(

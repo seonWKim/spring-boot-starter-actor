@@ -49,11 +49,11 @@ public final class PekkoActorHandle<T> extends PekkoActorRef<T> implements Sprin
     @Override
     public <CC> SpringChildActorReference<T, CC> child(
             Class<? extends SpringActorWithContext<CC, ?>> childActorClass, String childId) {
-        return new SpringChildActorReference<>(ref, scheduler, childActorClass, childId, defaultTimeout);
+        return new PekkoChildActorReference<>(ref, scheduler, childActorClass, childId, defaultTimeout);
     }
 
     @Override
     public <CC> SpringChildActorBuilder<T, CC> child(Class<? extends SpringActorWithContext<CC, ?>> childActorClass) {
-        return new SpringChildActorBuilder<>(ref, scheduler, childActorClass, defaultTimeout);
+        return new PekkoChildActorBuilder<>(ref, scheduler, childActorClass, defaultTimeout);
     }
 }

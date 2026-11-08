@@ -1,6 +1,7 @@
 package io.github.seonwkim.actor.shard;
 
 import io.github.seonwkim.actor.SpringActorSystem;
+import io.github.seonwkim.actor.internal.PekkoActorSystem;
 import javax.annotation.Nullable;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityRef;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
@@ -75,7 +76,7 @@ public class SpringShardedActorBuilder<T> {
         }
 
         final EntityRef<T> entityRef = actorSystem.getClusterSharding().entityRefFor(typeKey, entityId);
-        return new SpringShardedActorHandle<>(actorSystem.getRaw().scheduler(), entityRef);
+        return new SpringShardedActorHandle<>(PekkoActorSystem.raw(actorSystem).scheduler(), entityRef);
     }
 
     /**

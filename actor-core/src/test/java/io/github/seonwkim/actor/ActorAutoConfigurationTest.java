@@ -5,7 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.typesafe.config.Config;
+import io.github.seonwkim.actor.internal.ActorTypeRegistry;
 import io.github.seonwkim.actor.internal.DefaultSpringActorContext;
+import io.github.seonwkim.actor.internal.PekkoActorSystem;
 import io.github.seonwkim.actor.internal.RootGuardian;
 import io.github.seonwkim.actor.internal.RootGuardianSupplierWrapper;
 import io.github.seonwkim.actor.internal.shard.DefaultShardingMessageExtractor;
@@ -43,7 +45,7 @@ public class ActorAutoConfigurationTest {
         void shouldCreateActorSystem(ApplicationContext context) {
             assertTrue(context.containsBean("actorSystem"), "ActorSystem bean should exist");
             SpringActorSystem systemInstance = context.getBean(SpringActorSystem.class);
-            Config config = systemInstance.getRaw().settings().config();
+            Config config = PekkoActorSystem.raw(systemInstance).settings().config();
 
             assertEquals("INFO", config.getString("pekko.loglevel"));
             assertEquals("local", config.getString("pekko.actor.provider"));
@@ -83,7 +85,7 @@ public class ActorAutoConfigurationTest {
             assertTrue(context.containsBean("actorSystem"));
 
             SpringActorSystem systemInstance = context.getBean(SpringActorSystem.class);
-            assertNotNull(systemInstance.getRaw());
+            assertNotNull(PekkoActorSystem.raw(systemInstance));
         }
     }
 

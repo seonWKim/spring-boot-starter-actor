@@ -1,11 +1,12 @@
 package io.github.seonwkim.actor.autoconfigure;
 
 import io.github.seonwkim.actor.ActorSystemShutdownLifecycle;
-import io.github.seonwkim.actor.ActorTypeRegistry;
 import io.github.seonwkim.actor.SpringActorSystem;
 import io.github.seonwkim.actor.SpringActorSystemBuilder;
 import io.github.seonwkim.actor.SpringActorWithContext;
+import io.github.seonwkim.actor.internal.ActorTypeRegistry;
 import io.github.seonwkim.actor.internal.DefaultSpringActorSystemBuilder;
+import io.github.seonwkim.actor.internal.PekkoActorSystem;
 import io.github.seonwkim.actor.internal.RootGuardian;
 import io.github.seonwkim.actor.internal.RootGuardianSupplierWrapper;
 import io.github.seonwkim.actor.receptionist.SpringReceptionist;
@@ -180,8 +181,8 @@ public class ActorConfiguration {
     @Bean
     public SmartInitializingSingleton clusterShardingInitializer(SpringActorSystem actorSystem) {
         return () -> {
-            if (actorSystem.isClusterMode()) {
-                actorSystem.initializeClusterSharding();
+            if (actorSystem.isClusterMode() && actorSystem instanceof PekkoActorSystem pekko) {
+                pekko.initializeClusterSharding();
             }
         };
     }

@@ -1,10 +1,7 @@
 package io.github.seonwkim.actor;
 
-import io.github.seonwkim.actor.internal.DefaultSpringActorContext;
 import java.time.Duration;
 import java.util.concurrent.CompletionStage;
-import javax.annotation.Nullable;
-import org.springframework.util.ObjectUtils;
 
 /**
  * A fluent builder for spawning actors with a simplified API. This builder provides a more
@@ -13,39 +10,7 @@ import org.springframework.util.ObjectUtils;
  * @param <A> The type of the actor
  * @param <C> The type of commands that the actor can handle
  */
-public class SpringActorSpawnBuilder<A extends SpringActorWithContext<C, ?>, C> {
-    private final SpringActorSystem actorSystem;
-    private final Class<A> actorClass;
-
-    @Nullable private String actorId;
-
-    @Nullable private SpringActorContext actorContext;
-
-    private Duration timeout = ActorConstants.DEFAULT_TIMEOUT;
-    private MailboxConfig mailboxConfig = MailboxConfig.defaultMailbox();
-    private DispatcherConfig dispatcherConfig = DispatcherConfig.defaultDispatcher();
-    private TagsConfig tagsConfig = TagsConfig.empty();
-    private MdcConfig mdcConfig = MdcConfig.empty();
-    private boolean isClusterSingleton = false;
-
-    @Nullable private SupervisionStrategy supervisorStrategy = null;
-
-    /**
-     * Creates a new SpringActorSpawnBuilder.
-     *
-     * @param actorSystem The actor system to spawn the actor in
-     * @param actorClass The class of the actor to spawn
-     */
-    public SpringActorSpawnBuilder(SpringActorSystem actorSystem, Class<A> actorClass) {
-        if (actorSystem == null) {
-            throw new IllegalArgumentException("actorSystem must not be null");
-        }
-        if (actorClass == null) {
-            throw new IllegalArgumentException("actorClass must not be null");
-        }
-        this.actorSystem = actorSystem;
-        this.actorClass = actorClass;
-    }
+public interface SpringActorSpawnBuilder<A extends SpringActorWithContext<C, ?>, C> {
 
     /**
      * Sets the ID of the actor to spawn.
@@ -53,13 +18,7 @@ public class SpringActorSpawnBuilder<A extends SpringActorWithContext<C, ?>, C> 
      * @param actorId The ID of the actor
      * @return This builder
      */
-    public SpringActorSpawnBuilder<A, C> withId(String actorId) {
-        if (actorId == null || ObjectUtils.isEmpty(actorId)) {
-            throw new IllegalArgumentException("actorId must not be null or empty");
-        }
-        this.actorId = actorId;
-        return this;
-    }
+    SpringActorSpawnBuilder<A, C> withId(String actorId);
 
     /**
      * Sets the timeout for the spawn operation.
@@ -67,13 +26,7 @@ public class SpringActorSpawnBuilder<A extends SpringActorWithContext<C, ?>, C> 
      * @param timeout The timeout duration
      * @return This builder
      */
-    public SpringActorSpawnBuilder<A, C> withTimeout(Duration timeout) {
-        if (timeout == null) {
-            throw new IllegalArgumentException("timeout must not be null");
-        }
-        this.timeout = timeout;
-        return this;
-    }
+    SpringActorSpawnBuilder<A, C> withTimeout(Duration timeout);
 
     /**
      * Sets a custom context for the actor.
@@ -81,13 +34,7 @@ public class SpringActorSpawnBuilder<A extends SpringActorWithContext<C, ?>, C> 
      * @param context The custom actor context
      * @return This builder
      */
-    public SpringActorSpawnBuilder<A, C> withContext(SpringActorContext context) {
-        if (context == null) {
-            throw new IllegalArgumentException("context must not be null");
-        }
-        this.actorContext = context;
-        return this;
-    }
+    SpringActorSpawnBuilder<A, C> withContext(SpringActorContext context);
 
     /**
      * Sets the mailbox configuration using the type-safe MailboxConfig API.
@@ -104,13 +51,7 @@ public class SpringActorSpawnBuilder<A extends SpringActorWithContext<C, ?>, C> 
      * @param mailboxConfig The mailbox configuration
      * @return This builder
      */
-    public SpringActorSpawnBuilder<A, C> withMailbox(MailboxConfig mailboxConfig) {
-        if (mailboxConfig == null) {
-            throw new IllegalArgumentException("mailboxConfig must not be null");
-        }
-        this.mailboxConfig = mailboxConfig;
-        return this;
-    }
+    SpringActorSpawnBuilder<A, C> withMailbox(MailboxConfig mailboxConfig);
 
     /**
      * Sets the dispatcher using a configuration path from application.yml.
@@ -131,10 +72,7 @@ public class SpringActorSpawnBuilder<A extends SpringActorWithContext<C, ?>, C> 
      * @param dispatcherPath The path to the dispatcher configuration (e.g., "my-blocking-dispatcher")
      * @return This builder
      */
-    public SpringActorSpawnBuilder<A, C> withDispatcherFromConfig(String dispatcherPath) {
-        this.dispatcherConfig = DispatcherConfig.fromConfig(dispatcherPath);
-        return this;
-    }
+    SpringActorSpawnBuilder<A, C> withDispatcherFromConfig(String dispatcherPath);
 
     /**
      * Configures the actor to use the blocking dispatcher.
@@ -143,10 +81,7 @@ public class SpringActorSpawnBuilder<A extends SpringActorWithContext<C, ?>, C> 
      *
      * @return This builder
      */
-    public SpringActorSpawnBuilder<A, C> withBlockingDispatcher() {
-        this.dispatcherConfig = DispatcherConfig.blocking();
-        return this;
-    }
+    SpringActorSpawnBuilder<A, C> withBlockingDispatcher();
 
     /**
      * Configures the actor to use the default dispatcher.
@@ -154,20 +89,14 @@ public class SpringActorSpawnBuilder<A extends SpringActorWithContext<C, ?>, C> 
      *
      * @return This builder
      */
-    public SpringActorSpawnBuilder<A, C> withDefaultDispatcher() {
-        this.dispatcherConfig = DispatcherConfig.defaultDispatcher();
-        return this;
-    }
+    SpringActorSpawnBuilder<A, C> withDefaultDispatcher();
 
     /**
      * Configures the actor to use the same dispatcher as its parent.
      *
      * @return This builder
      */
-    public SpringActorSpawnBuilder<A, C> withDispatcherSameAsParent() {
-        this.dispatcherConfig = DispatcherConfig.sameAsParent();
-        return this;
-    }
+    SpringActorSpawnBuilder<A, C> withDispatcherSameAsParent();
 
     /**
      * Sets the tags configuration for this actor. Tags are used for logging and categorization,
@@ -185,13 +114,7 @@ public class SpringActorSpawnBuilder<A extends SpringActorWithContext<C, ?>, C> 
      * @param tagsConfig The tags configuration
      * @return This builder
      */
-    public SpringActorSpawnBuilder<A, C> withTags(TagsConfig tagsConfig) {
-        if (tagsConfig == null) {
-            throw new IllegalArgumentException("tagsConfig must not be null");
-        }
-        this.tagsConfig = tagsConfig;
-        return this;
-    }
+    SpringActorSpawnBuilder<A, C> withTags(TagsConfig tagsConfig);
 
     /**
      * Sets static MDC (Mapped Diagnostic Context) values for this actor.
@@ -217,13 +140,7 @@ public class SpringActorSpawnBuilder<A extends SpringActorWithContext<C, ?>, C> 
      * @param mdcConfig The MDC configuration
      * @return This builder
      */
-    public SpringActorSpawnBuilder<A, C> withMdc(MdcConfig mdcConfig) {
-        if (mdcConfig == null) {
-            throw new IllegalArgumentException("mdcConfig must not be null");
-        }
-        this.mdcConfig = mdcConfig;
-        return this;
-    }
+    SpringActorSpawnBuilder<A, C> withMdc(MdcConfig mdcConfig);
 
     /**
      * Sets whether the actor should be a cluster singleton.
@@ -231,19 +148,14 @@ public class SpringActorSpawnBuilder<A extends SpringActorWithContext<C, ?>, C> 
      * @param isClusterSingleton Whether the actor should be a cluster singleton
      * @return This builder
      */
-    public SpringActorSpawnBuilder<A, C> asClusterSingleton(boolean isClusterSingleton) {
-        this.isClusterSingleton = isClusterSingleton;
-        return this;
-    }
+    SpringActorSpawnBuilder<A, C> asClusterSingleton(boolean isClusterSingleton);
 
     /**
      * Marks the actor as a cluster singleton.
      *
      * @return This builder
      */
-    public SpringActorSpawnBuilder<A, C> asClusterSingleton() {
-        return asClusterSingleton(true);
-    }
+    SpringActorSpawnBuilder<A, C> asClusterSingleton();
 
     /**
      * Sets the supervisor strategy for this actor. The supervisor strategy determines how the
@@ -252,10 +164,7 @@ public class SpringActorSpawnBuilder<A extends SpringActorWithContext<C, ?>, C> 
      * @param supervisorStrategy The supervisor strategy (e.g., SupervisionStrategy.restart())
      * @return This builder
      */
-    public SpringActorSpawnBuilder<A, C> withSupervisionStrategy(SupervisionStrategy supervisorStrategy) {
-        this.supervisorStrategy = supervisorStrategy;
-        return this;
-    }
+    SpringActorSpawnBuilder<A, C> withSupervisionStrategy(SupervisionStrategy supervisorStrategy);
 
     /**
      * Spawns the actor and returns a CompletionStage with the actor reference.
@@ -263,30 +172,7 @@ public class SpringActorSpawnBuilder<A extends SpringActorWithContext<C, ?>, C> 
      * @return A CompletionStage that will be completed with a reference to the spawned actor
      * @throws IllegalStateException If neither actorId nor actorContext is set
      */
-    public CompletionStage<SpringActorHandle<C>> spawn() {
-        if (actorContext == null) {
-            if (actorId == null) {
-                throw new IllegalStateException("Either actorId or actorContext must be set before spawning. "
-                        + "Call withId(\"your-id\") or withContext(context) on the builder. "
-                        + "Actor class: "
-                        + actorClass.getName());
-            }
-            actorContext = new DefaultSpringActorContext(actorId);
-        }
-
-        // Apply MDC configuration to the context
-        actorContext.setMdcConfig(mdcConfig);
-
-        return actorSystem.spawn(
-                actorClass,
-                actorContext,
-                mailboxConfig,
-                dispatcherConfig,
-                tagsConfig,
-                isClusterSingleton,
-                supervisorStrategy,
-                timeout);
-    }
+    CompletionStage<SpringActorHandle<C>> spawn();
 
     /**
      * Spawns the actor synchronously and returns the actor reference. This method blocks until the
@@ -295,7 +181,5 @@ public class SpringActorSpawnBuilder<A extends SpringActorWithContext<C, ?>, C> 
      * @return A reference to the spawned actor
      * @throws IllegalStateException If neither actorId nor actorContext is set
      */
-    public SpringActorHandle<C> spawnAndWait() {
-        return spawn().toCompletableFuture().join();
-    }
+    SpringActorHandle<C> spawnAndWait();
 }

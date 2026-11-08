@@ -1,5 +1,5 @@
 #
-#Mon Nov 09 06:23:58 KST 2026
-classes\ that\ reside\ outside\ of\ package\ 'io.github.seonwkim.actor..internal..'\ should\ not\ expose\ Pekko\ types\ in\ public\ or\ protected\ signatures,\ because\ users\ compile\ against\ the\ starter's\ API,\ which\ has\ no\ Pekko\ types=7d996588-4b02-404d-b2c0-aee4ed2623d3
-no\ classes\ that\ reside\ outside\ of\ package\ 'io.github.seonwkim.actor..internal..'\ should\ depend\ on\ classes\ that\ reside\ in\ a\ package\ 'org.apache.pekko..',\ because\ Pekko\ is\ an\ implementation\ detail,\ adapted\ only\ in\ internal=30d04134-0327-4b99-acbf-e3a6fa9f1dfb
-no\ classes\ that\ reside\ outside\ of\ packages\ ['io.github.seonwkim.actor..internal..',\ 'io.github.seonwkim.actor..autoconfigure..']\ should\ depend\ on\ classes\ that\ reside\ in\ a\ package\ 'io.github.seonwkim.actor..internal..',\ because\ internal\ has\ no\ compatibility\ promise,\ so\ the\ public\ API\ must\ not\ expose\ it=29cd7f8f-f52d-49f3-b0b9-8f0a832ab37e
+#Mon Nov 09 07:00:53 KST 2026
+classes\ that\ reside\ outside\ of\ package\ 'io.github.seonwkim.actor..internal..'\ should\ not\ expose\ Pekko\ types\ in\ public\ or\ protected\ signatures,\ because\ users\ compile\ against\ the\ starter's\ API,\ which\ has\ no\ Pekko\ types=fab91a11-f695-4fd4-aa03-3308338eef7c
+no\ classes\ that\ reside\ outside\ of\ package\ 'io.github.seonwkim.actor..internal..'\ should\ depend\ on\ classes\ that\ reside\ in\ a\ package\ 'org.apache.pekko..',\ because\ Pekko\ is\ an\ implementation\ detail,\ adapted\ only\ in\ internal=d3174330-12f4-4243-9a1a-f92325e8a7eb
+no\ classes\ that\ reside\ outside\ of\ packages\ ['io.github.seonwkim.actor..internal..',\ 'io.github.seonwkim.actor..autoconfigure..']\ should\ depend\ on\ classes\ that\ reside\ in\ a\ package\ 'io.github.seonwkim.actor..internal..',\ because\ internal\ has\ no\ compatibility\ promise,\ so\ the\ public\ API\ must\ not\ expose\ it=1b879434-cca1-470f-bcb2-7daf2a70cef1

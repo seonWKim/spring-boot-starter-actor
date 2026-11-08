@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import io.github.seonwkim.actor.behavior.ClusterEventBehavior.ClusterDomainWrappedEvent;
+import io.github.seonwkim.actor.internal.PekkoActorSystem;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.util.List;
@@ -84,7 +85,10 @@ class GracefulShutdownClusterTest {
 
         node2.close();
 
-        assertThat(system2.getRaw().getWhenTerminated().toCompletableFuture().isDone())
+        assertThat(PekkoActorSystem.raw(system2)
+                        .getWhenTerminated()
+                        .toCompletableFuture()
+                        .isDone())
                 .isTrue();
         await().atMost(20, SECONDS).pollInterval(200, MILLISECONDS).until(() -> events1.events.stream()
                 .anyMatch(e -> e instanceof ClusterEvent.MemberRemoved

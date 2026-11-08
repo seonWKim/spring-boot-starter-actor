@@ -3,6 +3,7 @@ package io.github.seonwkim.actor;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import io.github.seonwkim.actor.autoconfigure.ActorConfiguration;
+import io.github.seonwkim.actor.internal.PekkoActorSystem;
 import io.github.seonwkim.actor.serialization.CborSerializable;
 import io.github.seonwkim.actor.serialization.JsonSerializable;
 import org.apache.pekko.actor.typed.javadsl.Adapter;
@@ -46,7 +47,7 @@ class AskCommandSerializationTest {
     }
 
     private AskCommand<?> roundTrip(AskCommand<?> command) {
-        Serialization serialization = SerializationExtension.get(Adapter.toClassic(actorSystem.getRaw()));
+        Serialization serialization = SerializationExtension.get(Adapter.toClassic(PekkoActorSystem.raw(actorSystem)));
         Serializer serializer = serialization.findSerializerFor(command);
         byte[] bytes = serialization.serialize(command).get();
         return (AskCommand<?>) serialization

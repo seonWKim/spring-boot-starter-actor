@@ -1,6 +1,5 @@
 package io.github.seonwkim.actor.internal;
 
-import io.github.seonwkim.actor.ActorSpawner;
 import io.github.seonwkim.actor.SpringActorContext;
 import io.github.seonwkim.actor.topic.SpringTopicRef;
 import javax.annotation.Nullable;
@@ -258,6 +257,6 @@ public class DefaultRootGuardian implements RootGuardian {
     }
 
     private String buildActorKey(Class<?> actorClass, SpringActorContext actorContext) {
-        return io.github.seonwkim.actor.ActorSpawner.buildActorName(actorClass, actorContext.actorId());
+        return ActorSpawner.buildActorName(actorClass, actorContext.actorId());
     }
 }

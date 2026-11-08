@@ -3,6 +3,7 @@ package io.github.seonwkim.actor.topic;
 import io.github.seonwkim.actor.SpringActorSystem;
 import io.github.seonwkim.actor.exception.TopicAlreadyExistsException;
 import io.github.seonwkim.actor.exception.TopicCreationTimeoutException;
+import io.github.seonwkim.actor.internal.PekkoActorSystem;
 import io.github.seonwkim.actor.internal.RootGuardian;
 import java.time.Duration;
 import java.util.concurrent.ExecutionException;
@@ -86,11 +87,11 @@ public class SpringTopicManager {
 
             try {
                 RootGuardian.TopicCreated<T> response = AskPattern.ask(
-                                actorSystem.getRaw(),
+                                PekkoActorSystem.raw(actorSystem),
                                 (ActorRef<RootGuardian.TopicCreated<T>> replyTo) ->
                                         new RootGuardian.CreateTopic<>(messageType, topicName, replyTo),
                                 timeout,
-                                actorSystem.getRaw().scheduler())
+                                PekkoActorSystem.raw(actorSystem).scheduler())
                         .toCompletableFuture()
                         .get();
 
@@ -142,11 +143,11 @@ public class SpringTopicManager {
 
             try {
                 RootGuardian.TopicCreated<T> response = AskPattern.ask(
-                                actorSystem.getRaw(),
+                                PekkoActorSystem.raw(actorSystem),
                                 (ActorRef<RootGuardian.TopicCreated<T>> replyTo) ->
                                         new RootGuardian.GetOrCreateTopic<>(messageType, topicName, replyTo),
                                 timeout,
-                                actorSystem.getRaw().scheduler())
+                                PekkoActorSystem.raw(actorSystem).scheduler())
                         .toCompletableFuture()
                         .get();
 
