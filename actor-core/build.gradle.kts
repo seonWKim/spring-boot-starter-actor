@@ -20,6 +20,8 @@ dependencies {
     implementation("org.apache.pekko:pekko-actor-typed_3:$pekkoVersion")
 
     implementation("com.google.code.findbugs:jsr305")
+    // SpringActorSystemBuilder and ActorSystemShutdownLifecycle have Spring types in their signatures.
+    api("org.springframework:spring-context")
     implementation("org.springframework.boot:spring-boot-starter")
 
     testFixturesImplementation("org.apache.pekko:pekko-actor-typed_3:$pekkoVersion")

@@ -39,7 +39,9 @@
    If you run with `pekko.actor.provider=cluster` (sharding, singletons, cluster events, management),
    depend on `actor-spring-boot-starter-cluster` instead; without it the application fails at startup
    and says so. If your code uses Pekko Cluster classes directly, declare
-   `org.apache.pekko:pekko-cluster-sharding-typed_3` yourself: the starters no longer export it.
+   `org.apache.pekko:pekko-cluster-sharding-typed_3` yourself, and code that uses any Pekko class
+   (through `unwrap(...)` or `SpringActorBehavior.wrap(...)`) declares `org.apache.pekko:pekko-actor-typed_3`:
+   the starters no longer export Pekko.
 4. Replace `io.github.seonwkim.core` with `io.github.seonwkim.actor` and `io.github.seonwkim.metrics` with
    `io.github.seonwkim.actor.metrics` in your imports. If you extended `RootGuardian` or used other classes
    now under `internal`, import them from `io.github.seonwkim.actor.internal`.

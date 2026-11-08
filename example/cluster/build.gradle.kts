@@ -12,6 +12,8 @@ repositories {
 
 dependencies {
 	implementation(project(":actor-spring-boot-starter-cluster"))
+	// Uses Pekko directly through unwrap(...): declare it, the starter does not export it.
+	implementation("org.apache.pekko:pekko-actor-typed_3:${property("pekkoVersion")}")
 
 	implementation("org.springframework.boot:spring-boot-starter")
 	implementation("org.springframework.boot:spring-boot-starter-webflux")
