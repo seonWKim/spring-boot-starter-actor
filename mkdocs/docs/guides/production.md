@@ -151,8 +151,8 @@ spec:
           path: /actuator/health/readiness
           port: 8080
         initialDelaySeconds: 5
-        periodSeconds: 5
+        periodSeconds: 3
         failureThreshold: 3
 ```
 
-Keep the readiness `periodSeconds × failureThreshold` shorter than the `preStop` sleep above, so the pod is out of the load balancer before the application starts shutting down. In cluster mode a new pod reports `OUT_OF_SERVICE` until it has joined the cluster and become `Up`, so it gets no traffic before it can reach sharded entities and singletons.
+Keep the readiness `periodSeconds × failureThreshold` (here 9s) shorter than the `preStop` sleep above (10s), so the pod is out of the load balancer before the application starts shutting down. In cluster mode a new pod reports `OUT_OF_SERVICE` until it has joined the cluster and become `Up`, so it gets no traffic before it can reach sharded entities and singletons.
