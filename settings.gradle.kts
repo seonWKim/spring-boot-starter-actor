@@ -3,7 +3,9 @@ rootProject.name = "spring-boot-starter-actor"
 include(":actor-api")
 include(":actor-core")
 include(":actor-autoconfigure")
+include(":actor-cluster")
 include(":actor-spring-boot-starter")
+include(":actor-spring-boot-starter-cluster")
 include(":actor-metrics")
 
 // Test-only: the ARCHITECTURE.md rules every module's ArchitectureTest runs. Not published.

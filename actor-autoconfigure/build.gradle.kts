@@ -15,15 +15,12 @@ dependencyManagement {
 dependencies {
     api(project(":actor-api"))
     implementation(project(":actor-core"))
-
-    implementation("org.apache.pekko:pekko-actor-typed_3:$pekkoVersion")
-    implementation("org.apache.pekko:pekko-cluster-typed_3:$pekkoVersion")
-    implementation("org.apache.pekko:pekko-cluster-sharding-typed_3:$pekkoVersion")
-
-    // Optional: Cluster Bootstrap & Management HTTP
-    // Additionally, add a discovery method dependency (e.g., pekko-discovery-kubernetes-api_3)
+    // Cluster and management configurations apply only when these are on the application's classpath.
+    compileOnly(project(":actor-cluster"))
     compileOnly("org.apache.pekko:pekko-management-cluster-bootstrap_3:${pekkoManagementVersion}")
     compileOnly("org.apache.pekko:pekko-management-cluster-http_3:${pekkoManagementVersion}")
+
+    implementation("org.apache.pekko:pekko-actor-typed_3:$pekkoVersion")
 
     implementation("com.google.code.findbugs:jsr305")
     implementation("org.springframework.boot:spring-boot-starter")

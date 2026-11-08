@@ -5,7 +5,8 @@ import org.springframework.core.type.AnnotationMetadata;
 
 /**
  * Imports the actor configuration for {@link EnableActorSupport} by class name, so {@code actor-api}
- * has no compile dependency on {@code actor-autoconfigure}.
+ * has no compile dependency on {@code actor-autoconfigure}. The cluster and management
+ * configurations apply only when their modules are on the classpath ({@code @ConditionalOnClass}).
  */
 final class ActorSupportImportSelector implements ImportSelector {
 
@@ -13,6 +14,7 @@ final class ActorSupportImportSelector implements ImportSelector {
     public String[] selectImports(AnnotationMetadata importingClassMetadata) {
         return new String[] {
             "io.github.seonwkim.actor.autoconfigure.ActorConfiguration",
+            "io.github.seonwkim.actor.autoconfigure.cluster.ClusterConfiguration",
             "io.github.seonwkim.actor.autoconfigure.management.PekkoManagementAutoConfiguration"
         };
     }

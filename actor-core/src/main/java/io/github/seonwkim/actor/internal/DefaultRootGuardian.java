@@ -2,13 +2,11 @@ package io.github.seonwkim.actor.internal;
 
 import io.github.seonwkim.actor.SpringActorContext;
 import io.github.seonwkim.actor.topic.SpringTopicRef;
-import javax.annotation.Nullable;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.apache.pekko.actor.typed.pubsub.Topic;
-import org.apache.pekko.cluster.typed.ClusterSingleton;
 
 /**
  * Default implementation of the {@code RootGuardian} interface. This class manages the lifecycle of
@@ -22,33 +20,20 @@ public class DefaultRootGuardian implements RootGuardian {
      * @return A behavior for the DefaultRootGuardian
      */
     public static Behavior<Command> create() {
-        return Behaviors.setup(ctx -> {
-            // Try to get ClusterSingleton if available (cluster mode)
-            ClusterSingleton clusterSingleton = null;
-            try {
-                clusterSingleton = ClusterSingleton.get(ctx.getSystem());
-            } catch (Exception e) {
-                // Not in cluster mode, clusterSingleton will be null
-            }
-            return new DefaultRootGuardian(ctx, clusterSingleton).behavior();
-        });
+        return Behaviors.setup(ctx -> new DefaultRootGuardian(ctx).behavior());
     }
 
     /** The actor context */
     private final ActorContext<Command> ctx;
-    /** The cluster singleton (null in local mode) */
-    @Nullable private final ClusterSingleton clusterSingleton;
 
     /**
      * Creates a new DefaultRootGuardian with the given actor context.
      * Uses the static ActorTypeRegistry for actor creation.
      *
      * @param ctx The actor context
-     * @param clusterSingleton The cluster singleton (null in local mode)
      */
-    public DefaultRootGuardian(ActorContext<Command> ctx, @Nullable ClusterSingleton clusterSingleton) {
+    public DefaultRootGuardian(ActorContext<Command> ctx) {
         this.ctx = ctx;
-        this.clusterSingleton = clusterSingleton;
     }
 
     /**
@@ -93,7 +78,6 @@ public class DefaultRootGuardian implements RootGuardian {
                 msg.mailboxConfig,
                 msg.dispatcherConfig,
                 msg.tagsConfig,
-                clusterSingleton,
                 msg.isClusterSingleton);
 
         msg.replyTo.tell(new Spawned<>(ref));

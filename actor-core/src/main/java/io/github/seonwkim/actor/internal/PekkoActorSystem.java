@@ -12,10 +12,6 @@ import io.github.seonwkim.actor.SpringActorWithContext;
 import io.github.seonwkim.actor.SupervisionStrategy;
 import io.github.seonwkim.actor.TagsConfig;
 import io.github.seonwkim.actor.internal.RootGuardian.Spawned;
-import io.github.seonwkim.actor.internal.cluster.PekkoClusterEvents;
-import io.github.seonwkim.actor.internal.shard.PekkoShardedActorBuilder;
-import io.github.seonwkim.actor.internal.shard.PekkoSharding;
-import io.github.seonwkim.actor.internal.shard.ShardedActorRegistry;
 import io.github.seonwkim.actor.shard.SpringShardedActor;
 import io.github.seonwkim.actor.shard.SpringShardedActorBuilder;
 import java.time.Duration;
@@ -29,15 +25,9 @@ import javax.annotation.Nullable;
 import org.apache.pekko.actor.CoordinatedShutdown;
 import org.apache.pekko.actor.typed.*;
 import org.apache.pekko.actor.typed.javadsl.AskPattern;
-import org.apache.pekko.cluster.ClusterEvent;
-import org.apache.pekko.cluster.sharding.typed.javadsl.ClusterSharding;
-import org.apache.pekko.cluster.typed.Cluster;
-import org.apache.pekko.cluster.typed.ClusterSingleton;
-import org.apache.pekko.cluster.typed.Subscribe;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.DisposableBean;
-import org.springframework.context.ApplicationEventPublisher;
 
 /** Pekko-backed {@link SpringActorSystem}. */
 public final class PekkoActorSystem implements SpringActorSystem, DisposableBean {
@@ -58,70 +48,22 @@ public final class PekkoActorSystem implements SpringActorSystem, DisposableBean
 
     private final ActorSystem<RootGuardian.Command> actorSystem;
 
-    @Nullable private final Cluster cluster;
-
-    @Nullable private final ClusterSharding clusterSharding;
-
-    @Nullable private final ClusterSingleton clusterSingleton;
+    @Nullable private final ClusterSupport.ClusterRuntime cluster;
 
     private final Duration defaultQueryTimeout = Duration.ofMillis(100);
 
     private final Duration defaultActorRefTimeout = Duration.ofSeconds(3);
 
-    /**
-     * Creates a new SpringActorSystem in local mode.
-     *
-     * @param actorSystem The underlying Pekko ActorSystem
-     */
+    /** A system in local mode. */
     public PekkoActorSystem(ActorSystem<RootGuardian.Command> actorSystem) {
         this.actorSystem = actorSystem;
         this.cluster = null;
-        this.clusterSharding = null;
-        this.clusterSingleton = null;
     }
 
-    /**
-     * Creates a new SpringActorSystem in cluster mode. This constructor also sets up a listener for
-     * cluster events and publishes them as Spring application events.
-     *
-     * @param actorSystem The underlying Pekko ActorSystem
-     * @param cluster The Pekko Cluster
-     * @param clusterSharding The Pekko ClusterSharding
-     * @param publisher The Spring ApplicationEventPublisher for publishing cluster events
-     */
-    public PekkoActorSystem(
-            ActorSystem<RootGuardian.Command> actorSystem,
-            Cluster cluster,
-            ClusterSharding clusterSharding,
-            ApplicationEventPublisher publisher) {
-        this(actorSystem, cluster, clusterSharding, ClusterSingleton.get(actorSystem), publisher);
-    }
-
-    /**
-     * Creates a new SpringActorSystem in cluster mode. This constructor also sets up a listener for
-     * cluster events and publishes them as Spring application events.
-     * Uses the static ShardedActorRegistry for type resolution.
-     *
-     * @param actorSystem The underlying Pekko ActorSystem
-     * @param cluster The Pekko Cluster
-     * @param clusterSharding The Pekko ClusterSharding
-     * @param clusterSingleton The Pekko ClusterSingleton
-     * @param publisher The Spring ApplicationEventPublisher for publishing cluster events
-     */
-    public PekkoActorSystem(
-            ActorSystem<RootGuardian.Command> actorSystem,
-            Cluster cluster,
-            @Nullable ClusterSharding clusterSharding,
-            @Nullable ClusterSingleton clusterSingleton,
-            ApplicationEventPublisher publisher) {
+    /** A system in cluster mode, with the cluster features {@code cluster} started on it. */
+    public PekkoActorSystem(ActorSystem<RootGuardian.Command> actorSystem, ClusterSupport.ClusterRuntime cluster) {
         this.actorSystem = actorSystem;
         this.cluster = cluster;
-        this.clusterSharding = clusterSharding;
-        this.clusterSingleton = clusterSingleton;
-
-        ActorRef<ClusterEvent.ClusterDomainEvent> listener = actorSystem.systemActorOf(
-                PekkoClusterEvents.publisher(publisher), "cluster-event-listener", Props.empty());
-        cluster.subscriptions().tell(new Subscribe<>(listener, ClusterEvent.ClusterDomainEvent.class));
     }
 
     /**
@@ -131,9 +73,14 @@ public final class PekkoActorSystem implements SpringActorSystem, DisposableBean
      */
     @Override
     public <X> X unwrap(Class<X> type) {
-        for (Object candidate : new Object[] {actorSystem, cluster, clusterSharding, clusterSingleton}) {
-            if (type.isInstance(candidate)) {
-                return type.cast(candidate);
+        if (type.isInstance(actorSystem)) {
+            return type.cast(actorSystem);
+        }
+        if (cluster != null) {
+            for (Object candidate : cluster.engineObjects()) {
+                if (type.isInstance(candidate)) {
+                    return type.cast(candidate);
+                }
             }
         }
         throw new IllegalArgumentException("Cannot unwrap the actor system to " + type.getName());
@@ -148,18 +95,6 @@ public final class PekkoActorSystem implements SpringActorSystem, DisposableBean
     /** The Pekko actor system. */
     public ActorSystem<RootGuardian.Command> getRaw() {
         return actorSystem;
-    }
-
-    @Nullable public Cluster getCluster() {
-        return cluster;
-    }
-
-    @Nullable public ClusterSharding getClusterSharding() {
-        return clusterSharding;
-    }
-
-    @Nullable public ClusterSingleton getClusterSingleton() {
-        return clusterSingleton;
     }
 
     @Override
@@ -246,7 +181,7 @@ public final class PekkoActorSystem implements SpringActorSystem, DisposableBean
             Duration timeout) {
 
         // If cluster singleton is requested, validate cluster mode
-        if (isClusterSingleton && clusterSingleton == null) {
+        if (isClusterSingleton && cluster == null) {
             return CompletableFuture.failedFuture(
                     new IllegalStateException("Cluster singleton requested but cluster mode is not enabled. "
                             + "Ensure your application is running in cluster mode."));
@@ -274,15 +209,10 @@ public final class PekkoActorSystem implements SpringActorSystem, DisposableBean
 
     @Override
     public <T> SpringShardedActorBuilder<T> sharded(Class<? extends SpringShardedActor<T>> actorClass) {
-        if (clusterSharding == null) {
+        if (cluster == null) {
             throw new IllegalStateException("Cluster sharding not configured. Sharded actors require cluster mode.");
         }
-        SpringShardedActor<T> actor = ShardedActorRegistry.getByClass(actorClass);
-        if (actor == null) {
-            throw new IllegalStateException("SpringShardedActor " + actorClass.getName() + " not found in registry. "
-                    + "Ensure the actor is annotated with @Component and implements SpringShardedActor.");
-        }
-        return new PekkoShardedActorBuilder<>(actor.entityType(), clusterSharding, actorSystem.scheduler());
+        return cluster.sharded(actorClass);
     }
 
     @Override
@@ -295,19 +225,10 @@ public final class PekkoActorSystem implements SpringActorSystem, DisposableBean
         return cluster != null;
     }
 
-    /**
-     * Initializes cluster sharding for all registered sharded actors.
-     * This method should be called after all sharded actor beans are registered in the static registry.
-     * It's typically called by a SmartInitializingSingleton to ensure proper initialization order.
-     */
+    /** Registers the sharded actor beans with sharding; a no-op in local mode. */
     public void initializeClusterSharding() {
-        if (clusterSharding == null) {
-            throw new IllegalStateException("Cluster sharding not available");
-        }
-
-        // Initialize all sharded actors from static registry
-        for (SpringShardedActor<?> actor : ShardedActorRegistry.getAll()) {
-            PekkoSharding.init(clusterSharding, actor);
+        if (cluster != null) {
+            cluster.initSharding();
         }
     }
 

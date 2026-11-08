@@ -15,6 +15,7 @@
   |---|---|
   | `spring-boot-starter-actor`, `spring-boot-starter-actor_3` | `actor-spring-boot-starter` |
   | `spring-boot-starter-actor-metrics` | `actor-metrics` (agent jar: `actor-metrics-<version>-agent.jar`) |
+  | (cluster features were in the one artifact) | `actor-spring-boot-starter-cluster` |
 
   The old coordinates get relocation POMs for one release, so builds keep resolving.
 - **New package root.** `io.github.seonwkim.core` is now `io.github.seonwkim.actor`, and
@@ -35,6 +36,10 @@
 1. Upgrade to Java 21 and Spring Boot 3.5 or later. Boot 2 applications stay on 0.x.
 2. Remove the `com.fasterxml.jackson:jackson-bom` override from your build.
 3. Depend on `io.github.seonwkim:actor-spring-boot-starter` (and `actor-metrics` if you use metrics).
+   If you run with `pekko.actor.provider=cluster` (sharding, singletons, cluster events, management),
+   depend on `actor-spring-boot-starter-cluster` instead; without it the application fails at startup
+   and says so. If your code uses Pekko Cluster classes directly, declare
+   `org.apache.pekko:pekko-cluster-sharding-typed_3` yourself: the starters no longer export it.
 4. Replace `io.github.seonwkim.core` with `io.github.seonwkim.actor` and `io.github.seonwkim.metrics` with
    `io.github.seonwkim.actor.metrics` in your imports. If you extended `RootGuardian` or used other classes
    now under `internal`, import them from `io.github.seonwkim.actor.internal`.

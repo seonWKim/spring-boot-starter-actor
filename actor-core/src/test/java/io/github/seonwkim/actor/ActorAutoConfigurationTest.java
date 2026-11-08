@@ -1,5 +1,7 @@
 package io.github.seonwkim.actor;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -10,19 +12,14 @@ import io.github.seonwkim.actor.internal.DefaultSpringActorContext;
 import io.github.seonwkim.actor.internal.PekkoActorSystem;
 import io.github.seonwkim.actor.internal.RootGuardian;
 import io.github.seonwkim.actor.internal.RootGuardianSupplierWrapper;
-import io.github.seonwkim.actor.internal.shard.ShardedActorRegistry;
-import io.github.seonwkim.actor.shard.*;
-import io.github.seonwkim.actor.shard.ShardedEntityType;
-import io.github.seonwkim.actor.shard.ShardingStrategy;
-import io.github.seonwkim.actor.shard.SpringShardedActor;
-import io.github.seonwkim.actor.shard.SpringShardedActorContext;
 import io.github.seonwkim.test.CustomOverrideConfiguration;
 import io.github.seonwkim.test.CustomTestRootGuardian;
 import org.apache.pekko.actor.typed.Behavior;
-import org.apache.pekko.cluster.typed.Cluster;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
@@ -65,7 +62,7 @@ public class ActorAutoConfigurationTest {
     }
 
     @Nested
-    @SpringBootTest(classes = TestApp.class)
+    @SpringBootTest(classes = {TestApp.class, TestHelloActor.class})
     @TestPropertySource(properties = {"spring.actor.pekko.loglevel=INFO", "spring.actor.pekko.actor.provider=local"})
     class SpringActorDiscoveryTest {
         @Test
@@ -105,17 +102,6 @@ public class ActorAutoConfigurationTest {
         }
     }
 
-    @Nested
-    @SpringBootTest(classes = {TestApp.class})
-    @TestPropertySource(properties = {"spring.actor.pekko.loglevel=INFO", "spring.actor.pekko.actor.provider=cluster"})
-    class ClusterConfigurationTest {
-        @Test
-        void clusterShouldBeConfigured(ApplicationContext context) {
-            SpringActorSystem springActorSystem = context.getBean(SpringActorSystem.class);
-            assertNotNull(springActorSystem.unwrap(Cluster.class));
-        }
-    }
-
     /**
      * Test actor that injects SpringActorSystem to verify no circular dependency.
      */
@@ -147,53 +133,8 @@ public class ActorAutoConfigurationTest {
         }
     }
 
-    /**
-     * Test sharded actor that injects SpringActorSystem to verify no circular dependency.
-     */
-    @Component
-    static class ShardedActorWithSystemInjection
-            implements io.github.seonwkim.actor.shard.SpringShardedActor<ShardedActorWithSystemInjection.Command> {
-
-        private final SpringActorSystem actorSystem;
-
-        public static final ShardedEntityType<Command> TYPE_KEY =
-                ShardedEntityType.of(Command.class, "ShardedActorWithSystemInjection");
-
-        public ShardedActorWithSystemInjection(SpringActorSystem actorSystem) {
-            this.actorSystem = actorSystem;
-        }
-
-        public interface Command extends io.github.seonwkim.actor.serialization.JsonSerializable {}
-
-        public static class GetSystemName implements Command {}
-
-        @Override
-        public ShardedEntityType<Command> entityType() {
-            return TYPE_KEY;
-        }
-
-        @Override
-        public SpringActorBehavior<Command> create(SpringShardedActorContext<Command> ctx) {
-            return SpringActorBehavior.builder(Command.class, ctx)
-                    .onMessage(GetSystemName.class, (context, msg) -> {
-                        context.getLog().info("Sharded actor system name: {}", actorSystem.getName());
-                        return SpringActorBehavior.same();
-                    })
-                    .build();
-        }
-
-        @Override
-        public ShardingStrategy sharding() {
-            return ShardingStrategy.hashed(5);
-        }
-
-        public SpringActorSystem getActorSystem() {
-            return actorSystem;
-        }
-    }
-
     @Nested
-    @SpringBootTest(classes = {TestApp.class, ActorWithSystemInjection.class, ShardedActorWithSystemInjection.class})
+    @SpringBootTest(classes = {TestApp.class, ActorWithSystemInjection.class})
     @TestPropertySource(properties = {"spring.actor.pekko.loglevel=INFO", "spring.actor.pekko.actor.provider=local"})
     class ActorSystemDependencyInjectionTest {
 
@@ -222,31 +163,16 @@ public class ActorAutoConfigurationTest {
                     ActorWithSystemInjection.class, new DefaultSpringActorContext("test-actor"));
             assertNotNull(behavior, "Actor should be registered in ActorTypeRegistry");
         }
+    }
 
-        /**
-         * Verifies that a SpringShardedActor can inject SpringActorSystem without circular dependency.
-         * This test ensures the static registry refactoring works for sharded actors too.
-         */
-        @Test
-        void springShardedActorCanInjectActorSystem(ApplicationContext context) {
-            // Verify context loads successfully (no circular dependency exception - this is the main test!)
-            assertNotNull(context, "Application context should load without circular dependency");
+    @Test
+    void clusterModeWithoutTheClusterModuleFailsNamingTheStarterToAdd() {
+        Throwable failure = catchThrowable(() -> new SpringApplicationBuilder(TestApp.class)
+                .web(WebApplicationType.NONE)
+                .properties("spring.actor.pekko.actor.provider=cluster")
+                .run()
+                .close());
 
-            // Verify sharded actor bean exists by type
-            ShardedActorWithSystemInjection actor = context.getBean(ShardedActorWithSystemInjection.class);
-            assertNotNull(actor, "Sharded actor bean should exist");
-
-            // Verify sharded actor has SpringActorSystem injected
-            assertNotNull(actor.getActorSystem(), "SpringActorSystem should be injected");
-
-            // Verify it's the same instance as the system bean
-            SpringActorSystem systemBean = context.getBean(SpringActorSystem.class);
-            assertEquals(systemBean, actor.getActorSystem(), "Should be the same SpringActorSystem instance");
-
-            // Verify actor was registered in the static sharded actor registry
-            SpringShardedActor<?> registeredActor = ShardedActorRegistry.get(ShardedActorWithSystemInjection.TYPE_KEY);
-            assertNotNull(registeredActor, "Sharded actor should be registered in ShardedActorRegistry");
-            assertEquals(actor, registeredActor, "Should be the same sharded actor instance");
-        }
+        assertThat(failure).rootCause().hasMessageContaining("actor-spring-boot-starter-cluster");
     }
 }

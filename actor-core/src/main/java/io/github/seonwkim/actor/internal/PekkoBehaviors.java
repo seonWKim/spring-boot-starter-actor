@@ -151,8 +151,7 @@ public final class PekkoBehaviors {
                     msg.mailboxConfig,
                     msg.dispatcherConfig,
                     msg.tagsConfig,
-                    null, // cluster singletons are top-level only
-                    false);
+                    false); // cluster singletons are top-level only
             msg.replyTo.tell(FrameworkCommands.SpawnChildResponse.success(childRef));
         } catch (Exception e) {
             ctx.getLog().error("Failed to spawn child actor", e);

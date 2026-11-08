@@ -6,15 +6,11 @@ import io.github.seonwkim.actor.SpringActorSystemBuilder;
 import io.github.seonwkim.actor.SpringActorWithContext;
 import io.github.seonwkim.actor.internal.ActorTypeRegistry;
 import io.github.seonwkim.actor.internal.DefaultSpringActorSystemBuilder;
-import io.github.seonwkim.actor.internal.PekkoActorSystem;
 import io.github.seonwkim.actor.internal.RootGuardian;
 import io.github.seonwkim.actor.internal.RootGuardianSupplierWrapper;
-import io.github.seonwkim.actor.internal.shard.ShardedActorRegistry;
 import io.github.seonwkim.actor.receptionist.SpringReceptionist;
-import io.github.seonwkim.actor.shard.SpringShardedActor;
 import io.github.seonwkim.actor.topic.SpringTopicManager;
 import org.springframework.beans.BeansException;
-import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.ApplicationEventPublisher;
@@ -30,10 +26,10 @@ import org.springframework.core.env.Environment;
  *   <li>Spring scans and creates actor beans (with DI)</li>
  *   <li>{@link #actorRegistrationBeanPostProcessor()} registers actors in static registries</li>
  *   <li>{@link #actorSystem(SpringActorSystemBuilder)} builds the actor system</li>
- *   <li>{@link #clusterShardingInitializer(SpringActorSystem)} initializes cluster sharding</li>
+ *   <li>In cluster mode, {@code actor-cluster} registers sharded actors once all beans exist</li>
  * </ol>
  *
- * <p><b>Key Design:</b> Uses static registries ({@link ActorTypeRegistry}, {@link ShardedActorRegistry})
+ * <p><b>Key Design:</b> Uses the static {@link ActorTypeRegistry}
  * to avoid circular dependencies between actor system components.
  */
 @Configuration
@@ -49,7 +45,6 @@ public class ActorConfiguration {
      * <p>Runs automatically after each bean initialization to register:
      * <ul>
      *   <li>{@code SpringActor} → {@link ActorTypeRegistry}</li>
-     *   <li>{@link SpringShardedActor} → {@link ShardedActorRegistry}</li>
      * </ul>
      *
      * <p><b>Why BeanPostProcessor?</b>
@@ -68,9 +63,6 @@ public class ActorConfiguration {
                 if (bean instanceof SpringActorWithContext) {
                     registerActor((SpringActorWithContext) bean);
                 }
-                if (bean instanceof SpringShardedActor) {
-                    registerShardedActor((SpringShardedActor) bean);
-                }
                 return bean;
             }
 
@@ -85,10 +77,6 @@ public class ActorConfiguration {
                                 e);
                     }
                 });
-            }
-
-            private void registerShardedActor(SpringShardedActor shardedActor) {
-                ShardedActorRegistry.register(shardedActor);
             }
         };
     }
@@ -162,29 +150,6 @@ public class ActorConfiguration {
     public ActorSystemShutdownLifecycle actorSystemShutdownLifecycle(
             SpringActorSystem actorSystem, ActorProperties actorProperties) {
         return new ActorSystemShutdownLifecycle(actorSystem, actorProperties.getShutdownTimeout());
-    }
-
-    // ==================================================================================
-    // PHASE 3: Post-Initialization (SmartInitializingSingleton)
-    // ==================================================================================
-
-    /**
-     * Initializes cluster sharding after all actors are registered.
-     *
-     * <p><b>Why SmartInitializingSingleton?</b>
-     * <ul>
-     *   <li>Runs after ALL singleton beans are created</li>
-     *   <li>Ensures all sharded actors are registered before init</li>
-     *   <li>Perfect timing for cluster sharding setup</li>
-     * </ul>
-     */
-    @Bean
-    public SmartInitializingSingleton clusterShardingInitializer(SpringActorSystem actorSystem) {
-        return () -> {
-            if (actorSystem.isClusterMode() && actorSystem instanceof PekkoActorSystem pekko) {
-                pekko.initializeClusterSharding();
-            }
-        };
     }
 
     // ==================================================================================

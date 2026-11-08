@@ -13,7 +13,9 @@ configurations {
 }
 
 dependencies {
-	implementation(project(":actor-spring-boot-starter"))
+	implementation(project(":actor-spring-boot-starter-cluster"))
+	// This example reads Pekko Cluster state directly (unwrap), so it declares Pekko Cluster itself.
+	implementation("org.apache.pekko:pekko-cluster-sharding-typed_3:${property("pekkoVersion")}")
 	implementation(project(":actor-metrics"))
 
 	implementation("org.springframework.boot:spring-boot-starter")

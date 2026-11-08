@@ -15,9 +15,6 @@ import javax.annotation.Nullable;
 import org.apache.pekko.actor.BootstrapSetup;
 import org.apache.pekko.actor.setup.ActorSystemSetup;
 import org.apache.pekko.actor.typed.ActorSystem;
-import org.apache.pekko.cluster.sharding.typed.javadsl.ClusterSharding;
-import org.apache.pekko.cluster.typed.Cluster;
-import org.apache.pekko.cluster.typed.ClusterSingleton;
 import org.apache.pekko.serialization.jackson.JacksonObjectMapperFactory;
 import org.apache.pekko.serialization.jackson.JacksonObjectMapperProviderSetup;
 import org.springframework.context.ApplicationEventPublisher;
@@ -95,28 +92,25 @@ public class DefaultSpringActorSystemBuilder implements SpringActorSystemBuilder
                 .withFallback(ConfigFactory.load());
         final String name = config.hasPath("pekko.name") ? config.getString("pekko.name") : DEFAULT_SYSTEM_NAME;
 
+        final boolean isClusterMode = Objects.equals(config.getString("pekko.actor.provider"), "cluster");
+        // Fail with the missing module's name before Pekko fails on its missing classes.
+        final ClusterSupport clusterSupport = isClusterMode ? ClusterSupport.require() : null;
+
         final ActorSystem<RootGuardian.Command> actorSystem = ActorSystem.create(
                 supplier.get(),
                 name,
                 ActorSystemSetup.create(BootstrapSetup.create(config))
                         .withSetup(new JacksonObjectMapperProviderSetup(new StarterObjectMapperFactory())));
-        final boolean isClusterMode = Objects.equals(config.getString("pekko.actor.provider"), "cluster");
 
-        if (!isClusterMode) {
+        if (clusterSupport == null) {
             return new PekkoActorSystem(actorSystem);
         }
 
         if (applicationEventPublisher == null) {
             throw new IllegalArgumentException("ApplicationEventPublisher is not set");
         }
-
-        final Cluster cluster = Cluster.get(actorSystem);
-        final ClusterSharding clusterSharding = ClusterSharding.get(actorSystem);
-        final ClusterSingleton clusterSingleton = ClusterSingleton.get(actorSystem);
-        // Sharded actors will be initialized later by SmartInitializingSingleton
-        // after all actor beans are registered in the static registry
-
-        return new PekkoActorSystem(actorSystem, cluster, clusterSharding, clusterSingleton, applicationEventPublisher);
+        // Sharded actors are registered later, once every bean exists (initializeClusterSharding).
+        return new PekkoActorSystem(actorSystem, clusterSupport.start(actorSystem, applicationEventPublisher));
     }
 
     /**

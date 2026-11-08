@@ -25,7 +25,17 @@ import org.springframework.stereotype.Component;
  * Edge case tests for router functionality including supervision, high load, and failure
  * scenarios.
  */
-@SpringBootTest(classes = RouterEdgeCaseTest.TestApp.class)
+// Beans nested in a test class are not component-scanned in Spring Boot tests: list them.
+@SpringBootTest(
+        classes = {
+            RouterEdgeCaseTest.TestApp.class,
+            RouterEdgeCaseTest.SupervisionState.class,
+            RouterEdgeCaseTest.HighVolumeState.class,
+            RouterEdgeCaseTest.SupervisedWorkerActor.class,
+            RouterEdgeCaseTest.HighVolumeWorkerActor.class,
+            RouterEdgeCaseTest.SupervisedRouterActor.class,
+            RouterEdgeCaseTest.HighVolumeRouterActor.class
+        })
 class RouterEdgeCaseTest {
 
     // Shared state components for tracking across workers

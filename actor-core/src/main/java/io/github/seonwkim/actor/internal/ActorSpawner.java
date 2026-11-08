@@ -10,8 +10,6 @@ import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
-import org.apache.pekko.cluster.typed.ClusterSingleton;
-import org.apache.pekko.cluster.typed.SingletonActor;
 
 /**
  * Utility class that provides centralized actor spawning logic.
@@ -90,7 +88,6 @@ public final class ActorSpawner {
      * @param mailboxConfig The mailbox configuration
      * @param dispatcherConfig The dispatcher configuration
      * @param tagsConfig The tags configuration for logging/categorization
-     * @param clusterSingleton The cluster singleton (null if not in cluster mode)
      * @param isClusterSingleton Whether to spawn as a cluster singleton
      * @param <T> The command type of the spawned actor
      * @return The reference to the spawned actor
@@ -105,7 +102,6 @@ public final class ActorSpawner {
             MailboxConfig mailboxConfig,
             DispatcherConfig dispatcherConfig,
             TagsConfig tagsConfig,
-            @Nullable ClusterSingleton clusterSingleton,
             boolean isClusterSingleton) {
 
         // Create behavior from static registry using Spring DI
@@ -118,16 +114,12 @@ public final class ActorSpawner {
         ActorRef<?> ref;
 
         if (isClusterSingleton) {
-            if (clusterSingleton == null) {
-                throw new IllegalStateException("Cluster singleton requested but cluster mode is not enabled. "
-                        + "Ensure your application is running in cluster mode.");
-            }
-
-            SingletonActor<?> singletonActor = SingletonActor.of(behavior, actorName);
-
-            singletonActor = singletonActor.withProps(PekkoProps.of(dispatcherConfig, mailboxConfig, tagsConfig));
-
-            ref = clusterSingleton.init(singletonActor);
+            ref = ClusterSupport.require()
+                    .spawnSingleton(
+                            ctx.getSystem(),
+                            behavior,
+                            actorName,
+                            PekkoProps.of(dispatcherConfig, mailboxConfig, tagsConfig));
         } else {
             ref = ctx.spawn(behavior, actorName, PekkoProps.of(dispatcherConfig, mailboxConfig, tagsConfig));
         }
