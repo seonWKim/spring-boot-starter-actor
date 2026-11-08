@@ -75,8 +75,10 @@ graph TB
 
 ### Prerequisites
 
-- Java 11 or higher
-- Spring Boot 2.x or 3.x
+- Java 21 or higher
+- Spring Boot 3.5 or higher
+
+Spring Boot 2 users stay on the 0.x line. See [CHANGELOG.md](CHANGELOG.md) for migrating from 0.x.
 
 ### Installation
 
@@ -85,53 +87,20 @@ Add the dependency to your project:
 **Gradle:**
 
 ```gradle
-dependencyManagement {
-    imports {
-        // Pekko requires Jackson 2.17.3+
-        mavenBom("com.fasterxml.jackson:jackson-bom:2.17.3")
-    }
-}
-
-// Spring Boot 2.7.x
-implementation 'io.github.seonwkim:spring-boot-starter-actor:0.3.0'
-
-// Spring Boot 3.2.x
-implementation 'io.github.seonwkim:spring-boot-starter-actor_3:0.3.0'
+implementation 'io.github.seonwkim:spring-boot-starter-actor_3:0.10.0'
 ```
 
 **Maven:**
 
 ```xml
-
-<dependencyManagement>
-    <dependencies>
-        <dependency>
-            <groupId>com.fasterxml.jackson</groupId>
-            <artifactId>jackson-bom</artifactId>
-            <version>2.17.3</version>
-            <type>pom</type>
-            <scope>import</scope>
-        </dependency>
-    </dependencies>
-</dependencyManagement>
-
-        <!-- Spring Boot 2.7.x -->
 <dependency>
-<groupId>io.github.seonwkim</groupId>
-<artifactId>spring-boot-starter-actor</artifactId>
-<version>0.3.0</version>
-</dependency>
-
-        <!-- Spring Boot 3.2.x -->
-<dependency>
-<groupId>io.github.seonwkim</groupId>
-<artifactId>spring-boot-starter-actor_3</artifactId>
-<version>0.3.0</version>
+    <groupId>io.github.seonwkim</groupId>
+    <artifactId>spring-boot-starter-actor_3</artifactId>
+    <version>0.10.0</version>
 </dependency>
 ```
 
-Latest
-versions: [spring-boot-starter-actor](https://central.sonatype.com/artifact/io.github.seonwkim/spring-boot-starter-actor) | [spring-boot-starter-actor_3](https://central.sonatype.com/artifact/io.github.seonwkim/spring-boot-starter-actor_3)
+Spring Boot's dependency management already provides the Jackson version Pekko needs (2.18+), so no `jackson-bom` override is required.
 
 ### Enable Actor Support
 

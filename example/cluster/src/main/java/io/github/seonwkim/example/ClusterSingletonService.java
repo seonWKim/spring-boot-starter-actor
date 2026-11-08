@@ -2,10 +2,10 @@ package io.github.seonwkim.example;
 
 import io.github.seonwkim.core.SpringActorHandle;
 import io.github.seonwkim.core.SpringActorSystem;
+import jakarta.annotation.PostConstruct;
 import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
-import javax.annotation.PostConstruct;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 

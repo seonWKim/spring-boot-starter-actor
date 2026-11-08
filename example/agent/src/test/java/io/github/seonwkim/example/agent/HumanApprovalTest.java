@@ -35,7 +35,10 @@ class HumanApprovalTest {
         assertThat(request.argument()).isEqualTo("order-42");
         assertThat(answer).isNotDone();
 
-        assertThat(approvals.decide(request.requestId(), true).toCompletableFuture().get(5, TimeUnit.SECONDS))
+        assertThat(approvals
+                        .decide(request.requestId(), true)
+                        .toCompletableFuture()
+                        .get(5, TimeUnit.SECONDS))
                 .isTrue();
         assertThat(answer.get(10, TimeUnit.SECONDS).text())
                 .isEqualTo("Tool refund says: refund issued for order order-42");
@@ -49,8 +52,7 @@ class HumanApprovalTest {
         PendingApproval request = awaitPendingFor("reject-agent");
         approvals.decide(request.requestId(), false).toCompletableFuture().get(5, TimeUnit.SECONDS);
 
-        assertThat(answer.get(10, TimeUnit.SECONDS).text())
-                .isEqualTo("Tool refund says: not run: rejected by a human");
+        assertThat(answer.get(10, TimeUnit.SECONDS).text()).isEqualTo("Tool refund says: not run: rejected by a human");
     }
 
     @Test
@@ -65,11 +67,10 @@ class HumanApprovalTest {
         assertThat(System.nanoTime() - start).isGreaterThanOrEqualTo(TimeUnit.SECONDS.toNanos(3));
 
         // A late answer is refused: the request expired with the agent's ask.
-        await().atMost(5, TimeUnit.SECONDS)
-                .until(() -> !approvals
-                        .decide(request.requestId(), true)
-                        .toCompletableFuture()
-                        .get(5, TimeUnit.SECONDS));
+        await().atMost(5, TimeUnit.SECONDS).until(() -> !approvals
+                .decide(request.requestId(), true)
+                .toCompletableFuture()
+                .get(5, TimeUnit.SECONDS));
     }
 
     private PendingApproval awaitPendingFor(String agentId) {

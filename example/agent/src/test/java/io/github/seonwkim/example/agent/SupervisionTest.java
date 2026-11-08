@@ -22,7 +22,9 @@ class SupervisionTest {
 
     @Test
     void crashedAgentRestartsWithItsConversation() throws Exception {
-        agents.chat("crash-agent", "my name is Ada", TIMEOUT).toCompletableFuture().get(20, TimeUnit.SECONDS);
+        agents.chat("crash-agent", "my name is Ada", TIMEOUT)
+                .toCompletableFuture()
+                .get(20, TimeUnit.SECONDS);
         String before = conversation().incarnation();
 
         agents.simulateCrash("crash-agent");

@@ -64,7 +64,7 @@ public class ActorLifecycleModule implements InstrumentationModule {
     public AgentBuilder instrument(AgentBuilder builder) {
         return builder.type(ElementMatchers.hasSuperType(ElementMatchers.named("org.apache.pekko.actor.ActorCell"))
                         .and(ElementMatchers.not(ElementMatchers.isInterface())))
-                .transform((builderParam, typeDescription, classLoader, module) -> builderParam
+                .transform((builderParam, typeDescription, classLoader, module, protectionDomain) -> builderParam
                         // Instrument newActor() for actor creation (called after actor instance is created)
                         .visit(Advice.to(ActorCreatedAdvice.class).on(ElementMatchers.named("newActor")))
                         // Instrument terminate() for actor termination

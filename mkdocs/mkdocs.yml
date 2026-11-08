@@ -37,6 +37,7 @@ nav:
   - Home:
     - index.md
     - getting-started.md
+    - migrating-from-0x.md
   - Guides:
     - Actor Registration and Messaging: guides/actor-registration-messaging.md
     - Pub/Sub Topics: guides/pub-sub-topics.md

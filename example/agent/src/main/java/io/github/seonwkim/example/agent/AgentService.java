@@ -18,7 +18,10 @@ public class AgentService {
     }
 
     public CompletionStage<AgentAnswer> chat(String agentId, String text, Duration timeout) {
-        return agent(agentId).ask(new AgentActor.Chat(text)).withTimeout(timeout).execute();
+        return agent(agentId)
+                .ask(new AgentActor.Chat(text))
+                .withTimeout(timeout)
+                .execute();
     }
 
     public CompletionStage<ConversationView> conversation(String agentId, Duration timeout) {

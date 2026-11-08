@@ -41,6 +41,7 @@ public class ReceptionistTestActor
     public static class Ctx extends SpringActorContext {
         final String actorId;
         final BlockingQueue<String> received;
+
         @Nullable final ServiceKey<Command> selfRegisterKey;
 
         public Ctx(String actorId, BlockingQueue<String> received, @Nullable ServiceKey<Command> selfRegisterKey) {

@@ -42,7 +42,9 @@ class ConfigurationMetadataTest {
     void managementEnabledKeyIsDescribedWithDefaultTrue() {
         JsonNode property = property("spring.actor.pekko.management.enabled");
 
-        assertThat(property).as("spring.actor.pekko.management.enabled in metadata").isNotNull();
+        assertThat(property)
+                .as("spring.actor.pekko.management.enabled in metadata")
+                .isNotNull();
         assertThat(property.path("type").asText()).isEqualTo("java.lang.Boolean");
         assertThat(property.path("defaultValue").isBoolean()).isTrue();
         assertThat(property.path("defaultValue").asBoolean()).isTrue();
@@ -132,7 +134,9 @@ class ConfigurationMetadataTest {
             // Only main classes count; test fixtures are not part of the published metadata.
             if (!type.getProtectionDomain()
                     .getCodeSource()
-                    .equals(PekkoManagementProperties.class.getProtectionDomain().getCodeSource())) {
+                    .equals(PekkoManagementProperties.class
+                            .getProtectionDomain()
+                            .getCodeSource())) {
                 continue;
             }
             ConfigurationProperties annotation = type.getAnnotation(ConfigurationProperties.class);

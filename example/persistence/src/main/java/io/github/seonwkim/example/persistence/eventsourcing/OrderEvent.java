@@ -1,7 +1,7 @@
 package io.github.seonwkim.example.persistence.eventsourcing;
 
+import jakarta.persistence.*;
 import java.time.Instant;
-import javax.persistence.*;
 
 @Entity
 @Table(name = "order_events")

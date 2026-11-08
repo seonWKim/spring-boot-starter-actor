@@ -1,9 +1,9 @@
 package io.github.seonwkim.example.persistence;
 
+import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import javax.persistence.*;
 
 @Entity
 @Table(name = "orders")

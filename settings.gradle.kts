@@ -1,6 +1,5 @@
 rootProject.name = "spring-boot-starter-actor"
 
-include(":core")
 include(":core-boot3")
 include(":metrics")
 

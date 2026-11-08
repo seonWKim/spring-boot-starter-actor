@@ -1,17 +1,10 @@
 plugins {
-	id("org.springframework.boot") version "2.7.0"
-	id("io.spring.dependency-management") version "1.1.7"
+	id("org.springframework.boot")
+	id("io.spring.dependency-management")
 }
 
 apply(plugin = "org.springframework.boot")
 apply(plugin = "io.spring.dependency-management")
-
-dependencyManagement {
-	imports {
-		// pekko-serialization-jackson_3 require minimum 2.17.3 version of jackson
-		mavenBom("com.fasterxml.jackson:jackson-bom:2.17.3")
-	}
-}
 
 configurations {
 	all {
@@ -20,7 +13,7 @@ configurations {
 }
 
 dependencies {
-	implementation(project(":core"))
+	implementation(project(":core-boot3"))
 	implementation(project(":metrics"))
 
 	implementation("org.springframework.boot:spring-boot-starter")
@@ -33,7 +26,7 @@ dependencies {
 	implementation("com.fasterxml.jackson.core:jackson-databind")
 
 	// BlockHound for detecting blocking calls
-	implementation("io.projectreactor.tools:blockhound:1.0.9.RELEASE")
+	implementation("io.projectreactor.tools:blockhound:1.0.13.RELEASE")
 
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")

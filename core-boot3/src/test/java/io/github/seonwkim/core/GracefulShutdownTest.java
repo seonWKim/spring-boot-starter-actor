@@ -116,8 +116,8 @@ class GracefulShutdownTest {
         @Override
         public void destroy() {
             ActorSystem<?> system = rawSystem.get();
-            boolean terminated =
-                    system != null && system.getWhenTerminated().toCompletableFuture().isDone();
+            boolean terminated = system != null
+                    && system.getWhenTerminated().toCompletableFuture().isDone();
             events.add("dependency-destroyed(actor-system-terminated=" + terminated + ")");
         }
     }
@@ -139,7 +139,9 @@ class GracefulShutdownTest {
             return () -> {
                 rawSystem.set(actorSystem.getRaw());
                 CoordinatedShutdown.get(actorSystem.getRaw())
-                        .addTask(CoordinatedShutdown.PhaseBeforeServiceUnbind(), "record-start", (Supplier<CompletionStage<Done>>) () -> {
+                        .addTask(CoordinatedShutdown.PhaseBeforeServiceUnbind(), "record-start", (Supplier<
+                                        CompletionStage<Done>>)
+                                () -> {
                                     events.add("actor-coordinated-shutdown");
                                     return CompletableFuture.completedFuture(Done.getInstance());
                                 });

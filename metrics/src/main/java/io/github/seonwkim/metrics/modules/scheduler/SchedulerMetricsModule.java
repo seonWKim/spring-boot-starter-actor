@@ -52,7 +52,7 @@ public class SchedulerMetricsModule implements InstrumentationModule {
     @Override
     public AgentBuilder instrument(AgentBuilder builder) {
         return builder.type(ElementMatchers.named("org.apache.pekko.actor.LightArrayRevolverScheduler"))
-                .transform((builderParam, typeDescription, classLoader, module) -> builderParam.visit(
+                .transform((builderParam, typeDescription, classLoader, module, protectionDomain) -> builderParam.visit(
                         Advice.to(ScheduleOnceAdvice.class).on(ElementMatchers.named("scheduleOnce"))));
     }
 

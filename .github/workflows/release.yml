@@ -139,7 +139,7 @@ jobs:
             exit 1
           fi
 
-  publish-core:
+  publish:
     runs-on: ubuntu-latest
     needs: prepare
     steps:
@@ -148,88 +148,19 @@ jobs:
           fetch-depth: 0
           ref: ${{ needs.prepare.outputs.tag }}
 
-      - name: ☕ Set up Java 17
-        uses: actions/setup-java@v3
+      - name: ☕ Set up Java 21
+        uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: 17
+          java-version: 21
           cache: gradle
 
-      - name: 🚀 Publish to Maven Central (core)
+      # Publishes every module that defines artifactId.<module> in gradle.properties
+      # (the libraries and the relocation POMs) as one Maven Central deployment.
+      - name: 🚀 Publish to Maven Central (all modules)
         run: |
-          echo "📦 Running ./gradlew :core:test..."
-          ./gradlew :core:test
-          
-          echo "📦 Running ./gradlew :core:publishAndReleaseToMavenCentral..."
-          ./gradlew :core:publishAndReleaseToMavenCentral --no-configuration-cache
-          
-          echo "✅ Publish completed successfully."
-
-        env:
-          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
-          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
-          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_SECRET_KEY }}
-          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
-
-  publish-boot3:
-    runs-on: ubuntu-latest
-    needs: prepare
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          ref: ${{ needs.prepare.outputs.tag }}
-
-      - name: ☕ Set up Java 17
-        uses: actions/setup-java@v3
-        with:
-          distribution: 'temurin'
-          java-version: 17
-          cache: gradle
-
-      - name: 🚀 Publish to Maven Central (core-boot3)
-        run: |
-          echo "📦 Running ./gradlew :core-boot3:syncAllBoot3Sources..."
-          ./gradlew :core-boot3:syncAllBoot3Sources
-
-          echo "📦 Running ./gradlew :core-boot3:test..."
-          ./gradlew :core-boot3:test
-
-          echo "📦 Running ./gradlew :core-boot3:publishAndReleaseToMavenCentral..."
-          ./gradlew :core-boot3:publishAndReleaseToMavenCentral --no-configuration-cache
-          
-          echo "✅ Publish completed successfully."
-
-        env:
-          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
-          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
-          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_SECRET_KEY }}
-          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
-  publish-metrics:
-    runs-on: ubuntu-latest
-    needs: prepare
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          ref: ${{ needs.prepare.outputs.tag }}
-
-      - name: ☕ Set up Java 17
-        uses: actions/setup-java@v3
-        with:
-          distribution: 'temurin'
-          java-version: 17
-          cache: gradle
-
-      - name: 🚀 Publish to Maven Central (metrics)
-        run: |
-          echo "📦 Running ./gradlew :metrics:test..."
-          ./gradlew :metrics:test
-
-          echo "📦 Running ./gradlew :metrics:publishAndReleaseToMavenCentral..."
-          ./gradlew :metrics:publishAndReleaseToMavenCentral --no-configuration-cache
-
-          echo "✅ Publish completed successfully."
+          ./gradlew build
+          ./gradlew publishAndReleaseToMavenCentral --no-configuration-cache
 
         env:
           ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
@@ -239,7 +170,7 @@ jobs:
 
   create-github-release:
     runs-on: ubuntu-latest
-    needs: [bump-version, prepare, publish-core, publish-boot3, publish-metrics]
+    needs: [bump-version, prepare, publish]
     if: |
       always() &&
       needs.bump-version.result == 'success' &&
@@ -247,35 +178,16 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: 🔍 Check publish results
-        id: publish-status
-        run: |
-          CORE="${{ needs.publish-core.result }}"
-          BOOT3="${{ needs.publish-boot3.result }}"
-          METRICS="${{ needs.publish-metrics.result }}"
-
-          echo "core=$CORE" >> $GITHUB_OUTPUT
-          echo "boot3=$BOOT3" >> $GITHUB_OUTPUT
-          echo "metrics=$METRICS" >> $GITHUB_OUTPUT
-
-          if [[ "$CORE" != "success" || "$BOOT3" != "success" || "$METRICS" != "success" ]]; then
-            echo "⚠️ Some publishes failed: core=$CORE, boot3=$BOOT3, metrics=$METRICS"
-            echo "all_success=false" >> $GITHUB_OUTPUT
-          else
-            echo "✅ All publishes succeeded"
-            echo "all_success=true" >> $GITHUB_OUTPUT
-          fi
-
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           ref: ${{ needs.prepare.outputs.tag }}
 
-      - name: ☕ Set up Java 17
-        uses: actions/setup-java@v3
+      - name: ☕ Set up Java 21
+        uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: 17
+          java-version: 21
           cache: gradle
 
       - name: 📦 Build metrics agent JAR
@@ -296,22 +208,11 @@ jobs:
           body: |
             ## Spring Boot Starter Actor ${{ needs.prepare.outputs.tag }}
 
-            ### Publish Status
-
-            | Module | Status |
-            |--------|--------|
-            | core (`spring-boot-starter-actor`) | ${{ needs.publish-core.result }} |
-            | core-boot3 (`spring-boot-starter-actor_3`) | ${{ needs.publish-boot3.result }} |
-            | metrics (`spring-boot-starter-actor-metrics`) | ${{ needs.publish-metrics.result }} |
+            Publish: ${{ needs.publish.result }}
 
             ### Maven Dependency
 
-            **Spring Boot 2.x:**
-            ```gradle
-            dependencies {
-                implementation 'io.github.seonwkim:spring-boot-starter-actor:${{ needs.bump-version.outputs.version }}'
-            }
-            ```
+            Requires Java 21+ and Spring Boot 3.5+.
 
             **Spring Boot 3.x:**
             ```gradle
@@ -320,7 +221,7 @@ jobs:
             }
             ```
 
-            **Metrics (optional, works with both):**
+            **Metrics (optional):**
             ```gradle
             dependencies {
                 implementation 'io.github.seonwkim:spring-boot-starter-actor-metrics:${{ needs.bump-version.outputs.version }}'

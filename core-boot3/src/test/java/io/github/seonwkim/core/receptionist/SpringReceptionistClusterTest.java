@@ -55,8 +55,10 @@ class SpringReceptionistClusterTest extends AbstractClusterTest {
 
         AtomicReference<Set<SpringActorHandle<Command>>> found = new AtomicReference<>();
         await().atMost(15, SECONDS).pollInterval(200, MILLISECONDS).until(() -> {
-            Set<SpringActorHandle<Command>> current =
-                    receptionist2.find(key, Duration.ofSeconds(3)).toCompletableFuture().get();
+            Set<SpringActorHandle<Command>> current = receptionist2
+                    .find(key, Duration.ofSeconds(3))
+                    .toCompletableFuture()
+                    .get();
             found.set(current);
             return !current.isEmpty();
         });

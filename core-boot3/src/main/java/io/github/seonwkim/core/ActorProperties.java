@@ -53,7 +53,8 @@ public class ActorProperties implements EnvironmentAware {
         Map<String, Object> normalized = normalizeCommaSeparatedLists(actorConfig);
         this.config.putAll(normalized);
 
-        this.shutdownTimeout = binder.bind(ConfigurationPropertyName.of(SHUTDOWN_TIMEOUT_PROPERTY), Bindable.of(Duration.class))
+        this.shutdownTimeout = binder.bind(
+                        ConfigurationPropertyName.of(SHUTDOWN_TIMEOUT_PROPERTY), Bindable.of(Duration.class))
                 .orElse(DEFAULT_SHUTDOWN_TIMEOUT);
     }
 

@@ -152,8 +152,7 @@ class ActorLifecycleModuleIntegrationTest {
 
         eventuallyStays(() -> {
             double activeAfterCreation = metricsBackend.getGaugeValue("actor.lifecycle.active");
-            assertEquals(
-                    activeAfterCreation, initialActive + 1, "Active gauge should increment after actor creation");
+            assertEquals(activeAfterCreation, initialActive + 1, "Active gauge should increment after actor creation");
         });
         double activeAfterCreation = initialActive + 1;
 

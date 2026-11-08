@@ -70,11 +70,13 @@ class GracefulShutdownClusterTest {
 
         Cluster cluster1 = context(node1).getCluster();
         assertThat(cluster1).isNotNull();
-        await().atMost(20, SECONDS).pollInterval(200, MILLISECONDS).until(() -> cluster1.state()
-                        .members()
-                        .filter(m -> m.status() == MemberStatus.up())
-                        .size()
-                == 2);
+        await().atMost(20, SECONDS)
+                .pollInterval(200, MILLISECONDS)
+                .until(() -> cluster1.state()
+                                .members()
+                                .filter(m -> m.status() == MemberStatus.up())
+                                .size()
+                        == 2);
 
         SpringActorSystem system2 = context(node2);
         Address address2 = system2.getCluster().selfMember().address();
@@ -99,7 +101,10 @@ class GracefulShutdownClusterTest {
         assertThat(removed.previousStatus()).isEqualTo(MemberStatus.exiting());
         assertThat(events1.events)
                 .noneMatch(e -> e instanceof ClusterEvent.UnreachableMember
-                        && ((ClusterEvent.UnreachableMember) e).member().address().equals(address2));
+                        && ((ClusterEvent.UnreachableMember) e)
+                                .member()
+                                .address()
+                                .equals(address2));
         assertThat(cluster1.state().getUnreachable()).isEmpty();
     }
 

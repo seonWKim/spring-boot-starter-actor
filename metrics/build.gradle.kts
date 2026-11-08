@@ -3,13 +3,9 @@ plugins {
     id("java-library")
 }
 
-java {
-    sourceCompatibility = JavaVersion.VERSION_11
-    targetCompatibility = JavaVersion.VERSION_11
-}
-
 val bytebuddyVersion: String by project
 val pekkoVersion: String by project
+val springBootVersion: String by project
 
 dependencies {
     implementation("net.bytebuddy:byte-buddy:${bytebuddyVersion}")
@@ -26,14 +22,15 @@ dependencies {
     implementation("io.micrometer:micrometer-core:1.11.0")
 
     // Optional: Spring Boot auto-configuration and core (for SpringActorSystem bean when both on classpath)
-    compileOnly("org.springframework.boot:spring-boot-autoconfigure:2.7.18")
-    compileOnly("org.springframework.boot:spring-boot-actuator-autoconfigure:2.7.18")
-    compileOnly("org.springframework:spring-context:5.3.31")
-    compileOnly(project(":core"))
+    compileOnly(platform("org.springframework.boot:spring-boot-dependencies:${springBootVersion}"))
+    compileOnly("org.springframework.boot:spring-boot-autoconfigure")
+    compileOnly("org.springframework.boot:spring-boot-actuator-autoconfigure")
+    compileOnly("org.springframework:spring-context")
+    compileOnly(project(":core-boot3"))
 
     // Generates META-INF/spring-configuration-metadata.json from @ConfigurationProperties classes.
-    // Pinned to match the compileOnly Spring Boot version above (this module has no Spring Boot BOM).
-    annotationProcessor("org.springframework.boot:spring-boot-configuration-processor:2.7.18")
+    annotationProcessor(platform("org.springframework.boot:spring-boot-dependencies:${springBootVersion}"))
+    annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
 
     testImplementation("org.apache.pekko:pekko-actor-typed_3:${pekkoVersion}")
     testImplementation("org.apache.pekko:pekko-cluster-typed_3:${pekkoVersion}")

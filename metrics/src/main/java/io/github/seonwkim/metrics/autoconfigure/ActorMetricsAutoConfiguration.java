@@ -32,7 +32,7 @@ import org.springframework.context.annotation.Configuration;
  * (not the class) so the condition is evaluated during bean creation rather than
  * configuration class processing. This ensures the MeterRegistry bean from
  * {@link CompositeMeterRegistryAutoConfiguration} is visible regardless of whether
- * this class is loaded via {@code spring.factories} or {@code @Import}.
+ * this class is loaded via {@code AutoConfiguration.imports} or {@code @Import}.
  *
  * <p>Requires the metrics agent at JVM startup:
  * <pre>java -javaagent:spring-boot-starter-actor-metrics-{version}-agent.jar -jar app.jar</pre>

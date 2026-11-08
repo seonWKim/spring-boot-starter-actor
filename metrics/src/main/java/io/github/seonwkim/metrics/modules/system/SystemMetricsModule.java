@@ -53,7 +53,7 @@ public class SystemMetricsModule implements InstrumentationModule {
     @Override
     public AgentBuilder instrument(AgentBuilder builder) {
         return builder.type(ElementMatchers.named("org.apache.pekko.event.EventStream"))
-                .transform((builderParam, typeDescription, classLoader, module) ->
+                .transform((builderParam, typeDescription, classLoader, module, protectionDomain) ->
                         builderParam.visit(Advice.to(EventStreamPublishAdvice.class)
                                 .on(ElementMatchers.named("publish").and(ElementMatchers.takesArguments(1)))));
     }

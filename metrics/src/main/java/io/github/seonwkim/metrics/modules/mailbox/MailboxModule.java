@@ -90,23 +90,23 @@ public class MailboxModule implements InstrumentationModule {
         return builder
                 // Instrument Envelope constructor to track when messages are enqueued
                 .type(ElementMatchers.named("org.apache.pekko.dispatch.Envelope"))
-                .transform((builderParam, typeDescription, classLoader, module) -> builderParam
+                .transform((builderParam, typeDescription, classLoader, module, protectionDomain) -> builderParam
                         .visit(Advice.to(EnvelopeCreatedAdvice.class).on(ElementMatchers.isConstructor()))
                         .visit(Advice.to(EnvelopeCopiedAdvice.class).on(ElementMatchers.named("copy"))))
                 // Instrument Dispatch.sendMessage to track enqueue
                 .type(ElementMatchers.named("org.apache.pekko.actor.dungeon.Dispatch"))
-                .transform((builderParam, typeDescription, classLoader, module) ->
+                .transform((builderParam, typeDescription, classLoader, module, protectionDomain) ->
                         builderParam.visit(Advice.to(SendMessageAdvice.class)
                                 .on(ElementMatchers.named("sendMessage").and(ElementMatchers.takesArguments(1)))))
                 // Instrument ActorCell.invoke(Envelope) to track dequeue and processing
                 .type(ElementMatchers.hasSuperType(ElementMatchers.named("org.apache.pekko.actor.ActorCell"))
                         .and(ElementMatchers.not(ElementMatchers.isInterface())))
-                .transform((builderParam, typeDescription, classLoader, module) ->
+                .transform((builderParam, typeDescription, classLoader, module, protectionDomain) ->
                         builderParam.visit(Advice.to(MailboxProcessAdvice.class)
                                 .on(ElementMatchers.named("invoke").and(ElementMatchers.takesArguments(1)))))
                 // Instrument AbstractBoundedNodeQueue.add - when false, mailbox overflow (NonBlockingBoundedMailbox)
                 .type(ElementMatchers.named("org.apache.pekko.dispatch.AbstractBoundedNodeQueue"))
-                .transform((builderParam, typeDescription, classLoader, module) ->
+                .transform((builderParam, typeDescription, classLoader, module, protectionDomain) ->
                         builderParam.visit(Advice.to(BoundedQueueAddAdvice.class)
                                 .on(ElementMatchers.named("add").and(ElementMatchers.takesArguments(1)))));
     }

@@ -22,8 +22,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
 
 /** Local-mode tests for {@link SpringReceptionist}. */
-@SpringBootTest(
-        properties = {"spring.actor.pekko.name=receptionist-test", "spring.actor.pekko.actor.provider=local"})
+@SpringBootTest(properties = {"spring.actor.pekko.name=receptionist-test", "spring.actor.pekko.actor.provider=local"})
 class SpringReceptionistTest {
 
     @SpringBootApplication(scanBasePackages = "io.github.seonwkim.core")
@@ -66,7 +65,10 @@ class SpringReceptionistTest {
         }
 
         Set<SpringActorHandle<Command>> find(ServiceKey<Command> key) throws Exception {
-            return receptionist.find(key, Duration.ofSeconds(3)).toCompletableFuture().get();
+            return receptionist
+                    .find(key, Duration.ofSeconds(3))
+                    .toCompletableFuture()
+                    .get();
         }
     }
 

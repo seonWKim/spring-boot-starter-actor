@@ -1,9 +1,9 @@
 package io.github.seonwkim.example.counter;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Id;
-import javax.persistence.Table;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 
 /** JPA entity representing a counter in the database. */
 @Entity

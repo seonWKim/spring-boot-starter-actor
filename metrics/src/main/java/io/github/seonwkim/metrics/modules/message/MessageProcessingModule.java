@@ -61,7 +61,7 @@ public class MessageProcessingModule implements InstrumentationModule {
     public AgentBuilder instrument(AgentBuilder builder) {
         return builder.type(ElementMatchers.hasSuperType(ElementMatchers.named("org.apache.pekko.actor.ActorCell"))
                         .and(ElementMatchers.not(ElementMatchers.isInterface())))
-                .transform((builderParam, typeDescription, classLoader, module) -> builderParam
+                .transform((builderParam, typeDescription, classLoader, module, protectionDomain) -> builderParam
                         // Instrument invoke(Envelope) for message processing (time, processed count)
                         .visit(Advice.to(InvokeAdvice.class)
                                 .on(ElementMatchers.named("invoke").and(ElementMatchers.takesArguments(1))))

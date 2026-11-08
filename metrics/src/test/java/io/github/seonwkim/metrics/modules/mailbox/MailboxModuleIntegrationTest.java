@@ -90,8 +90,7 @@ class MailboxModuleIntegrationTest {
         // Mailbox size should be > 0 (messages are queued)
         eventually(() -> {
             double mailboxSize = metricsBackend.getGaugeValue("actor.mailbox.size");
-            assertTrue(
-                    mailboxSize > 0, String.format("Mailbox size should be greater than 0, got: %.0f", mailboxSize));
+            assertTrue(mailboxSize > 0, String.format("Mailbox size should be greater than 0, got: %.0f", mailboxSize));
         });
     }
 
@@ -182,8 +181,7 @@ class MailboxModuleIntegrationTest {
             int gaugeCount = metricsBackend.gaugeCount();
             assertTrue(
                     gaugeCount >= 2,
-                    String.format(
-                            "Should have at least 2 mailbox gauges (one per actor class), got: %d", gaugeCount));
+                    String.format("Should have at least 2 mailbox gauges (one per actor class), got: %d", gaugeCount));
         });
     }
 
@@ -232,8 +230,7 @@ class MailboxModuleIntegrationTest {
                 assertTrue(
                         overflowCount > 0,
                         String.format(
-                                "Overflow counter should increment when bounded mailbox full, got: %d",
-                                overflowCount));
+                                "Overflow counter should increment when bounded mailbox full, got: %d", overflowCount));
             });
         } finally {
             overflowSystem.terminate();

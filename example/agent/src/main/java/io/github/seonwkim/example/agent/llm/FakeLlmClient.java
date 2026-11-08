@@ -56,8 +56,7 @@ public class FakeLlmClient implements LlmClient {
                 ChatMessage message = conversation.get(i);
                 if (message.role() == ChatMessage.Role.USER
                         && message.content().toLowerCase(Locale.ROOT).startsWith("my name is ")) {
-                    return LlmReply.answer(
-                            "Your name is " + message.content().substring("my name is ".length()));
+                    return LlmReply.answer("Your name is " + message.content().substring("my name is ".length()));
                 }
             }
             return LlmReply.answer("You did not tell me your name.");

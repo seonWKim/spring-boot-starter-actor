@@ -24,9 +24,9 @@ import org.apache.pekko.cluster.sharding.typed.javadsl.Entity;
 import org.apache.pekko.cluster.typed.Cluster;
 import org.apache.pekko.cluster.typed.ClusterSingleton;
 import org.apache.pekko.cluster.typed.Subscribe;
-import org.springframework.beans.factory.DisposableBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.DisposableBean;
 import org.springframework.context.ApplicationEventPublisher;
 
 /**

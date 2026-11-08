@@ -4,66 +4,33 @@ This guide will help you get started with Spring Boot Starter Actor in your Spri
 
 ## Prerequisites
 
-- Java 11 or higher (Java 21+ recommended for virtual thread support)
-- Spring Boot 2.x or 3.x
+- Java 21 or higher
+- Spring Boot 3.5 or higher
+
+Spring Boot 2 users stay on the 0.x line (`spring-boot-starter-actor`). See [Migrating from 0.x](migrating-from-0x.md).
 
 ## Installation
 
 Add the dependency to your project:
 
-### Gradle 
+### Gradle
 ```gradle
-// Manually overwrite spring managed jackson dependency 
-dependencyManagement {
-    imports {
-        // require minimum 2.17.3 version of jackson
-        mavenBom("com.fasterxml.jackson:jackson-bom:2.17.3")
-    }
-}
-
-// Gradle(spring boot 2.7.x)
-implementation 'io.github.seonwkim:spring-boot-starter-actor:0.3.0'
-
-// Gradle(spring boot 3.2.x)
-implementation 'io.github.seonwkim:spring-boot-starter-actor_3:0.3.0'
+implementation 'io.github.seonwkim:spring-boot-starter-actor_3:0.10.0'
 ```
 
-### Maven 
+### Maven
 ```xml
-<dependencyManagement>
-  <dependencies>
-    <!-- Override Spring Boot's jackson-bom with 2.17.3 -->
-    <dependency>
-      <groupId>com.fasterxml.jackson</groupId>
-      <artifactId>jackson-bom</artifactId>
-      <version>2.17.3</version>
-      <type>pom</type>
-      <scope>import</scope>
-    </dependency>
-  </dependencies>
-</dependencyManagement>
-
-<!-- Maven(spring boot 2.7.x) -->
-<dependency>
-  <groupId>io.github.seonwkim</groupId>
-  <artifactId>spring-boot-starter-actor</artifactId>
-  <version>0.3.0</version>
-</dependency>
-
-<!-- Maven(spring boot 3.2.x) -->
 <dependency>
   <groupId>io.github.seonwkim</groupId>
   <artifactId>spring-boot-starter-actor_3</artifactId>
-  <version>0.3.0</version>
+  <version>0.10.0</version>
 </dependency>
 ```
 
-To view the latest versions, refer to the following:
-- [spring-boot-starter-actor](https://central.sonatype.com/artifact/io.github.seonwkim/spring-boot-starter-actor)
-- [spring-boot-starter-actor_3](https://central.sonatype.com/artifact/io.github.seonwkim/spring-boot-starter-actor_3)
+To view the latest version, see [spring-boot-starter-actor_3](https://central.sonatype.com/artifact/io.github.seonwkim/spring-boot-starter-actor_3).
 
 !!! note
-    The library requires Jackson 2.17.3 or later. Ensure you override Spring Boot's managed Jackson dependency as shown above.
+    Spring Boot 3.5 manages Jackson 2.18+, which satisfies Pekko. No `jackson-bom` override is needed.
 
 ## Basic Configuration
 

@@ -1,7 +1,7 @@
 package io.github.seonwkim.core.management;
 
 import io.github.seonwkim.core.SpringActorSystem;
-import javax.annotation.PostConstruct;
+import jakarta.annotation.PostConstruct;
 import org.apache.pekko.management.cluster.bootstrap.ClusterBootstrap;
 import org.apache.pekko.management.javadsl.PekkoManagement;
 import org.slf4j.Logger;

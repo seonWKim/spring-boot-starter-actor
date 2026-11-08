@@ -26,8 +26,8 @@ public class ApprovalActor implements SpringActor<ApprovalActor.Command> {
     public interface Command {}
 
     /** Sent by an agent with Pekko's ask; {@code replyTo} is the ask's temporary actor. */
-    public record RequestApproval(
-            PendingApproval request, Duration timeout, ActorRef<ApprovalDecision> replyTo) implements Command {}
+    public record RequestApproval(PendingApproval request, Duration timeout, ActorRef<ApprovalDecision> replyTo)
+            implements Command {}
 
     public static final class ListPending extends AskCommand<List<PendingApproval>> implements Command {}
 

@@ -159,8 +159,7 @@ class MessageProcessingModuleIntegrationTest {
 
         eventuallyStays(() -> {
             double totalProcessed = metricsBackend.getCounterValue("actor.message.processed");
-            assertEquals(
-                    initialProcessed + 3, totalProcessed, "Should process exactly 3 messages of different types");
+            assertEquals(initialProcessed + 3, totalProcessed, "Should process exactly 3 messages of different types");
         });
     }
 

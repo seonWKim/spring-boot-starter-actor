@@ -1,3 +1,0 @@
-# Spring Boot 2.x auto-configuration for actor metrics
-org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-io.github.seonwkim.metrics.autoconfigure.ActorMetricsAutoConfiguration

@@ -7,9 +7,11 @@ import net.ltgt.gradle.errorprone.errorprone
 plugins {
     java
     `java-library`
-    id("com.diffplug.spotless") version "6.13.0"
+    id("com.diffplug.spotless") version "6.25.0"
     id("com.vanniktech.maven.publish") version "0.31.0"
     id("net.ltgt.errorprone") version "3.1.0"
+    id("org.springframework.boot") version "3.5.16" apply false
+    id("io.spring.dependency-management") version "1.1.7" apply false
 }
 
 repositories {
@@ -25,6 +27,27 @@ subprojects {
     apply(plugin = "java")
     apply(plugin = "java-library")
     apply(plugin = "com.diffplug.spotless")
+
+    // Java 21 is the baseline (ARCHITECTURE.md decision 3). Tests can run on a newer JVM
+    // with -PtestJavaVersion=25 (CI matrix); the bytecode stays --release 21.
+    extensions.configure<JavaPluginExtension> {
+        toolchain {
+            languageVersion.set(JavaLanguageVersion.of(21))
+        }
+    }
+    tasks.withType<JavaCompile>().configureEach {
+        options.release.set(21)
+    }
+    val testJavaVersion = project.findProperty("testJavaVersion") as String?
+    if (testJavaVersion != null) {
+        tasks.withType<Test>().configureEach {
+            javaLauncher.set(
+                project.extensions.getByType<JavaToolchainService>().launcherFor {
+                    languageVersion.set(JavaLanguageVersion.of(testJavaVersion))
+                }
+            )
+        }
+    }
 
     // Only apply error-prone to core modules, not examples
     if (!project.path.startsWith(":example")) {
@@ -143,32 +166,6 @@ spotless {
         trimTrailingWhitespace()
         endWithNewline()
     }
-}
-
-val runCoreTest = tasks.register<Exec>("runCoreTest") {
-    commandLine("./gradlew", ":core:test")
-}
-
-val syncBoot3Sources = tasks.register<Exec>("syncBoot3Sources") {
-    commandLine("./gradlew", ":core-boot3:syncAllBoot3Sources")
-}
-
-val runCoreBoot3Test = tasks.register<Exec>("runCoreBoot3Test") {
-    commandLine("./gradlew", ":core-boot3:test")
-}
-
-val runMetricsTest = tasks.register<Exec>("runMetricsTest") {
-    commandLine("./gradlew", ":metrics:test")
-}
-
-tasks.register("runTest") {
-    group = "verification"
-    description = "Run core and core-boot3 tests step-by-step"
-
-    dependsOn(runCoreTest)
-    dependsOn(syncBoot3Sources)
-    dependsOn(runCoreBoot3Test)
-    dependsOn(runMetricsTest)
 }
 
 subprojects {

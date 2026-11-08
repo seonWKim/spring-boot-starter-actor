@@ -133,10 +133,7 @@ public class SpringReceptionist {
     public <T> CompletionStage<Set<SpringActorHandle<T>>> find(ServiceKey<T> key, Duration timeout) {
         ActorSystem<?> system = system();
         return AskPattern.<Receptionist.Command, Receptionist.Listing>ask(
-                        system.receptionist(),
-                        replyTo -> Receptionist.find(key, replyTo),
-                        timeout,
-                        system.scheduler())
+                        system.receptionist(), replyTo -> Receptionist.find(key, replyTo), timeout, system.scheduler())
                 .thenApply(listing -> toHandles(key, listing, system.scheduler()));
     }
 
@@ -158,8 +155,8 @@ public class SpringReceptionist {
         AtomicBoolean cancelled = new AtomicBoolean(false);
         CompletableFuture<Void> terminated = new CompletableFuture<>();
         Behavior<HelperCommand> behavior = helperBehavior(key, listener, cancelled, terminated, system.scheduler());
-        ActorRef<HelperCommand> helper = system.systemActorOf(
-                behavior, "receptionist-subscriber-" + UUID.randomUUID(), Props.empty());
+        ActorRef<HelperCommand> helper =
+                system.systemActorOf(behavior, "receptionist-subscriber-" + UUID.randomUUID(), Props.empty());
         return new SpringReceptionistSubscription<>(key, helper, cancelled, terminated);
     }
 

@@ -69,12 +69,12 @@ public class StashModule implements InstrumentationModule {
                 // Set actor class when processing messages (for stash context)
                 .type(ElementMatchers.hasSuperType(ElementMatchers.named("org.apache.pekko.actor.ActorCell"))
                         .and(ElementMatchers.not(ElementMatchers.isInterface())))
-                .transform((builderParam, typeDescription, classLoader, module) ->
+                .transform((builderParam, typeDescription, classLoader, module, protectionDomain) ->
                         builderParam.visit(Advice.to(ActorCellInvokeAdvice.class)
                                 .on(ElementMatchers.named("invoke").and(ElementMatchers.takesArguments(1)))))
                 // StashBufferImpl - Typed stash
                 .type(ElementMatchers.named("org.apache.pekko.actor.typed.internal.StashBufferImpl"))
-                .transform((builderParam, typeDescription, classLoader, module) -> builderParam
+                .transform((builderParam, typeDescription, classLoader, module, protectionDomain) -> builderParam
                         .visit(Advice.to(StashAdvice.class)
                                 .on(ElementMatchers.named("stash").and(ElementMatchers.takesArguments(1))))
                         .visit(Advice.to(UnstashAllAdvice.class)
