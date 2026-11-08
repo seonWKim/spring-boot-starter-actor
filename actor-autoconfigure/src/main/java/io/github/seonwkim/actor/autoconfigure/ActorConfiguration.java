@@ -1,6 +1,5 @@
 package io.github.seonwkim.actor.autoconfigure;
 
-import io.github.seonwkim.actor.ActorSystemShutdownLifecycle;
 import io.github.seonwkim.actor.SpringActorSystem;
 import io.github.seonwkim.actor.SpringActorSystemBuilder;
 import io.github.seonwkim.actor.SpringActorWithContext;

@@ -1,7 +1,6 @@
 package io.github.seonwkim.actor.internal;
 
 import io.github.seonwkim.actor.ActorConstants;
-import io.github.seonwkim.actor.ActorSystemShutdownLifecycle;
 import io.github.seonwkim.actor.DispatcherConfig;
 import io.github.seonwkim.actor.MailboxConfig;
 import io.github.seonwkim.actor.SpringActorContext;
@@ -269,7 +268,7 @@ public final class PekkoActorSystem implements SpringActorSystem, DisposableBean
     }
 
     /**
-     * Called by Spring when the application context is closed. Normally {@link
+     * Called by Spring when the application context is closed. Normally {@code
      * ActorSystemShutdownLifecycle} has already shut the actor system down by then, so this does
      * nothing; otherwise it runs {@link #shutdown(Duration)} with the default timeout.
      */

@@ -1,5 +1,6 @@
-package io.github.seonwkim.actor;
+package io.github.seonwkim.actor.autoconfigure;
 
+import io.github.seonwkim.actor.SpringActorSystem;
 import java.time.Duration;
 import javax.annotation.Nullable;
 import org.springframework.context.SmartLifecycle;

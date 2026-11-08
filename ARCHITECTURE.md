@@ -101,11 +101,15 @@ flowchart TB
 
 ## Migration status
 
-The modules `actor-api`, `actor-core`, `actor-cluster`, `actor-autoconfigure`, `actor-spring-boot-starter`, `actor-spring-boot-starter-cluster` and `actor-metrics` exist, under the package root `io.github.seonwkim.actor`. `actor-core` has no Pekko Cluster dependency: it finds `actor-cluster` at runtime through `ServiceLoader` (`internal.ClusterSupport`) and fails at startup, naming the cluster starter, when `pekko.actor.provider` is `cluster` and the module is missing. Until the public API moves into `actor-api` without Pekko types, the code differs from the target in these places:
+The modules `actor-api`, `actor-core`, `actor-cluster`, `actor-autoconfigure`, `actor-spring-boot-starter`, `actor-spring-boot-starter-cluster` and `actor-metrics` exist, under the package root `io.github.seonwkim.actor`.
 
-- **`actor-api` holds only the types that are Pekko-free and depend on nothing in `actor-core`** (`EnableActorSupport`, `SpringActorContext`, the spawn option types, `SupervisionStrategy`, signals, `ShardedEntityType`, `ShardingStrategy`, `SpringShardedActorContext`, `ShardEnvelope`, the `cluster` event records, `ConsistentHashable`, `RoutingStrategy`, `TopicName`, `ServiceName`, the serialization markers and the topic exceptions). The rest of the public API (`SpringActor`, `SpringActorSystem`, behaviors, handles, builders, the sharded actor interfaces, routers, topics, receptionist) is still in `actor-core`, in the same packages, so `io.github.seonwkim.actor` is split across the two jars for now. `actor-core`'s public API has no Pekko types and no `internal` dependency (its freeze store is empty).
-- **Pekko is not on the application's compile classpath.** `actor-core` and `actor-cluster` declare Pekko as `implementation`, and neither starter exports it. An application that unwraps Pekko objects declares the Pekko modules it uses (the `cluster` and `supervision` examples do).
-- **Leaks are frozen, not fixed.** Rule 4 runs with an ArchUnit freeze store per module that may only shrink.
+- The public API is in `actor-api`, which depends on Spring (`spring-context`) and SLF4J (`SpringBehaviorContext.getLog()`) and never on Pekko. `actor-core` holds only `..internal..`, and its freeze store is empty.
+- `actor-core` has no Pekko Cluster dependency: it finds `actor-cluster` at runtime through `ServiceLoader` (`internal.ClusterSupport`) and fails at startup, naming the cluster starter, when `pekko.actor.provider` is `cluster` and the module is missing.
+- Pekko is not on the application's compile classpath: `actor-core` and `actor-cluster` declare it as `implementation`, and neither starter exports it. An application that unwraps Pekko objects declares the Pekko modules it uses (the `cluster` and `supervision` examples do).
+
+The code still differs from the target in these places:
+
+- **`actor-metrics` still has frozen leaks.** Rule 4 runs with an ArchUnit freeze store per module that may only shrink; only `actor-metrics` has entries left (its `modules` advice classes and `api.ActorContext.from` use Pekko or `internal`).
 - **The actor system stays opt-in through `@EnableActorSupport`.** It imports `ActorConfiguration` and the Pekko Management configuration from `actor-autoconfigure` by class name, so `actor-api` has no compile dependency on `actor-autoconfigure`. They are not listed in `AutoConfiguration.imports`: that would start an actor system in every application that has the starter, which 0.x never did.
 - **`actor-metrics` keeps its own auto-configuration** (`io.github.seonwkim.actor.metrics.autoconfigure`, registered in its `AutoConfiguration.imports`). Moving it into `actor-autoconfigure` needs `actor-autoconfigure` to depend on `actor-metrics` behind `@ConditionalOnClass`; that comes with the metrics rework.
 

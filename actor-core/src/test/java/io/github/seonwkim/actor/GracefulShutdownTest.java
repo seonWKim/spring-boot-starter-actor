@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 
 import io.github.seonwkim.actor.SpringActorSystem.ShutdownOutcome;
 import io.github.seonwkim.actor.autoconfigure.ActorProperties;
+import io.github.seonwkim.actor.autoconfigure.ActorSystemShutdownLifecycle;
 import io.github.seonwkim.actor.internal.PekkoActorSystem;
 import java.time.Duration;
 import java.util.List;

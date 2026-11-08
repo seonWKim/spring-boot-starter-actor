@@ -22,8 +22,8 @@
   `io.github.seonwkim.metrics` is now `io.github.seonwkim.actor.metrics`. Implementation classes moved
   to `..internal..` (`RootGuardian`, `RootGuardianSupplierWrapper`, `FrameworkCommands`,
   `DefaultShardingMessageExtractor`, the former `impl` and `utils` packages) and carry no compatibility
-  promise. `ActorConfiguration`, `ActorProperties` and the Pekko Management configuration moved to
-  `io.github.seonwkim.actor.autoconfigure`.
+  promise. `ActorConfiguration`, `ActorProperties`, `ActorSystemShutdownLifecycle` and the Pekko Management
+  configuration moved to `io.github.seonwkim.actor.autoconfigure`.
 
 - **No Pekko types in the public API.** Pekko is now an implementation detail. Each change below is
   listed with its replacement under "Migrating from 0.x". When you need a Pekko feature the starter
