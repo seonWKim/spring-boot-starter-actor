@@ -2,10 +2,10 @@ spring:
   application:
     name: virtual-threads-example
   actor:
+    name: virtual-threads-example
+    provider: local
     pekko:
-      name: virtual-threads-example
       actor:
-        provider: local
         allow-java-serialization: off
         warn-about-java-serializer-usage: on
       # Custom dispatcher using virtual threads

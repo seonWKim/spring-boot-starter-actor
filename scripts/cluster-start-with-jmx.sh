@@ -25,7 +25,7 @@ run_application() {
 
   ./gradlew example:${MODULE}:bootRun \
     --args="--server.port=${port} \
-            --spring.actor.pekko.remote.artery.canonical.port=${pekko_port}" \
+            --spring.actor.remote.port=${pekko_port}" \
     -PmainClass=${MAIN_CLASS} \
     > "log_${MODULE}_${port}.txt" 2>&1 &
 }

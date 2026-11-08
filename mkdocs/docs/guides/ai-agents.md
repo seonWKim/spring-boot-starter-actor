@@ -63,7 +63,7 @@ Callers address agents by id and never need to know which node hosts them:
 
 !!! info "Single node by default"
     The example sets `agent.self-join: true`, so one node forms its own cluster. For more nodes,
-    list `spring.actor.pekko.cluster.seed-nodes` as in the [Sharded Actors](sharded-actors.md)
+    list `spring.actor.cluster.seed-nodes` as in the [Sharded Actors](sharded-actors.md)
     guide and set `agent.self-join: false`.
 
 ## The agent loop without blocking

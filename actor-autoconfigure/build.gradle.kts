@@ -37,4 +37,7 @@ dependencies {
 // from the processed resources, so resources must be processed before compiling.
 tasks.compileJava {
     inputs.files(tasks.processResources)
+    // An incremental compile regenerates the metadata from the changed classes only, dropping
+    // the keys of the others. This module is small: always compile it whole.
+    options.isIncremental = false
 }

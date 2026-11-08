@@ -38,7 +38,7 @@ SEED_NODES=(
 # --- Convert to Spring Boot CLI Format ---
 SEED_NODE_ARGS=""
 for i in "${!SEED_NODES[@]}"; do
-  SEED_NODE_ARGS+=" --spring.actor.pekko.cluster.seed-nodes[$i]=${SEED_NODES[$i]}"
+  SEED_NODE_ARGS+=" --spring.actor.cluster.seed-nodes[$i]=${SEED_NODES[$i]}"
 done
 
 # --- Log info ---
@@ -51,7 +51,7 @@ for node in "${SEED_NODES[@]}"; do
 done
 
 # --- Final Run Command ---
-CMD="sh ./gradlew example:chat:bootRun -PmainClass=io.github.seonwkim.example.ChatApplication --args='--server.port=$SERVER_PORT --spring.actor.pekko.remote.artery.canonical.hostname=$CURRENT_IP --spring.actor.pekko.remote.artery.canonical.port=$PEKKO_PORT $SEED_NODE_ARGS'"
+CMD="sh ./gradlew example:chat:bootRun -PmainClass=io.github.seonwkim.example.ChatApplication --args='--server.port=$SERVER_PORT --spring.actor.remote.hostname=$CURRENT_IP --spring.actor.remote.port=$PEKKO_PORT $SEED_NODE_ARGS'"
 
 echo "Executing:"
 echo "$CMD"

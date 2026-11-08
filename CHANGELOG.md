@@ -31,6 +31,22 @@
   the engine's own object, and `SpringActorBehavior.wrap(behavior)` accepts a raw Pekko behavior.
   Code that uses them depends on Pekko and gets no compatibility promise.
 
+### New
+
+- **Typed configuration** with IDE completion and validation at startup:
+
+  | Key | Sets Pekko key |
+  |---|---|
+  | `spring.actor.name` | `pekko.name` |
+  | `spring.actor.provider` (`local`, `remote`, `cluster`) | `pekko.actor.provider` |
+  | `spring.actor.remote.hostname`, `.port` | `pekko.remote.artery.canonical.hostname`, `.port` |
+  | `spring.actor.cluster.seed-nodes`, `.roles` | `pekko.cluster.seed-nodes`, `.roles` |
+  | `spring.actor.shutdown.timeout` (default `20s`) | (how long closing the context waits) |
+
+  Raw keys keep working for everything else: every other key under `spring.actor` is passed to Pekko
+  with the prefix removed, as in 0.x (`spring.actor.pekko.loglevel`, a dispatcher at `spring.actor.my-dispatcher`). When a raw key and a typed key
+  set the same Pekko key to different values, the raw key wins and a warning names both.
+
 ### Migrating from 0.x
 
 1. Upgrade to Java 21 and Spring Boot 3.5 or later. Boot 2 applications stay on 0.x.

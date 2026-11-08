@@ -11,10 +11,14 @@ import io.github.seonwkim.actor.internal.RootGuardian;
 import io.github.seonwkim.actor.internal.RootGuardianSupplierWrapper;
 import io.github.seonwkim.actor.receptionist.SpringReceptionist;
 import io.github.seonwkim.actor.topic.SpringTopicManager;
+import java.util.Map;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.context.properties.bind.Bindable;
+import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -35,6 +39,7 @@ import org.springframework.core.env.Environment;
  * to avoid circular dependencies between actor system components.
  */
 @Configuration
+@EnableConfigurationProperties(ActorProperties.class)
 public class ActorConfiguration {
 
     // ==================================================================================
@@ -88,17 +93,6 @@ public class ActorConfiguration {
     // ==================================================================================
 
     /**
-     * Provides configuration properties for the actor system.
-     */
-    @Bean
-    @ConditionalOnMissingBean(ActorProperties.class)
-    public ActorProperties actorProperties(Environment environment) {
-        ActorProperties properties = new ActorProperties();
-        properties.setEnvironment(environment);
-        return properties;
-    }
-
-    /**
      * Creates the root guardian that manages all actors.
      * Uses static {@link ActorTypeRegistry} to avoid circular dependencies.
      */
@@ -113,7 +107,7 @@ public class ActorConfiguration {
      *
      * <p>Dependencies:
      * <ul>
-     *   <li>{@link ActorProperties} - Pekko configuration</li>
+     *   <li>{@link ActorProperties} and the raw {@code spring.actor.pekko.*} keys - Pekko configuration</li>
      *   <li>{@link RootGuardianSupplierWrapper} - Actor hierarchy root</li>
      *   <li>{@link ApplicationEventPublisher} - Spring event integration</li>
      * </ul>
@@ -122,13 +116,17 @@ public class ActorConfiguration {
     @ConditionalOnMissingBean(SpringActorSystemBuilder.class)
     public SpringActorSystemBuilder actorSystemBuilder(
             ActorProperties actorProperties,
+            Environment environment,
             RootGuardianSupplierWrapper rootGuardianSupplierWrapper,
             ApplicationEventPublisher applicationEventPublisher,
             BeanFactory beanFactory) {
+        Map<String, Object> springActor = Binder.get(environment)
+                .bind("spring.actor", Bindable.mapOf(String.class, Object.class))
+                .orElse(Map.of());
         return new DefaultSpringActorSystemBuilder()
                 .withRootGuardianSupplier(rootGuardianSupplierWrapper)
                 .withBeanFactory(beanFactory)
-                .withConfig(actorProperties.getConfig())
+                .withConfig(actorProperties.toPekkoConfig(springActor))
                 .withApplicationEventPublisher(applicationEventPublisher);
     }
 
@@ -153,7 +151,8 @@ public class ActorConfiguration {
     @ConditionalOnMissingBean(ActorSystemShutdownLifecycle.class)
     public ActorSystemShutdownLifecycle actorSystemShutdownLifecycle(
             SpringActorSystem actorSystem, ActorProperties actorProperties) {
-        return new ActorSystemShutdownLifecycle(actorSystem, actorProperties.getShutdownTimeout());
+        return new ActorSystemShutdownLifecycle(
+                actorSystem, actorProperties.getShutdown().getTimeout());
     }
 
     // ==================================================================================

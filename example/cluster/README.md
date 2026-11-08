@@ -23,10 +23,10 @@ Start each node in a separate terminal:
 ./gradlew :example:cluster:bootRun
 
 # Node 2
-./gradlew :example:cluster:bootRun --args='--server.port=8081 --spring.actor.pekko.remote.artery.canonical.port=2552'
+./gradlew :example:cluster:bootRun --args='--server.port=8081 --spring.actor.remote.port=2552'
 
 # Node 3
-./gradlew :example:cluster:bootRun --args='--server.port=8082 --spring.actor.pekko.remote.artery.canonical.port=2553'
+./gradlew :example:cluster:bootRun --args='--server.port=8082 --spring.actor.remote.port=2553'
 ```
 
 ## Examples

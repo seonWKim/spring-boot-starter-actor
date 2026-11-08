@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
 import io.github.seonwkim.actor.SpringActorSystem.ShutdownOutcome;
-import io.github.seonwkim.actor.autoconfigure.ActorProperties;
 import io.github.seonwkim.actor.autoconfigure.ActorSystemShutdownLifecycle;
 import io.github.seonwkim.actor.internal.PekkoActorSystem;
 import java.time.Duration;
@@ -32,7 +31,6 @@ import org.springframework.boot.web.server.GracefulShutdownResult;
 import org.springframework.boot.web.server.WebServer;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
-import org.springframework.mock.env.MockEnvironment;
 
 /**
  * Tests that closing the Spring context shuts the actor system down through Pekko coordinated
@@ -259,11 +257,6 @@ class GracefulShutdownTest {
 
     @Test
     void shutdownTimeoutDefaultsToTwentySeconds() {
-        ActorProperties properties = new ActorProperties();
-        properties.setEnvironment(new MockEnvironment());
-        assertThat(properties.getShutdownTimeout()).isEqualTo(Duration.ofSeconds(20));
-        assertThat(ActorProperties.DEFAULT_SHUTDOWN_TIMEOUT).isEqualTo(Duration.ofSeconds(20));
-
         context = start(LocalApp.class);
         assertThat(context.getBean(ActorSystemShutdownLifecycle.class).getTimeout())
                 .isEqualTo(Duration.ofSeconds(20));
@@ -271,10 +264,6 @@ class GracefulShutdownTest {
 
     @Test
     void shutdownTimeoutCanBeOverridden() {
-        ActorProperties properties = new ActorProperties();
-        properties.setEnvironment(new MockEnvironment().withProperty("spring.actor.shutdown.timeout", "7s"));
-        assertThat(properties.getShutdownTimeout()).isEqualTo(Duration.ofSeconds(7));
-
         context = start(LocalApp.class, "spring.actor.shutdown.timeout=12s");
         assertThat(context.getBean(ActorSystemShutdownLifecycle.class).getTimeout())
                 .isEqualTo(Duration.ofSeconds(12));
