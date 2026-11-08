@@ -38,6 +38,9 @@ dependencies {
 	compileOnly("org.apache.pekko:pekko-management-cluster-bootstrap_3:$pekkoManagementVersion")
 	compileOnly("org.apache.pekko:pekko-management-cluster-http_3:$pekkoManagementVersion")
 
+	// Optional: Spring Boot Actuator health indicators (registered only when Actuator is on the classpath)
+	compileOnly("org.springframework.boot:spring-boot-actuator-autoconfigure")
+
 	implementation("com.google.code.findbugs:jsr305")
 	implementation("org.springframework.boot:spring-boot-starter")
 
@@ -45,6 +48,7 @@ dependencies {
 	annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
 
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
+	testImplementation("org.springframework.boot:spring-boot-actuator-autoconfigure")
 	testImplementation("org.apache.pekko:pekko-actor-testkit-typed_3")
 	testImplementation("org.awaitility:awaitility")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")

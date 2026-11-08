@@ -17,6 +17,12 @@
       "type": "java.lang.String",
       "description": "Pekko actor reference provider, passed through to Pekko as pekko.actor.provider. Set to 'cluster' to run the actor system in cluster mode.",
       "defaultValue": "local"
+    },
+    {
+      "name": "management.health.actor.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Whether to enable the actor system and actor cluster health indicators. Setting it to false removes both indicators, also from the readiness group.",
+      "defaultValue": true
     }
   ],
   "hints": [
