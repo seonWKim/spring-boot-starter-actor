@@ -60,5 +60,9 @@ nav:
     - Spring Conventions: contributing/spring-conventions.md
     - RFCs: contributing/rfcs/index.md
 
+# Writes llms-full.txt (Getting Started and the guides as one file) to the site root
+hooks:
+  - hooks/llms_full.py
+
 extra_css:
   - stylesheets/extra.css

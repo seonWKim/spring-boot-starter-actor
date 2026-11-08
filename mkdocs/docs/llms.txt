@@ -1,0 +1,38 @@
+# spring-boot-starter-actor
+
+> A Spring Boot starter that runs Pekko typed actors as Spring beans. Add `@EnableActorSupport`, implement `SpringActor` (or `SpringShardedActor` for cluster sharding), and use `SpringActorSystem` to spawn, look up and message actors. It ships as `io.github.seonwkim:spring-boot-starter-actor` for Spring Boot 2.7 and `spring-boot-starter-actor_3` for Spring Boot 3, needs Java 11 or later and Jackson 2.17.3 or later, and is configured under `spring.actor.*`.
+
+The full text of the Getting Started page and every guide, with code inlined, is in [llms-full.txt](https://seonwkim.github.io/spring-boot-starter-actor/llms-full.txt): read it when the links below are not enough.
+
+## Getting started
+
+- [Introduction](https://seonwkim.github.io/spring-boot-starter-actor/): what the starter is for and how actors fit into a Spring Boot application
+- [Getting Started](https://seonwkim.github.io/spring-boot-starter-actor/getting-started/): dependencies for Gradle and Maven, `@EnableActorSupport`, and the first configuration
+
+## Guides
+
+- [Actor Registration and Messaging](https://seonwkim.github.io/spring-boot-starter-actor/guides/actor-registration-messaging/): register actors as beans, spawn them, and use tell and ask
+- [Pub/Sub Topics](https://seonwkim.github.io/spring-boot-starter-actor/guides/pub-sub-topics/): one-to-many messaging where publishers do not know the subscribers
+- [Routers](https://seonwkim.github.io/spring-boot-starter-actor/guides/routers/): spread messages across a pool of worker actors
+- [Receptionist](https://seonwkim.github.io/spring-boot-starter-actor/guides/receptionist/): find actors by service key, once or by subscribing to changes
+- [Dispatchers](https://seonwkim.github.io/spring-boot-starter-actor/guides/dispatchers/): choose the threads an actor runs on, including virtual threads
+- [Logging with MDC and Tags](https://seonwkim.github.io/spring-boot-starter-actor/guides/logging/): add MDC values and actor tags to log lines
+- [Sharded Actors](https://seonwkim.github.io/spring-boot-starter-actor/guides/sharded-actors/): one actor per entity ID, spread across a cluster
+- [Persistence with Spring Boot](https://seonwkim.github.io/spring-boot-starter-actor/guides/persistence-spring-boot/): keep actor state with Spring Data and other Spring Boot tools
+- [Running in Production](https://seonwkim.github.io/spring-boot-starter-actor/guides/production/): graceful shutdown and settings for Kubernetes and other production setups
+- [AI Agents](https://seonwkim.github.io/spring-boot-starter-actor/guides/ai-agents/): one sharded actor per agent, supervised conversations, non-blocking model calls and rate limits
+
+## Examples
+
+- [Examples overview](https://seonwkim.github.io/spring-boot-starter-actor/examples/): the runnable example projects in the repository and what each shows
+- [Simple](https://seonwkim.github.io/spring-boot-starter-actor/examples/simple/): basic actors in a single, non-clustered application
+- [Cluster](https://seonwkim.github.io/spring-boot-starter-actor/examples/cluster/): sharded actors across several cluster nodes
+- [Synchronization](https://seonwkim.github.io/spring-boot-starter-actor/examples/synchronization/): actor-based synchronization compared with locks and databases
+- [Chat](https://seonwkim.github.io/spring-boot-starter-actor/examples/chat/): a real-time chat built on pub/sub topics, with no extra middleware
+- [Monitoring](https://seonwkim.github.io/spring-boot-starter-actor/examples/monitoring/): experimental actor metrics through Micrometer, exposed to Prometheus
+
+## Reference
+
+- [Configuration Reference](https://seonwkim.github.io/spring-boot-starter-actor/guides/configuration/): every configuration key the starter reads, with its default
+- [Spring Conventions](https://seonwkim.github.io/spring-boot-starter-actor/contributing/spring-conventions/): how the starter compares with the conventions of other Spring projects
+- [RFCs](https://seonwkim.github.io/spring-boot-starter-actor/contributing/rfcs/): design proposals for the starter's API and behaviour
