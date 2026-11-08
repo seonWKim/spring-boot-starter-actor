@@ -8,7 +8,6 @@ import io.github.seonwkim.actor.SpringActorWithContext;
 import io.github.seonwkim.actor.serialization.JsonSerializable;
 import java.util.concurrent.BlockingQueue;
 import javax.annotation.Nullable;
-import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.apache.pekko.actor.typed.receptionist.ServiceKey;
 
 /**
@@ -67,9 +66,9 @@ public class ReceptionistTestActor
                 })
                 .onMessage(Ping.class, (state, msg) -> {
                     state.received.add(msg.text);
-                    return Behaviors.same();
+                    return SpringActorBehavior.same();
                 })
-                .onMessage(Stop.class, (state, msg) -> Behaviors.stopped())
+                .onMessage(Stop.class, (state, msg) -> SpringActorBehavior.stopped())
                 .build();
     }
 }

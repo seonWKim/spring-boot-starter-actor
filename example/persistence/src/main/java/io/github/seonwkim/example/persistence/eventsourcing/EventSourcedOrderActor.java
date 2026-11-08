@@ -2,11 +2,10 @@ package io.github.seonwkim.example.persistence.eventsourcing;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.seonwkim.actor.*;
+import io.github.seonwkim.actor.SpringActorBehavior;
 import io.github.seonwkim.example.persistence.OrderStatus;
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.pekko.actor.typed.Behavior;
-import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.springframework.stereotype.Component;
 
 /**
@@ -207,10 +206,10 @@ public class EventSourcedOrderActor implements SpringActor<EventSourcedOrderActo
             this.state = state;
         }
 
-        private Behavior<Command> handleCreateOrder(CreateOrder cmd) {
+        private SpringActorBehavior<Command> handleCreateOrder(CreateOrder cmd) {
             if (state.getSequenceNumber() > 0) {
                 cmd.reply(new OrderResponse(false, null, "Order already exists"));
-                return Behaviors.same();
+                return SpringActorBehavior.same();
             }
 
             try {
@@ -232,10 +231,10 @@ public class EventSourcedOrderActor implements SpringActor<EventSourcedOrderActo
                 cmd.reply(new OrderResponse(false, null, e.getMessage()));
             }
 
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
 
-        private Behavior<Command> handleAddItem(AddItem cmd) {
+        private SpringActorBehavior<Command> handleAddItem(AddItem cmd) {
             try {
                 OrderItemAddedEvent domainEvent = new OrderItemAddedEvent(
                         actorContext.actorId(), cmd.getProductId(), cmd.getQuantity(), cmd.getPrice());
@@ -251,10 +250,10 @@ public class EventSourcedOrderActor implements SpringActor<EventSourcedOrderActo
                 cmd.reply(new OrderResponse(false, null, e.getMessage()));
             }
 
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
 
-        private Behavior<Command> handleApproveOrder(ApproveOrder cmd) {
+        private SpringActorBehavior<Command> handleApproveOrder(ApproveOrder cmd) {
             try {
                 OrderApprovedEvent domainEvent = new OrderApprovedEvent(actorContext.actorId(), cmd.getApprovedBy());
 
@@ -269,18 +268,18 @@ public class EventSourcedOrderActor implements SpringActor<EventSourcedOrderActo
                 cmd.reply(new OrderResponse(false, null, e.getMessage()));
             }
 
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
 
-        private Behavior<Command> handleGetOrder(GetOrder cmd) {
+        private SpringActorBehavior<Command> handleGetOrder(GetOrder cmd) {
             cmd.reply(new OrderResponse(true, state, "Order retrieved"));
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
 
-        private Behavior<Command> handleGetHistory(GetHistory cmd) {
+        private SpringActorBehavior<Command> handleGetHistory(GetHistory cmd) {
             List<OrderEvent> events = eventRepository.findByOrderIdOrderBySequenceNumberAsc(actorContext.actorId());
             cmd.reply(new HistoryResponse(events));
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
 
         private OrderEvent persistEvent(OrderDomainEvent domainEvent, long sequenceNumber) throws Exception {

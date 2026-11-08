@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.github.seonwkim.actor.SpringActorSystemTest.TestHelloActor.SayHello;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
-import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -32,7 +31,7 @@ class SpringActorSystemTest {
             return SpringActorBehavior.builder(Command.class, id)
                     .onMessage(SayHello.class, (ctx, msg) -> {
                         msg.reply("hello world!!");
-                        return Behaviors.same();
+                        return SpringActorBehavior.same();
                     })
                     .build();
         }
@@ -55,7 +54,7 @@ class SpringActorSystemTest {
                         String dispatcherName =
                                 ctx.getUnderlying().getExecutionContext().toString();
                         msg.reply(dispatcherName);
-                        return Behaviors.same();
+                        return SpringActorBehavior.same();
                     })
                     .build();
         }
@@ -76,7 +75,7 @@ class SpringActorSystemTest {
             return SpringActorBehavior.builder(Command.class, context)
                     .onMessage(SayHello.class, (ctx, msg) -> {
                         msg.reply(context.actorId());
-                        return Behaviors.same();
+                        return SpringActorBehavior.same();
                     })
                     .build();
         }
@@ -106,7 +105,7 @@ class SpringActorSystemTest {
                         counter[0]++;
                         ctx.getLog().info("Counter for {} incremented to {}", actorContext.actorId(), counter[0]);
                         msg.reply(counter[0]);
-                        return Behaviors.same();
+                        return SpringActorBehavior.same();
                     })
                     .build();
         }

@@ -4,7 +4,6 @@ import io.github.seonwkim.actor.*;
 import io.github.seonwkim.actor.serialization.JsonSerializable;
 import java.util.HashMap;
 import java.util.Map;
-import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.springframework.stereotype.Component;
 
 /**
@@ -123,7 +122,7 @@ public class ClusterMetricsAggregator
         /**
          * Handles recording a metric from a node.
          */
-        private org.apache.pekko.actor.typed.Behavior<Command> onRecordMetric(RecordMetric msg) {
+        private SpringActorBehavior<Command> onRecordMetric(RecordMetric msg) {
             ctx.getLog().debug("Recording metric [{}={}] from node [{}]", msg.metricName, msg.value, msg.nodeAddress);
 
             // Get or create the metrics map for this node
@@ -132,26 +131,26 @@ public class ClusterMetricsAggregator
             // Store the metric
             nodeMetrics.put(msg.metricName, new MetricData(msg.value, msg.timestamp));
 
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
 
         /**
          * Handles getting all metrics from all nodes.
          */
-        private org.apache.pekko.actor.typed.Behavior<Command> onGetMetrics(GetMetrics msg) {
+        private SpringActorBehavior<Command> onGetMetrics(GetMetrics msg) {
             ctx.getLog().debug("Getting all metrics (nodes: {})", metrics.size());
 
             String nodeAddress = ctx.getUnderlying().getSystem().address().toString();
             MetricsResponse response = new MetricsResponse(new HashMap<>(metrics), nodeAddress);
 
             msg.reply(response);
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
 
         /**
          * Handles getting metrics for a specific node.
          */
-        private org.apache.pekko.actor.typed.Behavior<Command> onGetNodeMetrics(GetNodeMetrics msg) {
+        private SpringActorBehavior<Command> onGetNodeMetrics(GetNodeMetrics msg) {
             ctx.getLog().debug("Getting metrics for node [{}]", msg.nodeAddress);
 
             Map<String, MetricData> nodeMetrics = metrics.get(msg.nodeAddress);
@@ -165,13 +164,13 @@ public class ClusterMetricsAggregator
             MetricsResponse response = new MetricsResponse(result, nodeAddress);
 
             msg.reply(response);
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
 
         /**
          * Handles resetting all metrics.
          */
-        private org.apache.pekko.actor.typed.Behavior<Command> onResetMetrics(ResetMetrics msg) {
+        private SpringActorBehavior<Command> onResetMetrics(ResetMetrics msg) {
             ctx.getLog().info("Resetting all metrics");
 
             int nodeCount = metrics.size();
@@ -183,7 +182,7 @@ public class ClusterMetricsAggregator
                     String.format("Reset complete. Cleared %d metrics from %d nodes.", totalMetrics, nodeCount);
 
             msg.reply(responseMessage);
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
     }
 }

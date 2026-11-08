@@ -56,8 +56,8 @@ public class RateLimiterActor implements SpringActor<RateLimiterActor.Command> {
 
     @Override
     public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
-        return SpringActorBehavior.wrap(
-                Behaviors.withTimers(timers -> new SlidingWindow(timers, callsPerSecond, WINDOW.toNanos()).behavior()));
+        return SpringActorBehavior.wrap(Behaviors.<Command>withTimers(
+                timers -> new SlidingWindow(timers, callsPerSecond, WINDOW.toNanos()).behavior()));
     }
 
     private static final class SlidingWindow {

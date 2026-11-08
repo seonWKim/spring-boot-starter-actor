@@ -1,12 +1,11 @@
 package io.github.seonwkim.example;
 
 import io.github.seonwkim.actor.*;
+import io.github.seonwkim.actor.PostStop;
+import io.github.seonwkim.actor.PreRestart;
+import io.github.seonwkim.actor.SpringActorBehavior;
 import io.github.seonwkim.actor.SupervisionStrategy;
 import java.time.Duration;
-import org.apache.pekko.actor.typed.Behavior;
-import org.apache.pekko.actor.typed.PostStop;
-import org.apache.pekko.actor.typed.PreRestart;
-import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.springframework.stereotype.Component;
 
 /**
@@ -52,26 +51,26 @@ public class HelloActor implements SpringActor<HelloActor.Command> {
             this.actorContext = actorContext;
         }
 
-        private Behavior<Command> onSayHello(SayHello msg) {
+        private SpringActorBehavior<Command> onSayHello(SayHello msg) {
             ctx.getLog().info("Received SayHello for id={}", actorContext.actorId());
             msg.reply("Hello from actor " + actorContext.actorId());
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
 
-        private Behavior<Command> onTriggerFailure(TriggerFailure msg) {
+        private SpringActorBehavior<Command> onTriggerFailure(TriggerFailure msg) {
             ctx.getLog().warn("Triggering failure for actor {}", actorContext.actorId());
             msg.reply("Triggering failure - actor will restart");
             throw new RuntimeException("Intentional failure to demonstrate PreRestart signal");
         }
 
-        private Behavior<Command> onPreRestart(PreRestart signal) {
+        private SpringActorBehavior<Command> onPreRestart(PreRestart signal) {
             ctx.getLog().warn("Actor {} is being restarted due to failure", actorContext.actorId());
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
 
-        private Behavior<Command> onPostStop(PostStop signal) {
+        private SpringActorBehavior<Command> onPostStop(PostStop signal) {
             ctx.getLog().info("Actor {} is stopping. Performing cleanup...", actorContext.actorId());
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
     }
 }

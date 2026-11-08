@@ -6,7 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import io.github.seonwkim.actor.ActorTypeRegistryTest.DummyActor.Command;
 import io.github.seonwkim.actor.internal.DefaultSpringActorContext;
 import java.util.UUID;
-import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -31,7 +30,7 @@ public class ActorTypeRegistryTest {
     @Test
     public void testRegisterAndRetrieveByClass() {
         ActorTypeRegistry.register(DummyActor.class, (id) -> SpringActorBehavior.builder(Command.class, id)
-                .onMessage(Command.class, (ctx, msg) -> Behaviors.same())
+                .onMessage(Command.class, (ctx, msg) -> SpringActorBehavior.same())
                 .build());
 
         SpringActorBehavior<DummyActor.Command> behavior = ActorTypeRegistry.createTypedBehavior(
@@ -43,7 +42,7 @@ public class ActorTypeRegistryTest {
     @Test
     public void testRegisterAndRetrieveByStringKey() {
         ActorTypeRegistry.register(DummyActor.class, (id) -> SpringActorBehavior.builder(Command.class, id)
-                .onMessage(Command.class, (a, b) -> Behaviors.same())
+                .onMessage(Command.class, (a, b) -> SpringActorBehavior.same())
                 .build());
 
         SpringActorBehavior<DummyActor.Command> behavior =

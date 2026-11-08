@@ -7,10 +7,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.pekko.actor.typed.Behavior;
-import org.apache.pekko.actor.typed.PostStop;
-import org.apache.pekko.actor.typed.PreRestart;
-import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -103,7 +99,7 @@ class HierarchicalSupervisionTest {
                 this.taskLogger = taskLogger;
             }
 
-            private Behavior<Command> onDoTask(DoTask msg) {
+            private SpringActorBehavior<Command> onDoTask(DoTask msg) {
                 ctx.getLog().info("Worker {} processing task: {}", actorContext.actorId(), msg.taskName);
 
                 // Use injected Spring service
@@ -111,36 +107,36 @@ class HierarchicalSupervisionTest {
 
                 tasksCompleted++;
                 msg.reply("Completed: " + msg.taskName);
-                return Behaviors.same();
+                return SpringActorBehavior.same();
             }
 
-            private Behavior<Command> onFail(Fail msg) {
+            private SpringActorBehavior<Command> onFail(Fail msg) {
                 ctx.getLog().warn("Worker {} failing intentionally", actorContext.actorId());
                 msg.reply("Failing now");
                 throw new RuntimeException("Intentional failure");
             }
 
-            private Behavior<Command> onGetState(GetState msg) {
+            private SpringActorBehavior<Command> onGetState(GetState msg) {
                 msg.reply(tasksCompleted);
-                return Behaviors.same();
+                return SpringActorBehavior.same();
             }
 
-            private Behavior<Command> onPreRestart(PreRestart signal) {
+            private SpringActorBehavior<Command> onPreRestart(PreRestart signal) {
                 ctx.getLog()
                         .warn(
                                 "Worker {} restarting, state will be lost: tasksCompleted={}",
                                 actorContext.actorId(),
                                 tasksCompleted);
-                return Behaviors.same();
+                return SpringActorBehavior.same();
             }
 
-            private Behavior<Command> onPostStop(PostStop signal) {
+            private SpringActorBehavior<Command> onPostStop(PostStop signal) {
                 ctx.getLog()
                         .info(
                                 "Worker {} stopped, final state: tasksCompleted={}",
                                 actorContext.actorId(),
                                 tasksCompleted);
-                return Behaviors.same();
+                return SpringActorBehavior.same();
             }
         }
     }
@@ -195,7 +191,7 @@ class HierarchicalSupervisionTest {
                 ctx.getLog().info("ParentSupervisor {} started", actorContext.actorId());
             }
 
-            private Behavior<Command> onDelegateWork(DelegateWork msg) {
+            private SpringActorBehavior<Command> onDelegateWork(DelegateWork msg) {
                 // Create SpringActorHandle to self for child management
                 SpringActorHandle<Command> self = ctx.getSelf();
 
@@ -207,14 +203,14 @@ class HierarchicalSupervisionTest {
                                         .thenApply(opt -> opt.orElse(null)),
                                 (childRef, failure) -> new ChildReady(msg, childRef, failure));
 
-                return Behaviors.same();
+                return SpringActorBehavior.same();
             }
 
-            private Behavior<Command> onChildReady(ChildReady msg) {
+            private SpringActorBehavior<Command> onChildReady(ChildReady msg) {
                 if (msg.failure != null) {
                     ctx.getLog().error("Failed to get/spawn child", msg.failure);
                     msg.originalMsg.reply("Error: " + msg.failure.getMessage());
-                    return Behaviors.same();
+                    return SpringActorBehavior.same();
                 }
 
                 if (msg.childRef == null) {
@@ -224,11 +220,11 @@ class HierarchicalSupervisionTest {
                     // Child exists, use it
                     ctx.getLog().info("Reusing existing worker {}", msg.originalMsg.workerId);
                     delegateToChild(msg.childRef, msg.originalMsg);
-                    return Behaviors.same();
+                    return SpringActorBehavior.same();
                 }
             }
 
-            private Behavior<Command> spawnChild(DelegateWork msg) {
+            private SpringActorBehavior<Command> spawnChild(DelegateWork msg) {
                 ctx.getLog().info("Spawning new worker {} with strategy {}", msg.workerId, msg.strategy);
 
                 SupervisionStrategy strategy = buildStrategy(msg.strategy);
@@ -243,7 +239,7 @@ class HierarchicalSupervisionTest {
                                         .spawn(),
                                 (childRef, failure) -> new ChildReady(msg, childRef, failure));
 
-                return Behaviors.same();
+                return SpringActorBehavior.same();
             }
 
             private void delegateToChild(SpringActorHandle<ChildWorkerActor.Command> childRef, DelegateWork msg) {
@@ -378,20 +374,20 @@ class HierarchicalSupervisionTest {
                 this.taskLogger = taskLogger;
             }
 
-            private Behavior<Command> onRegisterSelf(RegisterSelf msg) {
+            private SpringActorBehavior<Command> onRegisterSelf(RegisterSelf msg) {
                 // Use both injected services
                 verificationService.registerActor(actorContext.actorId(), msg.message);
                 taskLogger.logTask(actorContext.actorId());
 
                 msg.reply("Registered: " + actorContext.actorId());
-                return Behaviors.same();
+                return SpringActorBehavior.same();
             }
 
-            private Behavior<Command> onVerifyServices(VerifyServices msg) {
+            private SpringActorBehavior<Command> onVerifyServices(VerifyServices msg) {
                 // Verify services are working
                 boolean servicesWorking = verificationService != null && taskLogger != null;
                 msg.reply(servicesWorking);
-                return Behaviors.same();
+                return SpringActorBehavior.same();
             }
         }
     }

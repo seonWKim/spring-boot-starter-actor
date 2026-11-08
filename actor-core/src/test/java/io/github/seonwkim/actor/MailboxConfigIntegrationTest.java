@@ -6,7 +6,6 @@ import io.github.seonwkim.actor.autoconfigure.ActorConfiguration;
 import java.util.concurrent.TimeUnit;
 import org.apache.pekko.actor.ActorCell;
 import org.apache.pekko.actor.typed.javadsl.Adapter;
-import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -66,7 +65,7 @@ public class MailboxConfigIntegrationTest {
             return SpringActorBehavior.builder(TestCommand.class, actorContext)
                     .onMessage(Ping.class, (ctx, msg) -> {
                         ctx.getLog().info("Received: {}", msg.message);
-                        return Behaviors.same();
+                        return SpringActorBehavior.same();
                     })
                     .build();
         }
@@ -260,7 +259,7 @@ public class MailboxConfigIntegrationTest {
                         msg.reply(new RunsOn(
                                 cell.mailbox().messageQueue().getClass().getName(),
                                 cell.dispatcher().id()));
-                        return Behaviors.same();
+                        return SpringActorBehavior.same();
                     })
                     .build();
         }

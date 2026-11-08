@@ -13,8 +13,6 @@ import io.github.seonwkim.actor.serialization.JsonSerializable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.pekko.actor.typed.Behavior;
-import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -422,10 +420,10 @@ class SpringTopicTest {
                 this.context = context;
             }
 
-            private Behavior<TestMessage> onMessage(TestMessage msg) {
+            private SpringActorBehavior<TestMessage> onMessage(TestMessage msg) {
                 context.messageCount.incrementAndGet();
                 context.latch.countDown();
-                return Behaviors.same();
+                return SpringActorBehavior.same();
             }
         }
     }

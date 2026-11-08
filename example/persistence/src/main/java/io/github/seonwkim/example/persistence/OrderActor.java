@@ -1,8 +1,7 @@
 package io.github.seonwkim.example.persistence;
 
 import io.github.seonwkim.actor.*;
-import org.apache.pekko.actor.typed.Behavior;
-import org.apache.pekko.actor.typed.javadsl.Behaviors;
+import io.github.seonwkim.actor.SpringActorBehavior;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Component;
 
@@ -120,10 +119,10 @@ public class OrderActor implements SpringActor<OrderActor.Command> {
             this.currentOrder = currentOrder;
         }
 
-        private Behavior<Command> handleCreateOrder(CreateOrder cmd) {
+        private SpringActorBehavior<Command> handleCreateOrder(CreateOrder cmd) {
             if (currentOrder != null) {
                 cmd.reply(new OrderResponse(false, null, "Order already exists"));
-                return Behaviors.same();
+                return SpringActorBehavior.same();
             }
 
             try {
@@ -139,13 +138,13 @@ public class OrderActor implements SpringActor<OrderActor.Command> {
                 cmd.reply(new OrderResponse(false, null, "Failed to create order: " + e.getMessage()));
             }
 
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
 
-        private Behavior<Command> handleAddItem(AddItem cmd) {
+        private SpringActorBehavior<Command> handleAddItem(AddItem cmd) {
             if (currentOrder == null) {
                 cmd.reply(new OrderResponse(false, null, "Order not found"));
-                return Behaviors.same();
+                return SpringActorBehavior.same();
             }
 
             try {
@@ -162,10 +161,10 @@ public class OrderActor implements SpringActor<OrderActor.Command> {
                 cmd.reply(new OrderResponse(false, null, "Failed to add item: " + e.getMessage()));
             }
 
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
 
-        private Behavior<Command> handleGetOrder(GetOrder cmd) {
+        private SpringActorBehavior<Command> handleGetOrder(GetOrder cmd) {
             if (currentOrder == null) {
                 // Try to reload from database
                 currentOrder =
@@ -178,21 +177,21 @@ public class OrderActor implements SpringActor<OrderActor.Command> {
                 cmd.reply(new OrderResponse(false, null, "Order not found"));
             }
 
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
 
-        private Behavior<Command> handleApproveOrder(ApproveOrder cmd) {
+        private SpringActorBehavior<Command> handleApproveOrder(ApproveOrder cmd) {
             return updateOrderStatus(cmd, OrderStatus.APPROVED, "approved");
         }
 
-        private Behavior<Command> handleRejectOrder(RejectOrder cmd) {
+        private SpringActorBehavior<Command> handleRejectOrder(RejectOrder cmd) {
             return updateOrderStatus(cmd, OrderStatus.REJECTED, "rejected");
         }
 
-        private Behavior<Command> handleUpdateAmount(UpdateAmount cmd) {
+        private SpringActorBehavior<Command> handleUpdateAmount(UpdateAmount cmd) {
             if (currentOrder == null) {
                 cmd.reply(new OrderResponse(false, null, "Order not found"));
-                return Behaviors.same();
+                return SpringActorBehavior.same();
             }
 
             try {
@@ -214,15 +213,15 @@ public class OrderActor implements SpringActor<OrderActor.Command> {
                 cmd.reply(new OrderResponse(false, null, "Failed to update: " + e.getMessage()));
             }
 
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
 
-        private Behavior<Command> updateOrderStatus(
+        private SpringActorBehavior<Command> updateOrderStatus(
                 AskCommand<OrderResponse> cmd, OrderStatus newStatus, String action) {
 
             if (currentOrder == null) {
                 cmd.reply(new OrderResponse(false, null, "Order not found"));
-                return Behaviors.same();
+                return SpringActorBehavior.same();
             }
 
             try {
@@ -244,7 +243,7 @@ public class OrderActor implements SpringActor<OrderActor.Command> {
                 cmd.reply(new OrderResponse(false, null, "Failed to update: " + e.getMessage()));
             }
 
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
     }
 }

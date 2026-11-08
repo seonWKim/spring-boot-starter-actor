@@ -16,7 +16,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -41,15 +40,15 @@ class SpringRouterBehaviorTest {
                         String workerId = context.path().name();
                         workerState.recordMessage(workerId, msg.message);
                         context.getLog().info("Worker {} processed: {}", workerId, msg.message);
-                        return Behaviors.same();
+                        return SpringActorBehavior.same();
                     })
                     .onMessage(TestRouterActor.GetWorkerMessageCounts.class, (context, msg) -> {
                         msg.reply(workerState.getWorkerCounts());
-                        return Behaviors.same();
+                        return SpringActorBehavior.same();
                     })
                     .onMessage(TestRouterActor.GetTotalMessageCount.class, (context, msg) -> {
                         msg.reply(workerState.getTotalCount());
-                        return Behaviors.same();
+                        return SpringActorBehavior.same();
                     })
                     .build();
         }
@@ -123,11 +122,11 @@ class SpringRouterBehaviorTest {
             return SpringActorBehavior.builder(RandomRouterActor.Command.class, ctx)
                     .onMessage(RandomRouterActor.ProcessMessage.class, (context, msg) -> {
                         state.incrementCount();
-                        return Behaviors.same();
+                        return SpringActorBehavior.same();
                     })
                     .onMessage(RandomRouterActor.GetTotalMessageCount.class, (context, msg) -> {
                         msg.reply(state.getCount());
-                        return Behaviors.same();
+                        return SpringActorBehavior.same();
                     })
                     .build();
         }
@@ -189,15 +188,15 @@ class SpringRouterBehaviorTest {
                     .onMessage(BroadcastRouterActor.ProcessMessage.class, (context, msg) -> {
                         String workerId = context.path().name();
                         state.recordMessage(workerId, msg.message);
-                        return Behaviors.same();
+                        return SpringActorBehavior.same();
                     })
                     .onMessage(BroadcastRouterActor.GetWorkerMessageCounts.class, (context, msg) -> {
                         msg.reply(state.getWorkerCounts());
-                        return Behaviors.same();
+                        return SpringActorBehavior.same();
                     })
                     .onMessage(BroadcastRouterActor.GetTotalMessagesReceived.class, (context, msg) -> {
                         msg.reply(state.getTotalCount());
-                        return Behaviors.same();
+                        return SpringActorBehavior.same();
                     })
                     .build();
         }
@@ -271,15 +270,15 @@ class SpringRouterBehaviorTest {
                     .onMessage(ConsistentHashingRouterActor.ProcessHashableMessage.class, (context, msg) -> {
                         String workerId = context.path().name();
                         state.recordMessage(workerId, msg.getConsistentHashKey());
-                        return Behaviors.same();
+                        return SpringActorBehavior.same();
                     })
                     .onMessage(ConsistentHashingRouterActor.GetHashKeyWorkerMapping.class, (context, msg) -> {
                         msg.reply(state.getHashKeyWorkerMapping());
-                        return Behaviors.same();
+                        return SpringActorBehavior.same();
                     })
                     .onMessage(ConsistentHashingRouterActor.GetTotalMessageCount.class, (context, msg) -> {
                         msg.reply(state.getTotalCount());
-                        return Behaviors.same();
+                        return SpringActorBehavior.same();
                     })
                     .build();
         }
@@ -382,11 +381,11 @@ class SpringRouterBehaviorTest {
                         // Use the injected service
                         String result = workerService.processMessage(msg.data);
                         context.getLog().info("Service result: {}", result);
-                        return Behaviors.same();
+                        return SpringActorBehavior.same();
                     })
                     .onMessage(SpringDIRouterActor.GetServiceCallCount.class, (context, msg) -> {
                         msg.reply(workerService.getServiceCallCount());
-                        return Behaviors.same();
+                        return SpringActorBehavior.same();
                     })
                     .build();
         }

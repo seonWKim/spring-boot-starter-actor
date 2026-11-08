@@ -5,8 +5,6 @@ import io.github.seonwkim.actor.SpringActorBehavior;
 import io.github.seonwkim.actor.SpringActorContext;
 import io.github.seonwkim.actor.SpringActorWithContext;
 import io.github.seonwkim.actor.SpringBehaviorContext;
-import org.apache.pekko.actor.typed.Behavior;
-import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -31,7 +29,7 @@ public class VirtualThreadTestActor
                 .build();
     }
 
-    private Behavior<Command> onCheckThread(SpringBehaviorContext<Command> context, CheckThread command) {
+    private SpringActorBehavior<Command> onCheckThread(SpringBehaviorContext<Command> context, CheckThread command) {
         Thread currentThread = Thread.currentThread();
         boolean isVirtual = currentThread.isVirtual();
 
@@ -43,6 +41,6 @@ public class VirtualThreadTestActor
                         isVirtual,
                         currentThread.threadId());
 
-        return Behaviors.same();
+        return SpringActorBehavior.same();
     }
 }

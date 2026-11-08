@@ -6,11 +6,6 @@
 <io.github.seonwkim.actor.ActorSpawner.spawnActor(org.apache.pekko.actor.typed.javadsl.ActorContext, java.lang.Class, io.github.seonwkim.actor.SpringActorContext, java.lang.String, io.github.seonwkim.actor.SupervisionStrategy, io.github.seonwkim.actor.MailboxConfig, io.github.seonwkim.actor.DispatcherConfig, io.github.seonwkim.actor.TagsConfig, org.apache.pekko.cluster.typed.ClusterSingleton, boolean)> exposes Pekko type <org.apache.pekko.cluster.typed.ClusterSingleton>
 <io.github.seonwkim.actor.AskCommand.getReplyTo()> exposes Pekko type <org.apache.pekko.actor.typed.ActorRef>
 <io.github.seonwkim.actor.AskCommand.withReplyTo(org.apache.pekko.actor.typed.ActorRef)> exposes Pekko type <org.apache.pekko.actor.typed.ActorRef>
-<io.github.seonwkim.actor.SpringActorBehavior$Builder.onMessage(java.lang.Class, java.util.function.BiFunction)> exposes Pekko type <org.apache.pekko.actor.typed.Behavior>
-<io.github.seonwkim.actor.SpringActorBehavior$Builder.onSignal(java.lang.Class, java.util.function.BiFunction)> exposes Pekko type <org.apache.pekko.actor.typed.Behavior>
-<io.github.seonwkim.actor.SpringActorBehavior$Builder.onSignal(java.lang.Class, java.util.function.BiFunction)> exposes Pekko type <org.apache.pekko.actor.typed.Signal>
-<io.github.seonwkim.actor.SpringActorBehavior.asBehavior()> exposes Pekko type <org.apache.pekko.actor.typed.Behavior>
-<io.github.seonwkim.actor.SpringActorBehavior.wrap(org.apache.pekko.actor.typed.Behavior)> exposes Pekko type <org.apache.pekko.actor.typed.Behavior>
 <io.github.seonwkim.actor.SpringActorHandle.<init>(org.apache.pekko.actor.typed.Scheduler, org.apache.pekko.actor.typed.ActorRef)> exposes Pekko type <org.apache.pekko.actor.typed.ActorRef>
 <io.github.seonwkim.actor.SpringActorHandle.<init>(org.apache.pekko.actor.typed.Scheduler, org.apache.pekko.actor.typed.ActorRef)> exposes Pekko type <org.apache.pekko.actor.typed.Scheduler>
 <io.github.seonwkim.actor.SpringActorHandle.<init>(org.apache.pekko.actor.typed.Scheduler, org.apache.pekko.actor.typed.ActorRef, java.time.Duration)> exposes Pekko type <org.apache.pekko.actor.typed.ActorRef>

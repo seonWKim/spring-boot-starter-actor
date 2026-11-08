@@ -60,7 +60,7 @@ public class ActorAutoConfigurationTest {
         @Override
         public SpringActorBehavior<TestHelloActor.Command> create(SpringActorContext id) {
             return SpringActorBehavior.builder(TestHelloActor.Command.class, id)
-                    .onMessage(TestHelloActor.SayHello.class, (ctx, msg) -> Behaviors.same())
+                    .onMessage(TestHelloActor.SayHello.class, (ctx, msg) -> SpringActorBehavior.same())
                     .build();
         }
     }
@@ -138,7 +138,7 @@ public class ActorAutoConfigurationTest {
             return SpringActorBehavior.builder(Command.class, ctx)
                     .onMessage(GetSystemName.class, (context, msg) -> {
                         context.getLog().info("Actor system name: {}", actorSystem.getName());
-                        return Behaviors.same();
+                        return SpringActorBehavior.same();
                     })
                     .build();
         }

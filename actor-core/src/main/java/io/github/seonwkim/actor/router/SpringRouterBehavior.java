@@ -7,6 +7,7 @@ import io.github.seonwkim.actor.SpringActorContext;
 import io.github.seonwkim.actor.SpringActorWithContext;
 import io.github.seonwkim.actor.SupervisionStrategy;
 import io.github.seonwkim.actor.internal.DefaultSpringActorContext;
+import io.github.seonwkim.actor.internal.PekkoBehaviors;
 import io.github.seonwkim.actor.internal.PekkoProps;
 import java.util.Objects;
 import java.util.UUID;
@@ -104,7 +105,7 @@ public final class SpringRouterBehavior<C> {
             @SuppressWarnings("unchecked")
             SpringActorBehavior<C> workerSpringBehavior =
                     (SpringActorBehavior<C>) ActorTypeRegistry.createBehavior(workerActorClass, workerContext);
-            Behavior<C> workerBehavior = workerSpringBehavior.asBehavior();
+            Behavior<C> workerBehavior = PekkoBehaviors.toPekko(workerSpringBehavior);
 
             // Apply supervision strategy if specified
             if (supervisionStrategy != null) {

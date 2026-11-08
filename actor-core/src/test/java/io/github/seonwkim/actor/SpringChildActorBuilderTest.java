@@ -6,8 +6,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import io.github.seonwkim.actor.internal.DefaultSpringActorContext;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
-import org.apache.pekko.actor.typed.Behavior;
-import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -52,14 +50,14 @@ class SpringChildActorBuilderTest {
                 this.actorContext = actorContext;
             }
 
-            private Behavior<Command> onPing(Ping msg) {
+            private SpringActorBehavior<Command> onPing(Ping msg) {
                 msg.reply("pong");
-                return Behaviors.same();
+                return SpringActorBehavior.same();
             }
 
-            private Behavior<Command> onGetId(GetId msg) {
+            private SpringActorBehavior<Command> onGetId(GetId msg) {
                 msg.reply(actorContext.actorId());
-                return Behaviors.same();
+                return SpringActorBehavior.same();
             }
         }
     }
@@ -85,8 +83,8 @@ class SpringChildActorBuilderTest {
         private static class ParentBehavior {
             ParentBehavior() {}
 
-            private Behavior<Command> onDoNothing(DoNothing msg) {
-                return Behaviors.same();
+            private SpringActorBehavior<Command> onDoNothing(DoNothing msg) {
+                return SpringActorBehavior.same();
             }
         }
     }

@@ -5,7 +5,6 @@ import io.github.seonwkim.actor.SpringActor;
 import io.github.seonwkim.actor.SpringActorBehavior;
 import io.github.seonwkim.actor.SpringActorContext;
 import java.util.Map;
-import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -93,7 +92,7 @@ public class NotificationActor implements SpringActor<NotificationActor.Command>
                                 msg.notificationId, "ERROR", "Failed to send notification: " + e.getMessage()));
                     }
 
-                    return Behaviors.same();
+                    return SpringActorBehavior.same();
                 })
                 .build();
     }

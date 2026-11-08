@@ -7,7 +7,6 @@ import io.github.seonwkim.actor.serialization.JsonSerializable;
 import java.time.Duration;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -78,11 +77,11 @@ public class ClusterSingletonTest {
                     .onMessage(Increment.class, (ctx, msg) -> {
                         count.incrementAndGet();
                         ctx.getLog().debug("Count incremented to {}", count.get());
-                        return Behaviors.same();
+                        return SpringActorBehavior.same();
                     })
                     .onMessage(GetCount.class, (ctx, msg) -> {
                         msg.reply(new CountResponse(count.get()));
-                        return Behaviors.same();
+                        return SpringActorBehavior.same();
                     })
                     .build();
         }

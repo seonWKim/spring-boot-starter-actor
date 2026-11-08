@@ -5,7 +5,6 @@ import io.github.seonwkim.actor.SpringActor;
 import io.github.seonwkim.actor.SpringActorBehavior;
 import io.github.seonwkim.actor.SpringActorContext;
 import java.util.Map;
-import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -91,7 +90,7 @@ public class PaymentProcessorActor implements SpringActor<PaymentProcessorActor.
                                 msg.paymentId, "ERROR", null, "Payment failed: " + e.getMessage()));
                     }
 
-                    return Behaviors.same();
+                    return SpringActorBehavior.same();
                 })
                 .build();
     }

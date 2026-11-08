@@ -1,10 +1,10 @@
 package io.github.seonwkim.example.supervision;
 
+import io.github.seonwkim.actor.PostStop;
+import io.github.seonwkim.actor.PreRestart;
 import io.github.seonwkim.actor.SpringActorBehavior;
 import io.github.seonwkim.actor.SpringActorContext;
 import io.github.seonwkim.actor.SpringActorWithContext;
-import org.apache.pekko.actor.typed.PostStop;
-import org.apache.pekko.actor.typed.PreRestart;
 import org.springframework.stereotype.Component;
 
 /**

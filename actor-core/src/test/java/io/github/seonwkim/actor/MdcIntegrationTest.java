@@ -8,7 +8,6 @@ import ch.qos.logback.core.AppenderBase;
 import io.github.seonwkim.actor.autoconfigure.ActorConfiguration;
 import java.util.*;
 import java.util.concurrent.CompletionStage;
-import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -128,7 +127,7 @@ public class MdcIntegrationTest {
                     .onMessage(Ping.class, (ctx, msg) -> {
                         ctx.getLog().info("Static MDC actor received: {}", msg.message);
                         msg.reply(new Pong("Pong: " + msg.message, ctx.path().toString()));
-                        return Behaviors.same();
+                        return SpringActorBehavior.same();
                     })
                     .build();
         }
@@ -148,7 +147,7 @@ public class MdcIntegrationTest {
                     .onMessage(Ping.class, (ctx, msg) -> {
                         ctx.getLog().info("Dynamic MDC actor received: {}", msg.message);
                         msg.reply(new Pong("Pong: " + msg.message, ctx.path().toString()));
-                        return Behaviors.same();
+                        return SpringActorBehavior.same();
                     })
                     .build();
         }
@@ -172,7 +171,7 @@ public class MdcIntegrationTest {
                     .onMessage(Ping.class, (ctx, msg) -> {
                         ctx.getLog().info("Combined MDC actor received: {}", msg.message);
                         msg.reply(new Pong("Pong: " + msg.message, ctx.path().toString()));
-                        return Behaviors.same();
+                        return SpringActorBehavior.same();
                     })
                     .build();
         }
@@ -185,7 +184,7 @@ public class MdcIntegrationTest {
                     .onMessage(Ping.class, (ctx, msg) -> {
                         ctx.getLog().info("Parent received: {}", msg.message);
                         msg.reply(new Pong("Pong: " + msg.message, ctx.path().toString()));
-                        return Behaviors.same();
+                        return SpringActorBehavior.same();
                     })
                     .build();
         }
@@ -209,7 +208,7 @@ public class MdcIntegrationTest {
                     .onMessage(Ping.class, (ctx, msg) -> {
                         ctx.getLog().info("Child received: {}", msg.message);
                         msg.reply(new Pong("Pong: " + msg.message, ctx.path().toString()));
-                        return Behaviors.same();
+                        return SpringActorBehavior.same();
                     })
                     .build();
         }

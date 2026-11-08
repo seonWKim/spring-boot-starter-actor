@@ -18,7 +18,6 @@ import java.util.function.Supplier;
 import org.apache.pekko.Done;
 import org.apache.pekko.actor.CoordinatedShutdown;
 import org.apache.pekko.actor.typed.ActorSystem;
-import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.DisposableBean;
@@ -69,7 +68,7 @@ class GracefulShutdownTest {
                         } catch (InterruptedException e) {
                             Thread.currentThread().interrupt();
                         }
-                        return Behaviors.same();
+                        return SpringActorBehavior.same();
                     })
                     .build();
         }

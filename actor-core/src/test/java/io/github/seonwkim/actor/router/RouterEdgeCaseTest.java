@@ -14,7 +14,6 @@ import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -90,15 +89,15 @@ class RouterEdgeCaseTest {
                             throw new RuntimeException("Intentional failure");
                         }
                         state.recordSuccess();
-                        return Behaviors.same();
+                        return SpringActorBehavior.same();
                     })
                     .onMessage(SupervisedRouterActor.GetSuccessCount.class, (context, msg) -> {
                         msg.reply(state.getSuccessCount());
-                        return Behaviors.same();
+                        return SpringActorBehavior.same();
                     })
                     .onMessage(SupervisedRouterActor.GetFailureCount.class, (context, msg) -> {
                         msg.reply(state.getFailureCount());
-                        return Behaviors.same();
+                        return SpringActorBehavior.same();
                     })
                     .build();
         }
@@ -115,11 +114,11 @@ class RouterEdgeCaseTest {
             return SpringActorBehavior.builder(HighVolumeRouterActor.Command.class, ctx)
                     .onMessage(HighVolumeRouterActor.BulkMessage.class, (context, msg) -> {
                         state.incrementProcessed();
-                        return Behaviors.same();
+                        return SpringActorBehavior.same();
                     })
                     .onMessage(HighVolumeRouterActor.GetProcessedCount.class, (context, msg) -> {
                         msg.reply(state.getProcessedCount());
-                        return Behaviors.same();
+                        return SpringActorBehavior.same();
                     })
                     .build();
         }

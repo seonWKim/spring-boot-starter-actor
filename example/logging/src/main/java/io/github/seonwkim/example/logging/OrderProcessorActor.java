@@ -5,7 +5,6 @@ import io.github.seonwkim.actor.SpringActor;
 import io.github.seonwkim.actor.SpringActorBehavior;
 import io.github.seonwkim.actor.SpringActorContext;
 import java.util.Map;
-import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -78,7 +77,7 @@ public class OrderProcessorActor implements SpringActor<OrderProcessorActor.Comm
                                 new OrderProcessed(msg.orderId, "ERROR", "Failed to process order: " + e.getMessage()));
                     }
 
-                    return Behaviors.same();
+                    return SpringActorBehavior.same();
                 })
                 .build();
     }

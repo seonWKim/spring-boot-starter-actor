@@ -1,5 +1,6 @@
 package io.github.seonwkim.actor;
 
+import io.github.seonwkim.actor.internal.PekkoBehaviors;
 import io.github.seonwkim.actor.internal.PekkoProps;
 import javax.annotation.Nullable;
 import org.apache.pekko.actor.typed.ActorRef;
@@ -105,8 +106,7 @@ public final class ActorSpawner {
             boolean isClusterSingleton) {
 
         // Create behavior from static registry using Spring DI
-        Behavior<?> behavior =
-                ActorTypeRegistry.createBehavior(actorClass, actorContext).asBehavior();
+        Behavior<?> behavior = PekkoBehaviors.toPekko(ActorTypeRegistry.createBehavior(actorClass, actorContext));
 
         if (supervisorStrategy != null) {
             behavior = Behaviors.supervise(behavior).onFailure(PekkoProps.supervisor(supervisorStrategy));

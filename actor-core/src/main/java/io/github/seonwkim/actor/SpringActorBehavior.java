@@ -1,7 +1,5 @@
 package io.github.seonwkim.actor;
 
-import io.github.seonwkim.actor.internal.FrameworkCommands;
-import io.github.seonwkim.actor.internal.PekkoProps;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -9,18 +7,13 @@ import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import javax.annotation.Nullable;
-import org.apache.pekko.actor.typed.ActorRef;
-import org.apache.pekko.actor.typed.Behavior;
-import org.apache.pekko.actor.typed.Signal;
-import org.apache.pekko.actor.typed.javadsl.ActorContext;
-import org.apache.pekko.actor.typed.javadsl.BehaviorBuilder;
-import org.apache.pekko.actor.typed.javadsl.Behaviors;
 
 /**
- * A behavior wrapper that provides framework-level features for Spring actors.
+ * How an actor handles its messages and signals.
  *
- * <p>This class wraps Pekko's {@link Behavior} and adds Spring actor framework capabilities
- * such as automatic handling of framework commands (e.g., spawning children with Spring DI).
+ * <p>A message handler returns the actor's next behavior: {@link #same()} to keep handling
+ * messages the same way, {@link #stopped()} to stop, {@link #unhandled()} when it didn't handle the
+ * message, or a newly built behavior to change how the actor handles the next message.
  *
  * <p>Use the fluent builder API to construct behaviors:
  * <pre>
@@ -30,7 +23,7 @@ import org.apache.pekko.actor.typed.javadsl.Behaviors;
  *     return SpringActorBehavior.builder(Command.class, actorContext)
  *         .onMessage(DoWork.class, (ctx, msg) -> {
  *             ctx.getLog().info("Processing work");
- *             return Behaviors.same();
+ *             return SpringActorBehavior.same();
  *         })
  *         .build();
  * }
@@ -49,98 +42,164 @@ import org.apache.pekko.actor.typed.javadsl.Behaviors;
  *
  * <p><b>Framework Commands:</b> Framework command handling is automatically enabled when your
  * Command interface extends {@link FrameworkCommand}. When enabled, the behavior will automatically handle:
- * <ul>
- *   <li>{@link FrameworkCommands.SpawnChild} - Spawn child actors with Spring DI</li>
- *   <li>{@link FrameworkCommands.GetChild} - Get reference to existing child actors</li>
- *   <li>{@link FrameworkCommands.ExistsChild} - Check if child actor exists</li>
- * </ul>
- *
- * <p><b>Zero Overhead:</b> If your Command interface does not extend {@link FrameworkCommand},
- * there is no performance overhead - the user's behavior is used directly without any wrapping.
+ * spawning child actors with Spring DI, getting an existing child, and checking whether a child exists.
  *
  * @param <C> The command type this behavior handles
  * @see FrameworkCommand
- * @see FrameworkCommands
  */
 public final class SpringActorBehavior<C> {
 
-    private final Behavior<C> behavior;
+    /** What a behavior is. Read by the actor engine; application code doesn't need it. */
+    public enum Kind {
+        /** Keep the current behavior. */
+        SAME,
+        /** Stop the actor. */
+        STOPPED,
+        /** The message wasn't handled; the current behavior stays. */
+        UNHANDLED,
+        /** A behavior built with {@link #builder}: see {@link #definition()}. */
+        DEFINED,
+        /** A behavior of the underlying engine, passed to {@link #wrap(Object)}. */
+        NATIVE
+    }
 
-    private SpringActorBehavior(Behavior<C> behavior) {
-        this.behavior = behavior;
+    private static final SpringActorBehavior<?> SAME = new SpringActorBehavior<>(Kind.SAME, null, null);
+    private static final SpringActorBehavior<?> STOPPED = new SpringActorBehavior<>(Kind.STOPPED, null, null);
+    private static final SpringActorBehavior<?> UNHANDLED = new SpringActorBehavior<>(Kind.UNHANDLED, null, null);
+
+    private final Kind kind;
+
+    @Nullable private final Definition<C, ?> definition;
+
+    @Nullable private final Object nativeBehavior;
+
+    private SpringActorBehavior(Kind kind, @Nullable Definition<C, ?> definition, @Nullable Object nativeBehavior) {
+        this.kind = kind;
+        this.definition = definition;
+        this.nativeBehavior = nativeBehavior;
+    }
+
+    /** Keep handling messages the same way. */
+    @SuppressWarnings("unchecked")
+    public static <C> SpringActorBehavior<C> same() {
+        return (SpringActorBehavior<C>) SAME;
+    }
+
+    /** Stop the actor. Its {@link PostStop} handler runs. */
+    @SuppressWarnings("unchecked")
+    public static <C> SpringActorBehavior<C> stopped() {
+        return (SpringActorBehavior<C>) STOPPED;
+    }
+
+    /** The message wasn't handled: it is published as unhandled and the current behavior stays. */
+    @SuppressWarnings("unchecked")
+    public static <C> SpringActorBehavior<C> unhandled() {
+        return (SpringActorBehavior<C>) UNHANDLED;
     }
 
     /**
-     * Unwraps this SpringActorBehavior to get the underlying Pekko Behavior.
+     * Escape hatch: use a behavior written directly against the underlying engine (a Pekko
+     * {@code org.apache.pekko.actor.typed.Behavior<C>}). Prefer {@link #builder}: such a behavior
+     * gets none of the starter's features (framework commands, MDC, metrics hooks).
      *
-     * @return the underlying Pekko behavior
+     * @throws IllegalArgumentException when the engine can't run it (checked when the actor starts)
      */
-    public Behavior<C> asBehavior() {
-        return behavior;
+    public static <C> SpringActorBehavior<C> wrap(Object engineBehavior) {
+        return new SpringActorBehavior<>(Kind.NATIVE, null, Objects.requireNonNull(engineBehavior, "engineBehavior"));
     }
 
     /**
-     * Wraps a Pekko Behavior in a SpringActorBehavior. This is a package-private method used
-     * internally by the framework (e.g., for router support).
+     * Starts building a behavior.
      *
-     * <p>This method should only be used by framework components like routers that need to
-     * integrate existing Pekko behaviors into the Spring actor system.
-     *
-     * @param behavior the Pekko behavior to wrap
-     * @param <C>      the command type
-     * @return a SpringActorBehavior wrapping the given behavior
-     */
-    public static <C> SpringActorBehavior<C> wrap(Behavior<C> behavior) {
-        return new SpringActorBehavior<>(behavior);
-    }
-
-    /**
-     * Creates a new builder for constructing a SpringActorBehavior.
-     *
-     * <p>The builder starts with SpringBehaviorContext as the default state type. Use {@link Builder#withState(Function)}
-     * to evolve the builder to use a custom state type that will be passed to message handlers.
-     *
-     * @param commandClass the command class
-     * @param actorContext the Spring actor context
-     * @param <C>          the command type
-     * @return a new builder instance with SpringBehaviorContext as the state type
+     * @param commandClass the actor's command type
+     * @param actorContext the context the actor was spawned with
      */
     public static <C> Builder<C, SpringBehaviorContext<C>> builder(
             Class<C> commandClass, SpringActorContext actorContext) {
-        return new Builder<>(commandClass, actorContext, ctx -> ctx);
+        return new Builder<>(commandClass, actorContext, ctx -> ctx, null, null);
+    }
+
+    public Kind kind() {
+        return kind;
+    }
+
+    /** The built behavior when {@link #kind()} is {@link Kind#DEFINED}. */
+    public Definition<C, ?> definition() {
+        if (definition == null) {
+            throw new IllegalStateException("Not a built behavior: " + kind);
+        }
+        return definition;
+    }
+
+    /** The engine behavior when {@link #kind()} is {@link Kind#NATIVE}. */
+    public Object nativeBehavior() {
+        if (nativeBehavior == null) {
+            throw new IllegalStateException("Not an engine behavior: " + kind);
+        }
+        return nativeBehavior;
     }
 
     /**
-     * Builder for creating SpringActorBehavior instances with a fluent API.
+     * A built behavior, as data. Read by the actor engine; application code doesn't need it.
      *
-     * <p>This builder supports type-safe state evolution through the {@link #withState(Function)} method.
-     * The state type parameter {@code S} represents the type of object passed to message handlers.
-     *
-     * @param <C> the command type
-     * @param <S> the state type passed to message handlers (defaults to SpringBehaviorContext&lt;C&gt;)
+     * @param frameworkCommands whether the command type extends {@link FrameworkCommand}
      */
+    public record Definition<C, S>(
+            Class<C> commandClass,
+            SpringActorContext actorContext,
+            Function<SpringBehaviorContext<C>, S> stateFactory,
+            List<MessageHandler<C, S, ?>> messageHandlers,
+            List<SignalHandler<C, S, ?>> signalHandlers,
+            @Nullable SupervisionStrategy supervisionStrategy,
+            @Nullable Function<C, Map<String, String>> mdcForMessage,
+            boolean frameworkCommands) {
+        public Definition {
+            messageHandlers = List.copyOf(messageHandlers);
+            signalHandlers = List.copyOf(signalHandlers);
+        }
+    }
+
+    /** A message handler of a {@link Definition}. */
+    public record MessageHandler<C, S, M extends C>(Class<M> type, BiFunction<S, M, SpringActorBehavior<C>> handler) {
+        /** The next behavior, or null when the message is not of this handler's type. */
+        @SuppressWarnings("unchecked")
+        public @Nullable SpringActorBehavior<C> tryHandle(S state, Object message) {
+            return type.isInstance(message) ? handler.apply(state, (M) message) : null;
+        }
+    }
+
+    /** A signal handler of a {@link Definition}. */
+    public record SignalHandler<C, S, M extends ActorSignal>(
+            Class<M> type, BiFunction<S, M, SpringActorBehavior<C>> handler) {
+        /** The next behavior, or null when the signal is not of this handler's type. */
+        @SuppressWarnings("unchecked")
+        public @Nullable SpringActorBehavior<C> tryHandle(S state, ActorSignal signal) {
+            return type.isInstance(signal) ? handler.apply(state, (M) signal) : null;
+        }
+    }
+
     public static final class Builder<C, S> {
-        private final SpringActorContext actorContext;
         private final Class<C> commandClass;
+        private final SpringActorContext actorContext;
         private final Function<SpringBehaviorContext<C>, S> stateFactory;
         private final List<MessageHandler<C, S, ?>> messageHandlers = new ArrayList<>();
         private final List<SignalHandler<C, S, ?>> signalHandlers = new ArrayList<>();
-        private boolean enableFrameworkCommands = false;
 
-        @Nullable private SupervisionStrategy supervisionStrategy = null;
+        @Nullable private SupervisionStrategy supervisionStrategy;
 
-        @Nullable private Function<C, Map<String, String>> mdcForMessage = null;
+        @Nullable private Function<C, Map<String, String>> mdcForMessage;
 
         private Builder(
                 Class<C> commandClass,
                 SpringActorContext actorContext,
-                Function<SpringBehaviorContext<C>, S> stateFactory) {
-            this.commandClass = commandClass;
-            this.actorContext = actorContext;
+                Function<SpringBehaviorContext<C>, S> stateFactory,
+                @Nullable SupervisionStrategy supervisionStrategy,
+                @Nullable Function<C, Map<String, String>> mdcForMessage) {
+            this.commandClass = Objects.requireNonNull(commandClass, "commandClass");
+            this.actorContext = Objects.requireNonNull(actorContext, "actorContext");
             this.stateFactory = stateFactory;
-
-            // Auto-detect: if Command extends FrameworkCommand, automatically enable framework commands
-            this.enableFrameworkCommands = FrameworkCommand.class.isAssignableFrom(commandClass);
+            this.supervisionStrategy = supervisionStrategy;
+            this.mdcForMessage = mdcForMessage;
         }
 
         /**
@@ -160,7 +219,7 @@ public final class SpringActorBehavior<C> {
          * @return this builder for chaining
          */
         public Builder<C, S> withSupervisionStrategy(SupervisionStrategy strategy) {
-            this.supervisionStrategy = strategy;
+            this.supervisionStrategy = Objects.requireNonNull(strategy, "strategy");
             return this;
         }
 
@@ -186,11 +245,7 @@ public final class SpringActorBehavior<C> {
          * @return a new builder with the evolved state type
          */
         public <NewS> Builder<C, NewS> withState(Function<SpringBehaviorContext<C>, NewS> stateFactory) {
-            Builder<C, NewS> newBuilder = new Builder<>(commandClass, actorContext, stateFactory);
-            newBuilder.enableFrameworkCommands = this.enableFrameworkCommands;
-            newBuilder.supervisionStrategy = this.supervisionStrategy;
-            newBuilder.mdcForMessage = this.mdcForMessage;
-            return newBuilder;
+            return new Builder<>(commandClass, actorContext, stateFactory, supervisionStrategy, mdcForMessage);
         }
 
         /**
@@ -204,7 +259,7 @@ public final class SpringActorBehavior<C> {
          * @param <M>     the message type
          * @return this builder for chaining
          */
-        public <M extends C> Builder<C, S> onMessage(Class<M> type, BiFunction<S, M, Behavior<C>> handler) {
+        public <M extends C> Builder<C, S> onMessage(Class<M> type, BiFunction<S, M, SpringActorBehavior<C>> handler) {
             messageHandlers.add(new MessageHandler<>(type, handler));
             return this;
         }
@@ -215,12 +270,13 @@ public final class SpringActorBehavior<C> {
          * <p>The handler receives the state object (from withState) and the signal.
          * If withState was not called, the state will be the ActorContext.
          *
-         * @param type    the signal class to handle
+         * @param type    the signal class to handle: {@link PreRestart} or {@link PostStop}
          * @param handler the handler function that receives state and signal
          * @param <M>     the signal type
          * @return this builder for chaining
          */
-        public <M extends Signal> Builder<C, S> onSignal(Class<M> type, BiFunction<S, M, Behavior<C>> handler) {
+        public <M extends ActorSignal> Builder<C, S> onSignal(
+                Class<M> type, BiFunction<S, M, SpringActorBehavior<C>> handler) {
             signalHandlers.add(new SignalHandler<>(type, handler));
             return this;
         }
@@ -243,7 +299,7 @@ public final class SpringActorBehavior<C> {
          *     .onMessage(ProcessOrder.class, (ctx, msg) -> {
          *         // MDC automatically includes messageType, messageId, timestamp
          *         ctx.getLog().info("Processing order");
-         *         return Behaviors.same();
+         *         return SpringActorBehavior.same();
          *     })
          *     .build();
          * }</pre>
@@ -265,257 +321,18 @@ public final class SpringActorBehavior<C> {
          * @return the constructed behavior
          */
         public SpringActorBehavior<C> build() {
-            if (enableFrameworkCommands) {
-                // Wrap with framework command handling
-                Behavior<C> behaviorWithFramework = Behaviors.setup(ctx -> {
-                    // Wrap ActorContext with SpringBehaviorContext
-                    SpringBehaviorContext<C> springCtx = new SpringBehaviorContext<>(ctx);
-                    // Create the state object
-                    S state = stateFactory.apply(springCtx);
-
-                    Behavior<C> behavior = createFrameworkCommandHandlingBehavior(ctx, state);
-
-                    // Apply supervision strategy if provided
-                    if (supervisionStrategy != null) {
-                        behavior = Behaviors.supervise(behavior).onFailure(PekkoProps.supervisor(supervisionStrategy));
-                    }
-
-                    // Wrap with MDC if configured
-                    behavior = wrapWithMdcIfConfigured(behavior);
-
-                    return behavior;
-                });
-                return new SpringActorBehavior<>(behaviorWithFramework);
-            } else {
-                // No framework commands - just create the user behavior
-                Behavior<C> userBehavior = Behaviors.setup(ctx -> {
-                    // Wrap ActorContext with SpringBehaviorContext
-                    SpringBehaviorContext<C> springCtx = new SpringBehaviorContext<>(ctx);
-                    // Create the state object
-                    S state = stateFactory.apply(springCtx);
-
-                    BehaviorBuilder<C> builder = Behaviors.receive(commandClass);
-
-                    // Add all message handlers
-                    for (MessageHandler<C, S, ?> handler : messageHandlers) {
-                        builder = handler.addTo(builder, state);
-                    }
-
-                    // Add all signal handlers
-                    for (SignalHandler<C, S, ?> handler : signalHandlers) {
-                        builder = handler.addTo(builder, state);
-                    }
-
-                    Behavior<C> behavior = builder.build();
-
-                    // Apply supervision strategy if provided
-                    if (supervisionStrategy != null) {
-                        behavior = Behaviors.supervise(behavior).onFailure(PekkoProps.supervisor(supervisionStrategy));
-                    }
-
-                    // Wrap with MDC if configured
-                    behavior = wrapWithMdcIfConfigured(behavior);
-
-                    return behavior;
-                });
-                return new SpringActorBehavior<>(userBehavior);
-            }
-        }
-
-        /**
-         * Wraps the behavior with MDC if either static or dynamic MDC is configured.
-         */
-        private Behavior<C> wrapWithMdcIfConfigured(Behavior<C> behavior) {
-            // Get static MDC from context
-            Map<String, String> staticMdc = actorContext.mdcConfig().getMdc();
-            boolean hasStaticMdc = !staticMdc.isEmpty();
-            boolean hasDynamicMdc = mdcForMessage != null;
-
-            // Only wrap if we have MDC configuration
-            if (hasStaticMdc && hasDynamicMdc) {
-                // Both static and dynamic MDC
-                // requireNonNull for NullAway - we already checked hasDynamicMdc
-                final Function<C, Map<String, String>> mdcFn = Objects.requireNonNull(mdcForMessage);
-                return Behaviors.withMdc(commandClass, staticMdc, mdcFn::apply, behavior);
-            } else if (hasStaticMdc) {
-                // Only static MDC
-                return Behaviors.withMdc(commandClass, staticMdc, behavior);
-            } else if (hasDynamicMdc) {
-                // Only dynamic MDC
-                // requireNonNull for NullAway - we already checked hasDynamicMdc
-                final Function<C, Map<String, String>> mdcFn = Objects.requireNonNull(mdcForMessage);
-                return Behaviors.withMdc(commandClass, mdcFn::apply, behavior);
-            }
-
-            return behavior;
-        }
-
-        /**
-         * Creates a behavior that intercepts framework commands before delegating to user handlers.
-         */
-        @SuppressWarnings("unchecked")
-        private Behavior<C> createFrameworkCommandHandlingBehavior(ActorContext<C> ctx, S state) {
-            // Use Object.class to receive both framework commands and user commands
-            return Behaviors.receive(Object.class)
-                    .onMessage(Object.class, msg -> {
-                        // Handle framework commands first
-                        if (msg instanceof FrameworkCommands.SpawnChild) {
-                            handleSpawnChild(ctx, (FrameworkCommands.SpawnChild<?>) msg);
-                            return Behaviors.same();
-                        }
-                        if (msg instanceof FrameworkCommands.GetChild) {
-                            handleGetChild(ctx, (FrameworkCommands.GetChild<?>) msg);
-                            return Behaviors.same();
-                        }
-                        if (msg instanceof FrameworkCommands.ExistsChild) {
-                            handleExistsChild(ctx, (FrameworkCommands.ExistsChild<?>) msg);
-                            return Behaviors.same();
-                        }
-
-                        // If it's a user command, handle it
-                        if (commandClass.isInstance(msg)) {
-                            C typedMsg = (C) msg;
-                            // Try each user message handler
-                            for (MessageHandler<C, S, ?> handler : messageHandlers) {
-                                Behavior<C> result = handler.tryHandle(typedMsg, state);
-                                if (result != null) {
-                                    return (Behavior<Object>) result;
-                                }
-                            }
-                        }
-
-                        return Behaviors.unhandled();
-                    })
-                    .onSignal(Signal.class, sig -> {
-                        // Try each signal handler
-                        for (SignalHandler<C, S, ?> handler : signalHandlers) {
-                            Behavior<C> result = handler.tryHandle(sig, state);
-                            if (result != null) {
-                                return (Behavior<Object>) result;
-                            }
-                        }
-                        return Behaviors.unhandled();
-                    })
-                    .build()
-                    .narrow();
-        }
-
-        /**
-         * Handles SpawnChild framework command.
-         */
-        @SuppressWarnings("unchecked")
-        private <CC> void handleSpawnChild(ActorContext<C> ctx, FrameworkCommands.SpawnChild<CC> msg) {
-            try {
-                // Build child context and name
-                SpringActorContext childContext = msg.childContext;
-                String childName = ActorSpawner.buildActorName(msg.actorClass, childContext.actorId());
-
-                // Check if child already exists
-                if (ctx.getChild(childName).isPresent()) {
-                    ActorRef<CC> existingChild =
-                            (ActorRef<CC>) ctx.getChild(childName).get();
-                    msg.replyTo.tell(FrameworkCommands.SpawnChildResponse.alreadyExists(existingChild));
-                    return;
-                }
-
-                // Spawn the child using the centralized spawning logic with static ActorTypeRegistry
-                ActorRef<CC> childRef = ActorSpawner.spawnActor(
-                        ctx,
-                        msg.actorClass,
-                        childContext,
-                        childName,
-                        msg.strategy,
-                        msg.mailboxConfig,
-                        msg.dispatcherConfig,
-                        msg.tagsConfig,
-                        null, // clusterSingleton - not supported for child actors
-                        false // isClusterSingleton - not supported for child actors
-                        );
-
-                msg.replyTo.tell(FrameworkCommands.SpawnChildResponse.success(childRef));
-
-            } catch (Exception e) {
-                ctx.getLog().error("Failed to spawn child actor", e);
-                msg.replyTo.tell(
-                        FrameworkCommands.SpawnChildResponse.failure("Failed to spawn child: " + e.getMessage()));
-            }
-        }
-
-        /**
-         * Handles GetChild framework command.
-         */
-        @SuppressWarnings("unchecked")
-        private <CC> void handleGetChild(ActorContext<C> ctx, FrameworkCommands.GetChild<CC> msg) {
-            ActorRef<CC> childRef = ActorSpawner.getActor(ctx, msg.actorClass, msg.childId);
-
-            if (childRef != null) {
-                msg.replyTo.tell(FrameworkCommands.GetChildResponse.found(childRef));
-            } else {
-                msg.replyTo.tell(FrameworkCommands.GetChildResponse.notFound());
-            }
-        }
-
-        /**
-         * Handles ExistsChild framework command.
-         */
-        private void handleExistsChild(ActorContext<C> ctx, FrameworkCommands.ExistsChild<?> msg) {
-            boolean exists = ActorSpawner.actorExists(ctx, msg.actorClass, msg.childId);
-
-            if (exists) {
-                msg.replyTo.tell(FrameworkCommands.ExistsChildResponse.exists());
-            } else {
-                msg.replyTo.tell(FrameworkCommands.ExistsChildResponse.notExists());
-            }
-        }
-
-        /**
-         * Internal class to store message handler information.
-         */
-        private static class MessageHandler<C, S, M extends C> {
-            private final Class<M> type;
-            private final BiFunction<S, M, Behavior<C>> handler;
-
-            MessageHandler(Class<M> type, BiFunction<S, M, Behavior<C>> handler) {
-                this.type = type;
-                this.handler = handler;
-            }
-
-            BehaviorBuilder<C> addTo(BehaviorBuilder<C> builder, S state) {
-                return builder.onMessage(type, msg -> handler.apply(state, msg));
-            }
-
-            @SuppressWarnings("unchecked")
-            @Nullable Behavior<C> tryHandle(C msg, S state) {
-                if (type.isInstance(msg)) {
-                    return handler.apply(state, (M) msg);
-                }
-                return null;
-            }
-        }
-
-        /**
-         * Internal class to store signal handler information.
-         */
-        private static class SignalHandler<C, S, M extends Signal> {
-            private final Class<M> type;
-            private final BiFunction<S, M, Behavior<C>> handler;
-
-            SignalHandler(Class<M> type, BiFunction<S, M, Behavior<C>> handler) {
-                this.type = type;
-                this.handler = handler;
-            }
-
-            BehaviorBuilder<C> addTo(BehaviorBuilder<C> builder, S state) {
-                return builder.onSignal(type, sig -> handler.apply(state, sig));
-            }
-
-            @SuppressWarnings("unchecked")
-            @Nullable Behavior<C> tryHandle(Signal sig, S state) {
-                if (type.isInstance(sig)) {
-                    return handler.apply(state, (M) sig);
-                }
-                return null;
-            }
+            return new SpringActorBehavior<>(
+                    Kind.DEFINED,
+                    new Definition<>(
+                            commandClass,
+                            actorContext,
+                            stateFactory,
+                            messageHandlers,
+                            signalHandlers,
+                            supervisionStrategy,
+                            mdcForMessage,
+                            FrameworkCommand.class.isAssignableFrom(commandClass)),
+                    null);
         }
     }
 }

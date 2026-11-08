@@ -12,7 +12,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
-import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -120,7 +119,7 @@ public class ActorTagsIntegrationTest {
                     .onMessage(Ping.class, (ctx, msg) -> {
                         ctx.getLog().info("Received: {}", msg.message);
                         msg.reply(new Pong("Pong: " + msg.message, ctx.path().toString()));
-                        return Behaviors.same();
+                        return SpringActorBehavior.same();
                     })
                     .build();
         }
@@ -133,7 +132,7 @@ public class ActorTagsIntegrationTest {
                     .onMessage(Ping.class, (ctx, msg) -> {
                         ctx.getLog().info("Parent received: {}", msg.message);
                         msg.reply(new Pong("Pong: " + msg.message, ctx.path().toString()));
-                        return Behaviors.same();
+                        return SpringActorBehavior.same();
                     })
                     .build();
         }
@@ -146,7 +145,7 @@ public class ActorTagsIntegrationTest {
                     .onMessage(Ping.class, (ctx, msg) -> {
                         ctx.getLog().info("Child received: {}", msg.message);
                         msg.reply(new Pong("Pong: " + msg.message, ctx.path().toString()));
-                        return Behaviors.same();
+                        return SpringActorBehavior.same();
                     })
                     .build();
         }

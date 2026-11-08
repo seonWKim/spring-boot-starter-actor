@@ -46,7 +46,7 @@ public class ApprovalActor implements SpringActor<ApprovalActor.Command> {
 
     @Override
     public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
-        return SpringActorBehavior.wrap(Behaviors.withTimers(timers -> new Gateway(timers).behavior()));
+        return SpringActorBehavior.wrap(Behaviors.<Command>withTimers(timers -> new Gateway(timers).behavior()));
     }
 
     private static final class Gateway {
