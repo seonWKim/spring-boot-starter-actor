@@ -37,10 +37,13 @@ public final class ActorContext {
             ActorCell cell = (ActorCell) actorCell;
             String pathString = cell.self().path().toString();
 
-            // actor() may not be available at all lifecycle points (e.g. pre-init)
+            // actor() is null until the actor instance is created (messages can be enqueued
+            // before that); the class from Props keeps the same key for enqueue and dequeue.
             String actorClassName;
             try {
-                actorClassName = cell.actor().getClass().getSimpleName();
+                Object actor = cell.actor();
+                Class<?> actorClass = actor != null ? actor.getClass() : cell.props().actorClass();
+                actorClassName = actorClass.getSimpleName();
             } catch (Exception e) {
                 actorClassName = "Unknown";
             }

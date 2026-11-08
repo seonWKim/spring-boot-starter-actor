@@ -9,6 +9,7 @@ import io.github.seonwkim.metrics.agent.MetricsAgent;
 import io.github.seonwkim.metrics.core.MetricsConfiguration;
 import io.github.seonwkim.metrics.core.MetricsRegistry;
 import io.github.seonwkim.metrics.testing.TestMetricsBackend;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import org.apache.pekko.actor.*;
 import org.junit.jupiter.api.AfterEach;
@@ -141,6 +142,26 @@ class MailboxModuleIntegrationTest {
         assertTrue(
                 mailboxSize <= 1,
                 String.format("Mailbox size should be 0 or 1 after processing, got: %.0f", mailboxSize));
+    }
+
+    @Test
+    void testMailboxSizeReturnsToZeroForMessagesSentBeforeActorIsCreated() throws Exception {
+        Thread.sleep(200);
+
+        // The constructor blocks until both messages are enqueued, so they are counted while
+        // the cell has no actor instance yet; their dequeue is counted after it exists.
+        ActorRef actor = actorSystem.actorOf(Props.create(GatedActor.class), "gated-actor");
+        actor.tell(new TestMessage("msg1"), ActorRef.noSender());
+        actor.tell(new TestMessage("msg2"), ActorRef.noSender());
+        GatedActor.gate.countDown();
+
+        eventually(() -> {
+            long dequeued = metricsBackend.getTimerCount("actor.mailbox.time");
+            assertTrue(dequeued >= 2, String.format("Both messages should be dequeued, got: %d", dequeued));
+        });
+
+        double mailboxSize = metricsBackend.getGaugeValue("actor.mailbox.size");
+        assertEquals(0, mailboxSize, "Enqueue and dequeue must count against the same actor class");
     }
 
     @Test
@@ -277,6 +298,19 @@ class MailboxModuleIntegrationTest {
                         // Fast processing
                     })
                     .build();
+        }
+    }
+
+    public static class GatedActor extends AbstractActor {
+        static final CountDownLatch gate = new CountDownLatch(1);
+
+        public GatedActor() throws InterruptedException {
+            gate.await(10, TimeUnit.SECONDS);
+        }
+
+        @Override
+        public Receive createReceive() {
+            return receiveBuilder().match(TestMessage.class, msg -> {}).build();
         }
     }
 
