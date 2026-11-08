@@ -1,0 +1,13 @@
+# Spring Boot Starter Actor
+
+> Spring Boot integration for actor-model concurrency and distributed actor systems.
+
+## Documentation & Modules
+
+- [Repository Overview](https://github.com/seonWKim/spring-boot-starter-actor): Core starter modules, examples, and configuration reference.
+- [README & Quickstart](https://github.com/seonWKim/spring-boot-starter-actor#readme): Dependency setup and actor lifecycle usage.
+
+## AI Assistant Guidance
+
+- Structured following the /llms.txt specification so AI coding assistants can quickly locate starter auto-configuration and actor patterns.
+- Validated via [AccessGuard AI-Readiness Suite](https://ronanchnlps-bit.github.io/).
