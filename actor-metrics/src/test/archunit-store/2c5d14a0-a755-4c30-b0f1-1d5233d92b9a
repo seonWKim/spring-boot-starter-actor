@@ -1,0 +1,1 @@
+Method <io.github.seonwkim.actor.metrics.api.ActorContext.from(java.lang.Object)> calls method <io.github.seonwkim.actor.metrics.internal.ActorCells.contextOf(java.lang.Object)> in (ActorContext.java:26)

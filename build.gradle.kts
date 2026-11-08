@@ -273,3 +273,21 @@ configure(subprojects.filter { !it.path.startsWith(":relocation") }) {
 
 }
 
+
+// Every module with code runs the ARCHITECTURE.md rules on its own main classes.
+configure(subprojects.filter {
+    !it.path.startsWith(":relocation") && it.path != ":architecture-rules" && it.path != ":example:kubernetes"
+}) {
+    dependencies {
+        "testImplementation"(project(":architecture-rules"))
+    }
+    tasks.withType<Test>().configureEach {
+        val mainClasses = project.extensions.getByType<SourceSetContainer>()["main"].output.classesDirs
+        inputs.files(mainClasses).withPropertyName("architectureClasses")
+        systemProperty("architecture.classes", mainClasses.asPath)
+        // Create or refreeze a module's store locally: -Darchunit.freeze.store.default.allowStoreCreation=true
+        System.getProperty("archunit.freeze.store.default.allowStoreCreation")?.let {
+            systemProperty("archunit.freeze.store.default.allowStoreCreation", it)
+        }
+    }
+}

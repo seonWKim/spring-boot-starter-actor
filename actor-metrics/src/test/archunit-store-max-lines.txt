@@ -1,0 +1,2 @@
+# Frozen ARCHITECTURE.md violations in src/test/archunit-store. Lower it as they are fixed; never raise it.
+3

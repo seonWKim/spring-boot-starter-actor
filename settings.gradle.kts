@@ -6,6 +6,9 @@ include(":actor-autoconfigure")
 include(":actor-spring-boot-starter")
 include(":actor-metrics")
 
+// Test-only: the ARCHITECTURE.md rules every module's ArchitectureTest runs. Not published.
+include(":architecture-rules")
+
 // Relocation POMs: the 0.x coordinates point to the 1.0 artifacts for one release.
 include(":relocation:spring-boot-starter-actor")
 include(":relocation:spring-boot-starter-actor_3")
