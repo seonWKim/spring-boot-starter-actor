@@ -19,11 +19,26 @@ public class ActorMetricsProperties {
      */
     private boolean enabled = true;
 
+    /**
+     * How many actor paths get their own actor.path tag on the actor message meters; the rest share
+     * actor.path=other. 0 (the default) adds no actor.path tag, so the series count never grows with
+     * the number of actors.
+     */
+    private int pathTagLimit = 0;
+
     public boolean isEnabled() {
         return enabled;
     }
 
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
+    }
+
+    public int getPathTagLimit() {
+        return pathTagLimit;
+    }
+
+    public void setPathTagLimit(int pathTagLimit) {
+        this.pathTagLimit = pathTagLimit;
     }
 }

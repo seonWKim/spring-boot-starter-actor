@@ -40,6 +40,8 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-web")
     testImplementation("io.micrometer:micrometer-tracing-bridge-otel")
     testImplementation("io.opentelemetry:opentelemetry-sdk-testing")
+    testImplementation(project(":actor-metrics"))
+    testImplementation("org.awaitility:awaitility")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
@@ -50,4 +52,10 @@ tasks.compileJava {
     // An incremental compile regenerates the metadata from the changed classes only, dropping
     // the keys of the others. This module is small: always compile it whole.
     options.isIncremental = false
+}
+
+// Overhead of the agent-free actor meters per message; the result is quoted in the metrics guide.
+tasks.register<JavaExec>("actorMetersBenchmark") {
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass.set("io.github.seonwkim.actor.autoconfigure.metrics.ActorMetersBenchmark")
 }

@@ -15,6 +15,8 @@ dependencies {
     compileOnly("com.google.code.findbugs:jsr305:3.0.2")
     // Cluster meters read the starter's ClusterEvent records.
     compileOnly(project(":actor-api"))
+    // Agent-free actor meters implement actor-core's ActorInstrumentation hook.
+    compileOnly(project(":actor-core"))
 
     // Pekko for compilation only (instrumentation needs Pekko classes)
     // Users bring their own Pekko at runtime
