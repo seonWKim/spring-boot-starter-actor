@@ -44,7 +44,7 @@ That's all: with a `MeterRegistry` bean (Actuator registers one), every actor th
 - `actor.class` is the simple name of the actor's class (for a sharded actor, its `SpringShardedActor` class), `dispatcher` the Pekko dispatcher id (`pekko.actor.default-dispatcher`), `system` the actor system's name.
 - Meters are per actor class, not per actor, so the series count does not grow with the number of actors: 10,000 entities of one class have the same series as one. A test spawns 10,000 actors and checks it.
 - **Path tags** are opt-in and capped: `spring.actor.metrics.path-tag-limit=50` adds `actor.path` to the `actor.message.*` meters for the first 50 actor paths seen, and `actor.path=other` for every other actor.
-- The cluster adds the [`actor.cluster.*` meters](../guides/production.md#cluster-metrics).
+- The cluster adds the [`actor.cluster.*` and `actor.sharding.*` meters](../guides/production.md#cluster-metrics).
 
 What is not covered:
 
