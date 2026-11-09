@@ -21,6 +21,7 @@ The full text of the Getting Started page and every guide, with code inlined, is
 - [Sharded Actors](https://seonwkim.github.io/actor-spring-boot-starter/guides/sharded-actors/): one actor per entity ID, spread across a cluster
 - [Cluster Formation](https://seonwkim.github.io/actor-spring-boot-starter/guides/cluster-formation/): join a cluster through seed nodes, or find peers through a JDBC table, Redis or your own store without Kubernetes RBAC
 - [Split Brain and Leases](https://seonwkim.github.io/actor-spring-boot-starter/guides/split-brain-and-leases/): choose which side of a network split stays up, and keep singletons and shards on one node with a lease in a JDBC table, Redis or your own store
+- [Replicated Data](https://seonwkim.github.io/actor-spring-boot-starter/guides/replicated-data/): maps, counters and sets copied to every node, with local, majority or all consistency
 - [Persistence with Spring Boot](https://seonwkim.github.io/actor-spring-boot-starter/guides/persistence-spring-boot/): keep actor state with Spring Data and other Spring Boot tools
 - [Running in Production](https://seonwkim.github.io/actor-spring-boot-starter/guides/production/): graceful shutdown, health checks, Kubernetes probes, cluster metrics, the actors endpoint and tracing across tell and ask
 - [AI Agents](https://seonwkim.github.io/actor-spring-boot-starter/guides/ai-agents/): one sharded actor per agent, supervised conversations, non-blocking model calls and rate limits

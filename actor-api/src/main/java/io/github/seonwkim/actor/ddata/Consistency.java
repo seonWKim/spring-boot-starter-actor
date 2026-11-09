@@ -8,7 +8,7 @@ import java.util.Objects;
  *
  * <ul>
  *   <li>{@link #local()}: this node only. Fast, and the change spreads to the other nodes in the
- *       background (by default within about two seconds).
+ *       background.
  *   <li>{@link #majority(Duration)}: more than half of the nodes. A majority write followed by a
  *       majority read sees the write, on any node.
  *   <li>{@link #all(Duration)}: every node.
