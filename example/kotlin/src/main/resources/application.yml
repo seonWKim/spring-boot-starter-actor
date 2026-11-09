@@ -1,0 +1,7 @@
+spring:
+  application:
+    name: kotlin-example
+  actor:
+    provider: local
+    pekko:
+      loglevel: DEBUG

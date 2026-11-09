@@ -16,6 +16,7 @@ plugins {
     // Kotlin 1.9.25 is the version Spring Boot 3.5 manages: actor-kotlin's metadata stays readable
     // by the Kotlin compiler Boot 3.5 applications use.
     kotlin("jvm") version "1.9.25" apply false
+    kotlin("plugin.spring") version "1.9.25" apply false
 }
 
 repositories {
