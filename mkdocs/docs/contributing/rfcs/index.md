@@ -25,7 +25,7 @@ To write a new RFC, copy the [template](template.md).
 | [0002](0002-optional-enable-annotation.md) | Make `@EnableActorSupport` optional in a Boot app | Proposed |
 | [0003](0003-conditional-back-off.md) | Back off every bean and guard optional classes | Proposed |
 | [0004](0004-customizer-beans.md) | Add `SpringActorSystemBuilderCustomizer` beans | Proposed |
-| [0005](0005-observation-api.md) | Instrument `tell` and `ask` with Micrometer Observation | Proposed |
+| [0005](0005-observation-api.md) | Instrument `tell` and `ask` with Micrometer Observation | Implemented |
 | [0006](0006-actuator-endpoint.md) | Add a read-only `actors` Actuator endpoint | Proposed |
 | [0007](0007-test-artifact.md) | Publish a `spring-boot-starter-actor-test` artifact | Proposed |
 | [0008](0008-test-slice.md) | Add an `@ActorTest` test slice | Proposed |

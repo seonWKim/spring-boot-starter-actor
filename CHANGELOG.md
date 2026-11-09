@@ -89,6 +89,10 @@
 - **`actors` Actuator endpoint.** In cluster mode, a read-only endpoint reports the members this node
   sees and each sharded entity type. It is exposed only when you add it to
   `management.endpoints.web.exposure.include`.
+- **Tracing across `tell` and `ask`.** With an `ObservationRegistry` bean and a Micrometer tracer, a trace
+  started by an HTTP request continues through `tell`, `ask` and sharded messages, also between nodes (W3C
+  `traceparent` fields next to the message), and the trace id is in the MDC of the actor's log lines. Without an
+  `ObservationRegistry`, messages are sent as before.
 
 ### Migrating from 0.x
 

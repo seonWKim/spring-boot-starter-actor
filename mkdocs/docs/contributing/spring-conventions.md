@@ -208,8 +208,8 @@ The RFC and issue links are in each row below.
   enables it with `observationEnabled` on the template and the container (Boot properties
   `spring.kafka.template.observation-enabled`, `spring.kafka.listener.observation-enabled`) and lets the
   app plug in its own `ObservationConvention`.
-- **This starter today**: No Observation is created for `tell`, `ask` or actor spawn, so a trace that
-  enters an actor ends there.
+- **This starter today**: `tell` and `ask` create `actor.send` and `actor.receive` Observations when an
+  `ObservationRegistry` bean exists, and the trace crosses nodes. Actor spawn is not observed.
 - **Verdict**: Change: [RFC 0005](rfcs/0005-observation-api.md).
 - **Source**: [Micrometer: Observation API](https://docs.micrometer.io/micrometer/reference/observation.html),
   [Spring for Apache Kafka: Monitoring](https://docs.spring.io/spring-kafka/reference/kafka/micrometer.html).

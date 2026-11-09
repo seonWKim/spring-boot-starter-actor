@@ -4,7 +4,10 @@ From row 9 of the [Spring conventions comparison](../spring-conventions.md).
 
 ## Status
 
-Proposed
+Implemented in 1.0 (#139), with these changes: tracing is on when an `ObservationRegistry` bean exists, with no
+property; the observations are `actor.send` (producer, tags `actor.operation`, `actor.message`) and
+`actor.receive` (consumer); there is no `ObservationConvention` yet; a message is traced only when sent inside an
+observation. See [Tracing](../../guides/production.md#tracing).
 
 ## Problem
 
