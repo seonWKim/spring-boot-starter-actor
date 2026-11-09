@@ -5,6 +5,7 @@ plugins {
 
 val pekkoVersion: String by project
 val springBootVersion: String by project
+val grpcVersion: String by project
 
 dependencyManagement {
     imports {
@@ -21,10 +22,18 @@ dependencies {
     implementation("org.apache.pekko:pekko-actor-typed_3:$pekkoVersion")
     implementation("org.apache.pekko:pekko-stream-typed_3:$pekkoVersion")
     implementation("com.google.code.findbugs:jsr305")
+    // Bridges for applications that use these libraries; they bring their own copy.
+    compileOnly("org.springframework:spring-webflux")
+    compileOnly("io.grpc:grpc-stub:$grpcVersion")
 
     testImplementation(project(":actor-autoconfigure"))
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("io.projectreactor:reactor-test")
     testImplementation("org.awaitility:awaitility")
+    // A client disconnect on each bridge: WebFlux (Netty) and MVC (Tomcat) SSE, WebFlux WebSocket, gRPC.
+    testImplementation("org.springframework.boot:spring-boot-starter-webflux")
+    testImplementation("org.springframework.boot:spring-boot-starter-web")
+    testImplementation("io.grpc:grpc-stub:$grpcVersion")
+    testImplementation("io.grpc:grpc-inprocess:$grpcVersion")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
