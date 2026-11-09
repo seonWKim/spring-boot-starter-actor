@@ -230,6 +230,13 @@ public final class PekkoActorSystem implements SpringActorSystem, DisposableBean
         return cluster != null;
     }
 
+    /** Starts publishing cluster events as Spring events; a no-op in local mode. */
+    public void publishClusterEvents() {
+        if (cluster != null) {
+            cluster.publishEvents();
+        }
+    }
+
     /** Registers the sharded actor beans with sharding; a no-op in local mode. */
     public void initializeClusterSharding() {
         if (cluster != null) {

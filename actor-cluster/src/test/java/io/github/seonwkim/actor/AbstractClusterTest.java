@@ -131,14 +131,10 @@ public abstract class AbstractClusterTest {
         final int[] httpPorts = findAvailablePorts(3);
         final int[] arteryPorts = findAvailablePorts(3);
 
-        String seedNodes = String.format(
-                "pekko://%s@127.0.0.1:%d,pekko://%s@127.0.0.1:%d,pekko://%s@127.0.0.1:%d",
-                getActorSystemName(),
-                arteryPorts[0],
-                getActorSystemName(),
-                arteryPorts[1],
-                getActorSystemName(),
-                arteryPorts[2]);
+        // One seed: the first node. As the first seed it forms the cluster at once; with every node as
+        // a seed, it first waits seed-node-timeout (5 s) for the others, which used most of the wait
+        // budget below and timed out on slow CI machines.
+        String seedNodes = String.format("pekko://%s@127.0.0.1:%d", getActorSystemName(), arteryPorts[0]);
 
         context1 = startContext(httpPorts[0], arteryPorts[0], seedNodes, getNode1Roles());
         context2 = startContext(httpPorts[1], arteryPorts[1], seedNodes, getNode2Roles());
@@ -183,7 +179,7 @@ public abstract class AbstractClusterTest {
             "spring.actor.pekko.remote.artery.canonical.hostname=127.0.0.1",
             "spring.actor.pekko.remote.artery.canonical.port=" + arteryPort,
             "spring.actor.pekko.cluster.name=cluster",
-            "spring.actor.pekko.cluster.seed-nodes=" + seedNodes,
+            "spring.actor.pekko.cluster.seed-nodes[0]=" + seedNodes,
             "spring.actor.pekko.cluster.downing-provider-class=org.apache.pekko.cluster.sbr.SplitBrainResolverProvider",
             "spring.actor.pekko.actor.allow-java-serialization=off",
             "spring.actor.pekko.actor.warn-about-java-serializer-usage=on"

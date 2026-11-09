@@ -60,5 +60,13 @@ public interface ClusterSupport {
 
         /** Registers every sharded actor bean with sharding. Called once all beans exist. */
         void initSharding();
+
+        /**
+         * Starts publishing cluster events as Spring events, beginning with the current state replayed as
+         * events. Called once the context's listeners are registered, so a listener also sees the events
+         * that happened while the context started, such as this node's own {@code MemberUp}. Repeated
+         * calls do nothing.
+         */
+        void publishEvents();
     }
 }

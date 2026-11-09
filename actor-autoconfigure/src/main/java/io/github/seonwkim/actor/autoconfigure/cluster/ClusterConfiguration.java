@@ -7,8 +7,10 @@ import io.github.seonwkim.actor.shard.SpringShardedActor;
 import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.event.ContextRefreshedEvent;
 
 /**
  * Registers {@link SpringShardedActor} beans with cluster sharding. Applies only when
@@ -34,6 +36,19 @@ public class ClusterConfiguration {
                     registry.register(actor);
                 }
                 return bean;
+            }
+        };
+    }
+
+    /**
+     * Publishes cluster events once the context has refreshed: {@code @EventListener} methods are
+     * registered by then, and the subscription replays what happened during startup.
+     */
+    @Bean
+    public ApplicationListener<ContextRefreshedEvent> clusterEventPublisher(SpringActorSystem actorSystem) {
+        return event -> {
+            if (actorSystem instanceof PekkoActorSystem pekko) {
+                pekko.publishClusterEvents();
             }
         };
     }
