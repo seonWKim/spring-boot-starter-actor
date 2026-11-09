@@ -1,7 +1,7 @@
 package io.github.seonwkim.actor.redis;
 
 import io.github.seonwkim.actor.spi.PeerRegistry;
-import io.github.seonwkim.actor.spi.PeerRegistryContract;
+import io.github.seonwkim.actor.test.PeerRegistryContract;
 import java.time.Duration;
 import org.junit.jupiter.api.AfterEach;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;

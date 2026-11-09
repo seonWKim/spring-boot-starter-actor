@@ -4,8 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import io.github.seonwkim.actor.fixture.TestShardedActor;
-import io.github.seonwkim.actor.spi.InMemoryLeaseStore;
 import io.github.seonwkim.actor.spi.LeaseStore;
+import io.github.seonwkim.actor.test.InMemoryLeaseStore;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;

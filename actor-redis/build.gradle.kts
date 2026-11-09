@@ -4,7 +4,7 @@ dependencies {
     api(project(":actor-api"))
     api("org.springframework.data:spring-data-redis")
 
-    testImplementation(testFixtures(project(":actor-api")))
+    testImplementation(project(":actor-test"))
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.boot:spring-boot-starter-data-redis")
     testImplementation("org.testcontainers:junit-jupiter")

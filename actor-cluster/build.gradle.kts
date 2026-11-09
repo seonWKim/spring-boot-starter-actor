@@ -39,7 +39,7 @@ dependencies {
     testFixturesApi("org.awaitility:awaitility")
 
     testImplementation(project(":actor-autoconfigure"))
-    testImplementation(testFixtures(project(":actor-api")))
+    testImplementation(project(":actor-test"))
     testImplementation(testFixtures(project(":actor-core")))
     testImplementation("com.fasterxml.jackson.core:jackson-databind")
     testImplementation("org.springframework.boot:spring-boot-starter-test")

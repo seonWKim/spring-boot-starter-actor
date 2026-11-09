@@ -4,10 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.github.seonwkim.actor.autoconfigure.ActorProperties;
 import io.github.seonwkim.actor.autoconfigure.cluster.StoreConfiguration;
-import io.github.seonwkim.actor.spi.InMemoryPeerRegistry;
 import io.github.seonwkim.actor.spi.LeaseStore;
 import io.github.seonwkim.actor.spi.Peer;
 import io.github.seonwkim.actor.spi.PeerRegistry;
+import io.github.seonwkim.actor.test.InMemoryPeerRegistry;
 import java.time.Duration;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;

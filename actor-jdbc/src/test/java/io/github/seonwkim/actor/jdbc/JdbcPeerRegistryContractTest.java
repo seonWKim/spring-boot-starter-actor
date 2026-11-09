@@ -1,7 +1,7 @@
 package io.github.seonwkim.actor.jdbc;
 
 import io.github.seonwkim.actor.spi.PeerRegistry;
-import io.github.seonwkim.actor.spi.PeerRegistryContract;
+import io.github.seonwkim.actor.test.PeerRegistryContract;
 import org.junit.jupiter.api.Nested;
 import org.testcontainers.junit.jupiter.Testcontainers;
 

@@ -1,7 +1,7 @@
 package io.github.seonwkim.actor.jdbc;
 
 import io.github.seonwkim.actor.spi.LeaseStore;
-import io.github.seonwkim.actor.spi.LeaseStoreContract;
+import io.github.seonwkim.actor.test.LeaseStoreContract;
 import org.junit.jupiter.api.Nested;
 import org.testcontainers.junit.jupiter.Testcontainers;
 

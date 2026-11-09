@@ -1,5 +1,7 @@
-package io.github.seonwkim.actor.spi;
+package io.github.seonwkim.actor.test;
 
+import io.github.seonwkim.actor.spi.Peer;
+import io.github.seonwkim.actor.spi.PeerRegistry;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
