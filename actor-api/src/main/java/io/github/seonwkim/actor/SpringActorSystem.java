@@ -169,6 +169,14 @@ public interface SpringActorSystem {
     String getName();
 
     /**
+     * The address other nodes reach this node at: {@code pekko://<name>@<host>:<port>} with the remote
+     * or cluster provider, {@code pekko://<name>} for a local system.
+     *
+     * @return This node's address
+     */
+    String nodeAddress();
+
+    /**
      * Checks if the actor system is running in cluster mode.
      *
      * @return true if cluster mode is enabled, false otherwise

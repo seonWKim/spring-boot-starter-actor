@@ -37,6 +37,11 @@ public final class PekkoBehaviorContext<T> implements SpringBehaviorContext<T> {
     }
 
     @Override
+    public String nodeAddress() {
+        return ctx.getSystem().address().toString();
+    }
+
+    @Override
     public Optional<SpringActorRef<Void>> getChild(String name) {
         return ctx.getChild(name).map(PekkoActorRef::new);
     }

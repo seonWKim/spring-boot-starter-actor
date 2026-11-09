@@ -227,6 +227,11 @@ public final class PekkoActorSystem implements SpringActorSystem, DisposableBean
     }
 
     @Override
+    public String nodeAddress() {
+        return actorSystem.address().toString();
+    }
+
+    @Override
     public boolean isClusterMode() {
         return cluster != null;
     }

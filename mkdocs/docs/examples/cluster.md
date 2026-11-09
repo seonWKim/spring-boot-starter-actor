@@ -95,8 +95,7 @@ public class HelloActor implements SpringShardedActor<HelloActor.Command> {
          */
         private SpringActorBehavior<Command> onSayHello(SayHello msg) {
             // Get information about the current node and entity
-            final String nodeAddress =
-                    ctx.unwrap(ActorContext.class).getSystem().address().toString();
+            final String nodeAddress = ctx.nodeAddress();
 
             // Create a response message with node and entity information
             final String message = "Received from entity [" + entityId + "] on node [" + nodeAddress + "]";

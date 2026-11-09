@@ -69,6 +69,13 @@ class ClusterAutoConfigurationTest {
     }
 
     @Test
+    void theNodeAddressIsTheClusterMemberAddressWithTheBoundPort() {
+        String self = actorSystem.unwrap(Cluster.class).selfMember().address().toString();
+
+        assertThat(actorSystem.nodeAddress()).isEqualTo(self).matches("pekko://[^@]+@[^:]+:[1-9][0-9]*");
+    }
+
+    @Test
     void shardedActorBeansAreRegisteredAndReachable() {
         assertThat(shardedActors.get(Room.TYPE)).isSameAs(room);
         assertThat(actorSystem.sharded(Room.class).withId("r1").get().entityId())
