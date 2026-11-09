@@ -1,7 +1,7 @@
 # AI Agents
 
-This guide shows how the starter's pieces fit together for AI agents: one sharded actor per agent,
-a supervised child that keeps the conversation, `pipeToSelf` for model calls, a per-node rate
+This guide shows how the starter's pieces fit together for AI agents: one supervised sharded actor
+per agent that keeps the conversation, `pipeToSelf` for model calls, a per-node rate
 limiter, a human approval step with ask and a timeout, and snapshots that survive a restart.
 
 All code on this page is included from the runnable example in
@@ -48,8 +48,8 @@ Tools are beans too. A tool that changes the world asks for a human approval fir
 
 ## One sharded actor per agent
 
-Each agent id is a sharded entity. The entity is a thin shell: it spawns the agent logic as a
-supervised child and forwards every command to it.
+Each agent id is a sharded entity. Its behavior is the agent's logic, `AgentBrain`, under a restart
+supervisor.
 
 ```java
 --8<-- "example/agent/src/main/java/io/github/seonwkim/example/agent/AgentActor.java:agent-actor"
@@ -62,9 +62,9 @@ Callers address agents by id and never need to know which node hosts them:
 ```
 
 !!! info "Single node by default"
-    The example sets `agent.self-join: true`, so one node forms its own cluster. For more nodes,
-    list `spring.actor.cluster.seed-nodes` as in the [Sharded Actors](sharded-actors.md)
-    guide and set `agent.self-join: false`.
+    The example sets `spring.actor.cluster.join-self: true`, so one node forms its own cluster.
+    For more nodes, remove it and list `spring.actor.cluster.seed-nodes` as in the
+    [Sharded Actors](sharded-actors.md) guide.
 
 ## The agent loop without blocking
 
@@ -117,17 +117,12 @@ The human side, for a controller, a chat bot or a test:
 
 ## Supervision and restarts
 
-The agent's logic runs under a restart supervisor. `Behaviors.setup` sits inside
-`Behaviors.supervise`, so a restart runs the setup again, and the setup loads the last snapshot:
+The agent's logic runs under a restart supervisor (`withSupervisionStrategy`). A restart creates the
+state again with `withState`, and the state loads the last snapshot:
 
 ```java
 --8<-- "example/agent/src/main/java/io/github/seonwkim/example/agent/AgentBrain.java:supervision"
 ```
-
-!!! warning "Where the supervisor goes"
-    `SpringActorBehavior.builder(...).withSupervisionStrategy(...)` puts the supervisor inside its
-    own setup, so a restart keeps the state object made by `withState`. To reload state on
-    restart, wrap `Behaviors.setup` in `Behaviors.supervise` yourself, as above.
 
 Every change to the conversation is saved before the agent moves on, so a new actor system
 finds the agent where it left off:
@@ -153,7 +148,6 @@ it with the `ActorSnapshot` entity and `ActorSnapshotRepository` from
 | `agent.max-tool-steps` | `5` | Tool calls per turn before the agent stops |
 | `agent.snapshot-dir` | `${java.io.tmpdir}/agent-snapshots` | Where snapshots are written |
 | `agent.fake-llm-latency` | `0` (`200ms` in application.yml) | Delay of each fake model reply |
-| `agent.self-join` | `true` | Form a one-node cluster without seed nodes |
 | `agent.demo` | `true` | Run one demo conversation on start-up |
 
 ## What the tests show
@@ -173,5 +167,3 @@ it with the `ActorSnapshot` entity and `ActorSnapshotRepository` from
 The example builds these itself:
 
 - **Rate limiting.** There is no rate limiter in the starter; the example's is an actor.
-- **Supervision of sharded entities.** `SpringShardedActorBehavior` has no supervision or signal option, so
-  the agent puts its logic in a supervised child.

@@ -1,5 +1,10 @@
 package io.github.seonwkim.example.agent;
 
+import io.github.seonwkim.actor.SpringActorBehavior;
+import io.github.seonwkim.actor.SpringActorHandle;
+import io.github.seonwkim.actor.SpringActorRef;
+import io.github.seonwkim.actor.SpringBehaviorContext;
+import io.github.seonwkim.actor.SupervisionStrategy;
 import io.github.seonwkim.example.agent.approval.ApprovalActor;
 import io.github.seonwkim.example.agent.approval.ApprovalDecision;
 import io.github.seonwkim.example.agent.approval.PendingApproval;
@@ -18,11 +23,6 @@ import java.util.Deque;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import org.apache.pekko.actor.typed.ActorRef;
-import org.apache.pekko.actor.typed.Behavior;
-import org.apache.pekko.actor.typed.SupervisorStrategy;
-import org.apache.pekko.actor.typed.javadsl.ActorContext;
-import org.apache.pekko.actor.typed.javadsl.Behaviors;
 
 /**
  * The agent loop for one agent id: user message, LLM call, tool calls, final answer.
@@ -33,14 +33,12 @@ import org.apache.pekko.actor.typed.javadsl.Behaviors;
  */
 public final class AgentBrain {
 
-    /** Everything the brain handles: the public {@link AgentActor.Command}s and internal replies. */
-    public interface Message {}
+    // Replies the brain sends itself. They never leave the node, so they are never serialized.
+    private record PermitGranted(RateLimiterActor.Permit permit) implements AgentActor.Command {}
 
-    private record PermitGranted(RateLimiterActor.Permit permit) implements Message {}
+    private record LlmResponded(LlmReply reply, Throwable error) implements AgentActor.Command {}
 
-    private record LlmResponded(LlmReply reply, Throwable error) implements Message {}
-
-    private record ApprovalResolved(LlmReply call, boolean approved, String reason) implements Message {}
+    private record ApprovalResolved(LlmReply call, boolean approved, String reason) implements AgentActor.Command {}
 
     private enum Status {
         IDLE,
@@ -54,23 +52,33 @@ public final class AgentBrain {
             LlmClient llm,
             ToolRegistry tools,
             AgentSnapshotStore snapshots,
-            ActorRef<RateLimiterActor.Command> rateLimiter,
-            ActorRef<ApprovalActor.Command> approvals,
+            SpringActorHandle<RateLimiterActor.Command> rateLimiter,
+            SpringActorHandle<ApprovalActor.Command> approvals,
             Duration approvalTimeout,
             int maxToolSteps) {}
 
     // --8<-- [start:supervision]
     /**
-     * Restart on failure. {@code Behaviors.setup} sits inside the supervisor, so a restart runs
-     * it again and the brain reloads its conversation from the last snapshot.
+     * Restart on failure, at most 10 times a minute. A restart creates the state again, so the
+     * brain reloads its conversation from the last snapshot. After the limit the entity stops,
+     * and sharding starts a fresh one on the next message.
      */
-    public static Behavior<Message> create(String agentId, Dependencies dependencies) {
-        return Behaviors.supervise(
-                        Behaviors.<Message>setup(ctx -> new AgentBrain(ctx, agentId, dependencies).behavior()))
-                .onFailure(SupervisorStrategy.restart().withLimit(10, Duration.ofMinutes(1)));
+    public static SpringActorBehavior<AgentActor.Command> behavior(
+            SpringActorBehavior.Builder<AgentActor.Command, SpringBehaviorContext<AgentActor.Command>> builder,
+            String agentId,
+            Dependencies dependencies) {
+        return builder.withSupervisionStrategy(SupervisionStrategy.restart().withLimit(10, Duration.ofMinutes(1)))
+                .withState(ctx -> new AgentBrain(ctx, agentId, dependencies))
+                .onMessage(AgentActor.Chat.class, AgentBrain::onChat)
+                .onMessage(AgentActor.GetConversation.class, AgentBrain::onGetConversation)
+                .onMessage(AgentActor.SimulateCrash.class, AgentBrain::onSimulateCrash)
+                .onMessage(PermitGranted.class, AgentBrain::onPermit)
+                .onMessage(LlmResponded.class, AgentBrain::onLlmResponded)
+                .onMessage(ApprovalResolved.class, AgentBrain::onApprovalResolved)
+                .build();
     }
 
-    private AgentBrain(ActorContext<Message> ctx, String agentId, Dependencies dependencies) {
+    private AgentBrain(SpringBehaviorContext<AgentActor.Command> ctx, String agentId, Dependencies dependencies) {
         this.ctx = ctx;
         this.agentId = agentId;
         this.deps = dependencies;
@@ -79,10 +87,10 @@ public final class AgentBrain {
     }
     // --8<-- [end:supervision]
 
-    private final ActorContext<Message> ctx;
+    private final SpringBehaviorContext<AgentActor.Command> ctx;
     private final String agentId;
     private final Dependencies deps;
-    private final ActorRef<RateLimiterActor.Permit> permits;
+    private final SpringActorRef<RateLimiterActor.Permit> permits;
     private final String incarnation = UUID.randomUUID().toString();
     private final List<ChatMessage> conversation = new ArrayList<>();
     private final Deque<AgentActor.Chat> queued = new ArrayDeque<>();
@@ -90,33 +98,22 @@ public final class AgentBrain {
     private AgentActor.Chat current;
     private int toolSteps;
 
-    private Behavior<Message> behavior() {
-        return Behaviors.receive(Message.class)
-                .onMessage(AgentActor.Chat.class, this::onChat)
-                .onMessage(AgentActor.GetConversation.class, this::onGetConversation)
-                .onMessage(AgentActor.SimulateCrash.class, this::onSimulateCrash)
-                .onMessage(PermitGranted.class, this::onPermit)
-                .onMessage(LlmResponded.class, this::onLlmResponded)
-                .onMessage(ApprovalResolved.class, this::onApprovalResolved)
-                .build();
-    }
-
-    private Behavior<Message> onChat(AgentActor.Chat chat) {
+    private SpringActorBehavior<AgentActor.Command> onChat(AgentActor.Chat chat) {
         if (status != Status.IDLE) {
             queued.addLast(chat);
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
         startTurn(chat);
-        return Behaviors.same();
+        return SpringActorBehavior.same();
     }
 
-    private Behavior<Message> onGetConversation(AgentActor.GetConversation query) {
+    private SpringActorBehavior<AgentActor.Command> onGetConversation(AgentActor.GetConversation query) {
         query.reply(
                 new ConversationView(agentId, incarnation, status.name(), queued.size(), List.copyOf(conversation)));
-        return Behaviors.same();
+        return SpringActorBehavior.same();
     }
 
-    private Behavior<Message> onSimulateCrash(AgentActor.SimulateCrash crash) {
+    private SpringActorBehavior<AgentActor.Command> onSimulateCrash(AgentActor.SimulateCrash crash) {
         throw new IllegalStateException("simulated crash of agent " + agentId);
     }
 
@@ -134,34 +131,34 @@ public final class AgentBrain {
         deps.rateLimiter().tell(RateLimiterActor.Acquire.replyingTo(permits));
     }
 
-    private Behavior<Message> onPermit(PermitGranted granted) {
+    private SpringActorBehavior<AgentActor.Command> onPermit(PermitGranted granted) {
         if (status != Status.PERMIT) {
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
         status = Status.LLM;
         ctx.getLog().debug("Agent {} calls the LLM", agentId);
         // The future completes on another thread; pipeToSelf turns it into a message, so
         // the actor never waits and never touches its state from that thread.
         ctx.pipeToSelf(deps.llm().complete(List.copyOf(conversation)), LlmResponded::new);
-        return Behaviors.same();
+        return SpringActorBehavior.same();
     }
 
-    private Behavior<Message> onLlmResponded(LlmResponded responded) {
+    private SpringActorBehavior<AgentActor.Command> onLlmResponded(LlmResponded responded) {
         if (status != Status.LLM) {
-            return Behaviors.same(); // a reply for an earlier incarnation
+            return SpringActorBehavior.same(); // a reply for an earlier incarnation
         }
         if (responded.error() != null) {
             finishTurn("Sorry, the model call failed: " + responded.error().getMessage());
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
         LlmReply reply = responded.reply();
         if (!reply.isToolCall()) {
             finishTurn(reply.text());
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
         if (++toolSteps > deps.maxToolSteps()) {
             finishTurn("Stopped after " + deps.maxToolSteps() + " tool calls.");
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
         append(ChatMessage.toolCall(reply.toolName(), reply.toolArgument()));
         Optional<Tool> tool = deps.tools().find(reply.toolName());
@@ -172,7 +169,7 @@ public final class AgentBrain {
         } else {
             runTool(tool.get(), reply);
         }
-        return Behaviors.same();
+        return SpringActorBehavior.same();
     }
     // --8<-- [end:llm-call]
 
@@ -182,12 +179,12 @@ public final class AgentBrain {
         PendingApproval request =
                 new PendingApproval(agentId + "-" + UUID.randomUUID(), agentId, call.toolName(), call.toolArgument());
         Duration timeout = deps.approvalTimeout();
-        ctx.ask(
-                ApprovalDecision.class,
-                deps.approvals(),
-                timeout,
-                replyTo -> new ApprovalActor.RequestApproval(request, timeout, replyTo),
-                (decision, error) -> {
+        ctx.pipeToSelf(
+                deps.approvals()
+                        .ask(new ApprovalActor.RequestApproval(request, timeout))
+                        .withTimeout(timeout)
+                        .execute(),
+                (ApprovalDecision decision, Throwable error) -> {
                     if (error != null) {
                         return new ApprovalResolved(call, false, "no human answer within " + timeout);
                     }
@@ -196,9 +193,9 @@ public final class AgentBrain {
                 });
     }
 
-    private Behavior<Message> onApprovalResolved(ApprovalResolved resolved) {
+    private SpringActorBehavior<AgentActor.Command> onApprovalResolved(ApprovalResolved resolved) {
         if (status != Status.APPROVAL) {
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
         LlmReply call = resolved.call();
         Optional<Tool> tool = deps.tools().find(call.toolName());
@@ -207,7 +204,7 @@ public final class AgentBrain {
         } else {
             toolResult(call, "not run: " + resolved.reason());
         }
-        return Behaviors.same();
+        return SpringActorBehavior.same();
     }
     // --8<-- [end:approval]
 

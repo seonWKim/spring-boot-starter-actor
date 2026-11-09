@@ -209,6 +209,20 @@ public class ActorProperties {
         /** Roles of this node; sharded actors and singletons can be limited to a role (pekko.cluster.roles). */
         private List<String> roles = new ArrayList<>();
 
+        /**
+         * Join this node to itself at startup, forming a one-node cluster without seed nodes. For
+         * local runs and tests, where the port may be 0; not with seed-nodes.
+         */
+        private boolean joinSelf;
+
+        public boolean isJoinSelf() {
+            return joinSelf;
+        }
+
+        public void setJoinSelf(boolean joinSelf) {
+            this.joinSelf = joinSelf;
+        }
+
         public List<String> getSeedNodes() {
             return seedNodes;
         }
@@ -307,6 +321,9 @@ public class ActorProperties {
         return config;
     }
 
+    /** Read by the cluster module, which joins the node to itself when it is true. */
+    private static final String JOIN_SELF_KEY = "spring-actor.cluster.join-self";
+
     /** Pekko's executor that starts one virtual thread per task (Java 21+). */
     private static final String VIRTUAL_EXECUTOR = "virtual-thread-executor";
 
@@ -336,6 +353,13 @@ public class ActorProperties {
         }
         if (!cluster.seedNodes.isEmpty()) {
             keys.add(new TypedKey("cluster.seed-nodes", "pekko.cluster.seed-nodes", cluster.seedNodes));
+        }
+        if (cluster.joinSelf) {
+            if (!cluster.seedNodes.isEmpty()) {
+                throw new IllegalArgumentException(
+                        "spring.actor.cluster.join-self and spring.actor.cluster.seed-nodes cannot both be set");
+            }
+            keys.add(new TypedKey("cluster.join-self", JOIN_SELF_KEY, true));
         }
         if (!cluster.roles.isEmpty()) {
             keys.add(new TypedKey("cluster.roles", "pekko.cluster.roles", cluster.roles));

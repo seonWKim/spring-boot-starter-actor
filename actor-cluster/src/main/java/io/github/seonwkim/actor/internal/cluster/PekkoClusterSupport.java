@@ -20,6 +20,7 @@ import org.apache.pekko.cluster.ClusterEvent.ClusterDomainEvent;
 import org.apache.pekko.cluster.sharding.typed.javadsl.ClusterSharding;
 import org.apache.pekko.cluster.typed.Cluster;
 import org.apache.pekko.cluster.typed.ClusterSingleton;
+import org.apache.pekko.cluster.typed.Join;
 import org.apache.pekko.cluster.typed.SingletonActor;
 import org.apache.pekko.cluster.typed.Subscribe;
 import org.springframework.beans.factory.BeanFactory;
@@ -27,6 +28,9 @@ import org.springframework.context.ApplicationEventPublisher;
 
 /** {@link ClusterSupport} on Pekko Cluster, Cluster Sharding and Cluster Singleton. */
 public final class PekkoClusterSupport implements ClusterSupport {
+
+    /** Set by spring.actor.cluster.join-self (ActorProperties): form a one-node cluster. */
+    private static final String JOIN_SELF_KEY = "spring-actor.cluster.join-self";
 
     @Override
     public Map<String, Object> withDefaults(Map<String, Object> config) {
@@ -59,6 +63,10 @@ public final class PekkoClusterSupport implements ClusterSupport {
         ActorRef<ClusterDomainEvent> listener =
                 system.systemActorOf(PekkoClusterEvents.publisher(publisher), "cluster-event-listener", Props.empty());
         cluster.subscriptions().tell(new Subscribe<>(listener, ClusterDomainEvent.class));
+        if (system.settings().config().hasPath(JOIN_SELF_KEY)
+                && system.settings().config().getBoolean(JOIN_SELF_KEY)) {
+            cluster.manager().tell(Join.create(cluster.selfMember().address()));
+        }
         ShardedActorRegistry sharded = system.settings()
                 .setup()
                 .get(ShardedActorsSetup.class)

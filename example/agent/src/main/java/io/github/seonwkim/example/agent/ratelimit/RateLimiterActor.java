@@ -4,15 +4,13 @@ import io.github.seonwkim.actor.AskCommand;
 import io.github.seonwkim.actor.SpringActor;
 import io.github.seonwkim.actor.SpringActorBehavior;
 import io.github.seonwkim.actor.SpringActorContext;
+import io.github.seonwkim.actor.SpringActorRef;
+import io.github.seonwkim.actor.SpringBehaviorContext;
 import io.github.seonwkim.example.agent.AgentProperties;
 import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import javax.annotation.Nullable;
-import org.apache.pekko.actor.typed.ActorRef;
-import org.apache.pekko.actor.typed.Behavior;
-import org.apache.pekko.actor.typed.javadsl.Behaviors;
-import org.apache.pekko.actor.typed.javadsl.TimerScheduler;
 import org.springframework.stereotype.Component;
 
 // --8<-- [start:rate-limiter]
@@ -21,8 +19,7 @@ import org.springframework.stereotype.Component;
  * one-second window. Requests over the limit wait in a queue; a timer wakes the actor when the
  * oldest permit leaves the window.
  *
- * <p>The starter has no rate limiter and no timer wrapper, so this actor uses Pekko's
- * {@code Behaviors.withTimers} and is wrapped with {@link SpringActorBehavior#wrap}.
+ * <p>The starter has no rate limiter, so this is a plain actor with a timer from its behavior context.
  */
 @Component
 public class RateLimiterActor implements SpringActor<RateLimiterActor.Command> {
@@ -32,18 +29,18 @@ public class RateLimiterActor implements SpringActor<RateLimiterActor.Command> {
     /** Ask for one permit. The reply comes when the call may start. */
     public static final class Acquire extends AskCommand<Permit> implements Command {
 
-        @Nullable private final ActorRef<Permit> adapter;
+        @Nullable private final SpringActorRef<Permit> adapter;
 
         public Acquire() {
             this(null);
         }
 
-        private Acquire(@Nullable ActorRef<Permit> adapter) {
+        private Acquire(@Nullable SpringActorRef<Permit> adapter) {
             this.adapter = adapter;
         }
 
         /** For actors that want the permit as a message instead of a future. */
-        public static Acquire replyingTo(ActorRef<Permit> replyTo) {
+        public static Acquire replyingTo(SpringActorRef<Permit> replyTo) {
             return new Acquire(replyTo);
         }
 
@@ -73,34 +70,32 @@ public class RateLimiterActor implements SpringActor<RateLimiterActor.Command> {
 
     @Override
     public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
-        return SpringActorBehavior.wrap(Behaviors.<Command>withTimers(
-                timers -> new SlidingWindow(timers, callsPerSecond, WINDOW.toNanos()).behavior()));
+        return SpringActorBehavior.builder(Command.class, actorContext)
+                .withState(ctx -> new SlidingWindow(ctx, callsPerSecond, WINDOW.toNanos()))
+                .onMessage(Acquire.class, SlidingWindow::onAcquire)
+                .onMessage(WakeUp.class, (window, wakeUp) -> window.drain())
+                .build();
     }
 
     private static final class SlidingWindow {
-        private final TimerScheduler<Command> timers;
+        private final SpringBehaviorContext<Command> ctx;
         private final int limit;
         private final long windowNanos;
         private final Deque<Long> granted = new ArrayDeque<>();
         private final Deque<Acquire> waiting = new ArrayDeque<>();
 
-        SlidingWindow(TimerScheduler<Command> timers, int limit, long windowNanos) {
-            this.timers = timers;
+        SlidingWindow(SpringBehaviorContext<Command> ctx, int limit, long windowNanos) {
+            this.ctx = ctx;
             this.limit = limit;
             this.windowNanos = windowNanos;
         }
 
-        Behavior<Command> behavior() {
-            return Behaviors.receive(Command.class)
-                    .onMessage(Acquire.class, acquire -> {
-                        waiting.addLast(acquire);
-                        return drain();
-                    })
-                    .onMessage(WakeUp.class, wakeUp -> drain())
-                    .build();
+        SpringActorBehavior<Command> onAcquire(Acquire acquire) {
+            waiting.addLast(acquire);
+            return drain();
         }
 
-        private Behavior<Command> drain() {
+        SpringActorBehavior<Command> drain() {
             long now = System.nanoTime();
             while (!granted.isEmpty() && now - granted.peekFirst() >= windowNanos) {
                 granted.removeFirst();
@@ -111,9 +106,9 @@ public class RateLimiterActor implements SpringActor<RateLimiterActor.Command> {
             }
             if (!waiting.isEmpty()) {
                 long untilFree = windowNanos - (now - granted.peekFirst());
-                timers.startSingleTimer(WakeUp.INSTANCE, WakeUp.INSTANCE, Duration.ofNanos(untilFree));
+                ctx.startSingleTimer(WakeUp.INSTANCE, WakeUp.INSTANCE, Duration.ofNanos(untilFree));
             }
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
     }
 }
