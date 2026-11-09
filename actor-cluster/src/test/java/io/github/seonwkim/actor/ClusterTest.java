@@ -1,5 +1,6 @@
 package io.github.seonwkim.actor;
 
+import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -91,14 +92,8 @@ public class ClusterTest extends AbstractClusterTest {
         sharedActor2.tell(new TestShardedActor.Ping("hello shard2"));
         sharedActor3.tell(new TestShardedActor.Ping("hello shard3"));
 
-        Thread.sleep(2000); // wait for messages to be processed (increased for cluster message propagation)
-        TestShardedActor.State state = sharedActor1
-                .ask(new GetState())
-                .withTimeout(Duration.ofSeconds(10)) // takes long on the CI/CD
-                .execute()
-                .toCompletableFuture()
-                .get();
-        assertEquals(3, state.getMessageCount());
+        // The three pings come from three nodes, so they may still be in flight: wait for all of them.
+        awaitMessageCount(sharedActor1, 3);
     }
 
     @Test
@@ -123,31 +118,9 @@ public class ClusterTest extends AbstractClusterTest {
         actor2.tell(new TestShardedActor.Ping("hello shard2"));
         actor3.tell(new TestShardedActor.Ping("hello shard3"));
 
-        Thread.sleep(500); // wait for messages to be processed
-        assertEquals(
-                1,
-                actor1.ask(new GetState())
-                        .withTimeout(Duration.ofSeconds(3))
-                        .execute()
-                        .toCompletableFuture()
-                        .get()
-                        .getMessageCount());
-        assertEquals(
-                1,
-                actor2.ask(new GetState())
-                        .withTimeout(Duration.ofSeconds(3))
-                        .execute()
-                        .toCompletableFuture()
-                        .get()
-                        .getMessageCount());
-        assertEquals(
-                1,
-                actor3.ask(new GetState())
-                        .withTimeout(Duration.ofSeconds(3))
-                        .execute()
-                        .toCompletableFuture()
-                        .get()
-                        .getMessageCount());
+        awaitMessageCount(actor1, 1);
+        awaitMessageCount(actor2, 1);
+        awaitMessageCount(actor3, 1);
     }
 
     @Test
@@ -176,5 +149,17 @@ public class ClusterTest extends AbstractClusterTest {
                 .toCompletableFuture()
                 .get();
         assertEquals(entityId, entityIdResponse);
+    }
+
+    /** Waits until the entity has counted {@code expected} pings (a single read could run first). */
+    private static void awaitMessageCount(SpringShardedActorHandle<TestShardedActor.Command> entity, int expected) {
+        await().atMost(Duration.ofSeconds(15))
+                .until(() -> entity.ask(new GetState())
+                                .withTimeout(Duration.ofSeconds(5))
+                                .execute()
+                                .toCompletableFuture()
+                                .get()
+                                .getMessageCount()
+                        == expected);
     }
 }
