@@ -18,6 +18,7 @@ import org.apache.pekko.actor.typed.ActorSystem;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.Props;
 import org.apache.pekko.cluster.ClusterEvent.ClusterDomainEvent;
+import org.apache.pekko.cluster.ddata.typed.javadsl.DistributedData;
 import org.apache.pekko.cluster.sharding.typed.javadsl.ClusterSharding;
 import org.apache.pekko.cluster.typed.Cluster;
 import org.apache.pekko.cluster.typed.ClusterSingleton;
@@ -65,6 +66,9 @@ public final class PekkoClusterSupport implements ClusterSupport {
                 && system.settings().config().getBoolean(JOIN_SELF_KEY)) {
             cluster.manager().tell(Join.create(cluster.selfMember().address()));
         }
+        // Every node runs a replicator from the start: a majority or all write from one node waits for
+        // the replicators of the others, which Pekko otherwise starts only on their first own use.
+        DistributedData.get(system);
         ShardedActorRegistry sharded = system.settings()
                 .setup()
                 .get(ShardedActorsSetup.class)
