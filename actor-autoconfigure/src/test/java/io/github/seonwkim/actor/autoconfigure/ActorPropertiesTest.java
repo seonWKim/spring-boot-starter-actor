@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.typesafe.config.Config;
 import io.github.seonwkim.actor.SpringActorSystem;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import org.apache.pekko.actor.typed.ActorSystem;
@@ -94,5 +95,56 @@ class ActorPropertiesTest {
                         context -> assertThat(context.getStartupFailure())
                                 .hasStackTraceContaining(
                                         "spring.actor.cluster.seed-nodes are addresses like pekko://<name>@<host>:<port>, got '10.0.0.7:25521'"));
+    }
+
+    @Test
+    void discoveryThroughAStoreUsesThePeerRegistryAdapterWithItsTimings() {
+        ActorProperties properties = new ActorProperties();
+        properties.getCluster().setJoin(ActorProperties.Cluster.Join.DISCOVERY);
+        properties.getCluster().getDiscovery().setMethod(ActorProperties.Discovery.Method.JDBC);
+        properties.getCluster().getDiscovery().setHeartbeatInterval(Duration.ofSeconds(2));
+        properties.getCluster().getDiscovery().setTtl(Duration.ofSeconds(12));
+
+        assertThat(properties.toPekkoConfig(Map.of(), false))
+                .isEqualTo(Map.of(
+                        "pekko",
+                        Map.of(
+                                "discovery",
+                                Map.of(
+                                        "method",
+                                        "spring-actor-peer-registry",
+                                        "spring-actor-peer-registry",
+                                        Map.of("heartbeat-interval", "2000ms", "ttl", "12000ms")),
+                                "management",
+                                Map.of(
+                                        "cluster",
+                                        Map.of(
+                                                "bootstrap",
+                                                Map.of("contact-point", Map.of("filter-on-fallback-port", false)))))));
+    }
+
+    @Test
+    void discoveryThroughDnsUsesPekkosMethodName() {
+        runner.withPropertyValues("spring.actor.cluster.join=discovery", "spring.actor.cluster.discovery.method=dns")
+                .run(context -> assertThat(pekkoConfig(context).getString("pekko.discovery.method"))
+                        .isEqualTo("pekko-dns"));
+    }
+
+    @Test
+    void discoveryWithoutAMethodFailsNamingTheKey() {
+        runner.withPropertyValues("spring.actor.cluster.join=discovery")
+                .run(context -> assertThat(context.getStartupFailure())
+                        .hasStackTraceContaining(
+                                "spring.actor.cluster.join=discovery needs spring.actor.cluster.discovery.method"));
+    }
+
+    @Test
+    void discoveryRejectsSeedNodes() {
+        runner.withPropertyValues(
+                        "spring.actor.cluster.join=discovery",
+                        "spring.actor.cluster.discovery.method=jdbc",
+                        "spring.actor.cluster.seed-nodes=pekko://orders@10.0.0.7:25521")
+                .run(context -> assertThat(context.getStartupFailure())
+                        .hasStackTraceContaining("remove spring.actor.cluster.seed-nodes and join-self"));
     }
 }

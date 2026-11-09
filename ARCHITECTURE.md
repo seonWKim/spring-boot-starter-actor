@@ -101,10 +101,11 @@ flowchart TB
 
 ## Migration status
 
-The modules `actor-api`, `actor-core`, `actor-cluster`, `actor-autoconfigure`, `actor-spring-boot-starter`, `actor-spring-boot-starter-cluster` and `actor-metrics` exist, under the package root `io.github.seonwkim.actor`.
+The modules `actor-api`, `actor-core`, `actor-cluster`, `actor-autoconfigure`, `actor-spring-boot-starter`, `actor-spring-boot-starter-cluster`, `actor-metrics`, `actor-jdbc` and `actor-redis` exist, under the package root `io.github.seonwkim.actor`.
 
 - The public API is in `actor-api`, which depends on Spring (`spring-context`) and SLF4J (`SpringBehaviorContext.getLog()`) and never on Pekko. `actor-core` holds only `..internal..`. Every module's ArchUnit freeze store is empty; the stores stay so that a new violation fails the build.
 - `actor-core` has no Pekko Cluster dependency: it finds `actor-cluster` at runtime through `ServiceLoader` (`internal.ClusterSupport`) and fails at startup, naming the cluster starter, when `pekko.actor.provider` is `cluster` and the module is missing.
+- The first SPI is `PeerRegistry` (`io.github.seonwkim.actor.spi`), with `PeerRegistryServiceDiscovery` in `actor-cluster`'s `internal.cluster.discovery` as its Pekko adapter. The adapter reaches the `PeerRegistry` bean through `SpringBeansSetup`, the actor system setup that carries the application's `BeanFactory` (the same way dispatchers reach `Executor` beans). Each SPI's contract test suite and in-memory fake are test fixtures of `actor-api`, not yet published: a published `actor-test` will carry them for users' own stores.
 - Pekko is not on the application's compile classpath: `actor-core` and `actor-cluster` declare it as `implementation`, and neither starter exports it. An application that unwraps Pekko objects declares the Pekko modules it uses (the `cluster` and `supervision` examples do).
 
 The code still differs from the target in these places:

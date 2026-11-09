@@ -100,6 +100,13 @@
   `system`, so 10,000 entities add no series; `spring.actor.metrics.path-tag-limit` opts into a capped
   `actor.path` tag. The Java agent is optional: when it is attached, it keeps the meters it records and
   the hooks add only the ones it lacks.
+- **Cluster join without seed nodes or RBAC.** `spring.actor.cluster.join: discovery` with
+  `spring.actor.cluster.discovery.method: jdbc` (new `actor-jdbc` module, an `actor_peer` table on the
+  application's `DataSource`) or `redis` (new `actor-redis` module, keys with a TTL on its
+  `RedisConnectionFactory`) finds peers through a store the application already runs, and Cluster Bootstrap
+  forms the cluster. A node removes its entry on a graceful shutdown. A `PeerRegistry` bean of your own
+  (`io.github.seonwkim.actor.spi`) replaces the built-in stores; `kubernetes-api`, `dns` and `config` select
+  Pekko's own methods.
 
 ### Migrating from 0.x
 
