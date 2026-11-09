@@ -14,34 +14,66 @@ No Pekko type appears in this API. Pekko Streams runs underneath and stays an im
 
 Add the module next to the starter:
 
-```gradle
-implementation 'io.github.seonwkim:actor-spring-boot-starter:1.0.0'
-implementation 'io.github.seonwkim:actor-streams:1.0.0'
-```
+=== "Gradle"
+
+    ```kotlin
+    implementation("io.github.seonwkim:actor-spring-boot-starter:$version")
+    implementation("io.github.seonwkim:actor-streams:$version")
+    ```
+
+=== "Maven"
+
+    ```xml
+    <dependency>
+        <groupId>io.github.seonwkim</groupId>
+        <artifactId>actor-streams</artifactId>
+        <version>${actor.version}</version>
+    </dependency>
+    ```
 
 With `@EnableActorSupport`, the application has an `ActorStreams` bean. Inject it where you need it:
 
-```java
-@Service
-public class OrderService {
-    private final ActorStreams streams;
-    private final SpringActorSystem actorSystem;
+=== "Java"
 
-    public OrderService(ActorStreams streams, SpringActorSystem actorSystem) {
-        this.streams = streams;
-        this.actorSystem = actorSystem;
+    ```java
+    @Service
+    public class OrderService {
+        private final ActorStreams streams;
+        private final SpringActorSystem actorSystem;
+
+        public OrderService(ActorStreams streams, SpringActorSystem actorSystem) {
+            this.streams = streams;
+            this.actorSystem = actorSystem;
+        }
     }
-}
-```
+    ```
+
+=== "Kotlin"
+
+    ```kotlin
+    @Service
+    class OrderService(
+        private val streams: ActorStreams,
+        private val actorSystem: SpringActorSystem,
+    )
+    ```
 
 ## `Mono` of an ask
 
 Pass the ask builder you already use. The command is sent when the `Mono` is subscribed, not when it is
 created, and again on each new subscription. The builder's timeout and `onTimeout` fallback apply.
 
-```java
-Mono<Order> order = streams.ask(orders.ask(new GetOrder(id)).withTimeout(Duration.ofSeconds(2)));
-```
+=== "Java"
+
+    ```java
+    Mono<Order> order = streams.ask(orders.ask(new GetOrder(id)).withTimeout(Duration.ofSeconds(2)));
+    ```
+
+=== "Kotlin"
+
+    ```kotlin
+    val order: Mono<Order> = streams.ask(orders.ask(GetOrder(id)).withTimeout(2.seconds))
+    ```
 
 It works the same for a sharded entity's handle.
 
@@ -49,9 +81,17 @@ It works the same for a sharded entity's handle.
 
 `askEach` asks an actor about each element and emits the replies in the order of the elements:
 
-```java
-Flux<Receipt> receipts = streams.askEach(payments, 8, payment -> ledger.ask(new Charge(payment)));
-```
+=== "Java"
+
+    ```java
+    Flux<Receipt> receipts = streams.askEach(payments, 8, payment -> ledger.ask(new Charge(payment)));
+    ```
+
+=== "Kotlin"
+
+    ```kotlin
+    val receipts: Flux<Receipt> = streams.askEach(payments, 8) { payment -> ledger.ask(Charge(payment)) }
+    ```
 
 At most `parallelism` asks (here 8) wait for a reply at once. Until one of them is answered, `askEach`
 requests nothing more from `payments`. So a slow actor slows the upstream `Flux` (a Kafka consumer, a
@@ -62,42 +102,83 @@ reply, or use Reactor's `onErrorResume` and `retry` operators.
 
 The actor replies as for any ask:
 
-```java
-.onMessage(Charge.class, (ctx, msg) -> {
-    msg.reply(ledger.charge(msg.payment()));
-    return SpringActorBehavior.same();
-})
-```
+=== "Java"
+
+    ```java
+    .onMessage(Charge.class, (ctx, msg) -> {
+        msg.reply(ledger.charge(msg.payment()));
+        return SpringActorBehavior.same();
+    })
+    ```
+
+=== "Kotlin"
+
+    ```kotlin
+    .onMessage(Charge::class.java) { _, msg ->
+        msg.reply(ledger.charge(msg.payment))
+        SpringActorBehavior.same()
+    }
+    ```
 
 ## A `Flux` of the messages an actor sends
 
 `messages(type)` creates, for each subscriber, a reference that actors can send messages to. Whatever
 they send to it comes out of the `Flux`. Pass the reference to the actor in `flux(onSubscribe)`:
 
-```java
-Flux<Price> prices = streams.messages(Price.class)
-        .onClose(ref -> ticker.tell(new Unsubscribe(ref)))
-        .flux(ref -> ticker.tell(new Subscribe(ref)));
-```
+=== "Java"
+
+    ```java
+    Flux<Price> prices = streams.messages(Price.class)
+            .onClose(ref -> ticker.tell(new Unsubscribe(ref)))
+            .flux(ref -> ticker.tell(new Subscribe(ref)));
+    ```
+
+=== "Kotlin"
+
+    ```kotlin
+    val prices: Flux<Price> = streams.messages(Price::class.java)
+        .onClose { ref -> ticker.tell(Unsubscribe(ref)) }
+        .flux { ref -> ticker.tell(Subscribe(ref)) }
+    ```
 
 The reference is a `SpringActorRef<Price>`, so the actor stores it and calls `tell` like on any other
-reference:
+reference. In this ticker, the state holds the behavior context (`ctx`) and a set of subscribers:
 
-```java
-.onMessage(Subscribe.class, (state, msg) -> {
-    state.subscribers().add(msg.subscriber());
-    state.ctx().watch(msg.subscriber());
-    return SpringActorBehavior.same();
-})
-.onMessage(PriceChanged.class, (state, msg) -> {
-    state.subscribers().forEach(subscriber -> subscriber.tell(msg.price()));
-    return SpringActorBehavior.same();
-})
-.onSignal(ActorTerminated.class, (state, signal) -> {
-    state.subscribers().remove(signal.ref());
-    return SpringActorBehavior.same();
-})
-```
+=== "Java"
+
+    ```java
+    .onMessage(Subscribe.class, (state, msg) -> {
+        state.subscribers().add(msg.subscriber());
+        state.ctx().watch(msg.subscriber());
+        return SpringActorBehavior.same();
+    })
+    .onMessage(PriceChanged.class, (state, msg) -> {
+        state.subscribers().forEach(subscriber -> subscriber.tell(msg.price()));
+        return SpringActorBehavior.same();
+    })
+    .onSignal(ActorTerminated.class, (state, signal) -> {
+        state.subscribers().remove(signal.ref());
+        return SpringActorBehavior.same();
+    })
+    ```
+
+=== "Kotlin"
+
+    ```kotlin
+    .onMessage(Subscribe::class.java) { state, msg ->
+        state.subscribers.add(msg.subscriber)
+        state.ctx.watch(msg.subscriber)
+        SpringActorBehavior.same()
+    }
+    .onMessage(PriceChanged::class.java) { state, msg ->
+        state.subscribers.forEach { subscriber -> subscriber.tell(msg.price) }
+        SpringActorBehavior.same()
+    }
+    .onSignal(ActorTerminated::class.java) { state, signal ->
+        state.subscribers.removeIf { it == signal.ref() }
+        SpringActorBehavior.same()
+    }
+    ```
 
 ### When the subscriber goes away
 
@@ -114,11 +195,21 @@ Messages sent to a stopped reference go to dead letters.
 
 `completeWhen` names the message that ends the `Flux`. Messages sent before it are still emitted; it is not:
 
-```java
-streams.messages(Event.class)
-        .completeWhen(event -> event instanceof Done)
-        .flux(ref -> job.tell(new Watch(ref)));
-```
+=== "Java"
+
+    ```java
+    Flux<Event> events = streams.messages(Event.class)
+            .completeWhen(event -> event instanceof Done)
+            .flux(ref -> job.tell(new Watch(ref)));
+    ```
+
+=== "Kotlin"
+
+    ```kotlin
+    val events: Flux<Event> = streams.messages(Event::class.java)
+        .completeWhen { event -> event is Done }
+        .flux { ref -> job.tell(Watch(ref)) }
+    ```
 
 ### Buffer and overflow
 
@@ -132,9 +223,23 @@ decides:
 | `DROP_OLDEST` | The oldest buffered message is dropped |
 | `DROP_NEWEST` | The new message is dropped |
 
-```java
-streams.messages(Price.class).bufferSize(16).overflow(Overflow.DROP_OLDEST).flux(...)
-```
+=== "Java"
+
+    ```java
+    Flux<Price> prices = streams.messages(Price.class)
+            .bufferSize(16)
+            .overflow(ActorStreams.Overflow.DROP_OLDEST)
+            .flux(ref -> ticker.tell(new Subscribe(ref)));
+    ```
+
+=== "Kotlin"
+
+    ```kotlin
+    val prices: Flux<Price> = streams.messages(Price::class.java)
+        .bufferSize(16)
+        .overflow(ActorStreams.Overflow.DROP_OLDEST)
+        .flux { ref -> ticker.tell(Subscribe(ref)) }
+    ```
 
 `DROP_OLDEST` suits values where only the latest matters, such as prices or positions.
 
@@ -144,24 +249,51 @@ When nothing may be dropped, let the sending actor wait for the subscriber. With
 reference sends `ack` to `sender` each time a message has gone on to the subscriber. The sender sends its
 next message only after an `ack`:
 
-```java
-Flux<Row> rows = streams.messages(Row.class)
-        .ackTo(exporter, new Exporter.Ack())
-        .completeWhen(row -> row.isLast())
-        .flux(ref -> exporter.tell(new Exporter.Start(ref)));
-```
+=== "Java"
 
-```java
-.onMessage(Start.class, (state, msg) -> {
-    state.subscriber = msg.subscriber();
-    state.sendNext();
-    return SpringActorBehavior.same();
-})
-.onMessage(Ack.class, (state, msg) -> {
-    state.sendNext();
-    return SpringActorBehavior.same();
-})
-```
+    ```java
+    Flux<Row> rows = streams.messages(Row.class)
+            .ackTo(exporter, new Exporter.Ack())
+            .completeWhen(row -> row.isLast())
+            .flux(ref -> exporter.tell(new Exporter.Start(ref)));
+    ```
+
+=== "Kotlin"
+
+    ```kotlin
+    val rows: Flux<Row> = streams.messages(Row::class.java)
+        .ackTo(exporter, Exporter.Ack())
+        .completeWhen { row -> row.isLast }
+        .flux { ref -> exporter.tell(Exporter.Start(ref)) }
+    ```
+
+=== "Java"
+
+    ```java
+    .onMessage(Start.class, (state, msg) -> {
+        state.subscriber = msg.subscriber();
+        state.sendNext();
+        return SpringActorBehavior.same();
+    })
+    .onMessage(Ack.class, (state, msg) -> {
+        state.sendNext();
+        return SpringActorBehavior.same();
+    })
+    ```
+
+=== "Kotlin"
+
+    ```kotlin
+    .onMessage(Start::class.java) { state, msg ->
+        state.subscriber = msg.subscriber
+        state.sendNext()
+        SpringActorBehavior.same()
+    }
+    .onMessage(Ack::class.java) { state, _ ->
+        state.sendNext()
+        SpringActorBehavior.same()
+    }
+    ```
 
 With `ackTo`, there is no buffer, so `bufferSize` and `overflow` do not apply.
 
@@ -170,3 +302,9 @@ With `ackTo`, there is no buffer, so `bufferSize` and `overflow` do not apply.
 - The bridges are tested on one node. The reference that `messages` creates lives on the subscriber's node.
 - An actor cannot fail a `messages` `Flux`; it can end it with `completeWhen`. To report an error, send a
   message that the subscriber maps to an error with Reactor's `handle` operator.
+
+## Related
+
+- [Streaming to Clients](streaming-to-clients.md): Server-Sent Events, WebSocket and gRPC on top of `messages`
+- [Messaging](../core/messaging.md): `tell`, `ask` and replies
+- [Behaviors](../core/behaviors.md): `watch` and `ActorTerminated`

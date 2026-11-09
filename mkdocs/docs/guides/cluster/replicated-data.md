@@ -26,26 +26,45 @@ system starts.
 `ReplicatedData` hands out a handle per name. Declare the handles you use as beans and inject them where
 you need them:
 
-```java
-@Configuration
-class ReplicatedDataConfig {
+=== "Java"
 
-    @Bean
-    ReplicatedMap<String, Cart> carts(ReplicatedData data) {
-        return data.map("carts");
-    }
+    ```java
+    @Configuration
+    class ReplicatedDataConfig {
 
-    @Bean
-    ReplicatedCounter visits(ReplicatedData data) {
-        return data.counter("visits");
-    }
+        @Bean
+        ReplicatedMap<String, Cart> carts(ReplicatedData data) {
+            return data.map("carts");
+        }
 
-    @Bean
-    ReplicatedSet<String> onlineUsers(ReplicatedData data) {
-        return data.set("online-users");
+        @Bean
+        ReplicatedCounter visits(ReplicatedData data) {
+            return data.counter("visits");
+        }
+
+        @Bean
+        ReplicatedSet<String> onlineUsers(ReplicatedData data) {
+            return data.set("online-users");
+        }
     }
-}
-```
+    ```
+
+=== "Kotlin"
+
+    ```kotlin
+    @Configuration
+    class ReplicatedDataConfig {
+
+        @Bean
+        fun carts(data: ReplicatedData): ReplicatedMap<String, Cart> = data.map("carts")
+
+        @Bean
+        fun visits(data: ReplicatedData): ReplicatedCounter = data.counter("visits")
+
+        @Bean
+        fun onlineUsers(data: ReplicatedData): ReplicatedSet<String> = data.set("online-users")
+    }
+    ```
 
 Or inject `ReplicatedData` and ask for a handle when the name is only known at run time, such as one
 counter per tenant: `data.counter("requests-" + tenantId)`. A handle is a cheap view: two handles with the
@@ -53,24 +72,41 @@ same name and kind read and write the same data. Use each name for one kind only
 
 Every read and write returns a `CompletionStage`:
 
-```java
-@Service
-class CartService {
-    private final ReplicatedMap<String, Cart> carts;
+=== "Java"
 
-    CartService(ReplicatedMap<String, Cart> carts) {
-        this.carts = carts;
-    }
+    ```java
+    @Service
+    class CartService {
+        private final ReplicatedMap<String, Cart> carts;
 
-    CompletionStage<Void> save(String user, Cart cart) {
-        return carts.put(user, cart);
-    }
+        CartService(ReplicatedMap<String, Cart> carts) {
+            this.carts = carts;
+        }
 
-    CompletionStage<Optional<Cart>> find(String user) {
-        return carts.get(user);
+        CompletionStage<Void> save(String user, Cart cart) {
+            return carts.put(user, cart);
+        }
+
+        CompletionStage<Optional<Cart>> find(String user) {
+            return carts.get(user);
+        }
     }
-}
-```
+    ```
+
+=== "Kotlin"
+
+    ```kotlin
+    @Service
+    class CartService(private val carts: ReplicatedMap<String, Cart>) {
+
+        // await() is kotlinx.coroutines.future.await (kotlinx-coroutines-core, which actor-kotlin brings)
+        suspend fun save(user: String, cart: Cart) {
+            carts.put(user, cart).await()
+        }
+
+        suspend fun find(user: String): Cart? = carts.get(user).await().orElse(null)
+    }
+    ```
 
 | Type | Reads | Writes | When two nodes write at once |
 |---|---|---|---|
@@ -90,12 +126,23 @@ Each read and write takes an optional `Consistency`: how many nodes to wait for.
 | `majority(timeout)` | More than half of the nodes | A write followed by a read on another node must see it |
 | `all(timeout)` | Every node | Rarely: one unreachable node makes it fail |
 
-```java
-Consistency majority = Consistency.majority(Duration.ofSeconds(3));
+=== "Java"
 
-carts.put("alice", cart, majority);   // on node A
-carts.get("alice", majority);         // on node B: sees the write
-```
+    ```java
+    Consistency majority = Consistency.majority(Duration.ofSeconds(3));
+
+    carts.put("alice", cart, majority);   // on node A
+    carts.get("alice", majority);         // on node B: sees the write
+    ```
+
+=== "Kotlin"
+
+    ```kotlin
+    val majority = Consistency.majority(Duration.ofSeconds(3))
+
+    carts.put("alice", cart, majority)   // on node A
+    carts.get("alice", majority)         // on node B: sees the write
+    ```
 
 A majority write followed by a majority read always sees the write, because the two majorities share at
 least one node. If the nodes don't answer within the timeout, the stage completes with
@@ -108,9 +155,17 @@ Keys, values and set elements travel between nodes, so they must be serializable
 `Long`, or a type that implements `JsonSerializable` or `CborSerializable`, the same as actor messages.
 Values that implement `JsonSerializable` use your application's `ObjectMapper`.
 
-```java
-public record Cart(List<String> items, int quantity) implements JsonSerializable {}
-```
+=== "Java"
+
+    ```java
+    public record Cart(List<String> items, int quantity) implements JsonSerializable {}
+    ```
+
+=== "Kotlin"
+
+    ```kotlin
+    data class Cart(val items: List<String>, val quantity: Int) : JsonSerializable
+    ```
 
 ## Limits
 
@@ -135,3 +190,9 @@ spring:
         distributed-data:
           gossip-interval: 1s
 ```
+
+## Related
+
+- [Pub/Sub Topics](../core/pub-sub-topics.md): send messages to every subscriber instead of sharing state
+- [Sharded Actors](sharded-actors.md): one owner per key, for state that must not merge
+- [Cluster Formation](cluster-formation.md): forming the cluster the data is replicated over

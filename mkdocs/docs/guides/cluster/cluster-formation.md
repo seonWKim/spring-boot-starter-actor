@@ -118,20 +118,36 @@ Implement `io.github.seonwkim.actor.spi.PeerRegistry` (in `actor-api`, no Pekko 
 bean. Set `discovery.method: custom`. A `PeerRegistry` bean of your own also replaces the `jdbc` and `redis`
 stores.
 
-```java
-@Bean
-PeerRegistry peerRegistry(MyStore store) {
-    return new PeerRegistry() {
-        public void register(Peer peer) { store.upsert(peer); }       // also marks it seen now
-        public void deregister(Peer peer) { store.delete(peer); }
-        public List<Peer> peers(String service, Duration ttl) { return store.seenWithin(service, ttl); }
-    };
-}
-```
+=== "Java"
+
+    ```java
+    @Bean
+    PeerRegistry peerRegistry(MyStore store) {
+        return new PeerRegistry() {
+            public void register(Peer peer) { store.upsert(peer); }       // also marks it seen now
+            public void deregister(Peer peer) { store.delete(peer); }
+            public List<Peer> peers(String service, Duration ttl) { return store.seenWithin(service, ttl); }
+        };
+    }
+    ```
+
+=== "Kotlin"
+
+    ```kotlin
+    @Bean
+    fun peerRegistry(store: MyStore): PeerRegistry = object : PeerRegistry {
+        override fun register(peer: Peer) = store.upsert(peer)            // also marks it seen now
+        override fun deregister(peer: Peer) = store.delete(peer)
+        override fun peers(service: String, ttl: Duration): List<Peer> = store.seenWithin(service, ttl)
+    }
+    ```
+
+`MyStore` stands for your own storage code. A `Peer` is the service name, the node id, and the management
+host and port. `heartbeat(peer)` runs every `heartbeat-interval` and calls `register` unless you override it.
 
 Methods may block: the starter calls them on the blocking dispatcher. The starter owns the timers and the
 shutdown hook; a store only stores and reads entries. Run `PeerRegistryContract` from `actor-test` against
-your store to check it behaves like the built-in ones (see [Testing](testing.md#contract-suites-for-your-own-store)).
+your store to check it behaves like the built-in ones (see [Testing](../testing.md#contract-suites-for-your-own-store)).
 
 ## Other discovery methods
 
@@ -142,6 +158,19 @@ your store to check it behaves like the built-in ones (see [Testing](testing.md#
 | `kubernetes-api` | `kubernetes-api` | `pekko-discovery-kubernetes-api_3` (the pods' service account needs RBAC to list pods) |
 | `dns` | `pekko-dns` | built in |
 | `config` | `config` | built in; peers under `spring.actor.pekko.discovery.config.services` |
+
+## Properties
+
+| Key | Default | Meaning |
+|---|---|---|
+| `spring.actor.cluster.join` | `seed-nodes` | `seed-nodes` or `discovery` |
+| `spring.actor.cluster.seed-nodes` | none | Addresses to join, as `pekko://<name>@<host>:<port>` |
+| `spring.actor.cluster.discovery.method` | none | `jdbc`, `redis`, `custom`, `kubernetes-api`, `dns` or `config` |
+| `spring.actor.cluster.discovery.heartbeat-interval` | `5s` | How often a node renews its entry |
+| `spring.actor.cluster.discovery.ttl` | `30s` | Entries older than this are ignored |
+| `spring.actor.cluster.join-self` | `false` | Form a one-node cluster without seed nodes, for local runs and tests |
+| `spring.actor.cluster.roles` | none | Roles of this node, for [sharded actors](sharded-actors.md#run-entities-on-some-nodes-only) and [singletons](singletons.md#limit-it-to-some-nodes) |
+| `spring.actor.jdbc.initialize-schema` | `embedded` | When to create `actor_peer` and `actor_lease`: `embedded`, `always`, `never` |
 
 ## What the nodes need
 
@@ -162,3 +191,10 @@ Bootstrap waits for `pekko.management.cluster.bootstrap.contact-point-discovery.
 
 With `join: discovery`, the split brain resolver defaults to `keep-majority`. To choose another strategy, or
 to keep singletons and shards on one node with a lease, see [Split Brain and Leases](split-brain-and-leases.md).
+
+## Related
+
+- [Split Brain and Leases](split-brain-and-leases.md): what happens when nodes lose each other
+- [Sharded Actors](sharded-actors.md) and [Cluster Singletons](singletons.md): what runs on the cluster
+- [Kubernetes example](../../examples/kubernetes.md): discovery overlays and network policies
+- [Testing](../testing.md#cluster-tests-with-actorcluster): several nodes in one JVM

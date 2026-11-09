@@ -10,7 +10,7 @@ configuration, and no Pekko types in your code.
 
 !!! tip "Event sourcing or a state store?"
     If you only need the latest state of an actor, keep it in a table with Spring Data, as in
-    [Persistence with Spring Boot](persistence-spring-boot.md). Use event sourcing when the history
+    [State in a Database](state-in-a-database.md). Use event sourcing when the history
     matters: an audit trail, rebuilding read models with [projections](#tags-for-projections), or
     undoing a bug by replaying events.
 
@@ -31,52 +31,103 @@ Keep `@EnableActorSupport` on your application, as for any actor.
 
 An event-sourced actor is a `SpringActor` whose `create` returns a `SpringEventSourcedBehavior`:
 
-```java
-@Component
-public class AccountActor implements SpringActor<AccountActor.Command> {
+=== "Java"
 
-    public interface Command {}
+    ```java
+    @Component
+    public class AccountActor implements SpringActor<AccountActor.Command> {
 
-    public static final class Deposit extends AskCommand<Long> implements Command {
-        public final long amount;
-        public Deposit(long amount) { this.amount = amount; }
+        public interface Command {}
+
+        public static final class Deposit extends AskCommand<Long> implements Command {
+            public final long amount;
+            public Deposit(long amount) { this.amount = amount; }
+        }
+
+        public static final class GetBalance extends AskCommand<Long> implements Command {}
+
+        // Events and the state are stored: they must be serializable.
+        public interface Event extends JsonSerializable {}
+        public record Deposited(long amount) implements Event {}
+
+        public record Account(long balance) implements JsonSerializable {
+            Account add(long amount) { return new Account(balance + amount); }
+        }
+
+        @Override
+        public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
+            return SpringEventSourcedBehavior.builder(
+                            Command.class,
+                            Event.class,
+                            PersistenceId.of("Account", actorContext.actorId()),
+                            new Account(0))
+                    .onCommand(Deposit.class, (ctx, account, cmd) -> ctx.persist(new Deposited(cmd.amount))
+                            .thenReply(cmd, Account::balance))
+                    .onCommand(GetBalance.class, (ctx, account, cmd) -> ctx.none()
+                            .thenReply(cmd, Account::balance))
+                    .onEvent(Deposited.class, (account, event) -> account.add(event.amount()))
+                    .snapshotEvery(100)
+                    .build();
+        }
     }
+    ```
 
-    public static final class GetBalance extends AskCommand<Long> implements Command {}
+=== "Kotlin"
 
-    // Events and the state are stored: they must be serializable.
-    public interface Event extends JsonSerializable {}
-    public record Deposited(long amount) implements Event {}
+    ```kotlin
+    @Component
+    class AccountActor : SpringActor<AccountActor.Command> {
 
-    public record Account(long balance) implements JsonSerializable {
-        Account add(long amount) { return new Account(balance + amount); }
-    }
+        sealed interface Command
 
-    @Override
-    public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
-        return SpringEventSourcedBehavior.builder(
-                        Command.class,
-                        Event.class,
-                        PersistenceId.of("Account", actorContext.actorId()),
-                        new Account(0))
-                .onCommand(Deposit.class, (ctx, account, cmd) -> ctx.persist(new Deposited(cmd.amount))
-                        .thenReply(cmd, Account::balance))
-                .onCommand(GetBalance.class, (ctx, account, cmd) -> ctx.none()
-                        .thenReply(cmd, Account::balance))
-                .onEvent(Deposited.class, (account, event) -> account.add(event.amount()))
+        class Deposit(val amount: Long) : AskCommand<Long>(), Command
+
+        class GetBalance : AskCommand<Long>(), Command
+
+        // Events and the state are stored: they must be serializable.
+        sealed interface Event : JsonSerializable
+        data class Deposited(val amount: Long) : Event
+
+        data class Account(val balance: Long) : JsonSerializable {
+            fun add(amount: Long) = Account(balance + amount)
+        }
+
+        override fun create(actorContext: SpringActorContext): SpringActorBehavior<Command> =
+            SpringEventSourcedBehavior.builder(
+                Command::class.java,
+                Event::class.java,
+                PersistenceId.of("Account", actorContext.actorId()),
+                Account(0),
+            )
+                .onCommand(Deposit::class.java) { ctx, _, cmd ->
+                    ctx.persist(Deposited(cmd.amount)).thenReply(cmd) { it.balance }
+                }
+                .onCommand(GetBalance::class.java) { ctx, _, cmd ->
+                    ctx.none().thenReply(cmd) { it.balance }
+                }
+                .onEvent(Deposited::class.java) { account, event -> account.add(event.amount) }
                 .snapshotEvery(100)
-                .build();
+                .build()
     }
-}
-```
+    ```
 
 Spawn it and send it commands like any other actor:
 
-```java
-SpringActorHandle<AccountActor.Command> account =
-        actorSystem.actor(AccountActor.class).withId("alice").spawnAndWait();
-long balance = account.ask(new AccountActor.Deposit(5)).execute().toCompletableFuture().join();
-```
+=== "Java"
+
+    ```java
+    SpringActorHandle<AccountActor.Command> account =
+            actorSystem.actor(AccountActor.class).withId("alice").spawnAndWait();
+    long balance = account.ask(new AccountActor.Deposit(5)).execute().toCompletableFuture().join();
+    ```
+
+=== "Kotlin"
+
+    ```kotlin
+    // In a suspend fun or a coroutine
+    val account = actorSystem.actor<AccountActor, _>().withId("alice").awaitSpawn()
+    val balance: Long = account.awaitAsk(AccountActor.Deposit(5))
+    ```
 
 Spawn `alice` again after a restart and it has the same balance.
 
@@ -144,9 +195,17 @@ The starter never closes your `DataSource`.
 A projection reads the events of one tag in the order they were stored, for example to fill a
 read model or publish to Kafka:
 
-```java
-.withTagger(event -> Set.of("accounts"))
-```
+=== "Java"
+
+    ```java
+    .withTagger(event -> Set.of("accounts"))
+    ```
+
+=== "Kotlin"
+
+    ```kotlin
+    .withTagger { setOf("accounts") }
+    ```
 
 See [Projections](projections.md).
 
@@ -156,9 +215,23 @@ If storing an event fails, the actor stops (Pekko's default) and the command get
 times out. Spawn the actor again to recover it from the stored events. Commands are never stored:
 a command that was being handled when the application stopped is lost, so let the caller retry.
 
+## In a cluster
+
+Run at most one actor per persistence id at a time: two actors that store events under the same id
+conflict on their sequence numbers. On one node, a regular actor with a given id runs once. On several
+nodes, each node could spawn its own copy, so make sure only one node spawns a given id, for example by
+routing all requests for an id to one place, or by using a [cluster singleton](../cluster/singletons.md)
+for a single global actor.
+
 ## Not supported yet
 
 - **R2DBC.** The R2DBC plugin for Pekko 1.1 (`pekko-persistence-r2dbc` 1.0) supports only PostgreSQL and
   Yugabyte, and its next version needs Pekko 1.2. The journal runs on JDBC for now.
 - **Framework commands** (`FrameworkCommand`, spawning children by message) are not handled by
   event-sourced actors.
+
+## Related
+
+- [Projections](projections.md): read the stored events into read models or Kafka
+- [State in a Database](state-in-a-database.md): keep only the latest state with Spring Data
+- [Persistence example](../../examples/persistence.md)

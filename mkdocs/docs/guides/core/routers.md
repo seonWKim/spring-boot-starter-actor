@@ -1,416 +1,281 @@
 # Routers
 
-This guide explains how to use routers to distribute messages across multiple worker actors for load balancing and parallel processing.
+A router is an actor that owns a pool of identical worker actors and passes each message it receives to
+one of them (or to all of them). You send to the router as if it were one actor; the work runs on several
+workers at once.
 
-## What are Routers?
+Use a router when one actor can't keep up and the work doesn't depend on shared state: sending emails,
+resizing images, calling a slow API. If the work belongs to an entity (an order, a user), use one actor
+per entity instead (see [Actors](actors.md) or [Sharded actors](../cluster/sharded-actors.md)); a router
+with [consistent hashing](#consistent-hashing) sits in between.
 
-A router is a special actor that distributes incoming messages across a pool of worker actors. Instead of sending messages directly to a single actor, you send them to the router, which forwards them to one of its workers based on a routing strategy.
+A router lives on one node, and its workers are its children. Routers come with the core starter; no
+extra dependency or configuration is needed.
 
-**Routers are ideal for:**
+## Creating a router
 
-- **Load balancing** - Distributing work evenly across multiple workers
-- **Parallel processing** - Processing messages concurrently
-- **Scalability** - Easily scale by increasing the pool size
-- **Fault tolerance** - Worker failures don't affect the router
+A router has two parts: the worker actor that does the work, and the router actor that holds the pool.
+They share one command type.
 
-## Creating a Router
+=== "Java"
 
-### Define Your Worker Actor
+    ```java
+    // The worker: an ordinary actor bean
+    @Component
+    public class ResizeWorker implements SpringActor<ImageRouter.Command> {
 
-First, create a worker actor that will process messages:
+        private final ImageService imageService;
 
-```java
-@Component
-public class WorkerActor implements SpringActor<ProcessorRouter.Command> {
-
-    @Autowired
-    private WorkerState state;
-
-    @Override
-    public SpringActorBehavior<ProcessorRouter.Command> create(SpringActorContext ctx) {
-        return SpringActorBehavior.builder(ProcessorRouter.Command.class, ctx)
-            .onMessage(ProcessorRouter.ProcessMessage.class, (context, msg) -> {
-                // Process the message
-                String result = processData(msg.data);
-                context.getLog().info("Processed: {}", result);
-                return SpringActorBehavior.same();
-            })
-            .build();
-    }
-
-    private String processData(String data) {
-        // Your processing logic here
-        return "Processed: " + data;
-    }
-}
-```
-
-### Create the Router Actor
-
-Create a router actor that uses `SpringRouterBehavior`:
-
-```java
-@Component
-public class ProcessorRouter implements SpringActor<ProcessorRouter.Command> {
-
-    public interface Command {}
-
-    public static class ProcessMessage implements Command {
-        public final String data;
-
-        public ProcessMessage(String data) {
-            this.data = data;
-        }
-    }
-
-    @Override
-    public SpringActorBehavior<Command> create(SpringActorContext ctx) {
-        return SpringRouterBehavior.builder(Command.class, ctx)
-            .withRoutingStrategy(RoutingStrategy.roundRobin())
-            .withPoolSize(10)  // 10 worker actors
-            .withWorkerActors(WorkerActor.class)
-            .build();
-    }
-}
-```
-
-### Use the Router
-
-Spawn and use the router like any other actor:
-
-```java
-@Service
-public class ProcessingService {
-    private final SpringActorSystem actorSystem;
-
-    public ProcessingService(SpringActorSystem actorSystem) {
-        this.actorSystem = actorSystem;
-    }
-
-    public void processData(String data) {
-        actorSystem.getOrSpawn(ProcessorRouter.class, "processor")
-            .thenAccept(router ->
-                router.tell(new ProcessorRouter.ProcessMessage(data))
-            );
-    }
-}
-```
-
-## Routing Strategies
-
-Actor Spring Boot Starter provides four routing strategies, all wrapping Apache Pekko's built-in routers.
-
-### Round Robin
-
-Distributes messages evenly across workers in a circular fashion. This is the **default and most commonly used** strategy.
-
-```java
-return SpringRouterBehavior.builder(Command.class, ctx)
-    .withRoutingStrategy(RoutingStrategy.roundRobin())
-    .withPoolSize(5)
-    .withWorkerActors(WorkerActor.class)
-    .build();
-```
-
-**Message distribution:**
-
-- Message 1 → Worker 1
-- Message 2 → Worker 2
-- Message 3 → Worker 3
-- Message 4 → Worker 1 (cycles back)
-
-**Best for:**
-
-- Equal distribution of work
-- Predictable load balancing
-- Tasks with similar processing time
-
-### Random
-
-Distributes messages randomly across workers. Very lightweight with no state tracking.
-
-```java
-return SpringRouterBehavior.builder(Command.class, ctx)
-    .withRoutingStrategy(RoutingStrategy.random())
-    .withPoolSize(5)
-    .withWorkerActors(WorkerActor.class)
-    .build();
-```
-
-**Best for:**
-
-- Simple distribution without state tracking
-- Non-critical workloads
-- Avoiding ordering effects
-
-### Broadcast
-
-Sends **all messages to all workers**. Each worker receives every message.
-
-```java
-return SpringRouterBehavior.builder(Command.class, ctx)
-    .withRoutingStrategy(RoutingStrategy.broadcast())
-    .withPoolSize(3)
-    .withWorkerActors(CacheActor.class)
-    .build();
-```
-
-!!! warning "Message Multiplication"
-    Message volume increases by pool size factor (10 messages × 5 workers = 50 total messages processed).
-
-**Best for:**
-
-- Cache invalidation across all workers
-- Configuration updates
-- Notifications that all workers need to receive
-- Coordinated state updates
-
-!!! caution "Performance Impact"
-    Use sparingly for high-volume systems due to the message multiplication effect.
-
-### Consistent Hashing
-
-Routes messages with the same hash key to the same worker, enabling **session affinity** and stateful processing.
-
-#### Messages with ConsistentHashable
-
-Implement the `ConsistentHashable` interface for explicit hash keys:
-
-```java
-public static class ProcessOrder implements Command, ConsistentHashable {
-    private final String customerId;
-    private final String orderId;
-
-    public ProcessOrder(String customerId, String orderId) {
-        this.customerId = customerId;
-        this.orderId = orderId;
-    }
-
-    @Override
-    public String getConsistentHashKey() {
-        return customerId;  // Same customer always goes to same worker
-    }
-}
-```
-
-#### Create Consistent Hashing Router
-
-```java
-return SpringRouterBehavior.builder(Command.class, ctx)
-    .withRoutingStrategy(RoutingStrategy.consistentHashing())
-    .withPoolSize(10)
-    .withWorkerActors(OrderWorkerActor.class)
-    .build();
-```
-
-**With custom virtual nodes factor:**
-
-```java
-// Higher virtual nodes = better distribution but more memory
-.withRoutingStrategy(RoutingStrategy.consistentHashing(20))
-```
-
-**Virtual nodes factor** (default: 10):
-- Higher values (10-20) = better distribution, more memory
-- Lower values (1-5) = less memory, potential hotspots
-
-**Messages without ConsistentHashable:**
-
-If your message doesn't implement `ConsistentHashable`, the router uses `toString()` as the hash key.
-
-**Best for:**
-
-- User session management (same userId → same worker)
-- Entity-based processing (same orderId → same worker)
-- Stateful message processing
-- Cache locality optimization
-
-## Worker Supervision
-
-Configure how workers are supervised when they fail:
-
-```java
-return SpringRouterBehavior.builder(Command.class, ctx)
-    .withRoutingStrategy(RoutingStrategy.roundRobin())
-    .withPoolSize(10)
-    .withWorkerActors(WorkerActor.class)
-    .withSupervisionStrategy(SupervisionStrategy.restart())  // Restart failed workers
-    .build();
-```
-
-**Available strategies:**
-
-- `restart()` - Restart the worker (default)
-- `stop()` - Stop the worker permanently
-- `resume()` - Resume processing, ignoring the failure
-
-**With limits:**
-
-```java
-// Restart up to 3 times within 1 minute, then stop
-.withSupervisionStrategy(
-    SupervisionStrategy.restart().withLimit(3, Duration.ofMinutes(1))
-)
-```
-
-## Spring Dependency Injection in Workers
-
-Worker actors are **full Spring components** with dependency injection support:
-
-```java
-@Component
-public class DatabaseWorkerActor implements SpringActor<Command> {
-
-    @Autowired
-    private DatabaseService databaseService;  // Spring DI!
-
-    @Autowired
-    private MetricsService metricsService;    // Spring DI!
-
-    @Override
-    public SpringActorBehavior<Command> create(SpringActorContext ctx) {
-        return SpringActorBehavior.builder(Command.class, ctx)
-            .onMessage(SaveData.class, (context, msg) -> {
-                // Use injected Spring beans
-                databaseService.save(msg.data);
-                metricsService.recordSave();
-                return SpringActorBehavior.same();
-            })
-            .build();
-    }
-}
-```
-
-All workers in the pool share the same Spring bean instances (singletons), enabling:
-- Shared caching
-- Connection pooling
-- Centralized metrics
-
-## Ask Pattern with Routers
-
-Routers support the ask pattern for request-response messaging:
-
-```java
-@Component
-public class ValidationRouter implements SpringActor<ValidationRouter.Command> {
-
-    public interface Command {}
-
-    public static class ValidateData extends AskCommand<Boolean> implements Command {
-        public final String data;
-
-        public ValidateData(String data) {
-            this.data = data;
-        }
-    }
-
-    @Override
-    public SpringActorBehavior<Command> create(SpringActorContext ctx) {
-        return SpringRouterBehavior.builder(Command.class, ctx)
-            .withRoutingStrategy(RoutingStrategy.roundRobin())
-            .withPoolSize(5)
-            .withWorkerActors(ValidationWorkerActor.class)
-            .build();
-    }
-}
-```
-
-**Using ask pattern:**
-
-```java
-public Mono<Boolean> validateData(String data) {
-    return Mono.fromCompletionStage(
-        actorSystem.getOrSpawn(ValidationRouter.class, "validator")
-            .thenCompose(router ->
-                router.ask(new ValidationRouter.ValidateData(data))
-                    .withTimeout(Duration.ofSeconds(5))
-                    .execute()
-            )
-    );
-}
-```
-
-## Complete Example
-
-Here's a complete example of a processing pipeline with routers:
-
-```java
-// Worker actor
-@Component
-public class OrderProcessorWorker implements SpringActor<OrderRouter.Command> {
-
-    @Autowired
-    private OrderService orderService;
-
-    @Override
-    public SpringActorBehavior<OrderRouter.Command> create(SpringActorContext ctx) {
-        return SpringActorBehavior.builder(OrderRouter.Command.class, ctx)
-            .onMessage(OrderRouter.ProcessOrder.class, (context, msg) -> {
-                orderService.processOrder(msg.orderId, msg.customerId);
-                context.getLog().info("Processed order {} for customer {}",
-                    msg.orderId, msg.customerId);
-                return SpringActorBehavior.same();
-            })
-            .build();
-    }
-}
-
-// Router actor with consistent hashing
-@Component
-public class OrderRouter implements SpringActor<OrderRouter.Command> {
-
-    public interface Command {}
-
-    public static class ProcessOrder implements Command, ConsistentHashable {
-        public final String orderId;
-        public final String customerId;
-
-        public ProcessOrder(String orderId, String customerId) {
-            this.orderId = orderId;
-            this.customerId = customerId;
+        public ResizeWorker(ImageService imageService) {
+            this.imageService = imageService;
         }
 
         @Override
-        public String getConsistentHashKey() {
-            return customerId;  // Same customer always goes to same worker
+        public SpringActorBehavior<ImageRouter.Command> create(SpringActorContext actorContext) {
+            return SpringActorBehavior.builder(ImageRouter.Command.class, actorContext)
+                    .onMessage(ImageRouter.Resize.class, (ctx, msg) -> {
+                        imageService.resize(msg.imageId(), msg.width());
+                        return SpringActorBehavior.same();
+                    })
+                    .build();
         }
     }
 
-    @Override
-    public SpringActorBehavior<Command> create(SpringActorContext ctx) {
-        return SpringRouterBehavior.builder(Command.class, ctx)
+    // The router: its behavior is a pool of ResizeWorkers
+    @Component
+    public class ImageRouter implements SpringActor<ImageRouter.Command> {
+
+        public interface Command {}
+
+        public record Resize(String imageId, int width) implements Command {}
+
+        @Override
+        public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
+            return SpringRouterBehavior.builder(Command.class, actorContext)
+                    .withRoutingStrategy(RoutingStrategy.roundRobin())
+                    .withPoolSize(8)
+                    .withWorkerActors(ResizeWorker.class)
+                    .withSupervisionStrategy(SupervisionStrategy.restart())
+                    .build();
+        }
+    }
+    ```
+
+=== "Kotlin"
+
+    ```kotlin
+    // The worker: an ordinary actor bean
+    @Component
+    class ResizeWorker(private val imageService: ImageService) : SpringActor<ImageRouter.Command> {
+
+        override fun create(actorContext: SpringActorContext): SpringActorBehavior<ImageRouter.Command> =
+            actorBehavior<ImageRouter.Command>(actorContext)
+                .onMessage(ImageRouter.Resize::class.java) { _, msg ->
+                    imageService.resize(msg.imageId, msg.width)
+                    SpringActorBehavior.same()
+                }
+                .build()
+    }
+
+    // The router: its behavior is a pool of ResizeWorkers
+    @Component
+    class ImageRouter : SpringActor<ImageRouter.Command> {
+
+        sealed interface Command
+
+        data class Resize(val imageId: String, val width: Int) : Command
+
+        override fun create(actorContext: SpringActorContext): SpringActorBehavior<Command> =
+            SpringRouterBehavior.builder(Command::class.java, actorContext)
+                .withRoutingStrategy(RoutingStrategy.roundRobin())
+                .withPoolSize(8)
+                .withWorkerActors(ResizeWorker::class.java)
+                .withSupervisionStrategy(SupervisionStrategy.restart())
+                .build()
+    }
+    ```
+
+Spawn and use the router like any other actor:
+
+=== "Java"
+
+    ```java
+    @Service
+    public class ImageResizer {
+        private final SpringActorSystem actorSystem;
+
+        public ImageResizer(SpringActorSystem actorSystem) {
+            this.actorSystem = actorSystem;
+        }
+
+        public void resizeLater(String imageId) {
+            actorSystem.getOrSpawn(ImageRouter.class, "image-router")
+                    .thenAccept(router -> router.tell(new ImageRouter.Resize(imageId, 640)));
+        }
+    }
+    ```
+
+=== "Kotlin"
+
+    ```kotlin
+    @Service
+    class ImageResizer(private val actorSystem: SpringActorSystem) {
+
+        suspend fun resizeLater(imageId: String) {
+            actorSystem.awaitGetOrSpawn<ImageRouter, _>("image-router")
+                .tell(ImageRouter.Resize(imageId, 640))
+        }
+    }
+    ```
+
+## Builder options
+
+| Method | Required | Default | Notes |
+|---|---|---|---|
+| `withRoutingStrategy(strategy)` | yes | none | `build()` throws `IllegalStateException` without it |
+| `withWorkerActors(Class)` | yes | none | A `SpringActor` bean whose command type is the router's |
+| `withPoolSize(n)` | no | 5 | Must be positive |
+| `withSupervisionStrategy(strategy)` | no | stop | Applies to each worker. See [Worker failures](#worker-failures). |
+
+## Routing strategies
+
+| Strategy | Who gets a message | Use it for |
+|---|---|---|
+| `RoutingStrategy.roundRobin()` | Each worker in turn | Tasks that take about the same time |
+| `RoutingStrategy.random()` | A random worker | Simple spreading with no bookkeeping |
+| `RoutingStrategy.broadcast()` | Every worker | Telling all workers something, such as "clear your cache" |
+| `RoutingStrategy.consistentHashing()` | The worker chosen by the message's key | Keeping all messages for one key on one worker |
+
+### Broadcast
+
+With `broadcast()`, every message is handled once per worker: 10 messages to a pool of 5 means 50
+handler calls. Use it for rare control messages, not for regular work. A broadcast ask gets the first
+worker's reply; the other replies are dropped.
+
+### Consistent hashing
+
+`consistentHashing()` sends messages with the same key to the same worker, as long as the pool doesn't
+change. A worker can then keep a cache per key, or handle one customer's messages in order. Give a
+message its key by implementing `ConsistentHashable`:
+
+=== "Java"
+
+    ```java
+    public record ProcessOrder(String customerId, String orderId) implements Command, ConsistentHashable {
+        @Override
+        public String getConsistentHashKey() {
+            return customerId;   // one customer's orders always go to the same worker
+        }
+    }
+
+    // In the router's create():
+    return SpringRouterBehavior.builder(Command.class, actorContext)
             .withRoutingStrategy(RoutingStrategy.consistentHashing())
             .withPoolSize(10)
-            .withWorkerActors(OrderProcessorWorker.class)
-            .withSupervisionStrategy(SupervisionStrategy.restart())
+            .withWorkerActors(OrderWorker.class)
             .build();
-    }
-}
+    ```
 
-// Service using the router
-@Service
-public class OrderService {
-    private final SpringActorSystem actorSystem;
+=== "Kotlin"
 
-    public OrderService(SpringActorSystem actorSystem) {
-        this.actorSystem = actorSystem;
+    ```kotlin
+    data class ProcessOrder(val customerId: String, val orderId: String) : Command, ConsistentHashable {
+        // one customer's orders always go to the same worker
+        override fun getConsistentHashKey(): String = customerId
     }
 
-    public void processOrder(String orderId, String customerId) {
-        actorSystem.getOrSpawn(OrderRouter.class, "order-processor")
-            .thenAccept(router ->
-                router.tell(new OrderRouter.ProcessOrder(orderId, customerId))
-            );
+    // In the router's create():
+    SpringRouterBehavior.builder(Command::class.java, actorContext)
+        .withRoutingStrategy(RoutingStrategy.consistentHashing())
+        .withPoolSize(10)
+        .withWorkerActors(OrderWorker::class.java)
+        .build()
+    ```
+
+- The key must not be `null`; a `null` key fails the routing with `IllegalStateException`.
+- A message that doesn't implement `ConsistentHashable` is hashed by its `toString()`. Records and data
+  classes have a stable `toString()`; most other classes don't, so implement `ConsistentHashable`.
+- `consistentHashing(virtualNodesFactor)` sets how many points each worker gets on the hash ring
+  (default 10, minimum 1). More points spread keys more evenly.
+- This is not a replacement for sharding: the mapping changes when a worker is replaced, and it stays on
+  one node. For one actor per key across a cluster, use [sharded actors](../cluster/sharded-actors.md).
+
+## Ask through a router
+
+A router forwards `AskCommand`s like any message, and the worker that handles it replies to the asker:
+
+=== "Java"
+
+    ```java
+    public static class Validate extends AskCommand<Boolean> implements Command {
+        public final String data;
+
+        public Validate(String data) {
+            this.data = data;
+        }
     }
-}
-```
 
-## More Information
+    // In the worker:
+    .onMessage(Validate.class, (ctx, msg) -> {
+        msg.reply(!msg.data.isBlank());
+        return SpringActorBehavior.same();
+    })
 
-For more details about Pekko routers, see the [Pekko Typed Routers Documentation](https://pekko.apache.org/docs/pekko/current/typed/routers.html).
+    // The caller:
+    CompletionStage<Boolean> valid = router.ask(new ValidationRouter.Validate("payload"))
+            .withTimeout(Duration.ofSeconds(2))
+            .execute();
+    ```
 
-## Next Steps
+=== "Kotlin"
 
-- [Dispatchers](dispatchers.md) - Configure thread execution for your actors
-- [Actor Registration](actor-registration-messaging.md) - Learn how to create and spawn actors
-- [Sharded Actors](sharded-actors.md) - Distributed entity management in clusters
+    ```kotlin
+    class Validate(val data: String) : AskCommand<Boolean>(), Command
+
+    // In the worker:
+    .onMessage(Validate::class.java) { _, msg ->
+        msg.reply(msg.data.isNotBlank())
+        SpringActorBehavior.same()
+    }
+
+    // The caller, in a suspend function:
+    val valid: Boolean = router.awaitAsk(ValidationRouter.Validate("payload"), timeout = 2.seconds)
+    ```
+
+## Worker failures
+
+The router's `withSupervisionStrategy` applies to each worker. Without it, a worker whose handler throws
+**stops** and leaves the pool, so the pool shrinks with every failure. For a pool that should keep its
+size, set `SupervisionStrategy.restart()` (or `restart().withLimit(...)`). With restart, the failed
+message is dropped and the other messages are still handled, as the router tests check. See
+[Supervision](supervision.md) for what each strategy does.
+
+## Workers and Spring beans
+
+Every worker in a pool is created from the same worker bean, so:
+
+- Injected services are shared by all workers (and by every pool that uses the bean). That is what you
+  want for repositories, clients and connection pools.
+- Per-worker state belongs in the worker's [`withState`](behaviors.md#state-with-withstate) object, not
+  in a field of the bean.
+- Workers don't have ids of their own. All workers of a pool get the same generated
+  `actorContext.actorId()` (`worker-<uuid>`), so don't use it to tell workers apart.
+
+A worker that blocks (JDBC, blocking HTTP) holds a thread of the router's dispatcher. Spawn the router
+with `withBlockingDispatcher()` or a [custom dispatcher](dispatchers.md) in that case.
+
+## Pitfalls
+
+- **No routing strategy.** `build()` fails; there is no default strategy.
+- **Pool that shrinks.** Without a restart strategy, failing workers stop for good.
+- **Shared state in the worker bean.** All workers of all pools share it.
+- **Ordering.** Round robin and random spread consecutive messages over different workers, so they can be
+  handled out of order. Use consistent hashing (or one actor per key) when order per key matters.
+
+## Related
+
+- [Actors](actors.md): spawning the router
+- [Supervision](supervision.md): worker strategies
+- [Dispatchers](dispatchers.md): thread pools for blocking workers
+- [Sharded actors](../cluster/sharded-actors.md): one actor per key across a cluster
+- [Pekko routers](https://pekko.apache.org/docs/pekko/current/typed/routers.html): the pool router the starter uses

@@ -44,7 +44,7 @@ another node can take it after the lease's ttl. Three things can use one:
 | Setting | Lease | Effect |
 |---|---|---|
 | `downing.strategy: lease-majority` | one per cluster | Only the side that takes it stays up. |
-| `singleton.use-lease: true` | one per cluster singleton | A singleton starts only after it takes its lease, so it never runs on two nodes. |
+| `singleton.use-lease: true` | one per cluster singleton | A singleton starts only after it takes its lease, so it never runs on two nodes. See [Cluster Singletons](singletons.md#leases-never-two-at-once). |
 | `sharding.use-lease: true` | one per shard | A shard starts its entities only after it takes its lease. |
 
 Each needs `spring.actor.cluster.lease.store`:
@@ -118,6 +118,8 @@ singleton must never run twice.
 Implement `io.github.seonwkim.actor.spi.LeaseStore` (in `actor-api`, no Pekko types), declare it as a bean
 and set `lease.store: custom`. A `LeaseStore` bean of your own also replaces the `jdbc` and `redis` stores.
 
+The interface:
+
 ```java
 public interface LeaseStore {
     boolean tryAcquire(String lease, String owner, Duration ttl); // free, expired or already ours
@@ -127,6 +129,71 @@ public interface LeaseStore {
 }
 ```
 
+An implementation, as a bean:
+
+=== "Java"
+
+    ```java
+    @Component
+    public class MyLeaseStore implements LeaseStore {
+
+        private final MyLeaseTable table; // your own storage code
+
+        public MyLeaseStore(MyLeaseTable table) {
+            this.table = table;
+        }
+
+        @Override
+        public boolean tryAcquire(String lease, String owner, Duration ttl) {
+            return table.insertOrTakeOver(lease, owner, ttl); // one atomic statement
+        }
+
+        @Override
+        public boolean renew(String lease, String owner, Duration ttl) {
+            return table.extendIfOwner(lease, owner, ttl);
+        }
+
+        @Override
+        public void release(String lease, String owner) {
+            table.deleteIfOwner(lease, owner);
+        }
+
+        @Override
+        public Optional<String> holder(String lease) {
+            return table.unexpiredOwner(lease);
+        }
+    }
+    ```
+
+=== "Kotlin"
+
+    ```kotlin
+    @Component
+    class MyLeaseStore(private val table: MyLeaseTable) : LeaseStore { // MyLeaseTable: your own storage code
+
+        override fun tryAcquire(lease: String, owner: String, ttl: Duration): Boolean =
+            table.insertOrTakeOver(lease, owner, ttl) // one atomic statement
+
+        override fun renew(lease: String, owner: String, ttl: Duration): Boolean =
+            table.extendIfOwner(lease, owner, ttl)
+
+        override fun release(lease: String, owner: String) =
+            table.deleteIfOwner(lease, owner)
+
+        override fun holder(lease: String): Optional<String> =
+            table.unexpiredOwner(lease)
+    }
+    ```
+
+`Duration` is `java.time.Duration` in both.
+
 Each method must be atomic in the store. Methods may block: the starter calls them on the blocking
 dispatcher, and owns the renewal timers. Run `LeaseStoreContract` from `actor-test` against your store to
-check it (see [Testing](testing.md#contract-suites-for-your-own-store)).
+check it (see [Testing](../testing.md#contract-suites-for-your-own-store)).
+
+## Related
+
+- [Cluster Singletons](singletons.md): what a singleton lease protects
+- [Sharded Actors](sharded-actors.md): what a shard lease protects
+- [Cluster Formation](cluster-formation.md): `actor-jdbc` and `actor-redis` also find peers
+- [Production](../operations/production.md): graceful shutdown, so a leaving node is never downed

@@ -312,7 +312,7 @@ tail -f logs/application-json.log | jq .
 
 ## Further Reading
 
-- [Logging Guide](../../mkdocs/docs/guides/logging.md) - Comprehensive logging documentation
+- [Logging Guide](../../mkdocs/docs/guides/core/logging.md) - Comprehensive logging documentation
 - [Pekko Logging](https://pekko.apache.org/docs/pekko/current/typed/logging.html) - Official Pekko logging docs
 - [Logback Documentation](http://logback.qos.ch/manual/configuration.html) - Logback configuration
 - [Logstash Encoder](https://github.com/logfellow/logstash-logback-encoder) - JSON logging encoder

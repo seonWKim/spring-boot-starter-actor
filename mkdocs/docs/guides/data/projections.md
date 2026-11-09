@@ -22,12 +22,23 @@ dependencies {
 
 A projection reads the events of one tag. Tag them in the event-sourced actor:
 
-```java
-SpringEventSourcedBehavior.builder(Command.class, Event.class, PersistenceId.of("Account", id), new Account(0))
+=== "Java"
+
+    ```java
+    SpringEventSourcedBehavior.builder(Command.class, Event.class, PersistenceId.of("Account", id), new Account(0))
+            // ...
+            .withTagger(event -> Set.of("accounts"))
+            .build();
+    ```
+
+=== "Kotlin"
+
+    ```kotlin
+    SpringEventSourcedBehavior.builder(Command::class.java, Event::class.java, PersistenceId.of("Account", id), Account(0))
         // ...
-        .withTagger(event -> Set.of("accounts"))
-        .build();
-```
+        .withTagger { setOf("accounts") }
+        .build()
+    ```
 
 Only events stored after you add the tagger carry the tag.
 
@@ -35,36 +46,59 @@ Only events stored after you add the tagger carry the tag.
 
 A projection is a bean that implements `SpringProjection`:
 
-```java
-@Component
-public class BalanceProjection implements SpringProjection<AccountActor.Event> {
+=== "Java"
 
-    private final BalanceRepository balances; // a Spring Data repository
+    ```java
+    @Component
+    public class BalanceProjection implements SpringProjection<AccountActor.Event> {
 
-    public BalanceProjection(BalanceRepository balances) {
-        this.balances = balances;
-    }
+        private final BalanceRepository balances; // a Spring Data repository
 
-    @Override
-    public String name() {
-        return "balances";
-    }
+        public BalanceProjection(BalanceRepository balances) {
+            this.balances = balances;
+        }
 
-    @Override
-    public String tag() {
-        return "accounts";
-    }
+        @Override
+        public String name() {
+            return "balances";
+        }
 
-    @Override
-    public void handle(ProjectedEvent<AccountActor.Event> event) {
-        if (event.event() instanceof AccountActor.Deposited deposited) {
-            Balance balance = balances.findById(event.persistenceId()).orElseGet(() -> new Balance(event.persistenceId()));
-            balance.add(deposited.amount());
-            balances.save(balance);
+        @Override
+        public String tag() {
+            return "accounts";
+        }
+
+        @Override
+        public void handle(ProjectedEvent<AccountActor.Event> event) {
+            if (event.event() instanceof AccountActor.Deposited deposited) {
+                Balance balance = balances.findById(event.persistenceId()).orElseGet(() -> new Balance(event.persistenceId()));
+                balance.add(deposited.amount());
+                balances.save(balance);
+            }
         }
     }
-}
-```
+    ```
+
+=== "Kotlin"
+
+    ```kotlin
+    @Component
+    class BalanceProjection(
+        private val balances: BalanceRepository, // a Spring Data repository
+    ) : SpringProjection<AccountActor.Event> {
+
+        override fun name() = "balances"
+
+        override fun tag() = "accounts"
+
+        override fun handle(event: ProjectedEvent<AccountActor.Event>) {
+            val deposited = event.event() as? AccountActor.Deposited ?: return
+            val balance = balances.findById(event.persistenceId()).orElseGet { Balance(event.persistenceId()) }
+            balance.add(deposited.amount)
+            balances.save(balance)
+        }
+    }
+    ```
 
 Every `SpringProjection` bean starts when the application starts. `handle` gets the events of its tag
 one at a time, in the order they were stored, with the id of the actor that stored each one
@@ -94,26 +128,48 @@ the stored offset, so the event is handled again.
 
 Publish with `AT_LEAST_ONCE`, and wait for the send so a failed send fails the event:
 
-```java
-@Component
-public class AccountEventsToKafka implements SpringProjection<AccountActor.Event> {
+=== "Java"
 
-    private final KafkaTemplate<String, AccountActor.Event> kafka;
+    ```java
+    @Component
+    public class AccountEventsToKafka implements SpringProjection<AccountActor.Event> {
 
-    public AccountEventsToKafka(KafkaTemplate<String, AccountActor.Event> kafka) {
-        this.kafka = kafka;
+        private final KafkaTemplate<String, AccountActor.Event> kafka;
+
+        public AccountEventsToKafka(KafkaTemplate<String, AccountActor.Event> kafka) {
+            this.kafka = kafka;
+        }
+
+        @Override public String name() { return "account-events-to-kafka"; }
+        @Override public String tag() { return "accounts"; }
+        @Override public Delivery delivery() { return Delivery.AT_LEAST_ONCE; }
+
+        @Override
+        public void handle(ProjectedEvent<AccountActor.Event> event) throws Exception {
+            kafka.send("account-events", event.persistenceId(), event.event()).get();
+        }
     }
+    ```
 
-    @Override public String name() { return "account-events-to-kafka"; }
-    @Override public String tag() { return "accounts"; }
-    @Override public Delivery delivery() { return Delivery.AT_LEAST_ONCE; }
+=== "Kotlin"
 
-    @Override
-    public void handle(ProjectedEvent<AccountActor.Event> event) throws Exception {
-        kafka.send("account-events", event.persistenceId(), event.event()).get();
+    ```kotlin
+    @Component
+    class AccountEventsToKafka(
+        private val kafka: KafkaTemplate<String, AccountActor.Event>,
+    ) : SpringProjection<AccountActor.Event> {
+
+        override fun name() = "account-events-to-kafka"
+
+        override fun tag() = "accounts"
+
+        override fun delivery() = Delivery.AT_LEAST_ONCE
+
+        override fun handle(event: ProjectedEvent<AccountActor.Event>) {
+            kafka.send("account-events", event.persistenceId(), event.event()).get()
+        }
     }
-}
-```
+    ```
 
 After a crash the last events are published again: consumers should ignore an event they have
 already seen (the persistence id and sequence number identify it).
@@ -129,7 +185,9 @@ production.
 
 ## Cluster
 
-In cluster mode each projection runs as a cluster singleton, so one node handles its events.
+In cluster mode each projection runs as a [cluster singleton](../cluster/singletons.md) named
+`projection-<name>`, so one node handles its events. When that node leaves, the projection starts on
+another node and resumes from the stored offset.
 
 ## Not supported yet
 
@@ -138,3 +196,9 @@ In cluster mode each projection runs as a cluster singleton, so one node handles
 - **Several instances of one projection.** A projection reads its tag with one consumer. To spread a
   busy tag, split it into several tags (for example `accounts-0` to `accounts-3` by entity id) and
   declare one projection per tag.
+
+## Related
+
+- [Event-Sourced Actors](event-sourcing.md): where the tagged events come from
+- [Cluster Singletons](../cluster/singletons.md): how a projection runs in a cluster
+- [State in a Database](state-in-a-database.md): the read model side, with Spring Data

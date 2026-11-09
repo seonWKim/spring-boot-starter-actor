@@ -1,143 +1,153 @@
-# Dispatchers
+# Dispatchers and Mailboxes
 
-This guide explains how to use dispatchers to control thread execution for your actors.
+A **dispatcher** is the thread pool that runs actors. When an actor has messages, the dispatcher gives it
+a thread, the actor handles a batch of messages, and the thread moves on to another actor. Thousands of
+actors share a few threads this way.
 
-## What are Dispatchers?
+A **mailbox** is the queue an actor's messages wait in until it handles them.
 
-A dispatcher is the "engine" that makes Pekko Actors work. It is responsible for selecting which actors receive messages and allocating threads from the thread pool.
+Most actors need neither setting: the default dispatcher and the default (unbounded) mailbox fit
+non-blocking work. Change them when an actor blocks, when a group of actors must not slow down the
+others, or when a queue must not grow without bound.
 
-By default, all actors use Pekko's default dispatcher, but you can configure actors to use different dispatchers based on their workload characteristics.
+## Choosing a dispatcher
 
-## Why Use Different Dispatchers?
+| Work in the handler | Dispatcher |
+|---|---|
+| Non-blocking: in-memory state, `tell`, `ask` with `pipeToSelf` | Default (nothing to set) |
+| Blocking I/O: JDBC/JPA, file I/O, blocking HTTP clients | `withBlockingDispatcher()` |
+| Blocking I/O, many concurrent calls, Java 21 | The blocking dispatcher on [virtual threads](#virtual-threads) |
+| A group of actors that must be isolated from the rest | A [custom dispatcher](#custom-dispatchers) |
+| Work on a thread pool your application already manages | A dispatcher on a [Spring `Executor` bean](#spring-executor-beans) |
 
-The main reason to use different dispatchers is to **isolate blocking operations** from the default dispatcher. If you perform blocking operations (like blocking I/O) on the default dispatcher, it can starve the thread pool and prevent other actors from processing messages.
+!!! danger "Never block on the default dispatcher"
+    The default dispatcher has about as many threads as CPU cores. An actor that blocks there holds one
+    of them, and a few blocking actors can stall every other actor in the application.
 
-## Dispatcher Selection API
+## Selecting a dispatcher
 
-Actor Spring Boot Starter provides a fluent API for selecting dispatchers when spawning actors:
+Choose the dispatcher when you spawn the actor:
 
-### Default Dispatcher
+=== "Java"
 
-Use the default Pekko dispatcher (this is the default behavior):
+    ```java
+    // Blocking work: Pekko's blocking I/O dispatcher
+    actorSystem.actor(ReportActor.class)
+            .withId("report-1")
+            .withBlockingDispatcher()
+            .spawn();
 
-```java
-SpringActorHandle<MyActor.Command> actor = actorSystem
-    .actor(MyActor.class)
-    .withId("my-actor")
-    .withDefaultDispatcher()  // Optional - this is the default
-    .spawnAndWait();
-```
+    // A dispatcher defined in configuration (see below)
+    actorSystem.actor(ReportActor.class)
+            .withId("report-2")
+            .withDispatcherFromConfig("reports")
+            .spawn();
+    ```
 
-### Blocking Dispatcher
+=== "Kotlin"
 
-Use Pekko's default blocking I/O dispatcher for actors that perform blocking operations:
+    ```kotlin
+    // In a suspend function
 
-```java
-SpringActorHandle<DatabaseActor.Command> dbActor = actorSystem
-    .actor(DatabaseActor.class)
-    .withId("db-actor")
-    .withBlockingDispatcher()  // Use blocking I/O dispatcher
-    .spawnAndWait();
-```
+    // Blocking work: Pekko's blocking I/O dispatcher
+    actorSystem.actor<ReportActor, _>()
+        .withId("report-1")
+        .withBlockingDispatcher()
+        .awaitSpawn()
 
-### When to use:
+    // A dispatcher defined in configuration (see below)
+    actorSystem.actor<ReportActor, _>()
+        .withId("report-2")
+        .withDispatcherFromConfig("reports")
+        .awaitSpawn()
+    ```
 
-- Database operations
-- File I/O
-- Network calls (blocking APIs)
-- Any operation that blocks the thread
+| Spawn builder method | Child builder equivalent | Runs the actor on |
+|---|---|---|
+| `withDefaultDispatcher()` (the default) | `withDispatcher(DispatcherConfig.defaultDispatcher())` | The default dispatcher |
+| `withBlockingDispatcher()` | `withDispatcher(DispatcherConfig.blocking())` | Pekko's `default-blocking-io-dispatcher` |
+| `withDispatcherFromConfig(name)` | `withDispatcher(DispatcherConfig.fromConfig(name))` | The dispatcher defined under `spring.actor.<name>` or `spring.actor.dispatchers.<name>` |
+| `withDispatcherSameAsParent()` | `withDispatcher(DispatcherConfig.sameAsParent())` | The parent's dispatcher |
 
-### Custom Dispatcher from Configuration
+A child actor uses the `withDispatcher(...)` form:
 
-Use a custom dispatcher defined in your application configuration:
+=== "Java"
 
-```java
-SpringActorHandle<WorkerActor.Command> worker = actorSystem
-    .actor(WorkerActor.class)
-    .withId("worker")
-    .withDispatcherFromConfig("my-custom-dispatcher")
-    .spawnAndWait();
-```
+    ```java
+    ctx.getSelf().child(ExportWorker.class)
+            .withId("export-1")
+            .withDispatcher(DispatcherConfig.blocking())
+            .spawn();
+    ```
 
-### Same-as-Parent Dispatcher
+=== "Kotlin"
 
-Inherit the dispatcher from the parent actor (useful for child actors):
+    ```kotlin
+    ctx.self.child(ExportWorker::class.java)
+        .withId("export-1")
+        .withDispatcher(DispatcherConfig.blocking())
+        .spawn()
+    ```
 
-```java
-SpringActorHandle<ChildActor.Command> child = parentRef
-    .child(ChildActor.class)
-    .withId("child")
-    .withDispatcherSameAsParent()
-    .spawnAndWait();
-```
+An unknown dispatcher name makes the spawn fail; the actor system keeps working.
 
-## Types of Dispatchers
+## The blocking dispatcher
 
-### Dispatcher (Default)
-
-The default dispatcher is used when no specific dispatcher is configured. It uses a fork-join-executor by default and provides excellent performance for non-blocking operations.
-
-!!! info "Fork-Join Executor"
-    The fork-join executor is a work-stealing thread pool that provides efficient CPU utilization for non-blocking workloads.
-
-### PinnedDispatcher
-
-A PinnedDispatcher dedicates a unique thread for each actor using it. This can be useful for actors that need thread-local state or for bulkheading critical actors.
-
-!!! warning "Resource Usage"
-    PinnedDispatcher creates one thread per actor, which can lead to high resource consumption. Use sparingly and only when necessary.
-
-## Configuring Custom Dispatchers
-
-Define custom dispatchers in your `application.yml`:
-
-### Fork-Join Executor
-
-The fork-join-executor is a work-stealing thread pool:
-
-```yaml
-spring:
-  actor:
-    my-dispatcher:
-      type: Dispatcher
-      executor: fork-join-executor
-      fork-join-executor:
-        # Min number of threads
-        parallelism-min: 2
-        # Thread count = ceil(available processors * factor)
-        parallelism-factor: 2.0
-        # Max number of threads
-        parallelism-max: 10
-      # Throughput defines the maximum number of messages
-      # to be processed per actor before the thread jumps
-      # to the next actor. Set to 1 for as fair as possible.
-      throughput: 100
-```
-
-### Thread Pool Executor
-
-The thread-pool-executor is based on a `java.util.concurrent.ThreadPoolExecutor`:
+`withBlockingDispatcher()` uses Pekko's `default-blocking-io-dispatcher`, a thread pool meant for
+blocking calls. Pekko gives it 16 threads by default. Its threads are separate from the default
+dispatcher's, so blocking actors can only slow each other down. Change its size with raw Pekko keys:
 
 ```yaml
 spring:
   actor:
-    my-blocking-dispatcher:
+    pekko:
+      actor:
+        default-blocking-io-dispatcher:
+          thread-pool-executor:
+            fixed-pool-size: 32
+```
+
+## Custom dispatchers
+
+Define your own dispatcher under `spring.actor.<name>` with Pekko's dispatcher keys. Every key under
+`spring.actor` that the starter doesn't know is passed to Pekko without the prefix, so
+`spring.actor.my-dispatcher` becomes Pekko's `my-dispatcher` (see
+[Configuration](../operations/configuration.md)). Then spawn with `withDispatcherFromConfig("my-dispatcher")`.
+
+A fixed thread pool, for blocking work you want to keep apart from the rest:
+
+```yaml
+spring:
+  actor:
+    db-dispatcher:
       type: Dispatcher
       executor: thread-pool-executor
       thread-pool-executor:
-        # Fixed pool size
         fixed-pool-size: 16
       throughput: 1
 ```
 
-### Dynamic Thread Pool Executor
-
-For variable pool sizes:
+A fork-join pool, for CPU-heavy work you want to keep apart:
 
 ```yaml
 spring:
   actor:
-    my-dynamic-dispatcher:
+    cpu-dispatcher:
+      type: Dispatcher
+      executor: fork-join-executor
+      fork-join-executor:
+        parallelism-min: 2
+        parallelism-factor: 1.0   # threads = CPU cores x factor, within min and max
+        parallelism-max: 8
+      throughput: 100
+```
+
+A thread pool that grows and shrinks:
+
+```yaml
+spring:
+  actor:
+    elastic-dispatcher:
       type: Dispatcher
       executor: thread-pool-executor
       thread-pool-executor:
@@ -150,20 +160,42 @@ spring:
       throughput: 10
 ```
 
-### Spring Executor Beans
+Pekko also has `type: PinnedDispatcher`, which gives each actor its own thread. It uses one thread per
+actor, so keep it for a handful of actors. All dispatcher keys are in the
+[Pekko dispatcher documentation](https://pekko.apache.org/docs/pekko/current/typed/dispatchers.html).
 
-A dispatcher can run its actors on an `Executor` bean from your application, for example a
+### Throughput
+
+`throughput` is the number of messages an actor may handle before its thread moves on to the next
+actor. A high value (100) means fewer switches and more speed; a low value (1) is fairer, so one busy
+actor can't keep others waiting. Use 1 for dispatchers whose actors block.
+
+## Spring Executor beans
+
+A dispatcher can run its actors on an `Executor` bean of your application, for example a
 `ThreadPoolTaskExecutor` you already tune and monitor:
 
-```java
-@Bean
-ThreadPoolTaskExecutor reportExecutor() {
-    ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-    executor.setThreadNamePrefix("reports-");
-    executor.setCorePoolSize(8);
-    return executor;
-}
-```
+=== "Java"
+
+    ```java
+    @Bean
+    ThreadPoolTaskExecutor reportExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setThreadNamePrefix("reports-");
+        executor.setCorePoolSize(8);
+        return executor;
+    }
+    ```
+
+=== "Kotlin"
+
+    ```kotlin
+    @Bean
+    fun reportExecutor(): ThreadPoolTaskExecutor = ThreadPoolTaskExecutor().apply {
+        setThreadNamePrefix("reports-")
+        corePoolSize = 8
+    }
+    ```
 
 ```yaml
 spring:
@@ -174,28 +206,22 @@ spring:
         throughput: 10             # optional
 ```
 
-```java
-actorSystem.actor(ReportActor.class)
-    .withId("report-1")
-    .withDispatcherFromConfig("reports")
-    .spawn();
-```
+Spawn with `withDispatcherFromConfig("reports")`. The Spring context owns the executor: the actor system
+never shuts it down, and it keeps running while the actor system stops.
 
-The Spring context owns the executor: the actor system never shuts it down, and it is still running
-while the actor system stops.
+| Key | Meaning |
+|---|---|
+| `spring.actor.dispatchers.<name>.executor` | The name of an `Executor` bean |
+| `spring.actor.dispatchers.<name>.virtual` | `true` for a dispatcher on virtual threads (see below) |
+| `spring.actor.dispatchers.<name>.throughput` | Optional throughput |
 
-### Virtual Thread Executor
+A dispatcher sets either `executor` or `virtual: true`, not both. The name may contain letters, digits,
+`-` and `_`.
 
-You can use Pekko's built-in virtual thread executor for actors performing blocking I/O operations. Virtual threads are lightweight threads that provide excellent scalability for blocking operations.
+## Virtual threads
 
-**Benefits of Virtual Threads:**
-
-- Very low memory overhead (~1KB per thread vs ~1MB for platform threads)
-- Can handle millions of concurrent operations
-- Ideal for blocking I/O (database calls, HTTP requests, file operations)
-- No need for reactive programming patterns
-
-**Configuration:**
+On Java 21, blocking actors can run on virtual threads: a blocked virtual thread doesn't hold a platform
+thread, so many blocking calls can wait at once.
 
 ```yaml
 spring:
@@ -212,21 +238,11 @@ spring:
   application that turns on virtual threads for Spring gets them for blocking actors too. `false` keeps
   platform threads even when Spring's flag is on.
 - `spring.actor.dispatchers.<name>.virtual: true` defines a named dispatcher on virtual threads, whatever
-  the switch says. A dispatcher sets either `virtual` or `executor`, not both.
+  the switch says. Spawn with `withDispatcherFromConfig("<name>")`.
 - The default dispatcher always stays on its platform fork-join pool: actors that never block gain
   nothing from virtual threads.
 - A raw `spring.actor.pekko.actor.default-blocking-io-dispatcher.executor` still wins over the switch,
-  with a warning.
-
-**Usage:**
-
-```java
-SpringActorHandle<DatabaseActor.Command> dbActor = actorSystem
-    .actor(DatabaseActor.class)
-    .withId("db-actor")
-    .withBlockingDispatcher()            // or .withDispatcherFromConfig("virtual-thread-dispatcher")
-    .spawnAndWait();
-```
+  with a warning in the log.
 
 !!! warning "Pinning"
     A virtual thread that blocks inside a `synchronized` block, or in some native calls, pins its
@@ -234,73 +250,87 @@ SpringActorHandle<DatabaseActor.Command> dbActor = actorSystem
     Use `java.util.concurrent` locks (`ReentrantLock`) around blocking calls, and find pinning with
     `-Djdk.tracePinnedThreads=short`.
 
-**JVM Tuning (Optional):**
+Virtual threads help blocking I/O, not CPU-heavy work. The JVM's own settings
+(`jdk.virtualThreadScheduler.parallelism`, `jdk.virtualThreadScheduler.maxPoolSize`) rarely need
+changes. The [virtual-threads example](../../examples/virtual-threads.md) compares platform and virtual
+threads on the same workload.
 
-You can further configure virtual threads using JVM system properties:
+## Mailboxes
 
-- `jdk.virtualThreadScheduler.parallelism` - Number of platform threads for virtual thread scheduling
-- `jdk.virtualThreadScheduler.maxPoolSize` - Maximum pool size for virtual thread scheduler
-- `jdk.unparker.maxPoolSize` - Maximum pool size for unparking virtual threads
+By default each actor has an unbounded mailbox: it accepts every message, and a slow actor's queue grows
+until memory runs out. Set another mailbox when you spawn the actor:
 
-!!! tip "When to Tune"
-    Most applications don't need to tune these settings. Only adjust if you've identified specific bottlenecks through profiling.
+=== "Java"
 
-**Requirements:**
-- Java 21 or later
-- Suitable for blocking I/O operations only (not CPU-intensive tasks)
+    ```java
+    // At most 1,000 waiting messages; further messages go to dead letters
+    actorSystem.actor(IngestActor.class)
+            .withId("ingest")
+            .withMailbox(MailboxConfig.bounded(1_000))
+            .spawn();
 
-**When to use Virtual Threads vs Thread Pool:**
+    // A mailbox defined in configuration
+    actorSystem.actor(IngestActor.class)
+            .withId("ingest-priority")
+            .withMailbox(MailboxConfig.fromConfig("priority-mailbox"))
+            .spawn();
+    ```
 
-| Use Case | Recommended Dispatcher |
-|----------|----------------------|
-| Blocking I/O (Java 21+) | Virtual Thread Executor |
-| Blocking I/O with a bounded pool | Thread Pool Executor |
-| CPU-intensive tasks | Fork-Join Executor (default) |
-| Non-blocking operations | Default Dispatcher |
+=== "Kotlin"
 
-!!! example "Virtual Threads Example"
-    See the [virtual-threads example](https://github.com/seonWKim/actor-spring-boot-starter/tree/main/example/virtual-threads) for a complete working demonstration of virtual threads with actors.
+    ```kotlin
+    // In a suspend function
 
-## Blocking Operations
+    // At most 1,000 waiting messages; further messages go to dead letters
+    actorSystem.actor<IngestActor, _>()
+        .withId("ingest")
+        .withMailbox(MailboxConfig.bounded(1_000))
+        .awaitSpawn()
 
-The most important reason to use a separate dispatcher is to isolate blocking operations from the default dispatcher.
+    // A mailbox defined in configuration
+    actorSystem.actor<IngestActor, _>()
+        .withId("ingest-priority")
+        .withMailbox(MailboxConfig.fromConfig("priority-mailbox"))
+        .awaitSpawn()
+    ```
 
-**Problem:**
+| `MailboxConfig` | Mailbox |
+|---|---|
+| `defaultMailbox()` | Unbounded (the default) |
+| `bounded(capacity)` | Holds at most `capacity` messages; messages beyond that are dropped to dead letters. `capacity` must be positive. |
+| `fromConfig(name)` | The mailbox defined under `spring.actor.<name>` |
 
-If you have blocking operations (such as blocking I/O, database calls, or expensive computations) and run them on the default dispatcher, it will block threads that are needed for other actors to process their messages. This can cause your application to become unresponsive.
-
-**Solution:**
-
-Always use a separate dispatcher with a thread pool executor for actors that perform blocking operations. Use `.withBlockingDispatcher()` or a custom dispatcher with a thread-pool-executor.
-
-!!! danger "Thread Starvation"
-    Running blocking operations on the default dispatcher can lead to thread starvation, where all threads are blocked waiting for I/O, preventing other actors from processing messages.
-
-Example configuration for blocking operations:
+A mailbox from configuration names a Pekko mailbox class, for example a priority mailbox that handles
+some messages before others:
 
 ```yaml
 spring:
   actor:
-    my-blocking-dispatcher:
-      type: Dispatcher
-      executor: thread-pool-executor
-      thread-pool-executor:
-        fixed-pool-size: 16
-      throughput: 1
+    priority-mailbox:
+      mailbox-type: com.example.PriorityMailbox
 ```
 
-## Throughput Configuration
+Pekko's priority mailboxes (`UnboundedPriorityMailbox`, `UnboundedStablePriorityMailbox`,
+`BoundedPriorityMailbox`, `BoundedStablePriorityMailbox`) need a subclass that supplies the ordering;
+see the [Pekko mailbox documentation](https://pekko.apache.org/docs/pekko/current/typed/mailboxes.html).
 
-The `throughput` setting defines the maximum number of messages to be processed per actor before the thread jumps to the next actor. Set to 1 for as fair as possible.
+A bounded mailbox drops messages silently from the sender's point of view: `tell` still returns, and an
+`ask` times out. Use it to protect memory, and make senders slow down (with ask, or with
+[streams](../streaming/reactor-streams.md)) when you need back-pressure.
 
-Higher throughput values can improve performance by reducing the number of context switches, but may increase latency for individual messages.
+## Pitfalls
 
-## More Information
+- **Blocking on the default dispatcher.** The most common cause of an application that stops responding
+  under load.
+- **One huge blocking pool for everything.** Give separate dispatchers to workloads that must not wait
+  for each other (for example, the database and a slow partner API).
+- **Unbounded mailboxes in front of slow actors.** Watch mailbox sizes (see
+  [Monitoring](../operations/monitoring.md)) and bound the ones that can grow.
+- **`virtual` and `executor` on one dispatcher.** The application fails to start; choose one.
 
-For more detailed information about dispatchers, refer to the [Pekko Dispatcher Documentation](https://pekko.apache.org/docs/pekko/1.0/typed/dispatchers.html).
+## Related
 
-## Next Steps
-
-- [Actor Registration](actor-registration-messaging.md) - Learn how to create and spawn actors
-- [Routers](routers.md) - Use routers for load balancing and parallel processing
-- [Logging with MDC](logging.md) - Enhance observability with MDC and tags
+- [Actors](actors.md): the spawn builder
+- [Configuration](../operations/configuration.md): all `spring.actor` keys
+- [Monitoring](../operations/monitoring.md): dispatcher and mailbox metrics
+- [Virtual threads example](../../examples/virtual-threads.md)

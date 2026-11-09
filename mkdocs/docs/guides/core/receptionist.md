@@ -1,135 +1,221 @@
 # Receptionist (Service Discovery)
 
-The receptionist lets you find actors by a **service name** instead of by actor id or path. Actors register under a name; other code looks the name up once or subscribes to changes. It wraps Pekko's typed [Receptionist](https://pekko.apache.org/docs/pekko/current/typed/actor-discovery.html).
+The receptionist finds actors by a **service name** instead of by class and id. Actors register under a
+name; other code looks the name up once, or subscribes and is told whenever the set of registered actors
+changes. In cluster mode, the registrations are shared across nodes, so a lookup on one node finds
+actors on every node. It wraps Pekko's typed
+[Receptionist](https://pekko.apache.org/docs/pekko/current/typed/actor-discovery.html).
 
-## Overview
+Use it when the caller doesn't know (or shouldn't know) the ids of the actors it needs:
 
-**Key Features:**
+- finding all instances of a worker, wherever they run;
+- reacting when instances of a service start and stop;
+- reaching actors on other cluster nodes without sharding them.
 
-- Register any actor under a typed `ServiceName`
-- One-time lookup that returns `SpringActorHandle` refs
-- Subscriptions that are called on every change and can be cancelled
-- Actors can register themselves from behavior setup
-- Works in both local and cluster modes
+When you know the id, use `getOrSpawn` or `get` ([Actors](actors.md)) or a
+[sharded actor](../cluster/sharded-actors.md) instead. To send one message to many actors, a
+[topic](pub-sub-topics.md) is simpler.
 
-**Use Cases:**
+The `SpringReceptionist` bean comes with the core starter. It is created with
+`@ConditionalOnMissingBean`, so you can replace it with your own bean.
 
-- Finding a pool of workers without knowing their ids
-- Reacting when instances of a service come and go
-- Discovering actors that live on other cluster nodes
+## Service names
 
-## Service Names
+A `ServiceName` combines a message type and an id. Names with the same type and id are equal on every
+node. The type is the command type of the registered actors, so lookups return handles you can `tell`
+and `ask` directly.
 
-A service name combines a message type and an id. Names with the same type and id are equal, on every node:
+=== "Java"
 
-```java
-public static final ServiceName<WorkerCommand> WORKERS =
-        ServiceName.of(WorkerCommand.class, "workers");
-```
+    ```java
+    public static final ServiceName<WorkerActor.Command> WORKERS =
+            ServiceName.of(WorkerActor.Command.class, "workers");
+    ```
 
-In cluster mode the messages must be serializable (`JsonSerializable` or `CborSerializable`), as for any remote message.
+=== "Kotlin"
 
-## Registering and Finding
+    ```kotlin
+    val WORKERS: ServiceName<WorkerActor.Command> = ServiceName.of(WorkerActor.Command::class.java, "workers")
+    ```
 
-Inject `SpringReceptionist`. It is created as a bean automatically (`@ConditionalOnMissingBean`, so you can provide your own).
+The id must not be blank. In cluster mode the messages must implement `JsonSerializable` or
+`CborSerializable`, as for any message that crosses nodes.
 
-```java
-@Service
-public class WorkerPool {
-    private final SpringActorSystem actorSystem;
-    private final SpringReceptionist receptionist;
+## Registering
 
-    public WorkerPool(SpringActorSystem actorSystem, SpringReceptionist receptionist) {
-        this.actorSystem = actorSystem;
-        this.receptionist = receptionist;
+An actor can register itself when it starts, in its `withState` factory:
+
+=== "Java"
+
+    ```java
+    @Component
+    public class WorkerActor implements SpringActor<WorkerActor.Command> {
+
+        public interface Command extends JsonSerializable {}
+
+        public record DoJob(String jobId) implements Command {}
+
+        @Override
+        public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
+            return SpringActorBehavior.builder(Command.class, actorContext)
+                    .withState(ctx -> {
+                        ctx.registerWithReceptionist(WORKERS);
+                        return ctx;
+                    })
+                    .onMessage(DoJob.class, (ctx, msg) -> {
+                        ctx.getLog().info("Running job {}", msg.jobId());
+                        return SpringActorBehavior.same();
+                    })
+                    .build();
+        }
     }
+    ```
 
-    public void startWorker(String id) {
-        SpringActorHandle<WorkerCommand> worker = actorSystem
-                .actor(WorkerActor.class)
-                .withId(id)
-                .spawnAndWait();
-        receptionist.register(WORKERS, worker);
+=== "Kotlin"
+
+    ```kotlin
+    @Component
+    class WorkerActor : SpringActor<WorkerActor.Command> {
+
+        sealed interface Command : JsonSerializable
+
+        data class DoJob(val jobId: String) : Command
+
+        override fun create(actorContext: SpringActorContext): SpringActorBehavior<Command> =
+            actorBehavior<Command>(actorContext)
+                .withState { ctx ->
+                    ctx.registerWithReceptionist(WORKERS)
+                    ctx
+                }
+                .onMessage(DoJob::class.java) { ctx, msg ->
+                    ctx.log.info("Running job {}", msg.jobId)
+                    SpringActorBehavior.same()
+                }
+                .build()
     }
-}
+    ```
 
-@Service
-public class JobDispatcher {
-    private final SpringReceptionist receptionist;
+Or any code can register an actor it has a ref to, with `receptionist.register(name, ref)`:
 
-    public JobDispatcher(SpringReceptionist receptionist) {
-        this.receptionist = receptionist;
+=== "Java"
+
+    ```java
+    SpringActorHandle<WorkerActor.Command> worker = actorSystem.actor(WorkerActor.class)
+            .withId("worker-1")
+            .spawnAndWait();
+    receptionist.register(WORKERS, worker);
+    ```
+
+=== "Kotlin"
+
+    ```kotlin
+    // In a suspend function
+    val worker = actorSystem.actor<WorkerActor, _>().withId("worker-1").awaitSpawn()
+    receptionist.register(WORKERS, worker)
+    ```
+
+A stopped actor is removed from its services automatically. To remove a running one, call
+`receptionist.deregister(name, ref)`.
+
+## Finding
+
+`find(name)` returns the actors registered under the name right now. The set may be empty.
+
+=== "Java"
+
+    ```java
+    @Service
+    public class JobDispatcher {
+        private final SpringReceptionist receptionist;
+
+        public JobDispatcher(SpringReceptionist receptionist) {
+            this.receptionist = receptionist;
+        }
+
+        public CompletionStage<Integer> dispatch(String jobId) {
+            return receptionist.find(WORKERS).thenApply(workers -> {
+                workers.forEach(w -> w.tell(new WorkerActor.DoJob(jobId)));
+                return workers.size();
+            });
+        }
     }
+    ```
 
-    public CompletionStage<Void> dispatch(Job job) {
-        return receptionist.find(WORKERS)
-                .thenAccept(workers -> workers.forEach(w -> w.tell(new DoJob(job))));
+=== "Kotlin"
+
+    ```kotlin
+    @Service
+    class JobDispatcher(private val receptionist: SpringReceptionist) {
+
+        suspend fun dispatch(jobId: String): Int {
+            val workers = receptionist.find(WORKERS).await()
+            workers.forEach { it.tell(WorkerActor.DoJob(jobId)) }
+            return workers.size
+        }
     }
-}
-```
+    ```
 
-`find(name)` and `find(name, timeout)` return a `CompletionStage<Set<SpringActorHandle<T>>>`. The set may be empty. Each handle supports `tell` and `ask` like any other `SpringActorHandle`.
+`find(name)` waits up to 3 seconds for the receptionist's answer; `find(name, timeout)` sets another
+limit. The result is a `Set<SpringActorHandle<T>>`; each handle supports `tell` and `ask`.
 
-A stopped actor is removed from the listing automatically. Use `deregister(name, handle)` to remove a running actor. `register` and `deregister` take any
-`SpringActorRef`: a handle, or `ctx.getSelf()` inside an actor.
+## Subscribing to changes
 
-## Registering from Behavior Setup
+`subscribe(name, listener)` calls the listener with the current set right away, then with the full new
+set every time an actor registers, deregisters or stops:
 
-An actor can register itself with `SpringBehaviorContext.registerWithReceptionist`:
+=== "Java"
 
-```java
-@Component
-public class WorkerActor implements SpringActor<WorkerCommand> {
-    @Override
-    public SpringActorBehavior<WorkerCommand> create(SpringActorContext actorContext) {
-        return SpringActorBehavior.builder(WorkerCommand.class, actorContext)
-                .withState(ctx -> {
-                    ctx.registerWithReceptionist(WORKERS);
-                    return new WorkerState();
-                })
-                .onMessage(DoJob.class, WorkerState::onJob)
-                .build();
-    }
-}
-```
+    ```java
+    SpringReceptionistSubscription<WorkerActor.Command> subscription =
+            receptionist.subscribe(WORKERS, workers -> log.info("{} workers available", workers.size()));
 
-## Subscribing to Changes
+    // later, for example in a @PreDestroy method
+    subscription.cancel();
+    ```
 
-```java
-SpringReceptionistSubscription<WorkerCommand> subscription =
-        receptionist.subscribe(WORKERS, workers ->
-                log.info("{} workers available", workers.size()));
+=== "Kotlin"
 
-// later
-subscription.cancel();
-```
+    ```kotlin
+    val subscription: SpringReceptionistSubscription<WorkerActor.Command> =
+        receptionist.subscribe(WORKERS) { workers -> log.info("{} workers available", workers.size) }
 
-The listener is called with the current set right after subscribing, then with the full updated set each time an actor registers, deregisters or stops. It runs on an actor thread: keep it short and never block in it.
+    // later, for example in a @PreDestroy method
+    subscription.cancel()
+    ```
 
-Each subscription is backed by a small helper actor. `cancel()` stops it; after `cancel()` returns the listener is not called again. `whenTerminated()` completes once the helper actor has stopped.
+- The listener runs on an actor thread. Keep it short and never block in it. A common pattern is to copy
+  the set into a field (an `AtomicReference`) that request code reads.
+- If the listener throws, the error is logged and the subscription stays.
+- Each subscription is backed by a small helper actor. `cancel()` stops it and is safe to call twice;
+  after `cancel()` returns, the listener isn't called again. `isCancelled()` tells whether it was
+  cancelled, and `whenTerminated()` completes once the helper actor has stopped.
 
-## Cluster Mode
+## Cluster mode
 
-In a cluster, registrations are replicated to all nodes, so `find` on node 2 can return an actor that lives on node 1, and `tell` on the returned handle is delivered over the network.
+In a cluster, registrations are replicated to all nodes. `find` on node 2 can return an actor that runs
+on node 1, and `tell` on the returned handle goes over the network.
 
 !!! warning "Eventually consistent"
-    Replication is **eventually consistent**. Right after registering on one node, a lookup on another node may still return an empty set or an older listing. Do not treat an empty result as final: retry with a bounded wait, or use `subscribe` and react when the actor appears.
+    Replication takes time. Right after an actor registers on one node, a lookup on another node can
+    still return an empty or older set. Don't treat an empty result as final: retry with a bounded wait,
+    or use `subscribe` and act when the actor appears.
 
-```java
-// Wait for a worker registered on another node, with an upper bound
-await().atMost(15, SECONDS).until(() ->
-        !receptionist.find(WORKERS).toCompletableFuture().get().isEmpty());
-```
+Registrations of a node that leaves the cluster are removed once the node is removed from membership.
 
-Listings from a node that leaves the cluster are removed once the node is removed from membership.
-
-## API Summary
+## API summary
 
 | Method | Description |
 |---|---|
 | `ServiceName.of(type, id)` | Creates a service name |
 | `register(name, ref)` | Registers an actor under a name |
 | `deregister(name, ref)` | Removes an actor from a name |
-| `find(name)` / `find(name, timeout)` | One-time lookup, returns `SpringActorHandle` refs |
-| `subscribe(name, listener)` | Calls the listener on every change; returns a cancellable subscription |
-| `SpringBehaviorContext.registerWithReceptionist(name)` | Registers the current actor from behavior setup |
+| `find(name)`, `find(name, timeout)` | One-time lookup; default timeout 3 s |
+| `subscribe(name, listener)` | Calls the listener now and on every change; returns a cancellable subscription |
+| `SpringBehaviorContext.registerWithReceptionist(name)` | Registers the current actor from inside it |
+
+## Related
+
+- [Actors](actors.md): finding actors by class and id
+- [Pub/sub topics](pub-sub-topics.md): one message to many actors
+- [Sharded actors](../cluster/sharded-actors.md): one actor per id across a cluster
+- [Cluster formation](../cluster/cluster-formation.md): running a cluster

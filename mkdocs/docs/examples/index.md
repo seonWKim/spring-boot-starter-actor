@@ -1,92 +1,48 @@
-# Actor Spring Boot Starter Examples
+# Examples
 
-Welcome to the Actor Spring Boot Starter examples documentation. This documentation provides detailed explanations of the example projects included in the repository, demonstrating various features and use cases of the Actor Spring Boot Starter library.
+The repository's [`example/`](https://github.com/seonWKim/actor-spring-boot-starter/tree/main/example)
+directory holds runnable Spring Boot apps. Each one is a Gradle subproject that uses the library's
+modules from source, so you can run it from a clone with one command:
 
-## Overview
+```bash
+git clone https://github.com/seonWKim/actor-spring-boot-starter.git
+cd actor-spring-boot-starter
+./gradlew :example:simple:bootRun
+```
 
-Actor Spring Boot Starter is a library that integrates the Apache Pekko (formerly Akka) actor model with Spring Boot, making it easy to use actors in your Spring applications. The actor model provides a powerful approach to building concurrent, distributed, and resilient applications.
+Cluster examples start several nodes with `sh cluster-start.sh <example> <main class> 8080 2551 3` from
+the repository root and stop them with `sh cluster-stop.sh`. Each page gives the exact commands.
 
-These examples demonstrate how to use Actor Spring Boot Starter in different scenarios, from simple applications to complex, real-world use cases.
+## All examples
 
-!!! info "Learning Path"
-    Start with the Simple Example if you're new to the library, then progress through the other examples as you become more comfortable.
+| Example | What it shows | Runs | Modules |
+|---|---|---|---|
+| [Simple](simple.md) | One actor behind REST: spawn, ask, restart, stop | Local | `actor-spring-boot-starter` |
+| [Kotlin](kotlin.md) | The simple example in Kotlin with `suspend` functions | Local | `actor-spring-boot-starter`, `actor-kotlin` |
+| [Cluster](cluster.md) | Sharded actors and a cluster singleton on three nodes | Cluster (3 nodes) | `actor-spring-boot-starter-cluster` |
+| [Synchronization](synchronization.md) | A counter under load: DB lock vs Redis lock vs sharded actor | Cluster (3 nodes) + MySQL, Redis | `actor-spring-boot-starter-cluster` |
+| [Chat](chat.md) | WebSocket chat: actor per connection, sharded rooms, pub/sub topics | Cluster (3 nodes), Docker Compose | `actor-spring-boot-starter-cluster`, `actor-streams`, `actor-metrics` |
+| [Metrics](metrics.md) | Actor meters in Prometheus through Actuator | Local | `actor-spring-boot-starter`, `actor-metrics` |
+| [Logging](logging.md) | Static and per-message MDC, tags, request ids, JSON logs | Local | `actor-spring-boot-starter` |
+| [Virtual threads](virtual-threads.md) | Dispatchers on Java 21 virtual threads | Local | `actor-spring-boot-starter` |
+| [Persistence](persistence.md) | Order state in JPA: current state, events, snapshots | Local + H2 | `actor-spring-boot-starter` |
+| [Agent](agent.md) | LLM agents: sharded agents, rate limit, human approval, recovery | Cluster (1 node) | `actor-spring-boot-starter-cluster` |
+| [Kubernetes](kubernetes.md) | The chat app on Kubernetes: discovery, rollouts, monitoring | Kubernetes (kind) | the chat app's image |
 
-## Available Examples
+## Suggested learning path
 
-### [Simple Example](simple.md)
+1. **[Simple](simple.md)** (or **[Kotlin](kotlin.md)**): the basics of defining, spawning and asking an
+   actor, and what supervision does.
+2. **[Logging](logging.md)** and **[Virtual threads](virtual-threads.md)**: settings you will want in
+   any app, MDC and dispatchers.
+3. **[Persistence](persistence.md)**: keep actor state across restarts with a database.
+4. **[Cluster](cluster.md)**: the step to several nodes, with sharded actors and a singleton.
+5. **[Synchronization](synchronization.md)**: why one actor per key replaces a lock.
+6. **[Chat](chat.md)**: a full app with WebSockets and pub/sub on a cluster.
+7. **[Metrics](metrics.md)** and **[Kubernetes](kubernetes.md)**: run it in production.
+8. **[Agent](agent.md)**: a larger design that combines most of the above.
 
-The Simple Example demonstrates the basic usage of Actor Spring Boot Starter in a non-clustered environment. It shows how to:
+## Related
 
-- Create and register actors in a Spring Boot application
-- Send messages to actors and receive responses
-- Integrate actors with a REST API
-
-**Best for:** Beginners learning the basics of the actor model and Spring Boot integration.
-
-The same example in Kotlin, with `suspend` functions from `actor-kotlin`, is in
-[example/kotlin](https://github.com/seonWKim/actor-spring-boot-starter/tree/main/example/kotlin). See the
-[Kotlin guide](../guides/kotlin.md).
-
-### [Cluster Example](cluster.md)
-
-The Cluster Example shows how to use Actor Spring Boot Starter in a clustered environment, focusing on sharded actors. It demonstrates:
-
-- Creating and using sharded actors across a cluster
-- Distributing actor instances across multiple nodes
-- Sending messages to specific entity instances
-- Handling entity state in a distributed environment
-
-**Best for:** Understanding distributed actor systems and cluster sharding.
-
-### [Synchronization Example](synchronization.md)
-
-The Synchronization Example demonstrates how to implement efficient synchronization using Actor Spring Boot Starter, comparing it with traditional synchronization approaches. It shows:
-
-- Implementing counters with different synchronization mechanisms
-- Comparing database locking, Redis locking, and actor-based synchronization
-- Handling concurrent access to shared resources
-- Achieving high performance with actor-based synchronization
-
-This example explains why using actors for synchronization is cheap and efficient compared to other approaches.
-
-**Best for:** Understanding performance benefits of actor-based concurrency.
-
-### [Chat Example](chat.md)
-
-The Chat Example demonstrates how to build a real-time chat application using Actor Spring Boot Starter with pub/sub topics. It shows:
-
-- Building a real-time chat application using actors and pub/sub
-- Implementing WebSocket communication for real-time messaging
-- Creating a scalable, clustered chat system
-- Eliminating the need for external message brokers or middleware
-
-This example demonstrates how Actor Spring Boot Starter can be used to build real-world applications efficiently without relying on additional infrastructure components.
-
-**Best for:** Building real-time applications with WebSockets and pub/sub.
-
-### [Monitoring Example](monitoring.md)
-
-The Monitoring example demonstrates the built-in actor metrics module using a minimal Spring Boot application with Prometheus and Micrometer. It shows:
-
-- Adding the metrics agent and library dependency to your project
-- Auto-configuring actor metrics collection with zero boilerplate
-- Exposing actor lifecycle, message processing, mailbox, and system metrics via Prometheus
-- Observing actor restarts, processing times, and throughput
-
-**Best for:** Getting started with actor metrics and Prometheus-based monitoring.
-
-## Getting Started
-
-To run these examples:
-
-1. Clone the repository: `git clone https://github.com/seonWKim/actor-spring-boot-starter.git`
-2. Navigate to the example directory you want to run: `cd example/<example-name>`
-3. Follow the instructions in the corresponding documentation file
-
-!!! tip "Running Examples"
-    Each example includes a README with specific instructions for building and running the application.
-
-## Additional Resources
-
-- [Actor Spring Boot Starter Documentation](../index.md)
-- [GitHub Repository](https://github.com/seonWKim/actor-spring-boot-starter)
+- [Getting started](../getting-started.md)
+- [Actors](../guides/core/actors.md), the first guide

@@ -1,42 +1,57 @@
-# Introduction
+# Actor Spring Boot Starter
 
-Actor Spring Boot Starter is a library that integrates Spring Boot with the actor model using [Pekko](https://pekko.apache.org/) (an open-source, community-driven fork of Akka).
+The actor model for Spring Boot, on [Apache Pekko](https://pekko.apache.org/) (the open-source fork of Akka).
 
-## What is this project about?
+Actors are Spring beans. You spawn them, send them messages, and scale them across a cluster, and the API
+you compile against has no Pekko types.
 
-This project bridges the gap between Spring Boot and the actor model, allowing developers to integrate actors into their applications using familiar Spring Boot patterns with ease.
+## Why actors in a Spring application
 
-## Why?
+Most Spring services are stateless: every request reads its state from a database. Some problems are
+stateful by nature, and an actor fits them better:
 
-Many developers use Java with Spring (usually Spring Boot). Modern programming guides recommend building stateless architectures. However, sometimes stateful features are needed, such as in chat applications where the server needs to know where clients in the same chatroom are located.
+- **A chat room or a game session** that many users talk to at once
+- **A user session, a cart or a device** that receives a stream of events
+- **A workflow or a long-running AI agent** that waits for timers, tools, model replies and approvals
 
-The actor model is a well-known programming model suited for stateful applications:
+An actor owns its state and handles one message at a time, so you write plain code with no locks.
+A failed actor is restarted by its supervisor. Sharding spreads thousands of actors over a cluster,
+and event sourcing brings an actor's state back after a restart.
 
-- Encapsulate logic into actors
-- Communicate by sending messages between them
+## What you get
 
-This project aims to bring together the best of both worlds:
+| Area | What's included | Start here |
+|---|---|---|
+| Core | Actors as beans, tell and ask, supervision, timers, routers, pub/sub topics, receptionist, dispatchers, logging with actor context | [Actors](guides/core/actors.md) |
+| Cluster | Sharding, singletons, replicated data, split brain resolver and leases; join through seed nodes, Kubernetes, a database or Redis | [Sharded actors](guides/cluster/sharded-actors.md) |
+| Data | Actor state in your database, event-sourced actors, projections into Spring Data or Kafka | [State in a database](guides/data/state-in-a-database.md) |
+| Streaming | Reactor `Mono`/`Flux`, SSE, WebSocket and gRPC | [Reactor streams](guides/streaming/reactor-streams.md) |
+| Operations | Graceful shutdown, Actuator health, metrics, tracing, dashboards, rolling/canary/blue-green deployments | [Running in production](guides/operations/production.md) |
+| Kotlin | `suspend` ask and spawn, reified helpers | [Kotlin](guides/kotlin.md) |
+| Testing | `@ActorTest` slice, multi-node cluster helpers | [Testing](guides/testing.md) |
+| AI agents | Agents as sharded actors with tools, streaming and approvals | [AI agents](guides/ai-agents.md) |
 
-- Spring Boot's ease of use and extensive ecosystem
-- The actor model's natural approach to encapsulation and state management
+## Modules
 
-## Features
+Start with `actor-spring-boot-starter`, and add the others when you need them. All are published as
+`io.github.seonwkim:<module>:1.0.0` and need Java 21+ and Spring Boot 3.5+.
 
-- Auto-configure Pekko with Spring Boot
-- Seamless integration with Spring's dependency injection
-- Support for both local and cluster modes
-- Easy actor creation and management
-- Spring-friendly actor references
+| Module | What it adds |
+|---|---|
+| `actor-spring-boot-starter` | The actor system, actors as beans, messaging, routers, topics, receptionist |
+| `actor-spring-boot-starter-cluster` | Cluster mode: sharding, singletons, replicated data, split brain resolver (use it instead of the starter above) |
+| `actor-jdbc` | Cluster join and leases through your `DataSource` |
+| `actor-redis` | Cluster join and leases through Redis |
+| `actor-persistence` | Event-sourced actors, with journal and snapshots on your `DataSource` |
+| `actor-projection` | Projections of persisted events into Spring Data or Kafka |
+| `actor-streams` | Reactor bridges, and SSE, WebSocket and gRPC streaming |
+| `actor-metrics` | Micrometer meters for actors, mailboxes, dispatchers, cluster and sharding |
+| `actor-kotlin` | Kotlin coroutines and reified helpers |
+| `actor-test` | `@ActorTest`, cluster test helpers and store contract tests (test scope) |
 
-## Getting Started
+## Next steps
 
-Check out the [Getting Started](getting-started.md) guide to begin using Actor Spring Boot Starter in your projects.
-
-## Examples
-
-Explore our example applications to see Actor Spring Boot Starter in action:
-
-- [**Simple Example**](https://github.com/seonWKim/actor-spring-boot-starter/tree/main/example/simple): Demonstrates basic actor usage in a non-clustered environment
-- [**Cluster Example**](https://github.com/seonWKim/actor-spring-boot-starter/tree/main/example/cluster): Shows how to use sharded actors in a clustered environment
-- [**Chat Example**](https://github.com/seonWKim/actor-spring-boot-starter/tree/main/example/chat): A complete chat application using actors
-- [**Synchronization Example**](https://github.com/seonWKim/actor-spring-boot-starter/tree/main/example/synchronization): Demonstrates synchronization patterns with actors
+- [Getting started](getting-started.md): an actor answering HTTP requests in a few minutes
+- [Examples](examples/index.md): runnable applications, from a single node to Kubernetes
+- [Migrating from 0.x](migrating-from-0x.md): if you used `spring-boot-starter-actor`
+- [llms.txt](llms.txt): the index of these docs for AI assistants

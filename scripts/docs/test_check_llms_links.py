@@ -66,7 +66,8 @@ class LlmsTxtFormatTest(unittest.TestCase):
 
     def test_every_guide_in_the_nav_is_listed(self):
         with open(MKDOCS_YML, encoding="utf-8") as f:
-            guides = re.findall(r"(guides/[\w-]+)\.md", f.read())
+            nav = f.read().split("\nnav:", 1)[1].split("\nplugins:", 1)[0]
+        guides = re.findall(r"(guides/[\w/-]+)\.md", nav)
         self.assertTrue(guides)
         for guide in guides:
             self.assertIn("/%s/)" % guide, self.text)

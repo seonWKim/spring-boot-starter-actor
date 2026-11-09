@@ -1,289 +1,225 @@
 # Logging with MDC and Tags
 
-This guide explains how to use MDC (Mapped Diagnostic Context) and actor tags to enhance observability and debugging in your actor-based applications.
+Logs from actors are harder to follow than logs from request threads: one actor handles messages for
+many requests, and one request can pass through several actors. The starter gives you three ways to put
+context on every log line an actor writes:
 
-## What is MDC?
+- **Static MDC**: key-value pairs fixed when the actor is spawned (a user id, a service name).
+- **Dynamic MDC**: key-value pairs computed from each message (an order id, a request id).
+- **Tags**: labels on an actor (`worker`, `critical`), written to the `pekkoTags` field.
 
-MDC (Mapped Diagnostic Context) is a mechanism for adding contextual information to log entries. It allows you to attach key-value pairs to logs, making it easier to trace requests, correlate events, and filter logs in production environments.
+MDC (Mapped Diagnostic Context) is SLF4J's map of values that the log pattern can print with `%X{key}`.
 
-**Common use cases for MDC include:**
+Inside actors, log through the actor's logger, `ctx.getLog()` (`ctx.log` in Kotlin): its lines carry the
+fields below and the actor's MDC.
 
-- Request and correlation IDs for distributed tracing
-- User identifiers for auditing
-- Session IDs for tracking user sessions
-- Transaction IDs for monitoring business operations
+## Fields Pekko adds
 
-## What are Actor Tags?
+Every line written through `ctx.getLog()` already carries these MDC fields:
 
-Actor tags are labels that you can attach to actors for categorization and filtering. Tags appear in the `pekkoTags` MDC property and are particularly useful for:
+| Field | Value | Example |
+|---|---|---|
+| `pekkoSource` | The actor's path | `pekko://my-app/user/...` |
+| `pekkoAddress` | The actor system's address | `pekko://my-app@10.0.0.5:25520` |
+| `pekkoTags` | The actor's tags, comma-separated | `worker,high-priority` |
+| `sourceActorSystem` | The actor system's name | `my-app` |
 
-- Grouping actors by role (worker, supervisor, coordinator)
-- Identifying workload characteristics (cpu-intensive, io-bound)
-- Categorizing by service (order-service, payment-service)
-- Marking priority levels (critical, high-priority, low-priority)
+## Static MDC
 
-!!! tip "Tag Usage"
-    Use tags liberally to categorize actors. They're lightweight and make filtering logs much easier in production.
+Set values that stay the same for the actor's whole life when you spawn it:
 
-## Automatic MDC Values
+=== "Java"
 
-Pekko automatically adds these MDC properties to all actor log entries:
+    ```java
+    actorSystem.actor(SessionActor.class)
+            .withId("session-" + sessionId)
+            .withMdc(MdcConfig.of(Map.of(
+                    "sessionId", sessionId,
+                    "userId", userId)))
+            .spawn();
+    ```
 
-| Property | Description | Example |
-|----------|-------------|---------|
-| `pekkoSource` | The actor's path | `pekko://MySystem/user/my-actor` |
-| `pekkoAddress` | The ActorSystem address | `pekko://MySystem@localhost:25520` |
-| `pekkoTags` | Comma-separated list of tags | `worker,high-priority` |
-| `sourceActorSystem` | The ActorSystem name | `MySystem` |
+=== "Kotlin"
 
-## Using Static MDC
+    ```kotlin
+    // In a suspend function
+    actorSystem.actor<SessionActor, _>()
+        .withId("session-$sessionId")
+        .withMdc(MdcConfig.of(mapOf("sessionId" to sessionId, "userId" to userId)))
+        .awaitSpawn()
+    ```
 
-Static MDC values are set when spawning an actor and remain constant throughout the actor's lifetime.
+Every line the actor logs then carries `sessionId` and `userId`. `MdcConfig.of` needs at least one entry;
+`MdcConfig.empty()` means none.
 
-### Spawning with Static MDC
+## Dynamic MDC
 
-```java
-@Service
-public class OrderService {
+Compute values from each message with `withMdc` on the behavior builder. The function receives every
+message and returns the map for the time that message is handled:
 
-    private final SpringActorSystem actorSystem;
+=== "Java"
 
-    public OrderService(SpringActorSystem actorSystem) {
-        this.actorSystem = actorSystem;
-    }
+    ```java
+    @Component
+    public class OrderProcessorActor implements SpringActor<OrderProcessorActor.Command> {
 
-    public void createOrderProcessor(String userId, String sessionId) {
-        Map<String, String> mdc = Map.of(
-            "userId", userId,
-            "sessionId", sessionId,
-            "service", "order-service"
-        );
+        public interface Command {}
 
-        SpringActorHandle<OrderActor.Command> processor = actorSystem
-            .actor(OrderActor.class)
-            .withId("order-processor-" + userId)
-            .withMdc(MdcConfig.of(mdc))
-            .spawnAndWait();
-    }
-}
-```
+        public record ProcessOrder(String orderId, String userId, String requestId) implements Command {}
 
-All log entries from this actor will include the static MDC values:
-
-```
-[INFO] [userId=user-123] [sessionId=session-abc] [service=order-service] Processing order
-```
-
-!!! note "Static vs Dynamic"
-    Use static MDC for values that remain constant throughout the actor's lifetime. For per-message values, use dynamic MDC instead.
-
-## Using Dynamic MDC
-
-Dynamic MDC values are computed per-message, allowing you to add message-specific context to logs.
-
-### Adding Dynamic MDC to Actor Behavior
-
-```java
-@Component
-public class OrderActor implements SpringActor<OrderActor.Command> {
-
-    public interface Command {}
-
-    public static class ProcessOrder implements Command {
-        public final String orderId;
-        public final String userId;
-
-        public ProcessOrder(String orderId, String userId) {
-            this.orderId = orderId;
-            this.userId = userId;
+        @Override
+        public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
+            return SpringActorBehavior.builder(Command.class, actorContext)
+                    .withMdc(msg -> {
+                        if (msg instanceof ProcessOrder order) {
+                            Map<String, String> mdc = new HashMap<>();
+                            mdc.put("orderId", order.orderId());
+                            mdc.put("userId", order.userId());
+                            if (order.requestId() != null) {   // MDC values must not be null
+                                mdc.put("requestId", order.requestId());
+                            }
+                            return mdc;
+                        }
+                        return Map.of();
+                    })
+                    .onMessage(ProcessOrder.class, (ctx, msg) -> {
+                        ctx.getLog().info("Processing order");   // carries orderId, userId, requestId
+                        return SpringActorBehavior.same();
+                    })
+                    .build();
         }
     }
+    ```
 
-    @Override
-    public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
-        return SpringActorBehavior.builder(Command.class, actorContext)
-            .withMdc(msg -> {
-                if (msg instanceof ProcessOrder) {
-                    ProcessOrder order = (ProcessOrder) msg;
-                    return Map.of(
-                        "orderId", order.orderId,
-                        "userId", order.userId
-                    );
+=== "Kotlin"
+
+    ```kotlin
+    @Component
+    class OrderProcessorActor : SpringActor<OrderProcessorActor.Command> {
+
+        sealed interface Command
+
+        data class ProcessOrder(val orderId: String, val userId: String, val requestId: String?) : Command
+
+        override fun create(actorContext: SpringActorContext): SpringActorBehavior<Command> =
+            actorBehavior<Command>(actorContext)
+                .withMdc { msg ->
+                    when (msg) {
+                        is ProcessOrder -> buildMap {
+                            put("orderId", msg.orderId)
+                            put("userId", msg.userId)
+                            msg.requestId?.let { put("requestId", it) }   // MDC values must not be null
+                        }
+                    }
                 }
-                return Map.of();
-            })
-            .onMessage(ProcessOrder.class, (ctx, msg) -> {
-                // orderId and userId are now in MDC
-                ctx.getLog().info("Processing order");
-                return SpringActorBehavior.same();
-            })
-            .build();
-    }
-}
-```
-
-Log output includes dynamic values:
-
-```
-[INFO] [orderId=order-456] [userId=cust-789] Processing order
-```
-
-!!! tip "Dynamic MDC Pattern"
-    Dynamic MDC is perfect for per-message context like request IDs, order IDs, or any data that varies with each message.
-
-## Combining Static and Dynamic MDC
-
-You can use both static and dynamic MDC together. Static values provide actor-level context, while dynamic values add message-level context.
-
-```java
-// Spawn with static MDC
-Map<String, String> staticMdc = Map.of(
-    "service", "payment-service",
-    "region", "us-east-1"
-);
-
-SpringActorHandle<PaymentActor.Command> actor = actorSystem
-    .actor(PaymentActor.class)
-    .withId("payment-processor")
-    .withMdc(MdcConfig.of(staticMdc))
-    .spawnAndWait();
-```
-
-```java
-// Actor with dynamic MDC
-@Component
-public class PaymentActor implements SpringActor<PaymentActor.Command> {
-
-    @Override
-    public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
-        return SpringActorBehavior.builder(Command.class, actorContext)
-            .withMdc(msg -> {
-                if (msg instanceof ProcessPayment) {
-                    ProcessPayment payment = (ProcessPayment) msg;
-                    return Map.of(
-                        "paymentId", payment.paymentId,
-                        "amount", String.valueOf(payment.amount)
-                    );
+                .onMessage(ProcessOrder::class.java) { ctx, _ ->
+                    ctx.log.info("Processing order")   // carries orderId, userId, requestId
+                    SpringActorBehavior.same()
                 }
-                return Map.of();
-            })
-            .onMessage(ProcessPayment.class, (ctx, msg) -> {
-                // Both static and dynamic MDC values are available
-                ctx.getLog().info("Processing payment");
-                return SpringActorBehavior.same();
-            })
-            .build();
+                .build()
     }
-}
-```
+    ```
 
-Log output combines both:
-```
-[INFO] [service=payment-service] [region=us-east-1] [paymentId=pay-123] [amount=99.99] Processing payment
-```
+Return an empty map for messages without context. Static and dynamic MDC combine: a line carries both the
+spawn-time values and the values of the current message.
 
-## Using Actor Tags
+### Carrying a request id into an actor
 
-Actor tags provide a way to categorize actors for easier log filtering and analysis.
+The MDC of the thread that sends a message does not travel with the message: the actor runs on another
+thread. To see a request id in the actor's logs, read it on the sending side, put it in the message, and
+add it back with `withMdc`. The [logging example](../../examples/logging.md) does this: a `WebFilter`
+puts `requestId` in the MDC of the request, the service reads it and passes it in `ProcessOrder`, and the
+actor's `withMdc` (above) puts it on the actor's lines.
 
-### Spawning with Tags
+=== "Java"
 
-```java
-// Single tag
-SpringActorHandle<Worker.Command> worker = actorSystem
-    .actor(Worker.class)
-    .withId("worker-1")
-    .withTags(TagsConfig.of("worker"))
-    .spawnAndWait();
-
-// Multiple tags
-SpringActorHandle<Worker.Command> priorityWorker = actorSystem
-    .actor(Worker.class)
-    .withId("worker-2")
-    .withTags(TagsConfig.of("worker", "high-priority", "cpu-intensive"))
-    .spawnAndWait();
-
-// Tags from a set
-Set<String> tags = Set.of("worker", "backend");
-SpringActorHandle<Worker.Command> backendWorker = actorSystem
-    .actor(Worker.class)
-    .withId("worker-3")
-    .withTags(TagsConfig.of(tags))
-    .spawnAndWait();
-```
-
-Tags appear in the `pekkoTags` MDC property:
-```
-[INFO] [pekkoSource=pekko://MySystem/user/worker-2] [pekkoTags=worker,high-priority,cpu-intensive] Processing task
-```
-
-### Common Tag Categories
-
-Organize your actors using meaningful tag categories:
-
-```java
-// By role
-TagsConfig.of("worker", "coordinator", "supervisor")
-
-// By priority
-TagsConfig.of("critical", "high-priority", "low-priority")
-
-// By service
-TagsConfig.of("order-service", "payment-service", "notification-service")
-
-// By workload
-TagsConfig.of("cpu-intensive", "io-bound", "memory-intensive")
-
-// By environment
-TagsConfig.of("production", "staging", "development")
-```
-
-## Child Actors with MDC and Tags
-
-Child actors can have their own MDC values and tags independent of their parents.
-
-```java
-@Component
-public class ParentActor implements SpringActor<ParentActor.Command> {
-
-    public interface Command extends FrameworkCommand {}
-
-    @Override
-    public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
-        return SpringActorBehavior.builder(Command.class, actorContext)
-            .withState(ctx -> {
-                SpringActorHandle<Command> self = ctx.getSelf();
-
-                // Spawn child with its own MDC and tags
-                self.child(ChildActor.class)
-                    .withId("worker-child")
-                    .withTags(TagsConfig.of("child", "worker"))
-                    .withMdc(MdcConfig.of(Map.of("childId", "worker-1")))
-                    .spawn();
-
-                return new ParentBehavior(ctx, actorContext);
-            })
-            .build();
+    ```java
+    public Mono<OrderProcessed> processOrder(String userId) {
+        String requestId = MDC.get("requestId");      // on the request thread
+        String orderId = UUID.randomUUID().toString();
+        return Mono.fromCompletionStage(actorSystem.getOrSpawn(OrderProcessorActor.class, "order-processor")
+                .thenCompose(actor -> actor
+                        .ask(new OrderProcessorActor.ProcessOrder(orderId, userId, requestId))
+                        .execute()));
     }
-}
-```
+    ```
 
-Child actors do not inherit parent MDC values, ensuring isolation:
-- Parent logs: `[parentId=parent-1] [sessionId=session-abc]`
-- Child logs: `[childId=worker-1] [pekkoTags=child,worker]`
+=== "Kotlin"
 
-## Configuring Logback for MDC
+    ```kotlin
+    suspend fun processOrder(userId: String): OrderProcessed {
+        val requestId = MDC.get("requestId")          // read before the first suspension point
+        val orderId = UUID.randomUUID().toString()
+        return actorSystem.awaitGetOrSpawn<OrderProcessorActor, _>("order-processor")
+            .awaitAsk(OrderProcessorActor.ProcessOrder(orderId, userId, requestId))
+    }
+    ```
 
-Configure your `logback.xml` to display MDC values in log output.
+(Here `ProcessOrder` is an `AskCommand<OrderProcessed>`, as in the example.) With Micrometer Tracing on,
+the trace itself travels with messages, and lines carry `traceId` and `spanId`; see
+[Monitoring](../operations/monitoring.md#tracing).
 
-### Basic Logback Configuration
+## Tags
+
+Tags label an actor by role, priority or workload. They are written to the `pekkoTags` field of every
+line, so you can filter on them:
+
+=== "Java"
+
+    ```java
+    actorSystem.actor(PaymentProcessor.class)
+            .withId("payment-processor")
+            .withTags(TagsConfig.of("payment-service", "critical"))
+            .spawn();
+    ```
+
+=== "Kotlin"
+
+    ```kotlin
+    // In a suspend function
+    actorSystem.actor<PaymentProcessor, _>()
+        .withId("payment-processor")
+        .withTags(TagsConfig.of("payment-service", "critical"))
+        .awaitSpawn()
+    ```
+
+`TagsConfig.of(...)` takes one or more strings or a `Set<String>`; `TagsConfig.empty()` means none.
+Duplicate tags count once.
+
+## Children
+
+The child builder has the same `withMdc` and `withTags`. A child does not inherit its parent's MDC or
+tags; give it its own:
+
+=== "Java"
+
+    ```java
+    ctx.getSelf().child(WorkerActor.class)
+            .withId("worker-1")
+            .withTags(TagsConfig.of("worker"))
+            .withMdc(MdcConfig.of(Map.of("parentId", actorContext.actorId())))
+            .spawn();
+    ```
+
+=== "Kotlin"
+
+    ```kotlin
+    ctx.self.child(WorkerActor::class.java)
+        .withId("worker-1")
+        .withTags(TagsConfig.of("worker"))
+        .withMdc(MdcConfig.of(mapOf("parentId" to actorContext.actorId())))
+        .spawn()
+    ```
+
+## Printing MDC with Logback
+
+MDC values appear only if the log pattern prints them. A console pattern:
 
 ```xml
-<?xml version="1.0" encoding="UTF-8"?>
 <configuration>
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>%d{ISO8601} %-5level [%X{pekkoSource}] [%X{pekkoTags}] [%X{userId}] [%X{requestId}] %logger{36} - %msg%n</pattern>
+            <pattern>%d{ISO8601} %-5level [%X{pekkoSource}] [%X{pekkoTags}] [reqId=%X{requestId}] [userId=%X{userId}] %logger{36} - %msg%n</pattern>
         </encoder>
     </appender>
 
@@ -293,284 +229,50 @@ Configure your `logback.xml` to display MDC values in log output.
 </configuration>
 ```
 
-### Async Appender for Production
-
-Use async logging to avoid blocking actors:
-
-```xml
-<configuration>
-    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>logs/application.log</file>
-        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>logs/application.%d{yyyy-MM-dd}.log</fileNamePattern>
-            <maxHistory>30</maxHistory>
-        </rollingPolicy>
-        <encoder>
-            <pattern>%d{ISO8601} %-5level [%X{pekkoSource}] [%X{pekkoTags}] %X{userId} %X{requestId} - %msg%n</pattern>
-        </encoder>
-    </appender>
-
-    <appender name="ASYNC" class="ch.qos.logback.classic.AsyncAppender">
-        <queueSize>1024</queueSize>
-        <discardingThreshold>0</discardingThreshold>
-        <appender-ref ref="FILE"/>
-    </appender>
-
-    <root level="INFO">
-        <appender-ref ref="ASYNC"/>
-    </root>
-</configuration>
-```
-
-### JSON Logging for Structured Logs
-
-For production environments and log aggregation systems:
+For log aggregation (Elasticsearch, Loki), write JSON with the
+[Logstash encoder](https://github.com/logfellow/logstash-logback-encoder) and list the MDC keys to
+include:
 
 ```xml
-<configuration>
-    <appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
-            <includeMdcKeyName>pekkoSource</includeMdcKeyName>
-            <includeMdcKeyName>pekkoAddress</includeMdcKeyName>
-            <includeMdcKeyName>pekkoTags</includeMdcKeyName>
-            <includeMdcKeyName>sourceActorSystem</includeMdcKeyName>
-            <includeMdcKeyName>userId</includeMdcKeyName>
-            <includeMdcKeyName>requestId</includeMdcKeyName>
-            <includeMdcKeyName>orderId</includeMdcKeyName>
-        </encoder>
-    </appender>
-
-    <root level="INFO">
-        <appender-ref ref="JSON"/>
-    </root>
-</configuration>
-```
-
-Add the dependency in `build.gradle`:
-```gradle
-implementation 'net.logstash.logback:logstash-logback-encoder:7.4'
-```
-
-## Best Practices
-
-### 1. Use Static MDC for Actor-Level Context
-
-Use static MDC for values that remain constant throughout an actor's lifetime:
-```java
-// Good: Static values like userId, service name
-.withMdc(MdcConfig.of(Map.of("userId", userId, "service", "orders")))
-```
-
-### 2. Use Dynamic MDC for Message-Level Context
-
-Use dynamic MDC for values that change per message:
-```java
-// Good: Message-specific values like requestId, orderId
-.withMdc(msg -> Map.of("requestId", msg.getRequestId()))
-```
-
-### 3. Use Tags for Categorization
-
-Use tags to group and filter actors by characteristics:
-```java
-// Good: Categorize by role, priority, and workload
-.withTags(TagsConfig.of("worker", "high-priority", "cpu-intensive"))
-```
-
-### 4. Keep MDC Keys Consistent
-
-Use consistent naming conventions for MDC keys across your application:
-```java
-// Good: Consistent naming
-"userId", "requestId", "orderId", "sessionId"
-
-// Bad: Inconsistent naming
-"user_id", "request-id", "OrderID", "SESSION_ID"
-```
-
-### 5. Avoid Sensitive Data in Logs
-
-Never include sensitive information in MDC values:
-```java
-// Bad: Sensitive data
-Map.of("password", password, "creditCard", ccNumber)
-
-// Good: Use identifiers only
-Map.of("userId", userId, "transactionId", transactionId)
-```
-
-### 6. Use Async Logging in Production
-
-Always use async appenders to prevent logging from blocking actor processing:
-
-```xml
-<appender name="ASYNC" class="ch.qos.logback.classic.AsyncAppender">
-    <queueSize>1024</queueSize>
-    <appender-ref ref="FILE"/>
+<appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+        <includeMdcKeyName>pekkoSource</includeMdcKeyName>
+        <includeMdcKeyName>pekkoTags</includeMdcKeyName>
+        <includeMdcKeyName>requestId</includeMdcKeyName>
+        <includeMdcKeyName>userId</includeMdcKeyName>
+        <includeMdcKeyName>orderId</includeMdcKeyName>
+        <includeMdcKeyName>traceId</includeMdcKeyName>
+        <includeMdcKeyName>spanId</includeMdcKeyName>
+    </encoder>
 </appender>
 ```
 
-!!! warning "Blocking Logging"
-    Synchronous logging can significantly impact actor throughput. Always use async appenders in production.
+It needs `net.logstash.logback:logstash-logback-encoder` on the classpath. In production, put file and
+JSON appenders behind Logback's `AsyncAppender` so that writing a log line never makes an actor wait on
+disk. The logging example's
+[`logback.xml`](https://github.com/seonWKim/actor-spring-boot-starter/tree/main/example/logging/src/main/resources/logback.xml)
+has console, rolling file and JSON appenders, each async.
 
-### 7. Filter Logs by Tags
+## Good practice
 
-Use tags to filter logs in production:
-```bash
-# Filter by specific tag
-grep "pekkoTags=worker" application.log
-
-# Filter by multiple tags
-grep "pekkoTags=.*high-priority.*" application.log
-```
-
-### 8. Monitor MDC Overhead
-
-Be mindful of the number of MDC keys to avoid performance impact:
-```java
-// Good: 3-5 MDC keys
-Map.of("userId", userId, "requestId", requestId, "service", service)
-
-// Avoid: Too many MDC keys
-Map.of("key1", val1, "key2", val2, ..., "key20", val20)
-```
-
-## Common Patterns
-
-### Request Tracing
-
-Track requests across multiple actors:
-
-```java
-@Component
-public class RequestHandler implements SpringActor<RequestHandler.Command> {
-
-    @Override
-    public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
-        return SpringActorBehavior.builder(Command.class, actorContext)
-            .withMdc(msg -> {
-                if (msg instanceof HandleRequest) {
-                    HandleRequest request = (HandleRequest) msg;
-                    return Map.of(
-                        "requestId", request.requestId,
-                        "traceId", request.traceId,
-                        "spanId", request.spanId
-                    );
-                }
-                return Map.of();
-            })
-            .onMessage(HandleRequest.class, (ctx, msg) -> {
-                ctx.getLog().info("Handling request");
-                // requestId, traceId, spanId are in MDC
-                return SpringActorBehavior.same();
-            })
-            .build();
-    }
-}
-```
-
-### User Session Tracking
-
-Track user sessions throughout the application:
-
-```java
-SpringActorHandle<SessionActor.Command> sessionActor = actorSystem
-    .actor(SessionActor.class)
-    .withId("session-" + sessionId)
-    .withMdc(MdcConfig.of(Map.of(
-        "sessionId", sessionId,
-        "userId", userId,
-        "ipAddress", ipAddress
-    )))
-    .spawnAndWait();
-```
-
-### Service Categorization
-
-Organize actors by service:
-
-```java
-// Order service actors
-actorSystem.actor(OrderProcessor.class)
-    .withId("order-processor")
-    .withTags(TagsConfig.of("order-service", "critical"))
-    .withMdc(MdcConfig.of(Map.of("service", "orders")))
-    .spawn();
-
-// Payment service actors
-actorSystem.actor(PaymentProcessor.class)
-    .withId("payment-processor")
-    .withTags(TagsConfig.of("payment-service", "critical"))
-    .withMdc(MdcConfig.of(Map.of("service", "payments")))
-    .spawn();
-```
-
-## Integration with Observability Tools
-
-### Elastic Stack (ELK)
-
-Use JSON logging with Logstash encoder for easy ingestion:
-```xml
-<encoder class="net.logstash.logback.encoder.LogstashEncoder">
-    <customFields>{"application":"my-app","environment":"production"}</customFields>
-</encoder>
-```
-
-### Distributed Tracing
-
-With Micrometer Tracing, the trace of the sender reaches the actor by itself: an actor's log lines carry
-`traceId` and `spanId` in the MDC while it handles a traced message. See
-[Tracing](production.md#tracing).
-
-### Log Aggregation
-
-Use consistent tag naming for easier queries:
-```java
-// Query in Kibana/Grafana
-pekkoTags:worker AND service:orders AND environment:production
-```
+- Use the same MDC key names everywhere (`userId`, `requestId`, `orderId`), so one query finds a request
+  across services and actors.
+- Keep the number of keys small; every key is copied for every message.
+- Never put secrets or personal data (passwords, card numbers, tokens) in MDC or tags.
+- Use tags for what an actor *is* (role, service, priority) and MDC for what it is *working on*.
 
 ## Troubleshooting
 
-### MDC Values Not Appearing in Logs
+| Symptom | Cause |
+|---|---|
+| MDC keys are empty in the output | The pattern has no `%X{key}` for them, or the line was logged outside the actor's handler (for example in a future callback) |
+| `requestId` missing in actor logs | Thread MDC doesn't follow messages; pass the id in the message and add it with `withMdc` |
+| `pekkoTags` empty | The actor was spawned without `withTags(...)`, or the pattern lacks `%X{pekkoTags}` |
 
-Check your Logback pattern includes `%X{keyName}`:
-```xml
-<pattern>%d{ISO8601} [%X{userId}] [%X{requestId}] - %msg%n</pattern>
-```
+## Related
 
-### Tags Not Showing Up
-
-Verify you're using `.withTags()` when spawning:
-```java
-.withTags(TagsConfig.of("worker"))  // Required
-```
-
-And include `%X{pekkoTags}` in your pattern:
-```xml
-<pattern>[%X{pekkoTags}] %msg%n</pattern>
-```
-
-### Performance Issues with Logging
-
-Use async appenders and appropriate queue sizes:
-```xml
-<appender name="ASYNC" class="ch.qos.logback.classic.AsyncAppender">
-    <queueSize>1024</queueSize>
-    <neverBlock>true</neverBlock>
-</appender>
-```
-
-## More Information
-
-For more information about logging and observability:
-
-- [Actor Registration and Messaging](actor-registration-messaging.md) - Learn how to create and spawn actors
-- [Dispatchers](dispatchers.md) - Configure thread execution for your actors
-- [Pekko Typed Logging Documentation](https://pekko.apache.org/docs/pekko/current/typed/logging.html)
-- [Logback Configuration](http://logback.qos.ch/manual/configuration.html)
-
-## Next Steps
-
-- [Sharded Actors](sharded-actors.md) - Learn about distributed entity management in clusters
-- [Persistence with Spring Boot](persistence-spring-boot.md) - Integrate actors with Spring Data
+- [Actors](actors.md): the spawn and child builders
+- [Behaviors](behaviors.md): the behavior builder
+- [Monitoring](../operations/monitoring.md): metrics, tracing and log setup in production
+- [Logging example](../../examples/logging.md)
+- [Pekko logging](https://pekko.apache.org/docs/pekko/current/typed/logging.html)

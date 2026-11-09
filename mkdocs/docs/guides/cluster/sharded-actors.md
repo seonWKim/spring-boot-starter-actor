@@ -1,34 +1,41 @@
 # Sharded Actors
 
-This guide explains how to create and use sharded actors in a clustered environment using Actor Spring Boot Starter.
+A sharded actor is an actor type whose instances, called **entities**, are spread over the nodes of a
+cluster. Each entity has an id. The cluster runs at most one entity per id at a time, starts it on its
+first message, and moves it when nodes join or leave. You send a message to an id from any node, and it
+reaches the entity wherever it runs.
 
-## What are Sharded Actors?
+Use sharding when you have many things that each need their own actor: users, orders, devices, chat
+rooms. It spreads them over the nodes, so you scale out by adding nodes.
 
-Sharded actors are actors that are distributed across multiple nodes in a cluster. Each actor instance (entity) is responsible for a specific entity ID, and the cluster ensures that only one instance of an entity exists across the entire cluster at any given time.
+For one actor for the whole cluster, use a [cluster singleton](singletons.md) instead. For actors that
+live on one node only, use regular actors ([Actors](../core/actors.md)).
 
-**Sharding is useful when:**
-
-- You need to distribute actor instances across multiple nodes
-- You have a large number of actors that would be too much for a single node
-- You want automatic rebalancing of actors when nodes join or leave the cluster
-
-!!! info "Cluster Sharding"
-    Cluster sharding provides location transparency - you can send messages to entities without knowing which node they're on.
-
-## Setting Up a Cluster
+## Setup
 
 Sharded actors need the cluster starter:
 
-```gradle
-implementation 'io.github.seonwkim:actor-spring-boot-starter-cluster:1.0.0'
-```
+=== "Gradle"
 
-Then configure the cluster in your `application.yml` file:
+    ```kotlin
+    implementation("io.github.seonwkim:actor-spring-boot-starter-cluster:$version")
+    ```
 
-```yaml 
+=== "Maven"
+
+    ```xml
+    <dependency>
+        <groupId>io.github.seonwkim</groupId>
+        <artifactId>actor-spring-boot-starter-cluster</artifactId>
+        <version>${actor.version}</version>
+    </dependency>
+    ```
+
+Then run the actor system in cluster mode. This is the configuration of the
+[cluster example](../../examples/cluster.md), three nodes on one machine:
+
+```yaml
 spring:
-  application:
-    name: spring-pekko
   actor:
     name: spring-pekko-example
     provider: cluster
@@ -40,282 +47,270 @@ spring:
         - pekko://spring-pekko-example@127.0.0.1:2551
         - pekko://spring-pekko-example@127.0.0.1:2552
         - pekko://spring-pekko-example@127.0.0.1:2553
-    pekko:
-      actor:
-        allow-java-serialization: off
-        warn-about-java-serializer-usage: on
-      cluster:
-        name: spring-pekko-example
-        downing-provider-class: org.apache.pekko.cluster.sbr.SplitBrainResolverProvider
-
-server:
-  port: 8080
+      downing:
+        strategy: keep-majority
 ```
 
-!!! note "Configuration Notes"
-    - Adjust the hostname, port, and seed-nodes according to your environment
-    - For production, use proper hostnames and DNS instead of localhost
-    - The downing provider handles split-brain scenarios
+Each node uses its own `remote.port` (2551, 2552, 2553) and the same `spring.actor.name`. See
+[Cluster Formation](cluster-formation.md) for joining without fixed addresses, and
+[Split Brain and Leases](split-brain-and-leases.md) for the downing strategy.
 
-## Creating a Sharded Actor
+## Write a sharded actor
 
-To create a sharded actor, implement the `SpringShardedActor` interface and annotate the class with `@Component`:
+Implement `SpringShardedActor` and annotate the class with `@Component`. The starter registers every
+sharded actor bean with the cluster when the actor system starts.
 
-```java
-@Component
-public class HelloActor implements SpringShardedActor<HelloActor.Command> {
+=== "Java"
 
-    public static final ShardedEntityType<Command> TYPE_KEY =
-            ShardedEntityType.of(Command.class, "HelloActor");
+    ```java
+    @Component
+    public class HelloActor implements SpringShardedActor<HelloActor.Command> {
 
-    // Define the command interface for messages this actor can handle
-    public interface Command extends JsonSerializable {}
+        public static final ShardedEntityType<Command> TYPE_KEY =
+                ShardedEntityType.of(Command.class, "HelloActor");
 
-    // Define a message type
-    public static class SayHello extends AskCommand<String> implements Command {
-        public final String message;
+        public interface Command extends JsonSerializable {}
 
-        public SayHello(String message) {
-            this.message = message;
-        }
-    }
+        public static class SayHello extends AskCommand<String> implements Command {
+            public final String message;
 
-    @Override
-    public ShardedEntityType<Command> entityType() {
-        return TYPE_KEY;
-    }
-
-    @Override
-    public SpringActorBehavior<Command> create(SpringShardedActorContext<Command> ctx) {
-        final String entityId = ctx.getEntityId();
-
-        return SpringActorBehavior.builder(Command.class, ctx)
-                .withState(actorCtx -> new HelloActorBehavior(actorCtx, entityId))
-                .onMessage(SayHello.class, HelloActorBehavior::onSayHello)
-                .build();
-    }
-
-    /**
-     * Behavior handler for hello actor. Holds the entity ID and handles messages.
-     */
-    private static class HelloActorBehavior {
-        private final SpringBehaviorContext<Command> ctx;
-        private final String entityId;
-
-        HelloActorBehavior(SpringBehaviorContext<Command> ctx, String entityId) {
-            this.ctx = ctx;
-            this.entityId = entityId;
+            public SayHello(String message) {
+                this.message = message;
+            }
         }
 
-        /**
-         * Handles SayHello commands by responding with node and entity information.
-         *
-         * @param msg The SayHello message
-         * @return The next behavior (same in this case)
-         */
-        private SpringActorBehavior<Command> onSayHello(SayHello msg) {
-            // Create a response message with the entity's information
-            final String message = "Received from entity [" + entityId + "] at [" + ctx.path() + "]";
+        @Override
+        public ShardedEntityType<Command> entityType() {
+            return TYPE_KEY;
+        }
 
-            // Send the response back to the caller
-            msg.reply(message);
-
-            // Log the message for debugging
-            ctx.getLog().info(message);
-
-            return SpringActorBehavior.same();
+        @Override
+        public SpringActorBehavior<Command> create(SpringShardedActorContext<Command> ctx) {
+            String entityId = ctx.getEntityId();
+            return SpringActorBehavior.builder(Command.class, ctx)
+                    .onMessage(SayHello.class, (behaviorCtx, msg) -> {
+                        String reply = "Received from entity [" + entityId + "] on node ["
+                                + behaviorCtx.nodeAddress() + "]";
+                        behaviorCtx.getLog().info(reply);
+                        msg.reply(reply);
+                        return SpringActorBehavior.same();
+                    })
+                    .build();
         }
     }
+    ```
 
-    // Optional: the default is ShardingStrategy.defaults() (100 shards)
+=== "Kotlin"
+
+    ```kotlin
+    @Component
+    class HelloActor : SpringShardedActor<HelloActor.Command> {
+
+        companion object {
+            val TYPE_KEY: ShardedEntityType<Command> = ShardedEntityType.of(Command::class.java, "HelloActor")
+        }
+
+        sealed interface Command : JsonSerializable
+
+        class SayHello(val message: String) : AskCommand<String>(), Command
+
+        override fun entityType(): ShardedEntityType<Command> = TYPE_KEY
+
+        override fun create(ctx: SpringShardedActorContext<Command>): SpringActorBehavior<Command> {
+            val entityId = ctx.entityId
+            return actorBehavior<Command>(ctx)
+                .onMessage(SayHello::class.java) { behaviorCtx, msg ->
+                    val reply = "Received from entity [$entityId] on node [${behaviorCtx.nodeAddress()}]"
+                    behaviorCtx.log.info(reply)
+                    msg.reply(reply)
+                    SpringActorBehavior.same()
+                }
+                .build()
+        }
+    }
+    ```
+
+What differs from a regular actor:
+
+| Part | What it does |
+|---|---|
+| `ShardedEntityType.of(Command.class, "HelloActor")` | Names the entity type and its message type. Nodes reach the same entities when they use the same name, so keep it stable across deployments. |
+| `entityType()` | Returns that type. |
+| `create(SpringShardedActorContext<T>)` | Builds the behavior of one entity, on the node that hosts it. `ctx.getEntityId()` is the entity's id (also `ctx.actorId()`), and the same `SpringActorBehavior` builder works as for a regular actor, `withState` included. |
+| `sharding()` | Optional: how ids map to shards. Default `ShardingStrategy.defaults()`, 100 shards. |
+| `role()` | Optional: the cluster role whose nodes host the entities. Default: every node. |
+
+Messages cross the network, so the command interface extends `JsonSerializable` (or `CborSerializable`),
+and so do the replies when they are not `String` or a number.
+
+## Send messages
+
+`actorSystem.sharded(HelloActor.class).withId(id).get()` returns a handle to the entity with that id. Getting
+a handle does not start the entity and costs nearly nothing: the entity starts on its first message.
+
+=== "Java"
+
+    ```java
+    @Service
+    public class HelloService {
+
+        private final SpringActorSystem actorSystem;
+
+        public HelloService(SpringActorSystem actorSystem) {
+            this.actorSystem = actorSystem;
+        }
+
+        public Mono<String> hello(String message, String entityId) {
+            SpringShardedActorHandle<HelloActor.Command> entity =
+                    actorSystem.sharded(HelloActor.class).withId(entityId).get();
+
+            CompletionStage<String> reply = entity
+                    .ask(new HelloActor.SayHello(message))
+                    .withTimeout(Duration.ofSeconds(3))
+                    .onTimeout(() -> "Request timed out for entity: " + entityId)
+                    .execute();
+
+            return Mono.fromCompletionStage(reply);
+        }
+    }
+    ```
+
+=== "Kotlin"
+
+    ```kotlin
+    @Service
+    class HelloService(private val actorSystem: SpringActorSystem) {
+
+        suspend fun hello(message: String, entityId: String): String {
+            val entity = actorSystem.sharded<HelloActor, _>().withId(entityId).get()
+            return entity.ask(HelloActor.SayHello(message))
+                .withTimeout(3.seconds)
+                .onTimeout { "Request timed out for entity: $entityId" }
+                .await()
+        }
+    }
+    ```
+
+The handle has `tell`, `ask`, `entityId()` and `entityType()`. `withTimeout` on the builder sets the default
+ask timeout of the handle (3 seconds otherwise).
+
+There is no `spawn`, `exists` or `stop` for an entity, and no need to cache handles: get one per request.
+
+| | Regular actor | Sharded entity |
+|---|---|---|
+| Created | By you, with `spawn()` or `getOrSpawn()` | By the cluster, on its first message |
+| Where it runs | The node that spawned it | One node of the cluster, chosen by its shard |
+| How many per id | One per node | One per cluster |
+| Handle | From `spawn`, `get` or `getOrSpawn` | From `sharded(...).withId(id).get()`, any time |
+| Messages | Any Java object | Serializable (`JsonSerializable`, `CborSerializable`) |
+
+## Shards and ids
+
+Entities are grouped into shards: a hash of the entity id picks the shard, and the cluster places whole
+shards on nodes. When a node joins or leaves, shards move, and their entities start again on their new node
+on the next message.
+
+=== "Java"
+
+    ```java
     @Override
     public ShardingStrategy sharding() {
-        return ShardingStrategy.hashed(3);
+        return ShardingStrategy.hashed(300);
     }
-}
+    ```
+
+=== "Kotlin"
+
+    ```kotlin
+    override fun sharding(): ShardingStrategy = ShardingStrategy.hashed(300)
+    ```
+
+- Use about ten times the largest number of nodes you expect. The default is 100.
+- Every node must use the same strategy for an entity type, and it must stay the same across deployments:
+  a different number of shards sends the same id to a different shard.
+- Pick ids with many distinct values, such as user ids or order numbers, so the entities spread evenly.
+
+## Run entities on some nodes only
+
+Override `role()` and give the hosting nodes that role:
+
+=== "Java"
+
+    ```java
+    @Override
+    public Optional<String> role() {
+        return Optional.of("backend");
+    }
+    ```
+
+=== "Kotlin"
+
+    ```kotlin
+    override fun role(): Optional<String> = Optional.of("backend")
+    ```
+
+```yaml
+spring:
+  actor:
+    cluster:
+      roles: [backend]
 ```
 
-**Key differences from a regular actor:**
+Nodes without the role still send messages to the entities, through a proxy; they just don't host any.
 
-1. Implement `SpringShardedActor<T>` instead of `SpringActor<T>`
-2. Commands must implement `JsonSerializable` (or `CborSerializable`) for serialization across the network
-3. Define a `ShardedEntityType` for the actor type (`ShardedEntityType.of(Command.class, "name")`)
-4. Override `entityType()` to return it
-5. `create(SpringShardedActorContext<T>)` receives the entity id (`ctx.getEntityId()`) and returns a
-   `SpringActorBehavior<T>` built with `SpringActorBehavior.builder()`, like a regular actor
-6. Optionally override `sharding()` to choose the number of shards
+## State and passivation
 
-!!! tip "Serialization"
-    Always use `JsonSerializable` or `CborSerializable` for sharded actor messages to ensure they can be sent across the cluster.
+An entity's state lives in memory. It is lost when the entity stops: when its shard moves to another node,
+when its node stops, or when the entity is passivated.
 
-## Interacting with Sharded Actors
+Passivation is Pekko's: an entity that receives no message for a while is stopped to free memory, and
+started again on its next message. Pekko's default idle timeout is 2 minutes. Change it with the raw key:
 
-To interact with sharded actors, you use the `sharded` method of the `SpringActorSystem`:
-
-```java
-@Service
-public class HelloService {
-
-    private final SpringActorSystem springActorSystem;
-
-    public HelloService(SpringActorSystem springActorSystem) {
-        this.springActorSystem = springActorSystem;
-    }
-
-    /**
-     * Best practice for sharded actors:
-     * - Get reference on each request (references are lightweight)
-     * - No need to cache (entities are managed by cluster sharding)
-     * - No need to check existence (entities are created on-demand)
-     * - Use ask for timeout and error handling
-     */
-    public Mono<String> hello(String message, String entityId) {
-        // Get a reference to the sharded actor entity
-        SpringShardedActorHandle<HelloActor.Command> actorRef =
-                springActorSystem.sharded(HelloActor.class).withId(entityId).get();
-
-        // Send the message using the fluent ask builder with timeout and error handling
-        CompletionStage<String> response = actorRef
-                .ask(new HelloActor.SayHello(message))
-                .withTimeout(Duration.ofSeconds(3))
-                .onTimeout(() -> "Request timed out for entity: " + entityId)
-                .execute();
-
-        // Convert the CompletionStage to a Mono for reactive programming
-        return Mono.fromCompletionStage(response);
-    }
-}
+```yaml
+spring:
+  actor:
+    pekko:
+      cluster:
+        sharding:
+          passivation:
+            default-idle-strategy:
+              idle-entity:
+                timeout: 10m
 ```
 
-The `sharded` method creates a builder that:
+When the state must survive, load it when the entity starts and save it when it changes, as in
+[State in a Database](../data/state-in-a-database.md), or use an
+[event-sourced actor](../data/event-sourcing.md).
 
-1. Takes the actor class as a parameter
-2. Requires setting the entity ID using `withId()`
-3. Returns the actor reference with `get()`
+## One entity per id, even in a split
 
-The builder pattern provides a more fluent API and automatically resolves the `EntityTypeKey` from the actor class.
+In a network split, both sides may start the same shard. A downing strategy stops one side; with
+`spring.actor.cluster.sharding.use-lease: true`, each shard also takes a lease before it starts its
+entities, so a shard never runs on two nodes. See [Split Brain and Leases](split-brain-and-leases.md#leases).
 
-### Key Differences from Regular Actors
+## Monitoring
 
-**Sharded actors behave differently from regular actors:**
+With `actor-metrics` and Micrometer, each node reports `actor.sharding.regions`, `actor.sharding.shards` and
+`actor.sharding.entities`, tagged `type` with the entity type name. The `actors` Actuator endpoint lists,
+for each entity type, the regions and the shards and entities on this node. See
+[Monitoring](../operations/monitoring.md).
 
-1. **No `start()` needed**: Entities are created automatically when the first message arrives
-2. **Always available**: Entity references are always valid, even if the entity isn't currently running
-3. **Auto-distribution**: Entities are automatically distributed across cluster nodes
-4. **Auto-passivation**: Entities are automatically stopped after idle timeout (configurable)
-5. **Lightweight references**: Getting a reference doesn't create the entity, so no caching needed
-6. **No exists/get checks**: The cluster sharding coordinator manages entity lifecycle
+## Pitfalls
 
-**Example - Regular Actor vs Sharded Actor:**
+- **Unstable names or shard counts.** Renaming the entity type or changing the number of shards sends
+  existing ids to other entities. Keep both fixed.
+- **Blocking in an entity.** Entities run on the default dispatcher. Use a non-blocking client, or hand
+  the blocking call off and send the result back with `pipeToSelf` (see
+  [State in a Database](../data/state-in-a-database.md#non-blocking-calls-with-r2dbc)).
+- **Many messages between entities.** Every message to another entity may cross the network. Keep what is
+  used together in one entity.
+- **Holding state only in memory.** It is gone after passivation or a move. Store what must survive.
 
-```java
-// Regular Actor - needs explicit lifecycle management
-CompletionStage<SpringActorHandle<Command>> actor = actorSystem
-    .exists(MyActor.class, "actor-1")
-    .thenCompose(exists -> {
-        if (exists) {
-            return actorSystem.get(MyActor.class, "actor-1");
-        } else {
-            return actorSystem.actor(MyActor.class)
-                .withId("actor-1")
-                .spawn();
-        }
-    });
+## Related
 
-// Sharded Actor - just get the reference and use it
-SpringShardedActorHandle<Command> actor = actorSystem
-    .sharded(MyShardedActor.class)
-    .withId("actor-1")
-    .get();
-```
-
-!!! success "Automatic Lifecycle"
-    Sharded actors don't require explicit `start()` or lifecycle management. Simply get a reference and send messages - the entity is created automatically on first message.
-
-## Using Sharded Actors in a REST Controller
-
-Here's an example of how to use the sharded actor service in a REST controller:
-
-```java
-@RestController
-public class HelloController {
-
-    private final HelloService helloService;
-
-    public HelloController(HelloService helloService) {
-        this.helloService = helloService;
-    }
-
-    @GetMapping("/hello")
-    public Mono<String> hello(@RequestParam String message, @RequestParam String entityId) {
-        return helloService.hello(message, entityId);
-    }
-}
-```
-
-## Entity ID Strategies
-
-The entity ID is a crucial part of sharding. It determines which shard an entity belongs to, and therefore which node in the cluster will host the entity.
-
-**Common strategies for choosing entity IDs:**
-
-1. **Natural Keys** - Use existing business identifiers (e.g., user IDs, order numbers)
-2. **Composite Keys** - Combine multiple fields to form a unique identifier
-3. **Hash-Based Keys** - Generate a hash from the entity's data
-4. **UUID** - Generate a random UUID for each entity
-
-!!! tip "ID Selection"
-    Choose a strategy that ensures even distribution of entities across shards while maintaining the ability to locate entities when needed.
-
-## Sharding Configuration
-
-You can choose the number of shards with the `sharding()` method in your sharded actor:
-
-```java
-
-@Override
-public ShardingStrategy sharding() {
-    return ShardingStrategy.hashed(numberOfShards);
-}
-```
-
-Entities are placed by a hash of their id. More shards allow for finer-grained distribution but
-increase overhead. Keep the number the same on every node and across deployments: changing it moves
-entities to other shards. The default is 100.
-
-To run an entity type only on some nodes, override `role()` and set `spring.actor.cluster.roles` on
-those nodes.
-
-## Best Practices for Sharded Actors
-
-1. **Don't Cache References** - Get references on each request; they're lightweight and don't create entities
-2. **Use ask** - Always use `ask()` with timeout and error handling for production code
-3. **Design for Idempotency** - Messages may be redelivered during rebalancing, so design handlers to be idempotent
-4. **Choose Entity IDs Wisely** - Use natural business keys for even distribution across shards
-5. **Avoid Cross-Entity Dependencies** - Minimize communication between entities to reduce network overhead
-6. **Monitor Shard Distribution** - Use built-in metrics to ensure entities are evenly distributed
-7. **Configure Passivation** - Tune idle timeout based on your use case to balance memory and startup costs
-8. **Use JSON Serialization** - Prefer `JsonSerializable` over Java serialization for better performance and compatibility
-
-!!! warning "Cross-Entity Communication"
-    Minimize dependencies between sharded entities. Each cross-entity message incurs network overhead and can impact performance.
-
-## Comparison: Regular vs Sharded Actors
-
-| Feature | Regular Actor | Sharded Actor |
-|---------|--------------|---------------|
-| Lifecycle | Manual (spawn/start/stop) | Automatic (on-demand) |
-| Distribution | Single node | Distributed across cluster |
-| Reference Creation | Heavy (creates actor) | Lightweight (just reference) |
-| Caching | Required for performance | Not needed |
-| Existence Check | Use `exists()` | Not needed |
-| Serialization | Not required | Required (`JsonSerializable`) |
-| Use Case | Local, long-lived actors | Distributed, large-scale entities |
-
-## Next Steps
-
-Now that you know how to create and use sharded actors, you can:
-
-1. [Explore the Cluster Example](../examples/cluster.md) - See sharded actors in action
-2. [Learn about Persistence](persistence-spring-boot.md) - Add state persistence to your actors
-3. [Set up Monitoring](../examples/monitoring.md) - Track cluster health and performance
+- [Cluster example](../../examples/cluster.md): sharded actors on three nodes
+- [Cluster Singletons](singletons.md): one actor for the whole cluster
+- [Split Brain and Leases](split-brain-and-leases.md): downing and shard leases
+- [State in a Database](../data/state-in-a-database.md) and [Event-Sourced Actors](../data/event-sourcing.md):
+  keep an entity's state
+- [Testing](../testing.md#cluster-tests-with-actorcluster): several nodes in one test
