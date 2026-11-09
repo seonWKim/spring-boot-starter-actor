@@ -149,13 +149,7 @@ public final class PekkoActorSpawnBuilder<A extends SpringActorWithContext<C, ?>
     @Override
     public CompletionStage<SpringActorHandle<C>> spawn() {
         if (actorContext == null) {
-            if (actorId == null) {
-                throw new IllegalStateException("Either actorId or actorContext must be set before spawning. "
-                        + "Call withId(\"your-id\") or withContext(context) on the builder. "
-                        + "Actor class: "
-                        + actorClass.getName());
-            }
-            actorContext = new DefaultSpringActorContext(actorId);
+            actorContext = new DefaultSpringActorContext(requireId());
         }
 
         // Apply MDC configuration to the context
@@ -170,6 +164,24 @@ public final class PekkoActorSpawnBuilder<A extends SpringActorWithContext<C, ?>
                 isClusterSingleton,
                 supervisorStrategy,
                 timeout);
+    }
+
+    @Override
+    public CompletionStage<SpringActorHandle<C>> getOrSpawn() {
+        String id = actorContext != null ? actorContext.actorId() : requireId();
+        return actorSystem
+                .exists(actorClass, id, timeout)
+                .thenCompose(exists -> exists ? actorSystem.get(actorClass, id, timeout) : spawn());
+    }
+
+    private String requireId() {
+        if (actorId == null) {
+            throw new IllegalStateException("Either actorId or actorContext must be set before spawning. "
+                    + "Call withId(\"your-id\") or withContext(context) on the builder. "
+                    + "Actor class: "
+                    + actorClass.getName());
+        }
+        return actorId;
     }
 
     @Override

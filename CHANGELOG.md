@@ -78,6 +78,9 @@
   cluster mode, an `actorCluster` component that is `UP` only while this node is an `Up` member. Add
   `actorCluster` to the readiness group to gate traffic on membership. `management.health.actor.enabled`
   turns both off.
+- **`getOrSpawn()` on the spawn builder** returns the running actor or spawns it with the builder's
+  dispatcher, mailbox and supervision. `SpringActorSystem.getOrSpawn(Class, id)` always used the
+  defaults, so a blocking actor got the default dispatcher.
 
 ### Migrating from 0.x
 

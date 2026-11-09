@@ -92,6 +92,9 @@ public class HelloService {
 
 !!! tip "When to use getOrSpawn"
     Use `getOrSpawn()` for most cases as it simplifies actor lifecycle management and reduces boilerplate code.
+    `actorSystem.getOrSpawn(Class, id)` spawns with the default settings. To get or spawn with your own
+    dispatcher, mailbox or supervision, end the builder with `getOrSpawn()` instead of `spawn()`:
+    `actorSystem.actor(OrderActor.class).withId(id).withBlockingDispatcher().getOrSpawn()`.
 
 ### Advanced: Explicit Spawning with Builder API
 
