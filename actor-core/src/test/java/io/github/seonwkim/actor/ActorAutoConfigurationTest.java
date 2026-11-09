@@ -68,8 +68,8 @@ public class ActorAutoConfigurationTest {
         @Test
         void shouldRegisterSpringActors(ApplicationContext context) {
             // Should be able to create the behavior by command class
-            SpringActorBehavior<TestHelloActor.Command> behavior = ActorTypeRegistry.createTypedBehavior(
-                    TestHelloActor.class, new DefaultSpringActorContext("test-id"));
+            SpringActorBehavior<TestHelloActor.Command> behavior = context.getBean(ActorTypeRegistry.class)
+                    .createTypedBehavior(TestHelloActor.class, new DefaultSpringActorContext("test-id"));
 
             assertNotNull(behavior, "Behavior for TestHelloActor should be registered and non-null");
         }
@@ -158,9 +158,9 @@ public class ActorAutoConfigurationTest {
             SpringActorSystem systemBean = context.getBean(SpringActorSystem.class);
             assertEquals(systemBean, actor.getActorSystem(), "Should be the same SpringActorSystem instance");
 
-            // Verify actor was registered in the static registry
-            SpringActorBehavior<ActorWithSystemInjection.Command> behavior = ActorTypeRegistry.createTypedBehavior(
-                    ActorWithSystemInjection.class, new DefaultSpringActorContext("test-actor"));
+            // Verify actor was registered in the context's registry
+            SpringActorBehavior<ActorWithSystemInjection.Command> behavior = context.getBean(ActorTypeRegistry.class)
+                    .createTypedBehavior(ActorWithSystemInjection.class, new DefaultSpringActorContext("test-actor"));
             assertNotNull(behavior, "Actor should be registered in ActorTypeRegistry");
         }
     }

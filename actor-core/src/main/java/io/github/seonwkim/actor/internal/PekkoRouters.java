@@ -21,8 +21,8 @@ public final class PekkoRouters {
         return Behaviors.setup(ctx -> {
             SpringActorContext workerContext = new DefaultSpringActorContext("worker-" + UUID.randomUUID());
             @SuppressWarnings("unchecked")
-            SpringActorBehavior<C> worker =
-                    (SpringActorBehavior<C>) ActorTypeRegistry.createBehavior(pool.workerClass(), workerContext);
+            SpringActorBehavior<C> worker = (SpringActorBehavior<C>)
+                    ActorTypeRegistry.of(ctx.getSystem()).createBehavior(pool.workerClass(), workerContext);
             Behavior<C> workerBehavior = PekkoBehaviors.toPekko(worker);
             if (pool.workerSupervision().isPresent()) {
                 workerBehavior = Behaviors.supervise(workerBehavior)

@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import javax.annotation.Nullable;
 import org.apache.pekko.actor.setup.ActorSystemSetup;
+import org.apache.pekko.actor.setup.Setup;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.ActorSystem;
 import org.apache.pekko.actor.typed.Behavior;
@@ -36,7 +37,20 @@ public final class PekkoClusterSupport implements ClusterSupport {
     public ActorSystemSetup withSetup(ActorSystemSetup setup, @Nullable BeanFactory beans) {
         ObjectMapper applicationMapper =
                 beans == null ? null : beans.getBeanProvider(ObjectMapper.class).getIfUnique();
-        return setup.withSetup(PekkoJackson.setup(applicationMapper));
+        ShardedActorRegistry sharded = beans == null
+                ? null
+                : beans.getBeanProvider(ShardedActorRegistry.class).getIfAvailable();
+        return setup.withSetup(PekkoJackson.setup(applicationMapper))
+                .withSetup(new ShardedActorsSetup(sharded == null ? new ShardedActorRegistry() : sharded));
+    }
+
+    /** Carries the Spring context's sharded actors to the cluster runtime of its actor system. */
+    private static final class ShardedActorsSetup extends Setup {
+        private final ShardedActorRegistry registry;
+
+        ShardedActorsSetup(ShardedActorRegistry registry) {
+            this.registry = registry;
+        }
     }
 
     @Override
@@ -45,7 +59,12 @@ public final class PekkoClusterSupport implements ClusterSupport {
         ActorRef<ClusterDomainEvent> listener =
                 system.systemActorOf(PekkoClusterEvents.publisher(publisher), "cluster-event-listener", Props.empty());
         cluster.subscriptions().tell(new Subscribe<>(listener, ClusterDomainEvent.class));
-        return new Runtime(system, cluster, ClusterSharding.get(system), ClusterSingleton.get(system));
+        ShardedActorRegistry sharded = system.settings()
+                .setup()
+                .get(ShardedActorsSetup.class)
+                .map(found -> found.registry)
+                .orElseGet(ShardedActorRegistry::new);
+        return new Runtime(system, cluster, ClusterSharding.get(system), ClusterSingleton.get(system), sharded);
     }
 
     @Override
@@ -54,7 +73,12 @@ public final class PekkoClusterSupport implements ClusterSupport {
                 .init(SingletonActor.of(behavior, name).withProps(props));
     }
 
-    private record Runtime(ActorSystem<?> system, Cluster cluster, ClusterSharding sharding, ClusterSingleton singleton)
+    private record Runtime(
+            ActorSystem<?> system,
+            Cluster cluster,
+            ClusterSharding sharding,
+            ClusterSingleton singleton,
+            ShardedActorRegistry shardedActors)
             implements ClusterRuntime {
 
         @Override
@@ -64,7 +88,7 @@ public final class PekkoClusterSupport implements ClusterSupport {
 
         @Override
         public <T> SpringShardedActorBuilder<T> sharded(Class<? extends SpringShardedActor<T>> actorClass) {
-            SpringShardedActor<T> actor = ShardedActorRegistry.getByClass(actorClass);
+            SpringShardedActor<T> actor = shardedActors.getByClass(actorClass);
             if (actor == null) {
                 throw new IllegalStateException("SpringShardedActor " + actorClass.getName()
                         + " not found in registry. "
@@ -75,7 +99,7 @@ public final class PekkoClusterSupport implements ClusterSupport {
 
         @Override
         public void initSharding() {
-            for (SpringShardedActor<?> actor : ShardedActorRegistry.getAll()) {
+            for (SpringShardedActor<?> actor : shardedActors.getAll()) {
                 PekkoSharding.init(sharding, actor);
             }
         }

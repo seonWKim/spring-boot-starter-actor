@@ -18,14 +18,20 @@ import org.springframework.context.annotation.Configuration;
 @ConditionalOnClass(name = "io.github.seonwkim.actor.internal.cluster.PekkoClusterSupport")
 public class ClusterConfiguration {
 
+    /** This context's sharded actor beans; the cluster runtime reads it through the bean factory. */
+    @Bean
+    public static ShardedActorRegistry shardedActorRegistry() {
+        return new ShardedActorRegistry();
+    }
+
     /** Collects sharded actor beans as Spring creates them. */
     @Bean
-    public static BeanPostProcessor shardedActorRegistrationBeanPostProcessor() {
+    public static BeanPostProcessor shardedActorRegistrationBeanPostProcessor(ShardedActorRegistry registry) {
         return new BeanPostProcessor() {
             @Override
             public Object postProcessAfterInitialization(Object bean, String beanName) {
                 if (bean instanceof SpringShardedActor<?> actor) {
-                    ShardedActorRegistry.register(actor);
+                    registry.register(actor);
                 }
                 return bean;
             }

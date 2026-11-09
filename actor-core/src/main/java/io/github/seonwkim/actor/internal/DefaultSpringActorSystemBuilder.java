@@ -72,7 +72,7 @@ public class DefaultSpringActorSystemBuilder implements SpringActorSystemBuilder
     /**
      * Builds a SpringActorSystem with the configured settings. This method creates either a local or
      * cluster mode actor system based on the configuration. In cluster mode, it initializes all
-     * sharded actors from the static ShardedActorRegistry.
+     * sharded actors from the Spring context's ShardedActorRegistry.
      *
      * @return A new SpringActorSystem
      * @throws IllegalArgumentException If in cluster mode and the application event publisher is not
@@ -103,6 +103,11 @@ public class DefaultSpringActorSystemBuilder implements SpringActorSystemBuilder
         final ClusterSupport clusterSupport = !isClusterMode ? null : found != null ? found : ClusterSupport.require();
 
         ActorSystemSetup setup = ActorSystemSetup.create(BootstrapSetup.create(config));
+        // The actor beans of this builder's Spring context; another context in the JVM has its own.
+        setup = setup.withSetup(
+                beanFactory == null
+                        ? new ActorTypeRegistry()
+                        : beanFactory.getBeanProvider(ActorTypeRegistry.class).getIfAvailable(ActorTypeRegistry::new));
         if (beanFactory != null) {
             setup = setup.withSetup(new SpringBeansSetup(beanFactory));
         }
