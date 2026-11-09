@@ -53,6 +53,8 @@ public class ActorProperties {
 
     private final Jdbc jdbc = new Jdbc();
 
+    private final Persistence persistence = new Persistence();
+
     private final VirtualThreads virtualThreads = new VirtualThreads();
 
     /**
@@ -96,6 +98,10 @@ public class ActorProperties {
 
     public Jdbc getJdbc() {
         return jdbc;
+    }
+
+    public Persistence getPersistence() {
+        return persistence;
     }
 
     public Map<String, Dispatcher> getDispatchers() {
@@ -528,6 +534,25 @@ public class ActorProperties {
         }
     }
 
+    /** The journal and snapshot tables of actor-persistence (event_journal, event_tag, snapshot). */
+    public static class Persistence {
+
+        /**
+         * When to create the actor-persistence tables (event_journal, event_tag, snapshot): embedded
+         * (only in an embedded database), always, or never (you create them from the schema-*.sql files
+         * in actor-persistence).
+         */
+        private DatabaseInitializationMode initializeSchema = DatabaseInitializationMode.EMBEDDED;
+
+        public DatabaseInitializationMode getInitializeSchema() {
+            return initializeSchema;
+        }
+
+        public void setInitializeSchema(DatabaseInitializationMode initializeSchema) {
+            this.initializeSchema = initializeSchema;
+        }
+    }
+
     /** Stopping the actor system when the Spring context closes. */
     public static class Shutdown {
 
@@ -562,8 +587,16 @@ public class ActorProperties {
     }
 
     /** The keys under {@code spring.actor} that are typed settings rather than Pekko configuration. */
-    static final List<String> TYPED_ROOTS =
-            List.of("name", "provider", "remote", "cluster", "shutdown", "dispatchers", "virtual-threads", "jdbc");
+    static final List<String> TYPED_ROOTS = List.of(
+            "name",
+            "provider",
+            "remote",
+            "cluster",
+            "shutdown",
+            "dispatchers",
+            "virtual-threads",
+            "jdbc",
+            "persistence");
 
     /**
      * The Pekko configuration. Every key under {@code spring.actor} except the typed settings is

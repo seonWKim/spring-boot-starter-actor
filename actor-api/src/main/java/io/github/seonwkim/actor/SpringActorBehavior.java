@@ -63,12 +63,19 @@ public final class SpringActorBehavior<C> {
         /** A behavior of the underlying engine, passed to {@link #wrap(Object)}. */
         NATIVE,
         /** A pool of workers built with {@code SpringRouterBehavior}: see {@link #routerPool()}. */
-        ROUTER
+        ROUTER,
+        /**
+         * A behavior defined by another module of the starter, such as an event-sourced behavior of
+         * {@code actor-persistence}: see {@link #moduleDefinition()}.
+         */
+        MODULE
     }
 
-    private static final SpringActorBehavior<?> SAME = new SpringActorBehavior<>(Kind.SAME, null, null, null);
-    private static final SpringActorBehavior<?> STOPPED = new SpringActorBehavior<>(Kind.STOPPED, null, null, null);
-    private static final SpringActorBehavior<?> UNHANDLED = new SpringActorBehavior<>(Kind.UNHANDLED, null, null, null);
+    private static final SpringActorBehavior<?> SAME = new SpringActorBehavior<>(Kind.SAME, null, null, null, null);
+    private static final SpringActorBehavior<?> STOPPED =
+            new SpringActorBehavior<>(Kind.STOPPED, null, null, null, null);
+    private static final SpringActorBehavior<?> UNHANDLED =
+            new SpringActorBehavior<>(Kind.UNHANDLED, null, null, null, null);
 
     private final Kind kind;
 
@@ -78,15 +85,19 @@ public final class SpringActorBehavior<C> {
 
     @Nullable private final RouterPool<C> routerPool;
 
+    @Nullable private final Object moduleDefinition;
+
     private SpringActorBehavior(
             Kind kind,
             @Nullable Definition<C, ?> definition,
             @Nullable Object nativeBehavior,
-            @Nullable RouterPool<C> routerPool) {
+            @Nullable RouterPool<C> routerPool,
+            @Nullable Object moduleDefinition) {
         this.kind = kind;
         this.definition = definition;
         this.nativeBehavior = nativeBehavior;
         this.routerPool = routerPool;
+        this.moduleDefinition = moduleDefinition;
     }
 
     /** Keep handling messages the same way. */
@@ -116,12 +127,24 @@ public final class SpringActorBehavior<C> {
      */
     public static <C> SpringActorBehavior<C> wrap(Object engineBehavior) {
         return new SpringActorBehavior<>(
-                Kind.NATIVE, null, Objects.requireNonNull(engineBehavior, "engineBehavior"), null);
+                Kind.NATIVE, null, Objects.requireNonNull(engineBehavior, "engineBehavior"), null, null);
     }
 
     /** A router; {@code SpringRouterBehavior.builder(...).build()} is the way to get a {@link RouterPool}. */
     public static <C> SpringActorBehavior<C> router(RouterPool<C> pool) {
-        return new SpringActorBehavior<>(Kind.ROUTER, null, null, Objects.requireNonNull(pool, "pool"));
+        return new SpringActorBehavior<>(Kind.ROUTER, null, null, Objects.requireNonNull(pool, "pool"), null);
+    }
+
+    /**
+     * A behavior another module of the starter defines and runs, such as
+     * {@code SpringEventSourcedBehavior} of {@code actor-persistence}. Modules call this; application
+     * code uses the module's own builder.
+     *
+     * @throws IllegalArgumentException when no module on the classpath runs it (checked when the actor starts)
+     */
+    public static <C> SpringActorBehavior<C> ofModule(Object moduleDefinition) {
+        return new SpringActorBehavior<>(
+                Kind.MODULE, null, null, null, Objects.requireNonNull(moduleDefinition, "moduleDefinition"));
     }
 
     /**
@@ -161,6 +184,14 @@ public final class SpringActorBehavior<C> {
             throw new IllegalStateException("Not an engine behavior: " + kind);
         }
         return nativeBehavior;
+    }
+
+    /** The module's definition when {@link #kind()} is {@link Kind#MODULE}. */
+    public Object moduleDefinition() {
+        if (moduleDefinition == null) {
+            throw new IllegalStateException("Not a module behavior: " + kind);
+        }
+        return moduleDefinition;
     }
 
     /**
@@ -356,6 +387,7 @@ public final class SpringActorBehavior<C> {
                             supervisionStrategy,
                             mdcForMessage,
                             FrameworkCommand.class.isAssignableFrom(commandClass)),
+                    null,
                     null,
                     null);
         }

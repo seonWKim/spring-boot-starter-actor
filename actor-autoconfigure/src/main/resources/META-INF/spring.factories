@@ -1,0 +1,2 @@
+org.springframework.boot.sql.init.dependency.DependsOnDatabaseInitializationDetector=\
+io.github.seonwkim.actor.autoconfigure.persistence.ActorSystemDependsOnDatabaseInitialization

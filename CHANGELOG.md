@@ -138,6 +138,11 @@
   (Spring MVC or WebFlux); `ActorWebSocketHandler` connects each WebFlux WebSocket session to actors;
   `ActorGrpc.respond` sends a `Flux` or `Mono` to a gRPC response stream with flow control. A client
   disconnect stops the actor-side reference. The chat example uses the WebSocket bridge.
+- **Event-sourced actors (`actor-persistence`).** `SpringEventSourcedBehavior` builds an actor from
+  command handlers that return effects (`persist`, `none`, `thenReply`, ...) and event handlers that change
+  the state, with snapshots every N events and tags. The journal and snapshots are Pekko Persistence JDBC
+  tables on the application's `DataSource` (scripts for H2, PostgreSQL, MySQL and MariaDB), created per
+  `spring.actor.persistence.initialize-schema`. R2DBC is not supported yet.
 
 ### Fixed
 

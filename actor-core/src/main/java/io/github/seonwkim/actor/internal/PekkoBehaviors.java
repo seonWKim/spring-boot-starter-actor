@@ -51,7 +51,20 @@ public final class PekkoBehaviors {
             }
             case DEFINED -> compile(behavior.definition(), UnaryOperator.identity());
             case ROUTER -> PekkoRouters.pool(behavior.routerPool());
+            case MODULE -> fromModule(behavior.moduleDefinition());
         };
+    }
+
+    private static <C> Behavior<C> fromModule(Object definition) {
+        for (ModuleSupport module : ModuleSupport.all()) {
+            Behavior<C> behavior = module.toBehavior(definition);
+            if (behavior != null) {
+                return behavior;
+            }
+        }
+        throw new IllegalArgumentException(
+                "No module on the classpath runs a " + definition.getClass().getName()
+                        + ": add the starter module that defines it (for example io.github.seonwkim:actor-persistence)");
     }
 
     private static <C, S> Behavior<C> compile(
