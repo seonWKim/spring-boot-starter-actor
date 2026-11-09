@@ -1,0 +1,99 @@
+# Prometheus alert rules for the actor meters of actor-spring-boot-starter (actor-metrics).
+# A PrometheusRule for the Prometheus Operator. Without the operator, `spec` is a plain rules file:
+#   yq '.spec' actor-alerts.yaml > actor-alerts.rules.yml
+# The thresholds are starting points: tune them to your load.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: actor-alerts
+  labels:
+    app: spring-actor
+    prometheus: kube-prometheus
+spec:
+  groups:
+    - name: actor-cluster
+      rules:
+        - alert: ActorClusterMemberUnreachable
+          expr: max by (namespace) (actor_cluster_unreachable) > 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: A cluster member has been unreachable for 5 minutes
+            description: >-
+              {{ $value }} member(s) are unreachable. If this lasts longer than the split brain
+              resolver's stable-after, it will down them.
+        - alert: ActorClusterNoLeader
+          expr: sum by (namespace) (actor_cluster_leader) < 1
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: No node of the cluster is its leader
+            description: Without a leader, members cannot join or leave the cluster.
+        - alert: ActorClusterViewsDiffer
+          expr: max by (namespace) (actor_cluster_members) != min by (namespace) (actor_cluster_members)
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Nodes disagree on the number of cluster members
+            description: Some nodes see a different cluster than others; look for a node that failed to join or a partition.
+        - alert: ActorClusterSingletonMissing
+          expr: sum by (namespace) (actor_cluster_singleton_host) < 1
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: No node runs the cluster singletons
+            description: Cluster singletons are not running anywhere.
+    - name: actor-messages
+      rules:
+        - alert: ActorMessageFailures
+          expr: sum by (namespace, actor_class) (rate(actor_message_failures_total[5m])) > 0
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Actors of {{ $labels.actor_class }} keep failing"
+            description: "{{ $value | humanize }} failures per second for 10 minutes."
+        - alert: ActorRestartsFrequent
+          expr: sum by (namespace, actor_class) (increase(actor_lifecycle_restarts_total[15m])) > 10
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Actors of {{ $labels.actor_class }} restart often"
+            description: "{{ $value | humanize }} restarts in 15 minutes."
+        - alert: ActorMailboxBacklog
+          expr: sum by (namespace, instance, actor_class) (actor_mailbox_size) > 1000
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Messages pile up for {{ $labels.actor_class }} on {{ $labels.instance }}"
+            description: "{{ $value }} messages are waiting; the actors process slower than messages arrive."
+        - alert: ActorMailboxWaitHigh
+          expr: >-
+            sum by (namespace, actor_class) (rate(actor_mailbox_time_seconds_sum[5m]))
+            / sum by (namespace, actor_class) (rate(actor_mailbox_time_seconds_count[5m])) > 1
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Messages to {{ $labels.actor_class }} wait more than a second"
+            description: "Messages wait {{ $value | humanizeDuration }} on average before they are processed."
+    - name: actor-dispatchers
+      rules:
+        - alert: ActorDispatcherSaturated
+          expr: >-
+            actor_dispatcher_queued > 100
+            and actor_dispatcher_threads_active >= actor_dispatcher_threads
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Dispatcher {{ $labels.dispatcher }} on {{ $labels.instance }} is saturated"
+            description: >-
+              Every thread is busy and {{ $value }} tasks wait. Look for blocking calls on the
+              default dispatcher, or move blocking actors to the blocking dispatcher.

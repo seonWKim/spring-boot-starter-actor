@@ -107,6 +107,10 @@
   forms the cluster. A node removes its entry on a graceful shutdown. A `PeerRegistry` bean of your own
   (`io.github.seonwkim.actor.spi`) replaces the built-in stores; `kubernetes-api`, `dns` and `config` select
   Pekko's own methods.
+- **Grafana dashboard and Prometheus alert rules** in `monitoring/` for the actor, cluster and sharding meters.
+  The Kubernetes example installs them with `scripts/monitoring.sh` (ServiceMonitor, `PrometheusRule`,
+  dashboard ConfigMap for Grafana's sidecar). A test checks every metric they query against the documented
+  meters.
 
 ### Migrating from 0.x
 

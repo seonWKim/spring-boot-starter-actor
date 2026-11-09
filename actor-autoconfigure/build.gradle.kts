@@ -66,3 +66,12 @@ tasks.register<JavaExec>("actorMetersBenchmark") {
     classpath = sourceSets["test"].runtimeClasspath
     mainClass.set("io.github.seonwkim.actor.autoconfigure.metrics.ActorMetersBenchmark")
 }
+
+// MonitoringFilesTest reads the dashboard, the alert rules and the meter docs: rerun it when they change.
+tasks.test {
+    inputs.dir(rootProject.file("monitoring")).withPropertyName("monitoring")
+    inputs.files(
+            rootProject.file("mkdocs/docs/examples/monitoring.md"),
+            rootProject.file("mkdocs/docs/guides/production.md"))
+        .withPropertyName("meterDocs")
+}
