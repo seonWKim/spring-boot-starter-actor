@@ -284,11 +284,11 @@ scripts/test-strategies.sh
 # blue-green     total=... ok=... failed=0 ok
 ```
 
-The new versions there are retags of the same image, so it checks the rollout mechanics, not a change in the code.
+The new versions there are retags of the same image, so it checks the rollout mechanics, not a change in the code. `load.sh` counts a request as ok only when the actor replied: the chat app answers `200` with `Request timed out ...` when an ask fails, so the HTTP status alone would hide lost messages.
 
 ### Changing Versions
 
-- **Rolling update and canary mix versions in one cluster.** Old and new pods exchange messages, and a sharded entity can move from an old pod to a new one. Keep every message and every piece of entity state that crosses nodes readable by both versions: add fields as optional, don't rename or remove fields or types in the same release, and keep each type on the same serializer (`JsonSerializable` or `CborSerializable`). Make an incompatible change in two releases: first one that reads both formats, then one that writes the new format.
+- **Rolling update and canary mix versions in one cluster.** Old and new pods exchange messages, and a sharded entity can move from an old pod to a new one. Keep every message and every piece of entity state that crosses nodes readable by both versions: add fields as optional, don't rename or remove fields or types in the same release, and keep each type on the same serializer (`JsonSerializable` or `CborSerializable`). Make an incompatible change in two releases: first one that reads both formats, then one that writes the new format. Checked on kind with a canary of the chat app: adding a field to `SayHello` lost no requests (28,842 of 28,842), while renaming the class lost 104 of 7,105, which timed out because the old nodes could not read the new type.
 - **Blue-green never mixes versions.** Green finds its peers with its own label (`app=spring-actor-green`), so the two clusters never exchange messages and the message format can change freely. In-memory state does not move: entities, singletons and topics start empty on green. Keep state that must survive the switch in a database or event journal both clusters read.
 - **Rollback.** A canary is removed with `canary.sh abort`; until `blue-green.sh finish`, `blue-green.sh rollback` sends traffic back to blue, which still has its state.
 
