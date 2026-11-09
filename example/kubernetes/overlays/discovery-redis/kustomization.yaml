@@ -1,0 +1,15 @@
+# The cluster forms through keys in Redis. No RBAC.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: spring-actor
+
+resources:
+- ../../base
+- networkpolicy-store.yaml
+
+components:
+- ../../components/discovery
+
+patches:
+- path: deployment-patch.yaml

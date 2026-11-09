@@ -1,0 +1,52 @@
+# Cluster formation through a peer registry (spring.actor.cluster.join=discovery):
+# no Kubernetes API access, so no Role or RoleBinding. The overlays discovery-jdbc and
+# discovery-redis add the store.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+resources:
+- networkpolicy.yaml
+
+patches:
+# The pods never call the Kubernetes API: drop the pod-reader Role and its binding.
+- target:
+    kind: Role
+    name: spring-actor-pod-reader
+  patch: |-
+    $patch: delete
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: Role
+    metadata:
+      name: spring-actor-pod-reader
+- target:
+    kind: RoleBinding
+    name: spring-actor-pod-reader-binding
+  patch: |-
+    $patch: delete
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: RoleBinding
+    metadata:
+      name: spring-actor-pod-reader-binding
+- path: deployment-patch.yaml
+# The cluster ports are Pekko's defaults: remoting 25520, management 7626.
+- target:
+    kind: Deployment
+    name: spring-actor
+  patch: |-
+    - op: replace
+      path: /spec/template/spec/containers/0/ports
+      value:
+      - {name: http, containerPort: 8080, protocol: TCP}
+      - {name: remoting, containerPort: 25520, protocol: TCP}
+      - {name: management, containerPort: 7626, protocol: TCP}
+# The headless service names the cluster ports; discovery itself does not use it.
+- target:
+    kind: Service
+    name: spring-actor
+  patch: |-
+    - op: replace
+      path: /spec/ports
+      value:
+      - {name: management, port: 7626, targetPort: 7626, protocol: TCP}
+      - {name: remoting, port: 25520, targetPort: 25520, protocol: TCP}
+- path: configmap-patch.yaml

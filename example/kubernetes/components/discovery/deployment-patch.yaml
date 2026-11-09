@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spring-actor
+spec:
+  template:
+    spec:
+      # No API token in the pods: discovery goes through the store.
+      automountServiceAccountToken: false
+      # preStop (10s) + the actor system's coordinated shutdown, which leaves the cluster and
+      # deletes this pod's peer entry (spring.actor.shutdown.timeout, 25s) + margin.
+      terminationGracePeriodSeconds: 45
+      containers:
+      - name: spring-actor
+        # Probes on Spring Boot's management health (Actuator): the readiness group includes
+        # actorCluster, so a pod gets traffic only while it is an Up cluster member.
+        livenessProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: http
+        readinessProbe:
+          httpGet:
+            path: /actuator/health/readiness
+            port: http
+        startupProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: http

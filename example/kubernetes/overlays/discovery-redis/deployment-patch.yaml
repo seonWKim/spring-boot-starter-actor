@@ -1,0 +1,16 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spring-actor
+spec:
+  template:
+    spec:
+      containers:
+      - name: spring-actor
+        env:
+        - name: SPRING_ACTOR_CLUSTER_DISCOVERY_METHOD
+          value: redis
+        - name: SPRING_DATA_REDIS_HOST
+          value: redis
+        - name: SPRING_DATA_REDIS_PORT
+          value: "6379"

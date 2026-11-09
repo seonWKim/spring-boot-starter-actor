@@ -154,6 +154,62 @@ T+40s   All pods ready                  ✓ Cluster fully formed!
 
 No hardcoded seed nodes needed! 🎉
 
+## Without RBAC: discovery through JDBC or Redis
+
+The default setup finds pods through the Kubernetes API, so the pods' service account needs a Role
+that can list pods. When the platform team won't grant that, the overlays `discovery-jdbc` and
+`discovery-redis` form the cluster through a store the application already uses
+(`spring.actor.cluster.join: discovery`, see the
+[Cluster Formation guide](https://seonwkim.github.io/actor-spring-boot-starter/guides/cluster-formation/)).
+Each pod writes its own entry (its IP and management port) to the `actor_peer` table or a Redis key,
+renews it every 5 seconds, and deletes it when it shuts down gracefully. Cluster Bootstrap reads the
+live entries and joins or forms the cluster.
+
+```bash
+kubectl apply -k overlays/discovery-jdbc    # PostgreSQL at postgres:5432, Secret spring-actor-db
+kubectl apply -k overlays/discovery-redis   # Redis at redis:6379
+```
+
+Both overlays use the component `components/discovery`, which:
+
+- removes the pod-reader `Role` and `RoleBinding`, and mounts no service account token;
+- uses Pekko's default ports: remoting `25520`, management `7626`;
+- replaces `application.yaml` with `join: discovery` (the store comes from each overlay's environment);
+- probes Spring Boot's Actuator health (readiness includes `actorCluster`, so a pod gets traffic only
+  while it is an `Up` member);
+- sets `terminationGracePeriodSeconds: 45`: the 10s `preStop` sleep, then up to 25s
+  (`spring.actor.shutdown.timeout`) to leave the cluster and delete the pod's entry.
+
+The application image needs the store module and its client next to the Pekko Management libraries
+the chat example already has. The chat image does not include them; use your own application's image
+(`images:` in the overlay) with:
+
+```kotlin
+implementation("io.github.seonwkim:actor-jdbc:$version")          // discovery-jdbc
+implementation("org.springframework.boot:spring-boot-starter-jdbc")
+runtimeOnly("org.postgresql:postgresql")
+
+implementation("io.github.seonwkim:actor-redis:$version")         // discovery-redis
+implementation("org.springframework.boot:spring-boot-starter-data-redis")
+```
+
+### Network rules to ask the platform team for
+
+| From | To | Port | Why |
+|---|---|---|---|
+| app pods | app pods | TCP 25520 | Pekko remoting: messages between nodes |
+| app pods | app pods | TCP 7626 | Pekko Management: Cluster Bootstrap contacts peers here |
+| app pods | the database or Redis | TCP 5432 (PostgreSQL) or 6379 (Redis) | Peer entries |
+| app pods | cluster DNS | UDP and TCP 53 | Resolving the store's host name |
+| clients, ingress, Prometheus | app pods | TCP 8080 | HTTP, Actuator health and metrics |
+
+No access to the Kubernetes API is needed. The overlays ship these rules as two NetworkPolicies:
+`spring-actor` (pod to pod, DNS, HTTP in) and `spring-actor-store` (app to store). Change the store
+policy's selector, or use an `ipBlock`, to match where your database or Redis runs.
+
+`kubectl kustomize overlays/discovery-jdbc` renders an overlay without a cluster;
+`./gradlew :example:kubernetes:test` checks that both render, contain no RBAC, and open only these ports.
+
 ## Rolling Updates Example
 
 Let's see zero-downtime rolling updates in action:
@@ -369,7 +425,11 @@ example/kubernetes/
 ├── overlays/                   # Environment-specific configs
 │   ├── local/                  # ⭐ Used by setup-local.sh
 │   ├── dev/
-│   └── prod/
+│   ├── prod/
+│   ├── discovery-jdbc/         # No RBAC: peers through PostgreSQL
+│   └── discovery-redis/        # No RBAC: peers through Redis
+│
+├── components/discovery/       # Shared by the discovery overlays: no RBAC, NetworkPolicy, ports
 │
 └── scripts/                    # Advanced deployment scripts
     ├── deploy.sh

@@ -1,0 +1,63 @@
+# Replaces the base application.yaml: no Kubernetes API discovery. The store comes from the
+# overlay's environment (SPRING_ACTOR_CLUSTER_DISCOVERY_METHOD and the store's connection).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: spring-actor-config
+data:
+  application.yaml: |
+    spring:
+      application:
+        name: spring-actor-app
+      actor:
+        name: spring-actor-system
+        provider: cluster
+        remote:
+          hostname: ${POD_IP}
+          port: 25520
+        cluster:
+          join: discovery
+          discovery:
+            heartbeat-interval: 5s
+            ttl: 30s
+        shutdown:
+          timeout: 25s
+        pekko:
+          actor:
+            allow-java-serialization: off
+          remote:
+            artery:
+              bind:
+                hostname: 0.0.0.0
+                port: 25520
+          cluster:
+            downing-provider-class: org.apache.pekko.cluster.sbr.SplitBrainResolverProvider
+            split-brain-resolver:
+              active-strategy: keep-majority
+              stable-after: 20s
+          management:
+            http:
+              hostname: ${POD_IP}
+              port: 7626
+              bind-hostname: 0.0.0.0
+              bind-port: 7626
+            cluster:
+              bootstrap:
+                contact-point-discovery:
+                  required-contact-point-nr: 2
+    server:
+      port: 8080
+      shutdown: graceful
+    management:
+      endpoints:
+        web:
+          exposure:
+            include: health,prometheus,info,metrics
+      endpoint:
+        health:
+          probes:
+            enabled: true
+          group:
+            readiness:
+              # Ready only while this pod is an Up cluster member.
+              include: readinessState,actorCluster

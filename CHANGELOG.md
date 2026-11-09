@@ -111,6 +111,9 @@
   The Kubernetes example installs them with `scripts/monitoring.sh` (ServiceMonitor, `PrometheusRule`,
   dashboard ConfigMap for Grafana's sidecar). A test checks every metric they query against the documented
   meters.
+- **Kubernetes without RBAC.** `example/kubernetes` has the overlays `discovery-jdbc` and `discovery-redis`:
+  no Role or RoleBinding, NetworkPolicies that open only pod-to-pod 25520 and 7626 plus app to store, and a
+  grace period long enough for a graceful leave. The README lists the network rules to ask for.
 
 ### Migrating from 0.x
 

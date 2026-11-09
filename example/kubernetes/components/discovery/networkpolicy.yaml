@@ -1,0 +1,41 @@
+# The only traffic the cluster needs: pod to pod on remoting (25520) and management (7626),
+# HTTP in, and DNS out. Each overlay adds a policy for app -> store.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: spring-actor
+spec:
+  podSelector:
+    matchLabels:
+      app: spring-actor
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: spring-actor
+    ports:
+    - protocol: TCP
+      port: 25520  # Pekko remoting
+    - protocol: TCP
+      port: 7626   # Pekko management (Cluster Bootstrap)
+  - ports:
+    - protocol: TCP
+      port: 8080   # HTTP and Actuator
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app: spring-actor
+    ports:
+    - protocol: TCP
+      port: 25520
+    - protocol: TCP
+      port: 7626
+  - ports:
+    - protocol: UDP
+      port: 53     # DNS, to resolve the store's host name
+    - protocol: TCP
+      port: 53
