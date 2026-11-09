@@ -23,6 +23,7 @@ The full text of the Getting Started page and every guide, with code inlined, is
 - [Split Brain and Leases](https://seonwkim.github.io/actor-spring-boot-starter/guides/split-brain-and-leases/): choose which side of a network split stays up, and keep singletons and shards on one node with a lease in a JDBC table, Redis or your own store
 - [Replicated Data](https://seonwkim.github.io/actor-spring-boot-starter/guides/replicated-data/): maps, counters and sets copied to every node, with local, majority or all consistency
 - [Persistence with Spring Boot](https://seonwkim.github.io/actor-spring-boot-starter/guides/persistence-spring-boot/): keep actor state with Spring Data and other Spring Boot tools
+- [Reactor Streams](https://seonwkim.github.io/actor-spring-boot-starter/guides/reactor-streams/): a `Mono` of an ask, a `Flux` that feeds an actor with backpressure, and a `Flux` of the messages an actor sends (`actor-streams`)
 - [Running in Production](https://seonwkim.github.io/actor-spring-boot-starter/guides/production/): graceful shutdown, health checks, Kubernetes probes, cluster metrics, the actors endpoint and tracing across tell and ask
 - [AI Agents](https://seonwkim.github.io/actor-spring-boot-starter/guides/ai-agents/): one sharded actor per agent, supervised conversations, non-blocking model calls and rate limits
 - [Testing](https://seonwkim.github.io/actor-spring-boot-starter/guides/testing/): the `@ActorTest` slice, multi-node clusters in one JVM with `ActorCluster`, and the contract suites for your own `PeerRegistry` or `LeaseStore`

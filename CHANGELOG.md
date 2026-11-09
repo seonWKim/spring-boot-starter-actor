@@ -130,6 +130,10 @@
   `ReplicatedMap`, `ReplicatedCounter` and `ReplicatedSet` (Pekko Distributed Data CRDTs) with
   `CompletionStage` reads and writes and `local`, `majority` or `all` consistency. Every node starts the
   replicator with the actor system.
+- **Reactor bridge (`actor-streams`).** An `ActorStreams` bean gives a `Mono` of an ask, `askEach` to feed
+  an actor from a `Flux` with at most `parallelism` asks in flight (a slow actor slows the producer instead
+  of filling its mailbox), and `messages(...)` for a `Flux` of the messages actors send to a reference, with
+  a bounded buffer or an acknowledgement per message. Cancelling the `Flux` stops the reference.
 
 ### Fixed
 

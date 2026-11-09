@@ -6,7 +6,7 @@ import org.springframework.core.type.AnnotationMetadata;
 /**
  * Imports the actor configuration for {@link EnableActorSupport} by class name, so {@code actor-api}
  * has no compile dependency on {@code actor-autoconfigure}. The cluster and management
- * configurations apply only when their modules are on the classpath ({@code @ConditionalOnClass}).
+ * configurations, and the streams one, apply only when their modules are on the classpath ({@code @ConditionalOnClass}).
  */
 final class ActorSupportImportSelector implements ImportSelector {
 
@@ -21,7 +21,8 @@ final class ActorSupportImportSelector implements ImportSelector {
             "io.github.seonwkim.actor.autoconfigure.metrics.ClusterMetricsConfiguration",
             "io.github.seonwkim.actor.autoconfigure.endpoint.ActorsEndpointConfiguration",
             "io.github.seonwkim.actor.autoconfigure.tracing.ActorTracingConfiguration",
-            "io.github.seonwkim.actor.autoconfigure.metrics.ActorMetricsConfiguration"
+            "io.github.seonwkim.actor.autoconfigure.metrics.ActorMetricsConfiguration",
+            "io.github.seonwkim.actor.autoconfigure.streams.ActorStreamsConfiguration"
         };
     }
 }
