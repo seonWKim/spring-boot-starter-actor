@@ -81,6 +81,9 @@
 - **`getOrSpawn()` on the spawn builder** returns the running actor or spawns it with the builder's
   dispatcher, mailbox and supervision. `SpringActorSystem.getOrSpawn(Class, id)` always used the
   defaults, so a blocking actor got the default dispatcher.
+- **Cluster metrics without the agent.** In cluster mode, `actor-metrics` with Micrometer adds the gauges
+  `actor.cluster.members`, `actor.cluster.unreachable` and `actor.cluster.leader`, and the counter
+  `actor.cluster.events` tagged by event type.
 
 ### Migrating from 0.x
 

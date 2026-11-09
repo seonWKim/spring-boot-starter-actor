@@ -23,6 +23,8 @@ dependencies {
     implementation("org.apache.pekko:pekko-actor-typed_3:$pekkoVersion")
     // Health indicators apply only when Actuator is on the application's classpath.
     compileOnly("org.springframework.boot:spring-boot-actuator")
+    compileOnly(project(":actor-metrics"))
+    compileOnly("io.micrometer:micrometer-core")
 
     implementation("com.google.code.findbugs:jsr305")
     implementation("org.springframework.boot:spring-boot-starter")

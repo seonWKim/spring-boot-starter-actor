@@ -13,6 +13,8 @@ dependencies {
     implementation("org.slf4j:slf4j-api:2.0.17")
 
     compileOnly("com.google.code.findbugs:jsr305:3.0.2")
+    // Cluster meters read the starter's ClusterEvent records.
+    compileOnly(project(":actor-api"))
 
     // Pekko for compilation only (instrumentation needs Pekko classes)
     // Users bring their own Pekko at runtime

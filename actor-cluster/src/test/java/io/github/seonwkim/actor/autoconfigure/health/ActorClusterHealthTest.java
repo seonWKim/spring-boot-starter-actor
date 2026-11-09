@@ -6,7 +6,7 @@ import static org.awaitility.Awaitility.await;
 import io.github.seonwkim.actor.EnableActorSupport;
 import io.github.seonwkim.actor.SpringActorSystem;
 import io.github.seonwkim.actor.cluster.MemberStatus;
-import io.github.seonwkim.actor.internal.cluster.ClusterHealthView;
+import io.github.seonwkim.actor.internal.cluster.ClusterStateView;
 import java.time.Duration;
 import java.util.Map;
 import org.apache.pekko.cluster.typed.Cluster;
@@ -96,8 +96,8 @@ class ActorClusterHealthTest {
         }
     }
 
-    private static ClusterHealthView self(MemberStatus status) {
-        return new ClusterHealthView(status, false, false, 3, 0);
+    private static ClusterStateView self(MemberStatus status) {
+        return new ClusterStateView(status, false, false, 3, 0, false);
     }
 
     @ParameterizedTest
@@ -118,13 +118,15 @@ class ActorClusterHealthTest {
 
     @Test
     void anUpMemberThatOthersCannotReachIsDown() {
-        assertThat(ActorClusterHealthIndicator.statusOf(new ClusterHealthView(MemberStatus.UP, true, false, 3, 1)))
+        assertThat(ActorClusterHealthIndicator.statusOf(
+                        new ClusterStateView(MemberStatus.UP, true, false, 3, 1, false)))
                 .isEqualTo(Status.DOWN);
     }
 
     @Test
     void anUnreachablePeerDoesNotMakeThisNodeUnhealthy() {
-        assertThat(ActorClusterHealthIndicator.statusOf(new ClusterHealthView(MemberStatus.UP, false, false, 3, 1)))
+        assertThat(ActorClusterHealthIndicator.statusOf(
+                        new ClusterStateView(MemberStatus.UP, false, false, 3, 1, false)))
                 .isEqualTo(Status.UP);
     }
 }

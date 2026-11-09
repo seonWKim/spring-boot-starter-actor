@@ -2,7 +2,7 @@ package io.github.seonwkim.actor.autoconfigure.health;
 
 import io.github.seonwkim.actor.SpringActorSystem;
 import io.github.seonwkim.actor.cluster.MemberStatus;
-import io.github.seonwkim.actor.internal.cluster.ClusterHealthView;
+import io.github.seonwkim.actor.internal.cluster.ClusterStateView;
 import org.springframework.boot.actuate.health.AbstractHealthIndicator;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.Status;
@@ -24,7 +24,7 @@ public class ActorClusterHealthIndicator extends AbstractHealthIndicator {
 
     @Override
     protected void doHealthCheck(Health.Builder builder) {
-        ClusterHealthView view = ClusterHealthView.of(actorSystem);
+        ClusterStateView view = ClusterStateView.of(actorSystem);
         MemberStatus self = view.selfStatus();
         builder.status(statusOf(view))
                 .withDetail("selfStatus", self == null ? "NOT_JOINED" : self.name())
@@ -33,7 +33,7 @@ public class ActorClusterHealthIndicator extends AbstractHealthIndicator {
                 .withDetail("unreachable", view.unreachable());
     }
 
-    static Status statusOf(ClusterHealthView view) {
+    static Status statusOf(ClusterStateView view) {
         MemberStatus self = view.selfStatus();
         if (view.terminated() || view.selfUnreachable() || self == MemberStatus.DOWN || self == MemberStatus.REMOVED) {
             return Status.DOWN;
