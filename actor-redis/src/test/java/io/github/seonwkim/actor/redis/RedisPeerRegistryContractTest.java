@@ -15,10 +15,7 @@ class RedisPeerRegistryContractTest extends PeerRegistryContract {
 
     @Override
     protected PeerRegistry registry() {
-        var redis = RedisTestServer.started();
-        connection = new LettuceConnectionFactory(redis.getHost(), redis.getMappedPort(6379));
-        connection.afterPropertiesSet();
-        connection.start();
+        connection = RedisTestServer.connection();
         return new RedisPeerRegistry(connection, Duration.ofMinutes(10));
     }
 

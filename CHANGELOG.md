@@ -114,6 +114,12 @@
 - **Kubernetes without RBAC.** `example/kubernetes` has the overlays `discovery-jdbc` and `discovery-redis`:
   no Role or RoleBinding, NetworkPolicies that open only pod-to-pod 25520 and 7626 plus app to store, and a
   grace period long enough for a graceful leave. The README lists the network rules to ask for.
+- **Split brain resolver and leases.** `spring.actor.cluster.downing.strategy` selects Pekko's split brain
+  resolver (`keep-majority`, the default with `join: discovery`, `lease-majority`, `static-quorum`,
+  `keep-oldest`, `down-all`); a cluster without downing logs a warning. `spring.actor.cluster.lease.store`
+  (`jdbc`: an `actor_lease` table, `redis`, or your `LeaseStore` bean) backs `lease-majority`,
+  `singleton.use-lease` and `sharding.use-lease`, so a singleton or shard runs on one node only. Redis leases
+  can be lost on a Redis failover; see the guide.
 
 ### Fixed
 

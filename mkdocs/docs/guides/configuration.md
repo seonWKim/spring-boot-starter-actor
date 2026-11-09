@@ -22,7 +22,15 @@ application with a message that names the key.
 | `spring.actor.cluster.discovery.method` | none | `pekko.discovery.method` | `jdbc`, `redis`, `custom` (your `PeerRegistry` bean), `kubernetes-api`, `dns` or `config`. Required with `join: discovery`. |
 | `spring.actor.cluster.discovery.heartbeat-interval` | `5s` | | How often a node renews its own entry (`jdbc`, `redis`, `custom`). |
 | `spring.actor.cluster.discovery.ttl` | `30s` | | How long an entry counts as alive after its last renewal (`jdbc`, `redis`, `custom`). |
-| `spring.actor.cluster.discovery.jdbc.initialize-schema` | `embedded` | | When to create the `actor_peer` table: `embedded`, `always` or `never`. |
+| `spring.actor.cluster.downing.strategy` | `keep-majority` with `join: discovery`, else `none` | `pekko.cluster.downing-provider-class`, `pekko.cluster.split-brain-resolver.active-strategy` | Which side of a split stays: `keep-majority`, `lease-majority`, `static-quorum`, `keep-oldest`, `down-all` or `none`. See [Split Brain and Leases](split-brain-and-leases.md). |
+| `spring.actor.cluster.downing.quorum-size` | none | `pekko.cluster.split-brain-resolver.static-quorum.quorum-size` | Nodes a side needs to stay up. Required with `static-quorum`. |
+| `spring.actor.cluster.lease.store` | none | | Where leases live: `jdbc`, `redis` or `custom` (your `LeaseStore` bean). Required by `lease-majority`, `singleton.use-lease` and `sharding.use-lease`. |
+| `spring.actor.cluster.lease.ttl` | `120s` | `spring-actor.lease.heartbeat-timeout` | How long a lease stays held after its last renewal. |
+| `spring.actor.cluster.lease.renew-interval` | `12s` | `spring-actor.lease.heartbeat-interval` | How often the holder renews a lease. |
+| `spring.actor.cluster.lease.expiry-margin` | `10s` | `spring-actor.lease.expiry-margin` | The holder treats a lease as lost this long before its ttl ends. Less than `ttl`. |
+| `spring.actor.cluster.singleton.use-lease` | `false` | `pekko.cluster.singleton.use-lease` | A cluster singleton runs only while it holds a lease. |
+| `spring.actor.cluster.sharding.use-lease` | `false` | `pekko.cluster.sharding.use-lease` | Each shard runs only while it holds a lease. |
+| `spring.actor.jdbc.initialize-schema` | `embedded` | | When to create the `actor_peer` and `actor_lease` tables: `embedded`, `always` or `never`. |
 | `spring.actor.cluster.roles` | none | `pekko.cluster.roles` | Roles of this node. Sharded actors and singletons can be limited to a role. |
 | `spring.actor.dispatchers.<name>.executor` | none | `<name>.*` | Declares a dispatcher that runs on the named Spring `Executor` bean. See [Dispatchers](dispatchers.md). |
 | `spring.actor.dispatchers.<name>.virtual` | `false` | `<name>.executor` | Declares a dispatcher that runs on virtual threads (instead of `executor`). |

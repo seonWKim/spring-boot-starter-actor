@@ -3,8 +3,9 @@ package io.github.seonwkim.actor.jdbc;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.github.seonwkim.actor.autoconfigure.ActorProperties;
-import io.github.seonwkim.actor.autoconfigure.cluster.PeerRegistryConfiguration;
+import io.github.seonwkim.actor.autoconfigure.cluster.StoreConfiguration;
 import io.github.seonwkim.actor.spi.InMemoryPeerRegistry;
+import io.github.seonwkim.actor.spi.LeaseStore;
 import io.github.seonwkim.actor.spi.Peer;
 import io.github.seonwkim.actor.spi.PeerRegistry;
 import java.time.Duration;
@@ -15,15 +16,16 @@ import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.boot.context.annotation.UserConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
-/** spring.actor.cluster.discovery.method=jdbc wires the actor_peer table, unless the application has its own registry. */
-class JdbcPeerRegistryConfigurationTest {
+/** discovery.method=jdbc and lease.store=jdbc wire the actor-jdbc tables, unless the application has its own store. */
+class JdbcStoreConfigurationTest {
 
     private final ApplicationContextRunner runner = new ApplicationContextRunner()
             .withConfiguration(AutoConfigurations.of(DataSourceAutoConfiguration.class))
-            .withConfiguration(UserConfigurations.of(PeerRegistryConfiguration.class))
+            .withConfiguration(UserConfigurations.of(StoreConfiguration.class))
             .withBean(ActorProperties.class)
             .withPropertyValues(
                     "spring.actor.cluster.discovery.method=jdbc",
+                    "spring.actor.cluster.lease.store=jdbc",
                     "spring.datasource.url=jdbc:h2:mem:" + UUID.randomUUID() + ";DB_CLOSE_DELAY=-1");
 
     @Test
@@ -36,6 +38,17 @@ class JdbcPeerRegistryConfigurationTest {
 
             assertThat(registry).isInstanceOf(JdbcPeerRegistry.class);
             assertThat(registry.peers("orders", Duration.ofMinutes(1))).containsExactly(peer);
+        });
+    }
+
+    @Test
+    void theJdbcLeaseStoreUsesTheActorLeaseTable() {
+        runner.run(context -> {
+            LeaseStore store = context.getBean(LeaseStore.class);
+
+            assertThat(store).isInstanceOf(JdbcLeaseStore.class);
+            assertThat(store.tryAcquire("orders-singleton", "node-1", Duration.ofMinutes(1)))
+                    .isTrue();
         });
     }
 
