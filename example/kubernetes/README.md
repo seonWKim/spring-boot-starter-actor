@@ -325,6 +325,25 @@ kubectl delete pod <pod-name> -n spring-actor
 # New pod will rejoin cleanly
 ```
 
+## Monitoring
+
+With the Prometheus Operator in the cluster (for example
+[kube-prometheus-stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack)),
+one command installs the actor monitoring:
+
+```bash
+./scripts/monitoring.sh          # apply; `render` prints the manifests, `delete` removes them
+```
+
+It applies the `monitoring/` kustomization: the ServiceMonitor that scrapes `/actuator/prometheus`, the
+`actor-alerts` PrometheusRule and the `Actors` Grafana dashboard as a ConfigMap labelled
+`grafana_dashboard: "1"`, which Grafana's dashboard sidecar loads. The rules and the dashboard come from the
+repository's [`monitoring/`](../../monitoring) directory. Your Prometheus must select them: kube-prometheus-stack
+selects rules and monitors by its release label unless you set
+`prometheus.prometheusSpec.ruleSelectorNilUsesHelmValues=false` and
+`serviceMonitorSelectorNilUsesHelmValues=false`, and its sidecar searches other namespaces only with
+`grafana.sidecar.dashboards.searchNamespace=ALL`.
+
 ## Directory Structure
 
 ```
@@ -344,6 +363,9 @@ example/kubernetes/
 │   ├── networkpolicy.yaml
 │   └── kustomization.yaml
 │
+├── monitoring/                 # ServiceMonitor, actor alert rules, Grafana dashboard
+│   └── kustomization.yaml      #   (Prometheus Operator; see "Monitoring" below)
+│
 ├── overlays/                   # Environment-specific configs
 │   ├── local/                  # ⭐ Used by setup-local.sh
 │   ├── dev/
@@ -354,6 +376,7 @@ example/kubernetes/
     ├── rollout.sh
     ├── debug.sh
     ├── load.sh                 # Requests under load; counts failures
+    ├── monitoring.sh           # Installs the monitoring/ kustomization
     ├── canary.sh               # Canary: start, promote, abort
     ├── blue-green.sh           # Blue-green: deploy, switch, rollback, finish
     └── test-strategies.sh      # Runs all three strategies under load on kind
@@ -452,7 +475,7 @@ See [KUBERNETES_PREPARE.md](../../KUBERNETES_PREPARE.md) for comprehensive produ
 
 1. **Customize the example** - Modify the chat application
 2. **Try rolling updates** - Follow the guide above
-3. **Add monitoring** - Set up Prometheus/Grafana
+3. **Add monitoring** - Run `./scripts/monitoring.sh` (see [Monitoring](#monitoring))
 4. **Production deployment** - Use `overlays/prod` configuration
 5. **Read the deep dive** - Check [KUBERNETES_PREPARE.md](../../KUBERNETES_PREPARE.md)
 

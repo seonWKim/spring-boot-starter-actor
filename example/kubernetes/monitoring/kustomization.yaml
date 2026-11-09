@@ -1,0 +1,23 @@
+# Prometheus Operator monitoring for the example: the ServiceMonitor that scrapes /actuator/prometheus,
+# the actor alert rules and the actor Grafana dashboard from the repository's monitoring/ directory.
+# The files live outside this directory, so render it with:
+#   kubectl kustomize --load-restrictor LoadRestrictionsNone example/kubernetes/monitoring
+# or run scripts/monitoring.sh.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: spring-actor
+
+resources:
+- ../base/servicemonitor.yaml
+- ../../../monitoring/prometheus/actor-alerts.yaml
+
+# Grafana's dashboard sidecar (kube-prometheus-stack) loads ConfigMaps labelled grafana_dashboard.
+configMapGenerator:
+- name: actor-grafana-dashboard
+  files:
+  - actor-dashboard.json=../../../monitoring/grafana/actor-dashboard.json
+  options:
+    disableNameSuffixHash: true
+    labels:
+      grafana_dashboard: "1"

@@ -64,6 +64,27 @@ What is not covered:
 
 The cost per message is two timer updates (processing time and time in mailbox), four `System.nanoTime()` calls and one small object in the mailbox; `actor.message.processed` reads the processing timer's count and costs nothing. An actor that does real work (microseconds per message) pays a small fraction of that; one that only forwards messages pays about three times the bare cost. Run the benchmark on your hardware before relying on these numbers, and set `spring.actor.metrics.enabled=false` where the overhead matters more than the meters.
 
+## Dashboard and alerts
+
+The repository's [`monitoring/`](https://github.com/seonWKim/actor-spring-boot-starter/tree/main/monitoring) directory has a Grafana dashboard and Prometheus alert rules for these meters, as Micrometer's Prometheus registry names them (`actor.message.processed` becomes `actor_message_processed_total`, a timer gets `_seconds_count`, `_seconds_sum` and `_seconds_max`). A test checks that every metric they query is a meter described on this page or under [Cluster metrics](../guides/production.md#cluster-metrics).
+
+- `monitoring/grafana/actor-dashboard.json`: the **Actors** dashboard. Import it in Grafana and pick your Prometheus data source. Rows: messages (rate, failures, average and longest processing time per actor class), mailboxes and actors, dispatchers, cluster (members, unreachable, leader, singleton host, events) and sharding (entities, shards, regions per entity type). Variables filter by instance and actor system.
+- `monitoring/prometheus/actor-alerts.yaml`: a `PrometheusRule` for the Prometheus Operator; without the operator, its `spec` is a plain rules file (`yq '.spec' actor-alerts.yaml > actor-alerts.rules.yml`).
+
+| Alert | Fires when | Severity |
+|---|---|---|
+| `ActorClusterMemberUnreachable` | a member is unreachable for 5 minutes | warning |
+| `ActorClusterNoLeader` | no node is the leader for 5 minutes | critical |
+| `ActorClusterViewsDiffer` | nodes see different member counts for 10 minutes | warning |
+| `ActorClusterSingletonMissing` | no node runs the singletons for 5 minutes | critical |
+| `ActorMessageFailures` | an actor class keeps failing messages for 10 minutes | warning |
+| `ActorRestartsFrequent` | an actor class restarts more than 10 times in 15 minutes | warning |
+| `ActorMailboxBacklog` | more than 1,000 messages wait for an actor class on one instance for 10 minutes | warning |
+| `ActorMailboxWaitHigh` | messages wait more than a second on average for 10 minutes | warning |
+| `ActorDispatcherSaturated` | every thread of a dispatcher is busy and more than 100 tasks wait for 10 minutes | warning |
+
+The thresholds are starting points; tune them to your load. The cluster alerts group by `namespace`, the label the Prometheus Operator adds; with another setup, change it to the label that tells your applications apart. The Kubernetes example installs both with `example/kubernetes/scripts/monitoring.sh` (see its README).
+
 ## Optional: the Java agent
 
 The ByteBuddy agent in `actor-metrics` instruments Pekko internals for a few meters no public hook exposes (stash size, dead letters, unhandled messages, scheduled tasks, per-message-type tags). It breaks more easily with Pekko upgrades, so use it only when you need those.
