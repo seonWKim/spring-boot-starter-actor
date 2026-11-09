@@ -2,6 +2,7 @@ package io.github.seonwkim.actor.internal.cluster;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.github.seonwkim.actor.internal.TracedMessage;
 import java.util.HashMap;
 import java.util.Map;
 import javax.annotation.Nullable;
@@ -18,7 +19,8 @@ final class PekkoJackson {
 
     /**
      * {@code configMap} plus the Jackson JSON and CBOR serializers and the bindings for {@code
-     * JsonSerializable} and {@code CborSerializable}, where the application hasn't set them.
+     * JsonSerializable} and {@code CborSerializable}, and the serializer for traced messages, where
+     * the application hasn't set them.
      */
     @SuppressWarnings("unchecked")
     static Map<String, Object> withSerializers(Map<String, Object> configMap) {
@@ -34,6 +36,9 @@ final class PekkoJackson {
         serializers.putIfAbsent(CBOR, "org.apache.pekko.serialization.jackson.JacksonCborSerializer");
         bindings.putIfAbsent("io.github.seonwkim.actor.serialization.JsonSerializable", JSON);
         bindings.putIfAbsent("io.github.seonwkim.actor.serialization.CborSerializable", CBOR);
+        // Messages sent while tracing is on carry the trace; the message inside keeps its own binding.
+        serializers.putIfAbsent(TracedMessageSerializer.NAME, TracedMessageSerializer.class.getName());
+        bindings.putIfAbsent(TracedMessage.class.getName(), TracedMessageSerializer.NAME);
         return result;
     }
 

@@ -21,6 +21,8 @@ dependencies {
 
     implementation("com.google.code.findbugs:jsr305")
     implementation("org.springframework.boot:spring-boot-starter")
+    // Tracing across tell and ask, used only when the application has an ObservationRegistry.
+    compileOnly("io.micrometer:micrometer-observation")
 
     testFixturesImplementation("org.apache.pekko:pekko-actor-typed_3:$pekkoVersion")
     testFixturesImplementation("com.fasterxml.jackson.core:jackson-annotations")

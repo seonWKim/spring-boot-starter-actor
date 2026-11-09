@@ -138,3 +138,16 @@ management:
 ```
 
 `GET /actuator/actors` returns this node's address, its view of the cluster (its own status, whether it leads and runs the singletons, and each member with its status, roles and reachability) and, for each sharded entity type, the regions, and the shards and entities on this node. A read asks every shard region, so it can take up to 3 seconds. `management.endpoint.actors.access=none` turns the endpoint off.
+
+## Tracing
+
+With an `ObservationRegistry` bean (Spring Boot Actuator creates one) and a tracer such as `micrometer-tracing-bridge-otel` or `micrometer-tracing-bridge-brave`, the trace of the current request crosses `tell` and `ask`. Without an `ObservationRegistry`, messages are sent as they are and nothing is added.
+
+- Sending a message in an observation (an HTTP request, another actor's message) creates an `actor.send` span (`tell Order`, `ask GetBalance`). For `ask` it ends when the reply or the timeout arrives.
+- The receiving actor handles the message inside an `actor.receive` span, a child of the send. Its log lines carry `traceId` and `spanId` in the MDC, as Spring Boot's tracing sets them.
+- Between nodes, sharded messages and messages to remote actors carry the W3C `traceparent` fields next to the message, which keeps its own serializer (`JsonSerializable`, `CborSerializable`).
+- Spans carry the low-cardinality tags `actor.operation` and `actor.message` (the message class); the receive span also has the actor path as a high-cardinality tag.
+
+The trace is the observation current on the sending thread. A `tell` or `ask` from a `CompletionStage` callback (`getOrSpawn().thenCompose(actor -> actor.ask(...))`) runs on an actor thread with no observation, so it starts no span. Get the handle first, then send from the request's thread, or carry the context into the callback with Micrometer's `ContextSnapshot`.
+
+Messages that `ask` replies are not traced: the caller is already in the trace. Messages sent through a plain `SpringActorRef` (a `replyTo`, a ref inside a message) are not traced either; handles from `SpringActorSystem`, `getSelf()`, children, the receptionist and sharding are.

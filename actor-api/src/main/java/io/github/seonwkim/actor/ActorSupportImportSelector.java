@@ -18,7 +18,8 @@ final class ActorSupportImportSelector implements ImportSelector {
             "io.github.seonwkim.actor.autoconfigure.management.PekkoManagementAutoConfiguration",
             "io.github.seonwkim.actor.autoconfigure.health.ActorHealthConfiguration",
             "io.github.seonwkim.actor.autoconfigure.metrics.ClusterMetricsConfiguration",
-            "io.github.seonwkim.actor.autoconfigure.endpoint.ActorsEndpointConfiguration"
+            "io.github.seonwkim.actor.autoconfigure.endpoint.ActorsEndpointConfiguration",
+            "io.github.seonwkim.actor.autoconfigure.tracing.ActorTracingConfiguration"
         };
     }
 }

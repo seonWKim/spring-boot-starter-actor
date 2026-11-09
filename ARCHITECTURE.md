@@ -86,13 +86,13 @@ flowchart TB
 | Module | Contents | Pekko |
 |---|---|---|
 | `actor-api` | Public types and SPI interfaces | none |
-| `actor-core` | Local actor engine, dispatchers, supervision | `implementation` |
+| `actor-core` | Local actor engine, dispatchers, supervision, trace propagation across `tell` and `ask` (Micrometer Observation, optional) | `implementation` |
 | `actor-cluster` | Remoting, cluster, sharding, singleton, distributed data, management and bootstrap, split-brain resolver, discovery and lease adapters | `implementation` |
 | `actor-persistence` | Event-sourced actors, journal and snapshots through the application's `DataSource` or R2DBC | `implementation` |
 | `actor-projection` | Events into Spring Data repositories or Spring Kafka | `implementation` |
 | `actor-streams` | Pekko Streams bridged to Reactor `Flux`/`Mono` | `implementation` |
 | `actor-jdbc`, `actor-redis` | SPI implementations per store: peer discovery, leases | none |
-| `actor-metrics` | Micrometer meters, Observation tracing, Actuator endpoint | `implementation` |
+| `actor-metrics` | Micrometer meters, Actuator endpoint | `implementation` |
 | `actor-metrics-agent` | Optional ByteBuddy agent, only for internals no public hook exposes | n/a |
 | `actor-kotlin` | Coroutines and Kotlin extensions | none |
 | `actor-test` | Test slice, test kit wrapper, multi-node helpers | `implementation` |
@@ -108,6 +108,8 @@ The modules `actor-api`, `actor-core`, `actor-cluster`, `actor-autoconfigure`, `
 - Pekko is not on the application's compile classpath: `actor-core` and `actor-cluster` declare it as `implementation`, and neither starter exports it. An application that unwraps Pekko objects declares the Pekko modules it uses (the `cluster` and `supervision` examples do).
 
 The code still differs from the target in these places:
+
+- **Trace propagation lives in `actor-core`, not `actor-metrics`.** It has to wrap the message at `tell`/`ask` and unwrap it where actors are spawned, both inside `actor-core`'s internals, which `actor-metrics` does not depend on. It needs only `micrometer-observation` (`compileOnly`), and its class loads only when an `ObservationRegistry` bean exists.
 
 - **The actor system stays opt-in through `@EnableActorSupport`.** It imports `ActorConfiguration` and the Pekko Management configuration from `actor-autoconfigure` by class name, so `actor-api` has no compile dependency on `actor-autoconfigure`. They are not listed in `AutoConfiguration.imports`: that would start an actor system in every application that has the starter, which 0.x never did.
 - **`actor-metrics` keeps its own auto-configuration** (`io.github.seonwkim.actor.metrics.autoconfigure`, registered in its `AutoConfiguration.imports`). Moving it into `actor-autoconfigure` needs `actor-autoconfigure` to depend on `actor-metrics` behind `@ConditionalOnClass`; that comes with the metrics rework.

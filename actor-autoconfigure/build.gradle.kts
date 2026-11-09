@@ -25,6 +25,7 @@ dependencies {
     compileOnly("org.springframework.boot:spring-boot-actuator")
     compileOnly(project(":actor-metrics"))
     compileOnly("io.micrometer:micrometer-core")
+    compileOnly("io.micrometer:micrometer-observation")
 
     implementation("com.google.code.findbugs:jsr305")
     implementation("org.springframework.boot:spring-boot-starter")
@@ -35,6 +36,10 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.boot:spring-boot-starter-actuator")
     testImplementation("com.fasterxml.jackson.core:jackson-databind")
+    // Tracing across tell and ask: an HTTP request through the OpenTelemetry bridge, spans kept in memory.
+    testImplementation("org.springframework.boot:spring-boot-starter-web")
+    testImplementation("io.micrometer:micrometer-tracing-bridge-otel")
+    testImplementation("io.opentelemetry:opentelemetry-sdk-testing")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 

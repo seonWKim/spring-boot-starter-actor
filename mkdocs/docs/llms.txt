@@ -20,7 +20,7 @@ The full text of the Getting Started page and every guide, with code inlined, is
 - [Logging with MDC and Tags](https://seonwkim.github.io/actor-spring-boot-starter/guides/logging/): add MDC values and actor tags to log lines
 - [Sharded Actors](https://seonwkim.github.io/actor-spring-boot-starter/guides/sharded-actors/): one actor per entity ID, spread across a cluster
 - [Persistence with Spring Boot](https://seonwkim.github.io/actor-spring-boot-starter/guides/persistence-spring-boot/): keep actor state with Spring Data and other Spring Boot tools
-- [Running in Production](https://seonwkim.github.io/actor-spring-boot-starter/guides/production/): graceful shutdown, health checks and Kubernetes probes
+- [Running in Production](https://seonwkim.github.io/actor-spring-boot-starter/guides/production/): graceful shutdown, health checks, Kubernetes probes, cluster metrics, the actors endpoint and tracing across tell and ask
 - [AI Agents](https://seonwkim.github.io/actor-spring-boot-starter/guides/ai-agents/): one sharded actor per agent, supervised conversations, non-blocking model calls and rate limits
 
 ## Examples

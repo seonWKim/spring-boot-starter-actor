@@ -102,13 +102,13 @@ public final class PekkoClusterSupport implements ClusterSupport {
                         + " not found in registry. "
                         + "Ensure the actor is annotated with @Component and implements SpringShardedActor.");
             }
-            return new PekkoShardedActorBuilder<>(actor.entityType(), sharding, system.scheduler());
+            return new PekkoShardedActorBuilder<>(actor.entityType(), sharding, system);
         }
 
         @Override
         public void initSharding() {
             for (SpringShardedActor<?> actor : shardedActors.getAll()) {
-                PekkoSharding.init(sharding, actor);
+                PekkoSharding.init(system, sharding, actor);
             }
         }
     }

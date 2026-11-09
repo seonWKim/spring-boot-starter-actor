@@ -518,13 +518,9 @@ Use JSON logging with Logstash encoder for easy ingestion:
 
 ### Distributed Tracing
 
-Add trace and span IDs to MDC for correlation with tracing systems:
-```java
-.withMdc(msg -> Map.of(
-    "traceId", msg.getTraceId(),
-    "spanId", msg.getSpanId()
-))
-```
+With Micrometer Tracing, the trace of the sender reaches the actor by itself: an actor's log lines carry
+`traceId` and `spanId` in the MDC while it handles a traced message. See
+[Tracing](production.md#tracing).
 
 ### Log Aggregation
 
