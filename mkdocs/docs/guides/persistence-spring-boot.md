@@ -213,6 +213,7 @@ public class ReactiveOrderActor implements SpringActor<Command> {
 |---|---|---|
 | JPA or JDBC on the blocking dispatcher | The app already uses JPA, and most Spring apps do | Each call holds a thread of the blocking dispatcher. Size its pool, or run it on virtual threads (`spring.actor.virtual-threads.enabled`, see [Dispatchers](dispatchers.md)) |
 | R2DBC with `pipeToSelf` | Many concurrent actors talk to the database, or the app is already reactive | Every result comes back as a message, so each call needs a result message type |
+| Event sourcing with `actor-persistence` | The history of changes matters (audit, read models, replays), not only the latest state | Events are a stored contract: their JSON shape must stay readable. See [Event-Sourced Actors](event-sourcing.md) |
 
 The [persistence example](https://github.com/seonWKim/actor-spring-boot-starter/tree/main/example/persistence)
 uses JPA on purpose, because that is what most Spring users have. Its controller spawns the JPA-backed
@@ -390,6 +391,7 @@ Spring Boot integration is seamless:
 
 ## Next Steps
 
+- [Event-Sourced Actors](event-sourcing.md) - Store events instead of state, with the journal on your `DataSource`
 - [Dispatchers](dispatchers.md) - Configure thread execution for blocking operations
 - [Sharded Actors](sharded-actors.md) - Distribute actors across a cluster
 - [Logging with MDC](logging.md) - Add observability to your actors
