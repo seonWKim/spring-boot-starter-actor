@@ -1,0 +1,24 @@
+{
+  "groups": [
+    {
+      "name": "spring.actor",
+      "type": "io.github.seonwkim.actor.autoconfigure.ActorProperties",
+      "description": "Actor system settings. The typed keys (spring.actor.name, spring.actor.provider, spring.actor.remote.*, spring.actor.cluster.*, spring.actor.shutdown.timeout) set the matching Pekko keys. Any Pekko key can also be set raw under spring.actor.pekko.* (for example spring.actor.pekko.loglevel): it is passed to Pekko with the spring.actor prefix removed, and it wins over a typed key that sets the same Pekko key, with a warning. Comma-separated raw values are turned into lists."
+    }
+  ],
+  "properties": [
+    {
+      "name": "spring.actor.name",
+      "defaultValue": "system"
+    },
+    {
+      "name": "spring.actor.provider",
+      "defaultValue": "local"
+    },
+    {
+      "name": "spring.actor.shutdown.timeout",
+      "defaultValue": "20s"
+    }
+  ],
+  "hints": []
+}

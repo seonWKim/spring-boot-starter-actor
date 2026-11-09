@@ -1,7 +1,7 @@
 package io.github.seonwkim.example.supervision;
 
-import io.github.seonwkim.core.AskCommand;
-import io.github.seonwkim.core.FrameworkCommand;
+import io.github.seonwkim.actor.AskCommand;
+import io.github.seonwkim.actor.FrameworkCommand;
 import org.apache.pekko.actor.typed.ActorRef;
 
 /**

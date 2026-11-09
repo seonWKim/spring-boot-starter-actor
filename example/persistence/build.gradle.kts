@@ -1,19 +1,13 @@
 plugins {
-	id("org.springframework.boot") version "2.7.0"
-	id("io.spring.dependency-management") version "1.1.7"
+	id("org.springframework.boot")
+	id("io.spring.dependency-management")
 }
 
 apply(plugin = "org.springframework.boot")
 apply(plugin = "io.spring.dependency-management")
 
-dependencyManagement {
-	imports {
-		mavenBom("com.fasterxml.jackson:jackson-bom:2.17.3")
-	}
-}
-
 dependencies {
-	implementation(project(":core"))
+	implementation(project(":actor-spring-boot-starter"))
 
 	// Spring Boot
 	implementation("org.springframework.boot:spring-boot-starter")

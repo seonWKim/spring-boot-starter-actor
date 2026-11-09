@@ -1,17 +1,10 @@
 plugins {
-	id("org.springframework.boot") version "2.7.0"
-	id("io.spring.dependency-management") version "1.1.7"
+	id("org.springframework.boot")
+	id("io.spring.dependency-management")
 }
 
 apply(plugin = "org.springframework.boot")
 apply(plugin = "io.spring.dependency-management")
-
-dependencyManagement {
-	imports {
-		// pekko-serialization-jackson_3 require minimum 2.17.3 version of jackson
-		mavenBom("com.fasterxml.jackson:jackson-bom:2.17.3")
-	}
-}
 
 configurations {
 	all {
@@ -20,8 +13,16 @@ configurations {
 }
 
 dependencies {
-	implementation(project(":core"))
-	implementation(project(":metrics"))
+	implementation(project(":actor-spring-boot-starter-cluster"))
+	// This example reads Pekko Cluster state directly (unwrap), so it declares Pekko Cluster itself.
+	implementation("org.apache.pekko:pekko-cluster-sharding-typed_3:${property("pekkoVersion")}")
+	implementation(project(":actor-metrics"))
+
+	// Kubernetes deployment (example/kubernetes): the cluster forms through Pekko Cluster Bootstrap,
+	// which finds the other pods through the Kubernetes API.
+	runtimeOnly("org.apache.pekko:pekko-management-cluster-bootstrap_3:${property("pekkoManagementVersion")}")
+	runtimeOnly("org.apache.pekko:pekko-management-cluster-http_3:${property("pekkoManagementVersion")}")
+	runtimeOnly("org.apache.pekko:pekko-discovery-kubernetes-api_3:${property("pekkoManagementVersion")}")
 
 	implementation("org.springframework.boot:spring-boot-starter")
 	implementation("org.springframework.boot:spring-boot-starter-webflux")
@@ -33,7 +34,7 @@ dependencies {
 	implementation("com.fasterxml.jackson.core:jackson-databind")
 
 	// BlockHound for detecting blocking calls
-	implementation("io.projectreactor.tools:blockhound:1.0.9.RELEASE")
+	implementation("io.projectreactor.tools:blockhound:1.0.13.RELEASE")
 
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
@@ -41,6 +42,9 @@ dependencies {
 
 tasks.named<org.springframework.boot.gradle.tasks.run.BootRun>("bootRun") {
 	jvmArgs = listOf(
-		"-javaagent:${rootProject.projectDir}/metrics/build/libs/spring-boot-starter-actor-metrics-${rootProject.version}-agent.jar"
+		"-javaagent:${rootProject.projectDir}/actor-metrics/build/libs/actor-metrics-${rootProject.version}-agent.jar"
 	)
 }
+
+// The Docker image copies the one Boot jar from build/libs; the plain jar would make that copy ambiguous.
+tasks.named<Jar>("jar") { enabled = false }

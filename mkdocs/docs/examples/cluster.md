@@ -1,6 +1,6 @@
 # Cluster Example
 
-This guide demonstrates how to use Spring Boot Starter Actor in a clustered environment, focusing on sharded actors.
+This guide demonstrates how to use Actor Spring Boot Starter in a clustered environment, focusing on sharded actors.
 
 ## Overview
 
@@ -20,7 +20,7 @@ This example demonstrates the power of the actor model for building scalable, di
 
 You can find the complete source code for this example on GitHub:
 
-[Cluster Example Source Code](https://github.com/seonWKim/spring-boot-starter-actor/tree/main/example/cluster)
+[Cluster Example Source Code](https://github.com/seonWKim/actor-spring-boot-starter/tree/main/example/cluster)
 
 !!! tip "Prerequisites"
     Familiarity with the [Simple Example](simple.md) is recommended before diving into cluster concepts.
@@ -39,12 +39,13 @@ You can find the complete source code for this example on GitHub:
 ```java
 @Component
 public class HelloActor implements SpringShardedActor<HelloActor.Command> {
-    public static final EntityTypeKey<Command> TYPE_KEY =
-            EntityTypeKey.create(Command.class, "HelloActor");
 
-    // Command interface and message types
+    public static final ShardedEntityType<Command> TYPE_KEY = ShardedEntityType.of(Command.class, "HelloActor");
+
+    /** Base interface for all commands that can be sent to the hello actor. */
     public interface Command extends JsonSerializable {}
 
+    /** Command to say hello and get a response. */
     public static class SayHello extends AskCommand<String> implements Command {
         public final String message;
 
@@ -54,15 +55,21 @@ public class HelloActor implements SpringShardedActor<HelloActor.Command> {
     }
 
     @Override
-    public EntityTypeKey<Command> typeKey() {
+    public ShardedEntityType<Command> entityType() {
         return TYPE_KEY;
     }
 
+    /**
+     * Creates the behavior for this actor when it's started.
+     *
+     * @param ctx The sharded actor context containing information about this entity
+     * @return The behavior for the actor
+     */
     @Override
-    public SpringShardedActorBehavior<Command> create(SpringShardedActorContext<Command> ctx) {
+    public SpringActorBehavior<Command> create(SpringShardedActorContext<Command> ctx) {
         final String entityId = ctx.getEntityId();
 
-        return SpringShardedActorBehavior.builder(Command.class, ctx)
+        return SpringActorBehavior.builder(Command.class, ctx)
                 .withState(actorCtx -> new HelloActorBehavior(actorCtx, entityId))
                 .onMessage(SayHello.class, HelloActorBehavior::onSayHello)
                 .build();
@@ -72,20 +79,24 @@ public class HelloActor implements SpringShardedActor<HelloActor.Command> {
      * Behavior handler for hello actor. Holds the entity ID and handles messages.
      */
     private static class HelloActorBehavior {
-        private final ActorContext<Command> ctx;
+        private final SpringBehaviorContext<Command> ctx;
         private final String entityId;
 
-        HelloActorBehavior(ActorContext<Command> ctx, String entityId) {
+        HelloActorBehavior(SpringBehaviorContext<Command> ctx, String entityId) {
             this.ctx = ctx;
             this.entityId = entityId;
         }
 
         /**
          * Handles SayHello commands by responding with node and entity information.
+         *
+         * @param msg The SayHello message
+         * @return The next behavior (same in this case)
          */
-        private Behavior<Command> onSayHello(SayHello msg) {
+        private SpringActorBehavior<Command> onSayHello(SayHello msg) {
             // Get information about the current node and entity
-            final String nodeAddress = ctx.getSystem().address().toString();
+            final String nodeAddress =
+                    ctx.unwrap(ActorContext.class).getSystem().address().toString();
 
             // Create a response message with node and entity information
             final String message = "Received from entity [" + entityId + "] on node [" + nodeAddress + "]";
@@ -93,13 +104,11 @@ public class HelloActor implements SpringShardedActor<HelloActor.Command> {
             // Send the response back to the caller
             msg.reply(message);
 
-            return Behaviors.same();
-        }
-    }
+            // Log the message for debugging
+            ctx.getLog().info(message);
 
-    @Override
-    public ShardingMessageExtractor<ShardEnvelope<Command>, Command> extractor() {
-        return new DefaultShardingMessageExtractor<>(3);
+            return SpringActorBehavior.same();
+        }
     }
 }
 ```
@@ -115,21 +124,42 @@ public class HelloActor implements SpringShardedActor<HelloActor.Command> {
 ```java
 @Service
 public class HelloService {
+
     private final SpringActorSystem springActorSystem;
 
+    /**
+     * Creates a new HelloService with the given actor system.
+     *
+     * @param springActorSystem The Spring actor system
+     */
     public HelloService(SpringActorSystem springActorSystem) {
         this.springActorSystem = springActorSystem;
     }
 
+    /**
+     * Sends a hello message to a sharded actor entity.
+     *
+     * <p>Best practices for sharded actors:
+     * <ul>
+     *   <li>Get reference on each request (references are lightweight)
+     *   <li>No need to cache (entities are managed by cluster sharding)
+     *   <li>No need to check existence (entities are created on-demand)
+     *   <li>Use ask() for timeout and error handling
+     * </ul>
+     *
+     * @param message The message to send
+     * @param entityId The ID of the entity to send the message to
+     * @return A Mono containing the response from the actor
+     */
     public Mono<String> hello(String message, String entityId) {
         // Get a reference to the actor entity
         SpringShardedActorHandle<HelloActor.Command> actorRef =
                 springActorSystem.sharded(HelloActor.class).withId(entityId).get();
 
-        // Send the message to the actor and get the response
-        CompletionStage<String> response = actorRef
-                .ask(new HelloActor.SayHello(message))
+        // Send the message using the fluent ask API with timeout and error handling
+        CompletionStage<String> response = actorRef.ask(new HelloActor.SayHello(message))
                 .withTimeout(Duration.ofSeconds(3))
+                .onTimeout(() -> "Request timed out for entity: " + entityId)
                 .execute();
 
         // Convert the CompletionStage to a Mono for reactive programming
@@ -149,12 +179,25 @@ public class HelloService {
 ```java
 @RestController
 public class HelloController {
+
     private final HelloService helloService;
 
+    /**
+     * Creates a new HelloController with the given service.
+     *
+     * @param helloService The service for interacting with HelloActors
+     */
     public HelloController(HelloService helloService) {
         this.helloService = helloService;
     }
 
+    /**
+     * Endpoint to send a hello message to an actor entity.
+     *
+     * @param message The message to send
+     * @param entityId The ID of the entity to send the message to
+     * @return A Mono containing the response from the actor
+     */
     @GetMapping("/hello")
     public Mono<String> hello(@RequestParam String message, @RequestParam String entityId) {
         return helloService.hello(message, entityId);
@@ -171,23 +214,22 @@ spring:
   application:
     name: spring-pekko
   actor:
+    name: spring-pekko-example
+    provider: cluster
+    remote:
+      hostname: 127.0.0.1
+      port: 2551
+    cluster:
+      seed-nodes:
+        - pekko://spring-pekko-example@127.0.0.1:2551
+        - pekko://spring-pekko-example@127.0.0.1:2552
+        - pekko://spring-pekko-example@127.0.0.1:2553
     pekko:
-      name: spring-pekko-example
       actor:
-        provider: cluster
         allow-java-serialization: off
         warn-about-java-serializer-usage: on
-      remote:
-        artery:
-          canonical:
-            hostname: 127.0.0.1
-            port: 2551
       cluster:
         name: spring-pekko-example
-        seed-nodes:
-          - pekko://spring-pekko-example@127.0.0.1:2551
-          - pekko://spring-pekko-example@127.0.0.1:2552
-          - pekko://spring-pekko-example@127.0.0.1:2553
         downing-provider-class: org.apache.pekko.cluster.sbr.SplitBrainResolverProvider
 
 server:
@@ -224,7 +266,7 @@ curl "http://localhost:8082/hello?message=test&entityId=entity-3"
 
 ## Entity Benefits
 
-Entities in Spring Boot Starter Actor provide:
+Entities in Actor Spring Boot Starter provide:
 
 - **Automatic distribution** across the cluster
 - **Location transparency** for messaging - send messages without knowing which node hosts the entity

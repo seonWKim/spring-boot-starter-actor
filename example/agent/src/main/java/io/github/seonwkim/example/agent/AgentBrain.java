@@ -179,8 +179,8 @@ public final class AgentBrain {
     // --8<-- [start:approval]
     private void askForApproval(LlmReply call) {
         status = Status.APPROVAL;
-        PendingApproval request = new PendingApproval(
-                agentId + "-" + UUID.randomUUID(), agentId, call.toolName(), call.toolArgument());
+        PendingApproval request =
+                new PendingApproval(agentId + "-" + UUID.randomUUID(), agentId, call.toolName(), call.toolArgument());
         Duration timeout = deps.approvalTimeout();
         ctx.ask(
                 ApprovalDecision.class,

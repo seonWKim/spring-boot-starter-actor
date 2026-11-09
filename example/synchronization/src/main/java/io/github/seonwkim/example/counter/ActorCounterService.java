@@ -1,6 +1,6 @@
 package io.github.seonwkim.example.counter;
 
-import io.github.seonwkim.core.SpringActorSystem;
+import io.github.seonwkim.actor.SpringActorSystem;
 import java.time.Duration;
 import java.util.concurrent.CompletionStage;
 import org.slf4j.Logger;

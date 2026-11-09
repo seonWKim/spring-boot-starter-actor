@@ -1,7 +1,7 @@
 package io.github.seonwkim.example.counter;
 
+import jakarta.transaction.Transactional;
 import java.util.function.Supplier;
-import javax.transaction.Transactional;
 import org.springframework.stereotype.Component;
 
 @Component

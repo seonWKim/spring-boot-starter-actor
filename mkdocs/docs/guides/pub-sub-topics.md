@@ -38,8 +38,7 @@ public class ChatService {
 
     public SpringTopicRef<ChatMessage> getChatRoomTopic(String roomId) {
         return topicManager
-            .topic(ChatMessage.class)
-            .withName("chat-room-" + roomId)
+            .topic(TopicName.of(ChatMessage.class, "chat-room-" + roomId))
             .getOrCreate();  // Idempotent - safe to call multiple times
     }
 }
@@ -73,8 +72,7 @@ public static class ChatMessage implements JsonSerializable {
 
 ```java
 SpringTopicRef<ChatMessage> topic = topicManager
-    .topic(ChatMessage.class)
-    .withName("chat-room-lobby")
+    .topic(TopicName.of(ChatMessage.class, "chat-room-lobby"))
     .getOrCreate();
 
 topic.publish(new ChatMessage("user123", "Hello everyone!"));
@@ -98,8 +96,7 @@ public class ChatService {
 
     public CompletionStage<Void> joinChatRoom(String userId, String roomId) {
         SpringTopicRef<ChatMessage> roomTopic = topicManager
-            .topic(ChatMessage.class)
-            .withName("chat-room-" + roomId)
+            .topic(TopicName.of(ChatMessage.class, "chat-room-" + roomId))
             .getOrCreate();
 
         return actorSystem
@@ -109,8 +106,7 @@ public class ChatService {
 
     public CompletionStage<Void> leaveChatRoom(String userId, String roomId) {
         SpringTopicRef<ChatMessage> roomTopic = topicManager
-            .topic(ChatMessage.class)
-            .withName("chat-room-" + roomId)
+            .topic(TopicName.of(ChatMessage.class, "chat-room-" + roomId))
             .getOrCreate();
 
         return actorSystem
@@ -141,8 +137,7 @@ public class NotificationService {
 
     public NotificationService(SpringTopicManager topicManager) {
         this.notificationTopic = topicManager
-            .topic(Notification.class)
-            .withName("system-notifications")
+            .topic(TopicName.of(Notification.class, "system-notifications"))
             .getOrCreate();
     }
 
@@ -166,15 +161,14 @@ public class ChatRoomActor implements SpringShardedActor<Command> {
     }
 
     @Override
-    public SpringShardedActorBehavior<Command> create(SpringShardedActorContext<Command> ctx) {
+    public SpringActorBehavior<Command> create(SpringShardedActorContext<Command> ctx) {
         String roomId = ctx.getEntityId();
 
         SpringTopicRef<ChatEvent> roomTopic = topicManager
-            .topic(ChatEvent.class)
-            .withName("chat-room-" + roomId)
+            .topic(TopicName.of(ChatEvent.class, "chat-room-" + roomId))
             .getOrCreate();
 
-        return SpringShardedActorBehavior.builder(Command.class, ctx)
+        return SpringActorBehavior.builder(Command.class, ctx)
             .withState(behaviorCtx -> new ChatRoomBehavior(behaviorCtx, roomTopic))
             .onMessage(SendMessage.class, ChatRoomBehavior::onSendMessage)
             .build();
@@ -189,9 +183,9 @@ public class ChatRoomActor implements SpringShardedActor<Command> {
             this.roomTopic = roomTopic;
         }
 
-        private Behavior<Command> onSendMessage(SendMessage msg) {
+        private SpringActorBehavior<Command> onSendMessage(SendMessage msg) {
             roomTopic.publish(new ChatEvent(msg.userId, msg.message));
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
     }
 }

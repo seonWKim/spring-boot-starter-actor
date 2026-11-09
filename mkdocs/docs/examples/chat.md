@@ -2,7 +2,7 @@
 
 ![Chat Demo](../chat.gif)
 
-This guide demonstrates how to build a real-time chat application using Spring Boot Starter Actor's pub/sub topics without introducing third-party middleware.
+This guide demonstrates how to build a real-time chat application using Actor Spring Boot Starter's pub/sub topics without introducing third-party middleware.
 
 ## Overview
 
@@ -13,7 +13,7 @@ The chat example shows how to:
 - Create a scalable, clustered chat system using distributed pub/sub
 - Eliminate the need for external message brokers or middleware
 
-This example demonstrates how Spring Boot Starter Actor can be used to build real-world applications efficiently without relying on additional infrastructure components.
+This example demonstrates how Actor Spring Boot Starter can be used to build real-world applications efficiently without relying on additional infrastructure components.
 
 !!! success "No External Dependencies"
     No Redis, RabbitMQ, or Kafka required! The actor system provides everything needed for distributed messaging.
@@ -22,7 +22,7 @@ This example demonstrates how Spring Boot Starter Actor can be used to build rea
 
 You can find the complete source code for this example on GitHub:
 
-[Chat Example Source Code](https://github.com/seonWKim/spring-boot-starter-actor/tree/main/example/chat)
+[Chat Example Source Code](https://github.com/seonWKim/actor-spring-boot-starter/tree/main/example/chat)
 
 !!! tip "Real-World Application"
     This example demonstrates patterns applicable to many real-time applications beyond chat.
@@ -37,8 +37,13 @@ You can find the complete source code for this example on GitHub:
 @Component
 public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> {
 
-    public static final EntityTypeKey<Command> TYPE_KEY =
-            EntityTypeKey.create(Command.class, "ChatRoomActor");
+    public static final ShardedEntityType<Command> TYPE_KEY = ShardedEntityType.of(Command.class, "ChatRoomActor");
+
+    private final SpringTopicManager topicManager;
+
+    public ChatRoomActor(SpringTopicManager topicManager) {
+        this.topicManager = topicManager;
+    }
 
     /** Base interface for all commands that can be sent to the chat room actor. */
     public interface Command extends JsonSerializable {}
@@ -46,45 +51,50 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
     /** Command to join a chat room. Provides actor ref for subscription. */
     public static class JoinRoom implements Command {
         public final String userId;
-        public final ActorRef<UserActor.Command> userActorRef;
+        public final SpringActorRef<UserActor.Command> userActorRef;
 
-        public JoinRoom(String userId, ActorRef<UserActor.Command> userActorRef) {
+        public JoinRoom(String userId, SpringActorRef<UserActor.Command> userActorRef) {
             this.userId = userId;
             this.userActorRef = userActorRef;
         }
     }
 
-   /** Command to leave a chat room. */
-   public static class LeaveRoom implements Command {
-      public final String userId;
+    /** Command to leave a chat room. Provides actor ref for unsubscription. */
+    public static class LeaveRoom implements Command {
+        public final String userId;
+        public final SpringActorRef<UserActor.Command> userActorRef;
 
-      public LeaveRoom( String userId) {
-         this.userId = userId;
-      }
-   }
+        public LeaveRoom(String userId, SpringActorRef<UserActor.Command> userActorRef) {
+            this.userId = userId;
+            this.userActorRef = userActorRef;
+        }
+    }
 
-   /** Command to send a message to the chat room. */
-   public static class SendMessage implements Command {
-      public final String userId;
-      public final String message;
+    /** Command to send a message to the chat room. */
+    public static class SendMessage implements Command {
+        public final String userId;
+        public final String message;
 
-      public SendMessage(String userId, String message) {
-         this.userId = userId;
-         this.message = message;
-      }
-   }
+        public SendMessage(String userId, String message) {
+            this.userId = userId;
+            this.message = message;
+        }
+    }
 
-   @Override
-   public EntityTypeKey<Command> typeKey() {
-      return TYPE_KEY;
-   }
+    @Override
+    public ShardedEntityType<Command> entityType() {
+        return TYPE_KEY;
+    }
 
-   @Override
-    public SpringShardedActorBehavior<Command> create(SpringShardedActorContext<Command> ctx) {
+    @Override
+    public SpringActorBehavior<Command> create(SpringShardedActorContext<Command> ctx) {
         final String roomId = ctx.getEntityId();
+        final SpringTopicRef<UserActor.Command> roomTopic = topicManager
+                .topic(TopicName.of(UserActor.Command.class, "chat-room-" + roomId))
+                .getOrCreate();
 
-        return SpringShardedActorBehavior.builder(Command.class, ctx)
-                .withState(behaviorCtx -> new ChatRoomBehavior(behaviorCtx, roomId))
+        return SpringActorBehavior.builder(Command.class, ctx)
+                .withState(behaviorCtx -> new ChatRoomBehavior(behaviorCtx, roomId, roomTopic))
                 .onMessage(JoinRoom.class, ChatRoomBehavior::onJoinRoom)
                 .onMessage(LeaveRoom.class, ChatRoomBehavior::onLeaveRoom)
                 .onMessage(SendMessage.class, ChatRoomBehavior::onSendMessage)
@@ -93,94 +103,77 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
 
     /**
      * Behavior handler for chat room actor using pub/sub.
-     * Creates a topic for the room and publishes events to subscribers.
-     *
-     * Note: Since this is a sharded actor that doesn't easily support Spring DI,
-     * we use TopicSpawner directly. For regular actors, use SpringTopicManager
-     * with dependency injection instead.
+     * Creates a topic owned by this actor using SpringTopicManager.
      */
     private static class ChatRoomBehavior {
         private final SpringBehaviorContext<Command> ctx;
         private final String roomId;
         private final SpringTopicRef<UserActor.Command> roomTopic;
-        private final Map<String, SpringActorHandle<UserActor.Command>> connectedUsers =
-                new HashMap<>();
 
-        ChatRoomBehavior(SpringBehaviorContext<Command> ctx, String roomId) {
+        ChatRoomBehavior(
+                SpringBehaviorContext<Command> ctx, String roomId, SpringTopicRef<UserActor.Command> roomTopic) {
             this.ctx = ctx;
             this.roomId = roomId;
-            // Create a pub/sub topic for this chat room using TopicSpawner directly
-            // For actors with DI support, use SpringTopicManager instead
-            this.roomTopic = TopicSpawner.createTopic(
-                ctx.getUnderlying(),
-                UserActor.Command.class,
-                "chat-room-" + roomId
-            );
+            this.roomTopic = roomTopic;
             ctx.getLog().info("Created pub/sub topic for chat room: {}", roomId);
         }
 
         /**
          * Handles JoinRoom commands by subscribing the user to the room topic.
+         *
+         * @param msg The JoinRoom message
+         * @return The next behavior (same in this case)
          */
-        private Behavior<Command> onJoinRoom(JoinRoom msg) {
-            // Wrap the Pekko ActorRef in SpringActorHandle for subscription
-            SpringActorHandle<UserActor.Command> springUserRef =
-                new SpringActorHandle<>(
-                    ctx.getUnderlying().getSystem().scheduler(),
-                    msg.userActorRef);
-
-            // Track the user ref for unsubscription
-            connectedUsers.put(msg.userId, springUserRef);
+        private SpringActorBehavior<Command> onJoinRoom(JoinRoom msg) {
 
             // Subscribe the user to the room topic
-            roomTopic.subscribe(springUserRef);
+            roomTopic.subscribe(msg.userActorRef);
 
-            ctx.getLog().info("User {} joined room {} (now {} users)",
-                msg.userId, roomId, connectedUsers.size());
+            ctx.getLog().info("User {} joined room {}", msg.userId, roomId);
 
             // Notify all users that a new user has joined
             UserActor.JoinRoomEvent joinRoomEvent = new UserActor.JoinRoomEvent(msg.userId);
             roomTopic.publish(joinRoomEvent);
 
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
 
         /**
          * Handles LeaveRoom commands by unsubscribing the user from the room topic.
+         *
+         * @param msg The LeaveRoom message
+         * @return The next behavior (same in this case)
          */
-        private Behavior<Command> onLeaveRoom(LeaveRoom msg) {
-            // Remove the user and get their ref for unsubscription
-            SpringActorHandle<UserActor.Command> userRef = connectedUsers.remove(msg.userId);
+        private SpringActorBehavior<Command> onLeaveRoom(LeaveRoom msg) {
 
-            if (userRef != null) {
-                // Unsubscribe the user from the topic
-                roomTopic.unsubscribe(userRef);
+            // Unsubscribe the user from the topic
+            roomTopic.unsubscribe(msg.userActorRef);
 
-                ctx.getLog().info("User {} left room {} ({} users remaining)",
-                    msg.userId, roomId, connectedUsers.size());
+            ctx.getLog().info("User {} left room {}", msg.userId, roomId);
 
-                // Notify all remaining users that a user has left
-                UserActor.LeaveRoomEvent leaveRoomEvent = new UserActor.LeaveRoomEvent(msg.userId);
-                roomTopic.publish(leaveRoomEvent);
-            }
+            // Notify all remaining users that a user has left
+            UserActor.LeaveRoomEvent leaveRoomEvent = new UserActor.LeaveRoomEvent(msg.userId);
+            roomTopic.publish(leaveRoomEvent);
 
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
 
         /**
          * Handles SendMessage commands by publishing the message to the room topic.
+         *
+         * @param msg The SendMessage message
+         * @return The next behavior (same in this case)
          */
-        private Behavior<Command> onSendMessage(SendMessage msg) {
+        private SpringActorBehavior<Command> onSendMessage(SendMessage msg) {
             ctx.getLog().debug("Broadcasting message from {} in room {}", msg.userId, roomId);
 
             // Create a message event
-            UserActor.SendMessageEvent messageEvent =
-                new UserActor.SendMessageEvent(msg.userId, msg.message);
+            UserActor.SendMessageEvent messageEvent = new UserActor.SendMessageEvent(msg.userId, msg.message);
 
             // Publish the message to all subscribers via the topic
             roomTopic.publish(messageEvent);
 
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
     }
 }
@@ -192,19 +185,115 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
 
 ```java
 @Component
-public class UserActor implements SpringActorWithContext<
-    UserActor.Command, UserActor.UserActorContext> {
+public class UserActor implements SpringActorWithContext<UserActor.Command, UserActor.UserActorContext> {
 
     public interface Command extends JsonSerializable {}
 
-    // Command and event classes...
+    public static class Connect implements Command {
+
+        public Connect() {}
+    }
+
+    public static class JoinRoom implements Command {
+        private final String roomId;
+
+        @JsonCreator
+        public JoinRoom(String roomId) {
+            this.roomId = roomId;
+        }
+
+        public String getRoomId() {
+            return roomId;
+        }
+    }
+
+    public static class LeaveRoom implements Command {
+
+        public LeaveRoom() {}
+    }
+
+    public static class SendMessage implements Command {
+        private final String message;
+
+        @JsonCreator
+        public SendMessage(String message) {
+            this.message = message;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+    }
+
+    public static class JoinRoomEvent implements Command {
+        private final String userId;
+
+        @JsonCreator
+        public JoinRoomEvent(String userId) {
+            this.userId = userId;
+        }
+
+        public String getUserId() {
+            return userId;
+        }
+    }
+
+    public static class LeaveRoomEvent implements Command {
+        private final String userId;
+
+        @JsonCreator
+        public LeaveRoomEvent(String userId) {
+            this.userId = userId;
+        }
+
+        public String getUserId() {
+            return userId;
+        }
+    }
+
+    public static class SendMessageEvent implements Command {
+        private final String userId;
+        private final String message;
+
+        @JsonCreator
+        public SendMessageEvent(String userId, String message) {
+            this.userId = userId;
+            this.message = message;
+        }
+
+        public String getUserId() {
+            return userId;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+    }
+
+    public static class UserActorContext extends SpringActorContext {
+        private final SpringActorSystem actorSystem;
+        private final reactor.core.publisher.Sinks.Many<String> messageSink;
+
+        private final String userId;
+
+        public UserActorContext(
+                SpringActorSystem actorSystem, String userId, reactor.core.publisher.Sinks.Many<String> messageSink) {
+            this.actorSystem = actorSystem;
+            this.userId = userId;
+            this.messageSink = messageSink;
+        }
+
+        @Override
+        public String actorId() {
+            return userId;
+        }
+    }
 
     @Override
     public SpringActorBehavior<Command> create(UserActorContext actorContext) {
         return SpringActorBehavior.builder(Command.class, actorContext)
                 .withState(ctx -> new UserActorBehavior(
-                        ctx, actorContext.actorSystem, actorContext.userId,
-                        actorContext.messageSink))
+                        ctx, actorContext.actorSystem, actorContext.userId, actorContext.messageSink))
                 .onMessage(Connect.class, UserActorBehavior::onConnect)
                 .onMessage(JoinRoom.class, UserActorBehavior::onJoinRoom)
                 .onMessage(LeaveRoom.class, UserActorBehavior::onLeaveRoom)
@@ -218,42 +307,104 @@ public class UserActor implements SpringActorWithContext<
     public static class UserActorBehavior {
         private final SpringBehaviorContext<Command> context;
         private final SpringActorSystem actorSystem;
+
         private final String userId;
         private final Sinks.Many<String> messageSink;
 
         @Nullable private String currentRoomId;
 
-        // When joining a room, send the raw Pekko ActorRef (serializable)
-        private Behavior<Command> onJoinRoom(JoinRoom command) {
-            currentRoomId = command.roomId;
+        public UserActorBehavior(
+                SpringBehaviorContext<Command> context,
+                SpringActorSystem actorSystem,
+                String userId,
+                Sinks.Many<String> messageSink) {
+            this.context = context;
+            this.actorSystem = actorSystem;
+            this.userId = userId;
+            this.messageSink = messageSink;
+        }
+
+        private SpringActorBehavior<Command> onConnect(Connect connect) {
+            sendEvent("connected", json -> {
+                json.append(",\"userId\":\"").append(escapeJson(userId)).append("\"");
+            });
+
+            return SpringActorBehavior.same();
+        }
+
+        private SpringActorBehavior<Command> onJoinRoom(JoinRoom command) {
+            currentRoomId = command.getRoomId();
             final var roomActor = getRoomActor();
             sendEvent("joined", json -> {
                 json.append(",\"roomId\":\"").append(escapeJson(currentRoomId)).append("\"");
             });
 
-            // Send raw ActorRef for cluster serialization
-            roomActor.tell(new ChatRoomActor.JoinRoom(
-                userId,
-                context.getUnderlying().getSelf()));
-            return Behaviors.same();
+            // TODO: how can we send SpringActorHandle across the clusters?
+            // currently we have schedulers as field under the ref, that's why it's hard to send it across the cluster
+            // because we now have to serde scheduler which isn't possible(and shouldn't be)
+            roomActor.tell(new ChatRoomActor.JoinRoom(userId, context.getSelf()));
+            return SpringActorBehavior.same();
         }
 
-        // Event handlers receive messages via pub/sub topic
-        private Behavior<Command> onJoinRoomEvent(JoinRoomEvent event) {
+        private SpringActorBehavior<Command> onLeaveRoom(LeaveRoom command) {
+            if (currentRoomId == null) {
+                context.getLog().info("{} user has not joined any room.", userId);
+                return SpringActorBehavior.same();
+            }
+
+            sendEvent("left", json -> {
+                json.append(",\"roomId\":\"").append(escapeJson(currentRoomId)).append("\"");
+            });
+
+            final var roomActor = getRoomActor();
+            roomActor.tell(new ChatRoomActor.LeaveRoom(userId, context.getSelf()));
+
+            return SpringActorBehavior.same();
+        }
+
+        private SpringActorBehavior<Command> onSendMessage(SendMessage command) {
+            if (currentRoomId == null) {
+                context.getLog().info("{} user has not joined any room.", userId);
+                return SpringActorBehavior.same();
+            }
+
+            final var roomActor = getRoomActor();
+            roomActor.tell(new ChatRoomActor.SendMessage(userId, command.getMessage()));
+
+            return SpringActorBehavior.same();
+        }
+
+        private SpringActorBehavior<Command> onJoinRoomEvent(JoinRoomEvent event) {
             sendEvent("user_joined", json -> {
-                json.append(",\"userId\":\"").append(escapeJson(event.userId)).append("\"");
+                json.append(",\"userId\":\"")
+                        .append(escapeJson(event.getUserId()))
+                        .append("\"");
                 json.append(",\"roomId\":\"").append(escapeJson(currentRoomId)).append("\"");
             });
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
 
-        private Behavior<Command> onSendMessageEvent(SendMessageEvent event) {
-            sendEvent("message", json -> {
-                json.append(",\"userId\":\"").append(escapeJson(event.userId)).append("\"");
-                json.append(",\"message\":\"").append(escapeJson(event.message)).append("\"");
+        private SpringActorBehavior<Command> onLeaveRoomEvent(LeaveRoomEvent event) {
+            sendEvent("user_left", json -> {
+                json.append(",\"userId\":\"")
+                        .append(escapeJson(event.getUserId()))
+                        .append("\"");
                 json.append(",\"roomId\":\"").append(escapeJson(currentRoomId)).append("\"");
             });
-            return Behaviors.same();
+            return SpringActorBehavior.same();
+        }
+
+        private SpringActorBehavior<Command> onSendMessageEvent(SendMessageEvent event) {
+            sendEvent("message", json -> {
+                json.append(",\"userId\":\"")
+                        .append(escapeJson(event.getUserId()))
+                        .append("\"");
+                json.append(",\"message\":\"")
+                        .append(escapeJson(event.getMessage()))
+                        .append("\"");
+                json.append(",\"roomId\":\"").append(escapeJson(currentRoomId)).append("\"");
+            });
+            return SpringActorBehavior.same();
         }
 
         private SpringShardedActorHandle<ChatRoomActor.Command> getRoomActor() {
@@ -261,6 +412,39 @@ public class UserActor implements SpringActorWithContext<
                     .sharded(ChatRoomActor.class)
                     .withId(currentRoomId)
                     .get();
+        }
+
+        private void sendEvent(String type, EventBuilder builder) {
+            try {
+                // Build JSON string directly to avoid blocking Jackson serialization
+                StringBuilder json = new StringBuilder();
+                json.append("{\"type\":\"").append(escapeJson(type)).append("\"");
+
+                builder.build(json);
+
+                json.append("}");
+                messageSink.tryEmitNext(json.toString());
+            } catch (Exception e) {
+                context.getLog().error("Failed to send message to WebSocket", e);
+            }
+        }
+
+        /**
+         * Escape JSON string values to prevent injection and ensure valid JSON.
+         * This is a simple escaping for common characters.
+         */
+        private String escapeJson(String value) {
+            if (value == null) return "";
+            return value.replace("\\", "\\\\")
+                    .replace("\"", "\\\"")
+                    .replace("\n", "\\n")
+                    .replace("\r", "\\r")
+                    .replace("\t", "\\t");
+        }
+
+        @FunctionalInterface
+        private interface EventBuilder {
+            void build(StringBuilder json);
         }
     }
 }
@@ -294,18 +478,14 @@ The pub/sub implementation provides several advantages:
 
 ### Cluster Serialization
 
-**Important**: When sending actor references across cluster boundaries, use raw Pekko `ActorRef` instead of `SpringActorHandle`:
+Messages that carry a reply address declare a `SpringActorRef<T>` field. It serializes across the
+cluster, so a user actor on one node can join a room that lives on another:
 
 ```java
-// ✅ Correct: Raw ActorRef is serializable
-roomActor.tell(new ChatRoomActor.JoinRoom(userId, context.getUnderlying().getSelf()));
-
-// ❌ Wrong: SpringActorHandle contains non-serializable Scheduler
 roomActor.tell(new ChatRoomActor.JoinRoom(userId, context.getSelf()));
 ```
 
-!!! warning "Serialization"
-    `SpringActorHandle` is a local convenience wrapper that contains a non-serializable scheduler. For cluster messages, always use the raw Pekko `ActorRef` from `context.getUnderlying().getSelf()`.
+The messages themselves implement `JsonSerializable`, as every message sent between nodes must.
 
 ## Running the Application
 

@@ -1,14 +1,13 @@
 package io.github.seonwkim.example.persistence.snapshot;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.github.seonwkim.core.*;
+import io.github.seonwkim.actor.*;
+import io.github.seonwkim.actor.SpringActorBehavior;
 import io.github.seonwkim.example.persistence.Order;
 import io.github.seonwkim.example.persistence.OrderRepository;
 import io.github.seonwkim.example.persistence.OrderStatus;
 import java.time.Instant;
 import java.util.Optional;
-import org.apache.pekko.actor.typed.Behavior;
-import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.springframework.stereotype.Component;
 
 /**
@@ -141,10 +140,10 @@ public class SnapshotOrderActor implements SpringActor<SnapshotOrderActor.Comman
             this.lastSnapshotTime = Instant.now();
         }
 
-        private Behavior<Command> handleCreateOrder(CreateOrder cmd) {
+        private SpringActorBehavior<Command> handleCreateOrder(CreateOrder cmd) {
             if (currentOrder != null) {
                 cmd.reply(new OrderResponse(false, null, "Order already exists"));
-                return Behaviors.same();
+                return SpringActorBehavior.same();
             }
 
             try {
@@ -162,13 +161,13 @@ public class SnapshotOrderActor implements SpringActor<SnapshotOrderActor.Comman
                 cmd.reply(new OrderResponse(false, null, e.getMessage()));
             }
 
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
 
-        private Behavior<Command> handleUpdateOrder(UpdateOrder cmd) {
+        private SpringActorBehavior<Command> handleUpdateOrder(UpdateOrder cmd) {
             if (currentOrder == null) {
                 cmd.reply(new OrderResponse(false, null, "Order not found"));
-                return Behaviors.same();
+                return SpringActorBehavior.same();
             }
 
             try {
@@ -185,13 +184,13 @@ public class SnapshotOrderActor implements SpringActor<SnapshotOrderActor.Comman
                 cmd.reply(new OrderResponse(false, null, e.getMessage()));
             }
 
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
 
-        private Behavior<Command> handleApproveOrder(ApproveOrder cmd) {
+        private SpringActorBehavior<Command> handleApproveOrder(ApproveOrder cmd) {
             if (currentOrder == null) {
                 cmd.reply(new OrderResponse(false, null, "Order not found"));
-                return Behaviors.same();
+                return SpringActorBehavior.same();
             }
 
             try {
@@ -208,10 +207,10 @@ public class SnapshotOrderActor implements SpringActor<SnapshotOrderActor.Comman
                 cmd.reply(new OrderResponse(false, null, e.getMessage()));
             }
 
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
 
-        private Behavior<Command> handleGetOrder(GetOrder cmd) {
+        private SpringActorBehavior<Command> handleGetOrder(GetOrder cmd) {
             if (currentOrder == null) {
                 currentOrder =
                         orderRepository.findByOrderId(actorContext.actorId()).orElse(null);
@@ -223,12 +222,12 @@ public class SnapshotOrderActor implements SpringActor<SnapshotOrderActor.Comman
                 cmd.reply(new OrderResponse(false, null, "Order not found"));
             }
 
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
 
-        private Behavior<Command> handleSaveSnapshot(SaveSnapshot cmd) {
+        private SpringActorBehavior<Command> handleSaveSnapshot(SaveSnapshot cmd) {
             saveSnapshot();
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
 
         private void saveSnapshotIfNeeded() {

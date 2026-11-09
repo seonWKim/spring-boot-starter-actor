@@ -7,7 +7,7 @@ An example demonstrating different synchronization methods for incrementing a co
 This example implements a simple counter API with three different synchronization methods:
 1. Database locking (using MySQL)
 2. Redis distributed locking
-3. Actor-based synchronization (using spring-boot-starter-actor)
+3. Actor-based synchronization (using actor-spring-boot-starter)
 
 Each method provides the same functionality but uses different techniques to ensure data consistency under concurrent access.
 
@@ -47,7 +47,7 @@ Key components:
 - Automatic lock release after operation completion
 
 ### Actor Locking 
-The Actor locking implementation uses the actor model through spring-boot-starter-actor to handle counter operations. Each counter is represented by a separate actor instance, and all operations on a counter are processed sequentially by its actor, eliminating the need for explicit locks.
+The Actor locking implementation uses the actor model through actor-spring-boot-starter to handle counter operations. Each counter is represented by a separate actor instance, and all operations on a counter are processed sequentially by its actor, eliminating the need for explicit locks.
 
 Key components:
 - `CounterActor` implementing `SpringShardedActor`

@@ -115,7 +115,7 @@ public class OrderActor implements SpringActor<OrderActor.Command> {
             .onMessage(ProcessOrder.class, (ctx, msg) -> {
                 // orderId and userId are now in MDC
                 ctx.getLog().info("Processing order");
-                return Behaviors.same();
+                return SpringActorBehavior.same();
             })
             .build();
     }
@@ -170,7 +170,7 @@ public class PaymentActor implements SpringActor<PaymentActor.Command> {
             .onMessage(ProcessPayment.class, (ctx, msg) -> {
                 // Both static and dynamic MDC values are available
                 ctx.getLog().info("Processing payment");
-                return Behaviors.same();
+                return SpringActorBehavior.same();
             })
             .build();
     }
@@ -252,8 +252,7 @@ public class ParentActor implements SpringActor<ParentActor.Command> {
     public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
         return SpringActorBehavior.builder(Command.class, actorContext)
             .withState(ctx -> {
-                SpringActorHandle<Command> self = new SpringActorHandle<>(
-                    ctx.getSystem().scheduler(), ctx.getSelf());
+                SpringActorHandle<Command> self = ctx.getSelf();
 
                 // Spawn child with its own MDC and tags
                 self.child(ChildActor.class)
@@ -463,7 +462,7 @@ public class RequestHandler implements SpringActor<RequestHandler.Command> {
             .onMessage(HandleRequest.class, (ctx, msg) -> {
                 ctx.getLog().info("Handling request");
                 // requestId, traceId, spanId are in MDC
-                return Behaviors.same();
+                return SpringActorBehavior.same();
             })
             .build();
     }

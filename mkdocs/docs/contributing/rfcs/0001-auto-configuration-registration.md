@@ -11,9 +11,9 @@ Proposed
 Adding `spring-boot-starter-actor` to a Boot app starts nothing. `core` has no
 `META-INF/spring.factories` and no `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`,
 so Boot never sees
-[`ActorConfiguration`](https://github.com/seonWKim/spring-boot-starter-actor/blob/main/core/src/main/java/io/github/seonwkim/core/ActorConfiguration.java)
+[`ActorConfiguration`](https://github.com/seonWKim/actor-spring-boot-starter/blob/main/core/src/main/java/io/github/seonwkim/core/ActorConfiguration.java)
 or
-[`PekkoManagementAutoConfiguration`](https://github.com/seonWKim/spring-boot-starter-actor/blob/main/core/src/main/java/io/github/seonwkim/core/management/PekkoManagementAutoConfiguration.java).
+[`PekkoManagementAutoConfiguration`](https://github.com/seonWKim/actor-spring-boot-starter/blob/main/core/src/main/java/io/github/seonwkim/core/management/PekkoManagementAutoConfiguration.java).
 The app has to add `@EnableActorSupport`. Both classes are plain `@Configuration`, so:
 
 - `@ConditionalOnMissingBean` on their bean methods is evaluated in import order, not after the user's

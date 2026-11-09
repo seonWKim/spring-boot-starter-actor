@@ -1,0 +1,773 @@
+package io.github.seonwkim.actor;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import io.github.seonwkim.actor.internal.DefaultSpringActorContext;
+import java.time.Duration;
+import java.util.concurrent.TimeUnit;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.ApplicationContext;
+import org.springframework.stereotype.Component;
+import org.springframework.test.context.TestPropertySource;
+
+class SpringChildActorBuilderTest {
+
+    /**
+     * A simple child actor for testing the builder.
+     */
+    @Component
+    static class SimpleChildActor implements SpringActorWithContext<SimpleChildActor.Command, SpringActorContext> {
+
+        public interface Command {}
+
+        public static class Ping extends AskCommand<String> implements Command {
+            public Ping() {}
+        }
+
+        public static class GetId extends AskCommand<String> implements Command {
+            public GetId() {}
+        }
+
+        @Override
+        public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
+            return SpringActorBehavior.builder(Command.class, actorContext)
+                    .withState(ctx -> new SimpleChildBehavior(ctx, actorContext))
+                    .onMessage(Ping.class, SimpleChildBehavior::onPing)
+                    .onMessage(GetId.class, SimpleChildBehavior::onGetId)
+                    .build();
+        }
+
+        private static class SimpleChildBehavior {
+            private final SpringBehaviorContext<Command> ctx;
+            private final SpringActorContext actorContext;
+
+            SimpleChildBehavior(SpringBehaviorContext<Command> ctx, SpringActorContext actorContext) {
+                this.ctx = ctx;
+                this.actorContext = actorContext;
+            }
+
+            private SpringActorBehavior<Command> onPing(Ping msg) {
+                msg.reply("pong");
+                return SpringActorBehavior.same();
+            }
+
+            private SpringActorBehavior<Command> onGetId(GetId msg) {
+                msg.reply(actorContext.actorId());
+                return SpringActorBehavior.same();
+            }
+        }
+    }
+
+    /**
+     * A parent actor that supports framework commands for child spawning.
+     */
+    @Component
+    static class ParentActor implements SpringActorWithContext<ParentActor.Command, SpringActorContext> {
+
+        public interface Command extends FrameworkCommand {}
+
+        public static class DoNothing implements Command {}
+
+        @Override
+        public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
+            return SpringActorBehavior.builder(Command.class, actorContext)
+                    .withState(ctx -> new ParentBehavior())
+                    .onMessage(DoNothing.class, ParentBehavior::onDoNothing)
+                    .build();
+        }
+
+        private static class ParentBehavior {
+            ParentBehavior() {}
+
+            private SpringActorBehavior<Command> onDoNothing(DoNothing msg) {
+                return SpringActorBehavior.same();
+            }
+        }
+    }
+
+    @SpringBootApplication(scanBasePackages = "io.github.seonwkim.actor")
+    static class TestApp {}
+
+    @Nested
+    @SpringBootTest(classes = TestApp.class)
+    @TestPropertySource(properties = {"spring.actor.pekko.loglevel=INFO", "spring.actor.pekko.actor.provider=local"})
+    class BuilderConfigurationTests {
+
+        @Test
+        void testWithId(ApplicationContext springContext) throws Exception {
+            // Given: A parent actor
+            SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
+            SpringActorHandle<ParentActor.Command> parent = actorSystem
+                    .actor(ParentActor.class)
+                    .withId("parent-with-id")
+                    .spawnAndWait();
+
+            // When: Using the builder with withId()
+            SpringActorHandle<SimpleChildActor.Command> child =
+                    parent.child(SimpleChildActor.class).withId("test-child-1").spawnAndWait();
+
+            // Then: Child should be spawned with the correct ID
+            assertThat(child).isNotNull();
+            String childId = child.ask(new SimpleChildActor.GetId())
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
+                    .toCompletableFuture()
+                    .get();
+            assertThat(childId).isEqualTo("test-child-1");
+        }
+
+        @Test
+        void testWithContext(ApplicationContext springContext) throws Exception {
+            // Given: A parent actor
+            SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
+            SpringActorHandle<ParentActor.Command> parent = actorSystem
+                    .actor(ParentActor.class)
+                    .withId("parent-with-context")
+                    .spawnAndWait();
+
+            // When: Using the builder with withContext()
+            SpringActorContext customContext = new DefaultSpringActorContext("custom-child-1");
+            SpringActorHandle<SimpleChildActor.Command> child = parent.child(SimpleChildActor.class)
+                    .withContext(customContext)
+                    .spawnAndWait();
+
+            // Then: Child should be spawned with the custom context
+            assertThat(child).isNotNull();
+            String childId = child.ask(new SimpleChildActor.GetId())
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
+                    .toCompletableFuture()
+                    .get();
+            assertThat(childId).isEqualTo("custom-child-1");
+        }
+
+        @Test
+        void testWithSupervisionStrategy(ApplicationContext springContext) throws Exception {
+            // Given: A parent actor
+            SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
+            SpringActorHandle<ParentActor.Command> parent = actorSystem
+                    .actor(ParentActor.class)
+                    .withId("parent-with-strategy")
+                    .spawnAndWait();
+
+            // When: Using the builder with withSupervisionStrategy()
+            SpringActorHandle<SimpleChildActor.Command> child = parent.child(SimpleChildActor.class)
+                    .withId("supervised-child")
+                    .withSupervisionStrategy(SupervisionStrategy.restart())
+                    .spawnAndWait();
+
+            // Then: Child should be spawned (strategy is applied internally)
+            assertThat(child).isNotNull();
+            String response = child.ask(new SimpleChildActor.Ping())
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
+                    .toCompletableFuture()
+                    .get();
+            assertThat(response).isEqualTo("pong");
+        }
+
+        @Test
+        void testWithTimeout(ApplicationContext springContext) {
+            // Given: A parent actor
+            SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
+            SpringActorHandle<ParentActor.Command> parent = actorSystem
+                    .actor(ParentActor.class)
+                    .withId("parent-with-timeout")
+                    .spawnAndWait();
+
+            // When: Using the builder with withTimeout()
+            SpringActorHandle<SimpleChildActor.Command> child = parent.child(SimpleChildActor.class)
+                    .withId("timeout-child")
+                    .withTimeout(Duration.ofSeconds(10))
+                    .spawnAndWait();
+
+            // Then: Child should be spawned successfully
+            assertThat(child).isNotNull();
+        }
+
+        @Test
+        void testFluentChaining(ApplicationContext springContext) throws Exception {
+            // Given: A parent actor
+            SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
+            SpringActorHandle<ParentActor.Command> parent =
+                    actorSystem.actor(ParentActor.class).withId("parent-fluent").spawnAndWait();
+
+            // When: Chaining multiple builder methods
+            SpringActorHandle<SimpleChildActor.Command> child = parent.child(SimpleChildActor.class)
+                    .withId("fluent-child")
+                    .withSupervisionStrategy(SupervisionStrategy.restart())
+                    .withTimeout(Duration.ofSeconds(5))
+                    .spawnAndWait();
+
+            // Then: All configurations should be applied
+            assertThat(child).isNotNull();
+            String response = child.ask(new SimpleChildActor.Ping())
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
+                    .toCompletableFuture()
+                    .get();
+            assertThat(response).isEqualTo("pong");
+        }
+    }
+
+    @Nested
+    @SpringBootTest(classes = TestApp.class)
+    @TestPropertySource(properties = {"spring.actor.pekko.loglevel=INFO", "spring.actor.pekko.actor.provider=local"})
+    class ValidationTests {
+
+        @Test
+        void testWithTimeoutThrowsOnNull(ApplicationContext springContext) {
+            // Given: A parent actor
+            SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
+            SpringActorHandle<ParentActor.Command> parent = actorSystem
+                    .actor(ParentActor.class)
+                    .withId("parent-validation")
+                    .spawnAndWait();
+
+            // When/Then: Calling withTimeout with null should throw
+            assertThatThrownBy(() -> parent.child(SimpleChildActor.class).withTimeout(null))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessage("timeout must not be null");
+        }
+
+        @Test
+        void testSpawnThrowsWhenNoIdOrContext(ApplicationContext springContext) {
+            // Given: A parent actor
+            SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
+            SpringActorHandle<ParentActor.Command> parent =
+                    actorSystem.actor(ParentActor.class).withId("parent-no-id").spawnAndWait();
+
+            // When/Then: Calling spawn without setting ID or context should throw
+            assertThatThrownBy(() -> parent.child(SimpleChildActor.class).spawn())
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("Either childId or childContext must be set");
+        }
+
+        @Test
+        void testGetThrowsWhenNoIdOrContext(ApplicationContext springContext) {
+            // Given: A parent actor
+            SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
+            SpringActorHandle<ParentActor.Command> parent = actorSystem
+                    .actor(ParentActor.class)
+                    .withId("parent-get-no-id")
+                    .spawnAndWait();
+
+            // When/Then: Calling get without setting ID or context should throw
+            assertThatThrownBy(() -> parent.child(SimpleChildActor.class).get())
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessage("Either childId or childContext must be set");
+        }
+
+        @Test
+        void testExistsThrowsWhenNoIdOrContext(ApplicationContext springContext) {
+            // Given: A parent actor
+            SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
+            SpringActorHandle<ParentActor.Command> parent = actorSystem
+                    .actor(ParentActor.class)
+                    .withId("parent-exists-no-id")
+                    .spawnAndWait();
+
+            // When/Then: Calling exists without setting ID or context should throw
+            assertThatThrownBy(() -> parent.child(SimpleChildActor.class).exists())
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessage("Either childId or childContext must be set");
+        }
+
+        @Test
+        void testGetOrSpawnThrowsWhenNoIdOrContext(ApplicationContext springContext) {
+            // Given: A parent actor
+            SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
+            SpringActorHandle<ParentActor.Command> parent = actorSystem
+                    .actor(ParentActor.class)
+                    .withId("parent-getorspawn-no-id")
+                    .spawnAndWait();
+
+            // When/Then: Calling getOrSpawn without setting ID or context should throw
+            assertThatThrownBy(() -> parent.child(SimpleChildActor.class).getOrSpawn())
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessage("Either childId or childContext must be set");
+        }
+    }
+
+    @Nested
+    @SpringBootTest(classes = TestApp.class)
+    @TestPropertySource(properties = {"spring.actor.pekko.loglevel=INFO", "spring.actor.pekko.actor.provider=local"})
+    class SpawnOperationTests {
+
+        @Test
+        void testSpawnAsync(ApplicationContext springContext) throws Exception {
+            // Given: A parent actor
+            SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
+            SpringActorHandle<ParentActor.Command> parent = actorSystem
+                    .actor(ParentActor.class)
+                    .withId("parent-spawn-async")
+                    .spawnAndWait();
+
+            // When: Using spawn() to get a CompletionStage
+            SpringActorHandle<SimpleChildActor.Command> child = parent.child(SimpleChildActor.class)
+                    .withId("async-child")
+                    .spawn()
+                    .toCompletableFuture()
+                    .get(5, TimeUnit.SECONDS);
+
+            // Then: Child should be spawned and functional
+            assertThat(child).isNotNull();
+            String response = child.ask(new SimpleChildActor.Ping())
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
+                    .toCompletableFuture()
+                    .get();
+            assertThat(response).isEqualTo("pong");
+        }
+
+        @Test
+        void testSpawnAndWait(ApplicationContext springContext) throws Exception {
+            // Given: A parent actor
+            SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
+            SpringActorHandle<ParentActor.Command> parent = actorSystem
+                    .actor(ParentActor.class)
+                    .withId("parent-spawn-wait")
+                    .spawnAndWait();
+
+            // When: Using spawnAndWait() to spawn synchronously
+            SpringActorHandle<SimpleChildActor.Command> child =
+                    parent.child(SimpleChildActor.class).withId("sync-child").spawnAndWait();
+
+            // Then: Child should be spawned and functional
+            assertThat(child).isNotNull();
+            String response = child.ask(new SimpleChildActor.Ping())
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
+                    .toCompletableFuture()
+                    .get();
+            assertThat(response).isEqualTo("pong");
+        }
+
+        @Test
+        void testSpawnDuplicateReturnsExisting(ApplicationContext springContext) {
+            // Given: A parent actor with an existing child
+            SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
+            SpringActorHandle<ParentActor.Command> parent = actorSystem
+                    .actor(ParentActor.class)
+                    .withId("parent-duplicate")
+                    .spawnAndWait();
+
+            SpringActorHandle<SimpleChildActor.Command> child1 = parent.child(SimpleChildActor.class)
+                    .withId("duplicate-child")
+                    .spawnAndWait();
+
+            // When: Spawning a child with the same ID again
+            SpringActorHandle<SimpleChildActor.Command> child2 = parent.child(SimpleChildActor.class)
+                    .withId("duplicate-child")
+                    .spawnAndWait();
+
+            // Then: Both references should point to the same actor
+            assertThat(child1).isNotNull();
+            assertThat(child2).isNotNull();
+            assertThat(child1).isEqualTo(child2);
+        }
+    }
+
+    @Nested
+    @SpringBootTest(classes = TestApp.class)
+    @TestPropertySource(properties = {"spring.actor.pekko.loglevel=INFO", "spring.actor.pekko.actor.provider=local"})
+    class GetOperationTests {
+
+        @Test
+        void testGetReturnsExistingChild(ApplicationContext springContext) throws Exception {
+            // Given: A parent actor with an existing child
+            SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
+            SpringActorHandle<ParentActor.Command> parent = actorSystem
+                    .actor(ParentActor.class)
+                    .withId("parent-get-existing")
+                    .spawnAndWait();
+
+            SpringActorHandle<SimpleChildActor.Command> spawnedChild = parent.child(SimpleChildActor.class)
+                    .withId("existing-child")
+                    .spawnAndWait();
+
+            // When: Getting the child using the builder
+            SpringActorHandle<SimpleChildActor.Command> retrievedChild = parent.child(SimpleChildActor.class)
+                    .withId("existing-child")
+                    .get()
+                    .toCompletableFuture()
+                    .get(5, TimeUnit.SECONDS);
+
+            // Then: Should retrieve the same child
+            assertThat(retrievedChild).isNotNull();
+            assertThat(retrievedChild).isEqualTo(spawnedChild);
+        }
+
+        @Test
+        void testGetReturnsNullForNonExistent(ApplicationContext springContext) throws Exception {
+            // Given: A parent actor without children
+            SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
+            SpringActorHandle<ParentActor.Command> parent = actorSystem
+                    .actor(ParentActor.class)
+                    .withId("parent-get-null")
+                    .spawnAndWait();
+
+            // When: Getting a non-existent child
+            SpringActorHandle<SimpleChildActor.Command> child = parent.child(SimpleChildActor.class)
+                    .withId("non-existent-child")
+                    .get()
+                    .toCompletableFuture()
+                    .get(5, TimeUnit.SECONDS);
+
+            // Then: Should return null
+            assertThat(child).isNull();
+        }
+    }
+
+    @Nested
+    @SpringBootTest(classes = TestApp.class)
+    @TestPropertySource(properties = {"spring.actor.pekko.loglevel=INFO", "spring.actor.pekko.actor.provider=local"})
+    class ExistsOperationTests {
+
+        @Test
+        void testExistsReturnsTrueForExistingChild(ApplicationContext springContext) throws Exception {
+            // Given: A parent actor with an existing child
+            SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
+            SpringActorHandle<ParentActor.Command> parent = actorSystem
+                    .actor(ParentActor.class)
+                    .withId("parent-exists-true")
+                    .spawnAndWait();
+
+            parent.child(SimpleChildActor.class).withId("existing-child-check").spawnAndWait();
+
+            // When: Checking if the child exists
+            Boolean exists = parent.child(SimpleChildActor.class)
+                    .withId("existing-child-check")
+                    .exists()
+                    .toCompletableFuture()
+                    .get(5, TimeUnit.SECONDS);
+
+            // Then: Should return true
+            assertThat(exists).isTrue();
+        }
+
+        @Test
+        void testExistsReturnsFalseForNonExistent(ApplicationContext springContext) throws Exception {
+            // Given: A parent actor without children
+            SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
+            SpringActorHandle<ParentActor.Command> parent = actorSystem
+                    .actor(ParentActor.class)
+                    .withId("parent-exists-false")
+                    .spawnAndWait();
+
+            // When: Checking if a non-existent child exists
+            Boolean exists = parent.child(SimpleChildActor.class)
+                    .withId("non-existent-check")
+                    .exists()
+                    .toCompletableFuture()
+                    .get(5, TimeUnit.SECONDS);
+
+            // Then: Should return false
+            assertThat(exists).isFalse();
+        }
+    }
+
+    @Nested
+    @SpringBootTest(classes = TestApp.class)
+    @TestPropertySource(properties = {"spring.actor.pekko.loglevel=INFO", "spring.actor.pekko.actor.provider=local"})
+    class GetOrSpawnOperationTests {
+
+        @Test
+        void testGetOrSpawnReturnsExistingChild(ApplicationContext springContext) throws Exception {
+            // Given: A parent actor with an existing child
+            SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
+            SpringActorHandle<ParentActor.Command> parent = actorSystem
+                    .actor(ParentActor.class)
+                    .withId("parent-getorspawn-existing")
+                    .spawnAndWait();
+
+            SpringActorHandle<SimpleChildActor.Command> spawnedChild = parent.child(SimpleChildActor.class)
+                    .withId("getorspawn-existing")
+                    .spawnAndWait();
+
+            // When: Using getOrSpawn on an existing child
+            SpringActorHandle<SimpleChildActor.Command> retrievedChild = parent.child(SimpleChildActor.class)
+                    .withId("getorspawn-existing")
+                    .getOrSpawn()
+                    .toCompletableFuture()
+                    .get(5, TimeUnit.SECONDS);
+
+            // Then: Should return the existing child
+            assertThat(retrievedChild).isNotNull();
+            assertThat(retrievedChild).isEqualTo(spawnedChild);
+        }
+
+        @Test
+        void testGetOrSpawnCreatesNewChild(ApplicationContext springContext) throws Exception {
+            // Given: A parent actor without children
+            SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
+            SpringActorHandle<ParentActor.Command> parent = actorSystem
+                    .actor(ParentActor.class)
+                    .withId("parent-getorspawn-new")
+                    .spawnAndWait();
+
+            // When: Using getOrSpawn on a non-existent child
+            SpringActorHandle<SimpleChildActor.Command> child = parent.child(SimpleChildActor.class)
+                    .withId("getorspawn-new")
+                    .getOrSpawn()
+                    .toCompletableFuture()
+                    .get(5, TimeUnit.SECONDS);
+
+            // Then: Should create and return a new child
+            assertThat(child).isNotNull();
+            String response = child.ask(new SimpleChildActor.Ping())
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
+                    .toCompletableFuture()
+                    .get();
+            assertThat(response).isEqualTo("pong");
+        }
+
+        @Test
+        void testGetOrSpawnIdempotent(ApplicationContext springContext) throws Exception {
+            // Given: A parent actor
+            SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
+            SpringActorHandle<ParentActor.Command> parent = actorSystem
+                    .actor(ParentActor.class)
+                    .withId("parent-getorspawn-idempotent")
+                    .spawnAndWait();
+
+            // When: Calling getOrSpawn multiple times
+            SpringActorHandle<SimpleChildActor.Command> child1 = parent.child(SimpleChildActor.class)
+                    .withId("idempotent-child")
+                    .getOrSpawn()
+                    .toCompletableFuture()
+                    .get(5, TimeUnit.SECONDS);
+
+            SpringActorHandle<SimpleChildActor.Command> child2 = parent.child(SimpleChildActor.class)
+                    .withId("idempotent-child")
+                    .getOrSpawn()
+                    .toCompletableFuture()
+                    .get(5, TimeUnit.SECONDS);
+
+            // Then: Both should return the same child
+            assertThat(child1).isNotNull();
+            assertThat(child2).isNotNull();
+            assertThat(child1).isEqualTo(child2);
+        }
+    }
+
+    @Nested
+    @SpringBootTest(classes = TestApp.class)
+    @TestPropertySource(properties = {"spring.actor.pekko.loglevel=INFO", "spring.actor.pekko.actor.provider=local"})
+    class EdgeCaseTests {
+
+        @Test
+        void testMultipleChildrenWithDifferentIds(ApplicationContext springContext) throws Exception {
+            // Given: A parent actor
+            SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
+            SpringActorHandle<ParentActor.Command> parent = actorSystem
+                    .actor(ParentActor.class)
+                    .withId("parent-multiple-children")
+                    .spawnAndWait();
+
+            // When: Spawning multiple children with different IDs
+            SpringActorHandle<SimpleChildActor.Command> child1 =
+                    parent.child(SimpleChildActor.class).withId("child-1").spawnAndWait();
+
+            SpringActorHandle<SimpleChildActor.Command> child2 =
+                    parent.child(SimpleChildActor.class).withId("child-2").spawnAndWait();
+
+            SpringActorHandle<SimpleChildActor.Command> child3 =
+                    parent.child(SimpleChildActor.class).withId("child-3").spawnAndWait();
+
+            // Then: All children should be distinct and functional
+            assertThat(child1).isNotEqualTo(child2);
+            assertThat(child2).isNotEqualTo(child3);
+            assertThat(child1).isNotEqualTo(child3);
+
+            // Verify all can respond
+            String response1 = child1.ask(new SimpleChildActor.Ping())
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
+                    .toCompletableFuture()
+                    .get();
+            String response2 = child2.ask(new SimpleChildActor.Ping())
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
+                    .toCompletableFuture()
+                    .get();
+            String response3 = child3.ask(new SimpleChildActor.Ping())
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
+                    .toCompletableFuture()
+                    .get();
+
+            assertThat(response1).isEqualTo("pong");
+            assertThat(response2).isEqualTo("pong");
+            assertThat(response3).isEqualTo("pong");
+        }
+
+        @Test
+        void testBuilderReuseCreatesIndependentOperations(ApplicationContext springContext) throws Exception {
+            // Given: A parent actor
+            SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
+            SpringActorHandle<ParentActor.Command> parent = actorSystem
+                    .actor(ParentActor.class)
+                    .withId("parent-builder-reuse")
+                    .spawnAndWait();
+
+            // When: Creating a builder and using it for different children
+            // (Note: In practice, each builder instance should be used for one child,
+            // but this tests that multiple calls with different IDs work correctly)
+            parent.child(SimpleChildActor.class).withId("reuse-child-1").spawnAndWait();
+
+            parent.child(SimpleChildActor.class).withId("reuse-child-2").spawnAndWait();
+
+            // Then: Both children should exist independently
+            Boolean exists1 = parent.child(SimpleChildActor.class)
+                    .withId("reuse-child-1")
+                    .exists()
+                    .toCompletableFuture()
+                    .get(5, TimeUnit.SECONDS);
+            Boolean exists2 = parent.child(SimpleChildActor.class)
+                    .withId("reuse-child-2")
+                    .exists()
+                    .toCompletableFuture()
+                    .get(5, TimeUnit.SECONDS);
+
+            assertThat(exists1).isTrue();
+            assertThat(exists2).isTrue();
+        }
+
+        @Test
+        void testCustomContextTakesPrecedenceOverId(ApplicationContext springContext) throws Exception {
+            // Given: A parent actor
+            SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
+            SpringActorHandle<ParentActor.Command> parent = actorSystem
+                    .actor(ParentActor.class)
+                    .withId("parent-context-precedence")
+                    .spawnAndWait();
+
+            // When: Setting both ID and custom context (context should be used)
+            SpringActorContext customContext = new DefaultSpringActorContext("custom-context-child");
+            SpringActorHandle<SimpleChildActor.Command> child = parent.child(SimpleChildActor.class)
+                    .withId("this-id-should-be-ignored")
+                    .withContext(customContext)
+                    .spawnAndWait();
+
+            // Then: Child should use the custom context ID
+            assertThat(child).isNotNull();
+            String childId = child.ask(new SimpleChildActor.GetId())
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
+                    .toCompletableFuture()
+                    .get();
+            assertThat(childId).isEqualTo("custom-context-child");
+        }
+    }
+
+    @Nested
+    @SpringBootTest(classes = TestApp.class)
+    @TestPropertySource(properties = {"spring.actor.pekko.loglevel=INFO", "spring.actor.pekko.actor.provider=local"})
+    class IntegrationWithSpringActorHandleTests {
+
+        @Test
+        void testBuilderMethodVsUnifiedReferenceAPI(ApplicationContext springContext) throws Exception {
+            // Given: A parent actor
+            SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
+            SpringActorHandle<ParentActor.Command> parent = actorSystem
+                    .actor(ParentActor.class)
+                    .withId("parent-comparison")
+                    .spawnAndWait();
+
+            // When: Spawning children using both the builder API and unified reference API
+            SpringActorHandle<SimpleChildActor.Command> childViaBuilder = parent.child(SimpleChildActor.class)
+                    .withId("builder-child")
+                    .withSupervisionStrategy(SupervisionStrategy.restart())
+                    .spawnAndWait();
+
+            SpringActorHandle<SimpleChildActor.Command> childViaUnifiedAPI = parent.child(SimpleChildActor.class)
+                    .withId("unified-child")
+                    .withSupervisionStrategy(SupervisionStrategy.restart())
+                    .spawn()
+                    .toCompletableFuture()
+                    .get(5, TimeUnit.SECONDS);
+
+            // Then: Both should work identically
+            assertThat(childViaBuilder).isNotNull();
+            assertThat(childViaUnifiedAPI).isNotNull();
+
+            String response1 = childViaBuilder
+                    .ask(new SimpleChildActor.Ping())
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
+                    .toCompletableFuture()
+                    .get();
+            String response2 = childViaUnifiedAPI
+                    .ask(new SimpleChildActor.Ping())
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
+                    .toCompletableFuture()
+                    .get();
+
+            assertThat(response1).isEqualTo("pong");
+            assertThat(response2).isEqualTo("pong");
+        }
+
+        @Test
+        void testUnifiedAPIGetMethod(ApplicationContext springContext) throws Exception {
+            // Given: A parent actor with a child
+            SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
+            SpringActorHandle<ParentActor.Command> parent = actorSystem
+                    .actor(ParentActor.class)
+                    .withId("parent-get-unified")
+                    .spawnAndWait();
+
+            SpringActorHandle<SimpleChildActor.Command> spawnedChild = parent.child(SimpleChildActor.class)
+                    .withId("comparison-child")
+                    .spawnAndWait();
+
+            // When: Getting the child using the unified API
+            SpringActorHandle<SimpleChildActor.Command> retrievedChild = parent.child(
+                            SimpleChildActor.class, "comparison-child")
+                    .get()
+                    .toCompletableFuture()
+                    .get(5, TimeUnit.SECONDS)
+                    .orElse(null);
+
+            // Then: Should retrieve the same child reference
+            assertThat(retrievedChild).isNotNull();
+            assertThat(retrievedChild).isEqualTo(spawnedChild);
+        }
+
+        @Test
+        void testUnifiedAPIExistsMethod(ApplicationContext springContext) throws Exception {
+            // Given: A parent actor with a child
+            SpringActorSystem actorSystem = springContext.getBean(SpringActorSystem.class);
+            SpringActorHandle<ParentActor.Command> parent = actorSystem
+                    .actor(ParentActor.class)
+                    .withId("parent-exists-unified")
+                    .spawnAndWait();
+
+            parent.child(SimpleChildActor.class)
+                    .withId("exists-comparison-child")
+                    .spawnAndWait();
+
+            // When: Checking existence using the unified API
+            Boolean exists = parent.child(SimpleChildActor.class, "exists-comparison-child")
+                    .exists()
+                    .toCompletableFuture()
+                    .get(5, TimeUnit.SECONDS);
+
+            // Then: Should return true for existing child
+            assertThat(exists).isTrue();
+
+            // And: Should return false for non-existent child
+            Boolean notExists = parent.child(SimpleChildActor.class, "non-existent")
+                    .exists()
+                    .toCompletableFuture()
+                    .get(5, TimeUnit.SECONDS);
+            assertThat(notExists).isFalse();
+        }
+    }
+}

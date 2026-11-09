@@ -1,15 +1,13 @@
 package io.github.seonwkim.example.metrics;
 
-import io.github.seonwkim.core.SpringActorBehavior;
-import io.github.seonwkim.core.SpringActorContext;
-import io.github.seonwkim.core.SpringActorWithContext;
+import io.github.seonwkim.actor.SpringActorBehavior;
+import io.github.seonwkim.actor.SpringActorContext;
+import io.github.seonwkim.actor.SpringActorWithContext;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tags;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.pekko.actor.typed.Behavior;
-import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.apache.pekko.cluster.sharding.ShardRegion.CurrentShardRegionState;
 import org.springframework.stereotype.Component;
 
@@ -43,7 +41,8 @@ public class ClusterShardingMetricsActor
 
     private final Map<String, AtomicInteger> shardEntityCounters = new ConcurrentHashMap<>();
 
-    private Behavior<CurrentShardRegionState> handle(CurrentShardRegionState msg, MeterRegistry meterRegistry) {
+    private SpringActorBehavior<CurrentShardRegionState> handle(
+            CurrentShardRegionState msg, MeterRegistry meterRegistry) {
         msg.shards().foreach(shard -> {
             final String shardId = shard.shardId();
             final int entitiesCount = shard.entityIds().size();
@@ -58,6 +57,6 @@ public class ClusterShardingMetricsActor
             return null;
         });
 
-        return Behaviors.same();
+        return SpringActorBehavior.same();
     }
 }

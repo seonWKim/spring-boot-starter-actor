@@ -1,8 +1,12 @@
 package io.github.seonwkim.example.supervision;
 
-import io.github.seonwkim.core.SpringActorContext;
-import io.github.seonwkim.core.SpringActorHandle;
-import io.github.seonwkim.core.SpringBehaviorContext;
+import io.github.seonwkim.actor.PostStop;
+import io.github.seonwkim.actor.PreRestart;
+import io.github.seonwkim.actor.SpringActorBehavior;
+import io.github.seonwkim.actor.SpringActorContext;
+import io.github.seonwkim.actor.SpringActorHandle;
+import io.github.seonwkim.actor.SpringBehaviorContext;
+import io.github.seonwkim.actor.SupervisionStrategy;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -11,12 +15,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import org.apache.pekko.actor.typed.ActorRef;
-import org.apache.pekko.actor.typed.Behavior;
-import org.apache.pekko.actor.typed.PostStop;
-import org.apache.pekko.actor.typed.PreRestart;
-import org.apache.pekko.actor.typed.SupervisorStrategy;
+import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.AskPattern;
-import org.apache.pekko.actor.typed.javadsl.Behaviors;
 
 /**
  * Shared behavior implementation for hierarchical actors (supervisors and workers).
@@ -49,7 +49,7 @@ public class HierarchicalActorBehavior<C> {
     }
 
     // Work processing (workers only)
-    protected Behavior<C> onProcessWork(HierarchicalActor.ProcessWork msg) {
+    protected SpringActorBehavior<C> onProcessWork(HierarchicalActor.ProcessWork msg) {
         String actorId = actorContext.actorId();
         tasksCompleted++;
 
@@ -58,10 +58,10 @@ public class HierarchicalActorBehavior<C> {
                 "[%s] Processing task '%s' (total completed: %d)", actorId, msg.taskName, tasksCompleted));
 
         msg.replyTo.tell(new HierarchicalActor.WorkResult(actorId, msg.taskName, tasksCompleted));
-        return Behaviors.same();
+        return SpringActorBehavior.same();
     }
 
-    protected Behavior<C> onTriggerFailure(HierarchicalActor.TriggerFailure msg) {
+    protected SpringActorBehavior<C> onTriggerFailure(HierarchicalActor.TriggerFailure msg) {
         String actorId = actorContext.actorId();
         failureCount++;
         ctx.getLog().warn("Worker {} failing intentionally (failure #{})", actorId, failureCount);
@@ -73,28 +73,28 @@ public class HierarchicalActorBehavior<C> {
 
     // Child spawning
     @SuppressWarnings("unchecked")
-    protected Behavior<C> onSpawnChild(HierarchicalActor.SpawnChild msg) {
+    protected SpringActorBehavior<C> onSpawnChild(HierarchicalActor.SpawnChild msg) {
         String actorId = actorContext.actorId();
 
         // Parse supervision strategy
-        SupervisorStrategy strategy;
+        SupervisionStrategy strategy;
         String strategyDescription;
         switch (msg.strategy) {
             case "restart-limited":
-                strategy = SupervisorStrategy.restart().withLimit(3, Duration.ofMinutes(1));
+                strategy = SupervisionStrategy.restart().withLimit(3, Duration.ofMinutes(1));
                 strategyDescription = "Restart (max 3 times in 1 min)";
                 break;
             case "stop":
-                strategy = SupervisorStrategy.stop();
+                strategy = SupervisionStrategy.stop();
                 strategyDescription = "Stop on failure";
                 break;
             case "resume":
-                strategy = SupervisorStrategy.resume();
+                strategy = SupervisionStrategy.resume();
                 strategyDescription = "Resume (ignore failure)";
                 break;
             case "restart":
             default:
-                strategy = SupervisorStrategy.restart();
+                strategy = SupervisionStrategy.restart();
                 strategyDescription = "Restart on failure";
                 break;
         }
@@ -110,10 +110,10 @@ public class HierarchicalActorBehavior<C> {
         logPublisher.publish(String.format(
                 "[%s] 🚀 Spawning child '%s' with strategy: %s", actorId, msg.childId, strategyDescription));
 
-        // Use spring-boot-starter-actor API to spawn child
+        // Use actor-spring-boot-starter API to spawn child
         SpringActorHandle<C> self = ctx.getSelf();
 
-        ctx.getUnderlying()
+        ctx.unwrap(ActorContext.class)
                 .pipeToSelf(
                         self.child((Class) childActorClass)
                                 .withId(msg.childId)
@@ -122,11 +122,11 @@ public class HierarchicalActorBehavior<C> {
                         (childRef, failure) -> (C) new ChildSpawnResult(
                                 msg, strategyDescription, (SpringActorHandle<?>) childRef, failure));
 
-        return Behaviors.same();
+        return SpringActorBehavior.same();
     }
 
     // Internal message to handle child spawn result
-    protected Behavior<C> onChildSpawnResult(ChildSpawnResult result) {
+    protected SpringActorBehavior<C> onChildSpawnResult(ChildSpawnResult result) {
         String actorId = actorContext.actorId();
 
         if (result.failure != null) {
@@ -136,7 +136,7 @@ public class HierarchicalActorBehavior<C> {
                     actorId, result.originalMsg.childId, result.failure.getMessage()));
             result.originalMsg.reply(new ActorHierarchy.SpawnResult(
                     result.originalMsg.childId, false, "Failed to spawn: " + result.failure.getMessage()));
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
 
         if (result.childRef != null) {
@@ -156,7 +156,7 @@ public class HierarchicalActorBehavior<C> {
                     new ActorHierarchy.SpawnResult(result.originalMsg.childId, false, "Child spawn returned null"));
         }
 
-        return Behaviors.same();
+        return SpringActorBehavior.same();
     }
 
     // Internal message class for handling async spawn results
@@ -180,7 +180,7 @@ public class HierarchicalActorBehavior<C> {
 
     // Recursive routing
     @SuppressWarnings("unchecked")
-    protected Behavior<C> onRouteToChild(HierarchicalActor.RouteToChild msg) {
+    protected SpringActorBehavior<C> onRouteToChild(HierarchicalActor.RouteToChild msg) {
         String actorId = actorContext.actorId();
 
         // Check if this is me
@@ -198,7 +198,7 @@ public class HierarchicalActorBehavior<C> {
                     String.format("[%s] 📬 Routing task '%s' to child '%s'", actorId, msg.taskName, msg.childId));
 
             child.tell((C) new HierarchicalActor.ProcessWork(msg.taskName, msg.getReplyTo()));
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
 
         // Not a direct child - recursively forward to all children
@@ -209,11 +209,11 @@ public class HierarchicalActorBehavior<C> {
             child.tell((C) new HierarchicalActor.RouteToChild(msg.childId, msg.taskName));
         }
 
-        return Behaviors.same();
+        return SpringActorBehavior.same();
     }
 
     @SuppressWarnings("unchecked")
-    protected Behavior<C> onTriggerChildFailure(HierarchicalActor.TriggerChildFailure msg) {
+    protected SpringActorBehavior<C> onTriggerChildFailure(HierarchicalActor.TriggerChildFailure msg) {
         String actorId = actorContext.actorId();
 
         // Check if this is me
@@ -230,7 +230,7 @@ public class HierarchicalActorBehavior<C> {
             logPublisher.publish(String.format("[%s] 💥 Triggering failure in child '%s'", actorId, msg.childId));
 
             child.tell((C) new HierarchicalActor.TriggerFailure(msg.getReplyTo()));
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
 
         // Not a direct child - recursively forward to all children
@@ -242,11 +242,11 @@ public class HierarchicalActorBehavior<C> {
             child.tell((C) new HierarchicalActor.TriggerChildFailure(msg.childId));
         }
 
-        return Behaviors.same();
+        return SpringActorBehavior.same();
     }
 
     @SuppressWarnings("unchecked")
-    protected Behavior<C> onStopChild(HierarchicalActor.StopChild msg) {
+    protected SpringActorBehavior<C> onStopChild(HierarchicalActor.StopChild msg) {
         String actorId = actorContext.actorId();
 
         // Check if it's a direct child
@@ -259,7 +259,7 @@ public class HierarchicalActorBehavior<C> {
             childStrategies.remove(msg.childId);
 
             msg.reply("Child stopped");
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
 
         // Not a direct child - recursively forward to all children
@@ -272,11 +272,11 @@ public class HierarchicalActorBehavior<C> {
             child.tell((C) stopCmd);
         }
 
-        return Behaviors.same();
+        return SpringActorBehavior.same();
     }
 
     @SuppressWarnings("unchecked")
-    protected Behavior<C> onRouteSpawnChild(HierarchicalActor.RouteSpawnChild msg) {
+    protected SpringActorBehavior<C> onRouteSpawnChild(HierarchicalActor.RouteSpawnChild msg) {
         String actorId = actorContext.actorId();
 
         // Check if this actor is the parent
@@ -305,7 +305,7 @@ public class HierarchicalActorBehavior<C> {
             logPublisher.publish(
                     String.format("[%s] Routing spawn of '%s' to child '%s'", actorId, msg.childId, msg.parentId));
 
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
 
         // Parent not a direct child - recursively forward to ALL children
@@ -332,11 +332,11 @@ public class HierarchicalActorBehavior<C> {
             msg.reply(new ActorHierarchy.SpawnResult(msg.childId, false, "Parent '" + msg.parentId + "' not found"));
         }
 
-        return Behaviors.same();
+        return SpringActorBehavior.same();
     }
 
     @SuppressWarnings("unchecked")
-    protected Behavior<C> onGetHierarchy(HierarchicalActor.GetHierarchy msg) {
+    protected SpringActorBehavior<C> onGetHierarchy(HierarchicalActor.GetHierarchy msg) {
         String actorId = actorContext.actorId();
 
         // Query all children using ctx.getChildren()
@@ -353,7 +353,7 @@ public class HierarchicalActorBehavior<C> {
                                 return (C) cmd;
                             },
                             Duration.ofSeconds(3),
-                            ctx.getUnderlying().getSystem().scheduler())
+                            ctx.unwrap(ActorContext.class).getSystem().scheduler())
                     .toCompletableFuture();
 
             childFutures.add(future);
@@ -403,11 +403,11 @@ public class HierarchicalActorBehavior<C> {
                     return null;
                 });
 
-        return Behaviors.same();
+        return SpringActorBehavior.same();
     }
 
     // Lifecycle signals (workers only)
-    protected Behavior<C> onPreRestart(PreRestart signal) {
+    protected SpringActorBehavior<C> onPreRestart(PreRestart signal) {
         String actorId = actorContext.actorId();
         ctx.getLog()
                 .warn(
@@ -418,13 +418,13 @@ public class HierarchicalActorBehavior<C> {
         logPublisher.publish(String.format(
                 "[%s] 🔄 Restarting (failures: %d, state lost: %d tasks completed)",
                 actorId, failureCount, tasksCompleted));
-        return Behaviors.same();
+        return SpringActorBehavior.same();
     }
 
-    protected Behavior<C> onPostStop(PostStop signal) {
+    protected SpringActorBehavior<C> onPostStop(PostStop signal) {
         String actorId = actorContext.actorId();
         ctx.getLog().info("Worker {} stopped (tasks completed: {})", actorId, tasksCompleted);
         logPublisher.publish(String.format("[%s] 🛑 Stopped (final count: %d tasks)", actorId, tasksCompleted));
-        return Behaviors.same();
+        return SpringActorBehavior.same();
     }
 }

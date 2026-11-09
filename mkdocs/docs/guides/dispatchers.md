@@ -14,7 +14,7 @@ The main reason to use different dispatchers is to **isolate blocking operations
 
 ## Dispatcher Selection API
 
-Spring Boot Starter Actor provides a fluent API for selecting dispatchers when spawning actors:
+Actor Spring Boot Starter provides a fluent API for selecting dispatchers when spawning actors:
 
 ### Default Dispatcher
 
@@ -150,9 +150,43 @@ spring:
       throughput: 10
 ```
 
-### Virtual Thread Executor (Java 21+)
+### Spring Executor Beans
 
-If you're running on Java 21 or later, you can use Pekko's built-in virtual thread executor for actors performing blocking I/O operations. Virtual threads are lightweight threads that provide excellent scalability for blocking operations.
+A dispatcher can run its actors on an `Executor` bean from your application, for example a
+`ThreadPoolTaskExecutor` you already tune and monitor:
+
+```java
+@Bean
+ThreadPoolTaskExecutor reportExecutor() {
+    ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+    executor.setThreadNamePrefix("reports-");
+    executor.setCorePoolSize(8);
+    return executor;
+}
+```
+
+```yaml
+spring:
+  actor:
+    dispatchers:
+      reports:
+        executor: reportExecutor   # the bean name
+        throughput: 10             # optional
+```
+
+```java
+actorSystem.actor(ReportActor.class)
+    .withId("report-1")
+    .withDispatcherFromConfig("reports")
+    .spawn();
+```
+
+The Spring context owns the executor: the actor system never shuts it down, and it is still running
+while the actor system stops.
+
+### Virtual Thread Executor
+
+You can use Pekko's built-in virtual thread executor for actors performing blocking I/O operations. Virtual threads are lightweight threads that provide excellent scalability for blocking operations.
 
 **Benefits of Virtual Threads:**
 
@@ -161,17 +195,28 @@ If you're running on Java 21 or later, you can use Pekko's built-in virtual thre
 - Ideal for blocking I/O (database calls, HTTP requests, file operations)
 - No need for reactive programming patterns
 
-!!! note "Java 21+ Required"
-    Virtual thread support requires Java 21 or later. If you're on Java 11-17, use thread-pool-executor instead.
-
 **Configuration:**
 
 ```yaml
 spring:
   actor:
-    virtual-thread-dispatcher:
-      executor: virtual-thread-executor
+    virtual-threads:
+      enabled: true            # auto (default) | true | false
+    dispatchers:
+      virtual-thread-dispatcher:
+        virtual: true
 ```
+
+- `spring.actor.virtual-threads.enabled` runs the blocking dispatcher (`withBlockingDispatcher()`) on
+  virtual threads. The default, `auto`, follows Spring Boot's `spring.threads.virtual.enabled`, so an
+  application that turns on virtual threads for Spring gets them for blocking actors too. `false` keeps
+  platform threads even when Spring's flag is on.
+- `spring.actor.dispatchers.<name>.virtual: true` defines a named dispatcher on virtual threads, whatever
+  the switch says. A dispatcher sets either `virtual` or `executor`, not both.
+- The default dispatcher always stays on its platform fork-join pool: actors that never block gain
+  nothing from virtual threads.
+- A raw `spring.actor.pekko.actor.default-blocking-io-dispatcher.executor` still wins over the switch,
+  with a warning.
 
 **Usage:**
 
@@ -179,9 +224,15 @@ spring:
 SpringActorHandle<DatabaseActor.Command> dbActor = actorSystem
     .actor(DatabaseActor.class)
     .withId("db-actor")
-    .withDispatcherFromConfig("virtual-thread-dispatcher")
+    .withBlockingDispatcher()            // or .withDispatcherFromConfig("virtual-thread-dispatcher")
     .spawnAndWait();
 ```
+
+!!! warning "Pinning"
+    A virtual thread that blocks inside a `synchronized` block, or in some native calls, pins its
+    carrier (platform) thread until it unblocks, and too many pinned carriers stall every virtual thread.
+    Use `java.util.concurrent` locks (`ReentrantLock`) around blocking calls, and find pinning with
+    `-Djdk.tracePinnedThreads=short`.
 
 **JVM Tuning (Optional):**
 
@@ -203,12 +254,12 @@ You can further configure virtual threads using JVM system properties:
 | Use Case | Recommended Dispatcher |
 |----------|----------------------|
 | Blocking I/O (Java 21+) | Virtual Thread Executor |
-| Blocking I/O (Java 11-17) | Thread Pool Executor |
+| Blocking I/O with a bounded pool | Thread Pool Executor |
 | CPU-intensive tasks | Fork-Join Executor (default) |
 | Non-blocking operations | Default Dispatcher |
 
 !!! example "Virtual Threads Example"
-    See the [virtual-threads example](https://github.com/seonwkim/spring-boot-starter-actor/tree/main/example/virtual-threads) for a complete working demonstration of virtual threads with actors.
+    See the [virtual-threads example](https://github.com/seonWKim/actor-spring-boot-starter/tree/main/example/virtual-threads) for a complete working demonstration of virtual threads with actors.
 
 ## Blocking Operations
 

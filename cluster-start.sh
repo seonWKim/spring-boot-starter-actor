@@ -17,7 +17,7 @@ if [[ -z "$MODULE" || -z "$MAIN_CLASS" || -z "$BASE_PORT" || -z "$BASE_PEKKO_POR
 fi
 
 echo "Building metrics agent and $MODULE module..."
-./gradlew :metrics:agentJar :example:${MODULE}:classes
+./gradlew :actor-metrics:agentJar :example:${MODULE}:classes
 
 run_application() {
   local instance=$1
@@ -31,7 +31,7 @@ run_application() {
 
   ./gradlew example:${MODULE}:bootRun \
     --args="--server.port=${port} \
-            --spring.actor.pekko.remote.artery.canonical.port=${pekko_port}" \
+            --spring.actor.remote.port=${pekko_port}" \
     -PmainClass=${MAIN_CLASS} \
     > "log_${MODULE}_${port}.txt" 2>&1 &
 }

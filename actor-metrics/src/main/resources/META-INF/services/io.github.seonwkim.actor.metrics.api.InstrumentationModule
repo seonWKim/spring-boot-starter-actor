@@ -1,0 +1,8 @@
+# Built-in instrumentation modules for actor metrics
+# Discovered via ServiceLoader<InstrumentationModule>
+io.github.seonwkim.actor.metrics.internal.modules.actor.ActorLifecycleModule
+io.github.seonwkim.actor.metrics.internal.modules.message.MessageProcessingModule
+io.github.seonwkim.actor.metrics.internal.modules.mailbox.MailboxModule
+io.github.seonwkim.actor.metrics.internal.modules.system.SystemMetricsModule
+io.github.seonwkim.actor.metrics.internal.modules.scheduler.SchedulerMetricsModule
+io.github.seonwkim.actor.metrics.internal.modules.stash.StashModule

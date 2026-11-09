@@ -1,0 +1,286 @@
+package io.github.seonwkim.actor.metrics.internal.modules.mailbox;
+
+import static io.github.seonwkim.actor.metrics.testing.Eventually.eventually;
+import static org.junit.jupiter.api.Assertions.*;
+
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
+import io.github.seonwkim.actor.metrics.agent.MetricsAgent;
+import io.github.seonwkim.actor.metrics.core.MetricsConfiguration;
+import io.github.seonwkim.actor.metrics.core.MetricsRegistry;
+import io.github.seonwkim.actor.metrics.testing.TestMetricsBackend;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import org.apache.pekko.actor.*;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import scala.concurrent.Await;
+import scala.concurrent.duration.Duration;
+
+/**
+ * Integration test for MailboxModule that verifies ByteBuddy instrumentation
+ * works with real Pekko Classic actors.
+ */
+class MailboxModuleIntegrationTest {
+
+    private TestMetricsBackend metricsBackend;
+    private MetricsRegistry metricsRegistry;
+    private MailboxModule module;
+    private ActorSystem actorSystem;
+
+    @BeforeEach
+    void setUp() {
+        // Create test metrics backend
+        metricsBackend = new TestMetricsBackend();
+
+        // Create configuration - include user actors, exclude system actors
+        MetricsConfiguration.FilterConfig filters = MetricsConfiguration.FilterConfig.builder()
+                .includeActors("**/user/**")
+                .excludeActors("**/system/**")
+                .build();
+
+        MetricsConfiguration config = MetricsConfiguration.builder()
+                .enabled(true)
+                .tag("test", "mailbox-integration")
+                .filters(filters)
+                .build();
+
+        // Create registry
+        metricsRegistry = MetricsRegistry.builder()
+                .configuration(config)
+                .backend(metricsBackend)
+                .build();
+
+        // Create and register module
+        module = new MailboxModule();
+        metricsRegistry.registerModule(module);
+
+        // Set the registry in the agent so the advice classes can access it
+        MetricsAgent.setRegistry(metricsRegistry);
+
+        // Create actor system (Classic API)
+        actorSystem = ActorSystem.create("test-system");
+    }
+
+    @AfterEach
+    void tearDown() throws Exception {
+        if (actorSystem != null) {
+            actorSystem.terminate();
+            Await.result(actorSystem.whenTerminated(), Duration.apply(5, TimeUnit.SECONDS));
+        }
+        if (module != null) {
+            module.shutdown();
+        }
+        MetricsAgent.setRegistry(null);
+    }
+
+    @Test
+    void testMailboxSizeIncrementsOnEnqueue() throws Exception {
+
+        // Create actor
+        ActorRef actor = actorSystem.actorOf(Props.create(SlowActor.class), "slow-actor");
+
+        // Send messages (actor is slow, so they queue up)
+        actor.tell(new TestMessage("msg1"), ActorRef.noSender());
+        actor.tell(new TestMessage("msg2"), ActorRef.noSender());
+        actor.tell(new TestMessage("msg3"), ActorRef.noSender());
+
+        // Mailbox size should be > 0 (messages are queued)
+        eventually(() -> {
+            double mailboxSize = metricsBackend.getGaugeValue("actor.mailbox.size");
+            assertTrue(mailboxSize > 0, String.format("Mailbox size should be greater than 0, got: %.0f", mailboxSize));
+        });
+    }
+
+    @Test
+    void testMailboxSizeMaxCapturesPeak() throws Exception {
+        ActorRef actor = actorSystem.actorOf(Props.create(SlowActor.class), "max-actor");
+
+        // Send many messages so mailbox queues up (slow actor processes one every 500ms)
+        for (int i = 0; i < 10; i++) {
+            actor.tell(new TestMessage("msg" + i), ActorRef.noSender());
+        }
+
+        // Max should have captured the peak size (multiple messages queued)
+        eventually(() -> {
+            double maxSize = metricsBackend.getGaugeValue("actor.mailbox.size.max");
+            assertTrue(
+                    maxSize >= 2,
+                    String.format(
+                            "Mailbox size max should capture peak (>= 2 when messages queue up), got: %.0f", maxSize));
+        });
+    }
+
+    @Test
+    void mailboxSizeReturnsToZeroForMessagesSentBeforeTheActorStarted() throws Exception {
+        // The actor's constructor blocks until both messages are sent, so they are enqueued while
+        // the cell has no actor instance yet. Enqueue and dequeue must still count them under the
+        // same actor class, or the size gauge stays at 2 forever.
+        GatedActor.gate = new CountDownLatch(1);
+        ActorRef actor = actorSystem.actorOf(Props.create(GatedActor.class), "gated-actor");
+        actor.tell(new TestMessage("msg1"), ActorRef.noSender());
+        actor.tell(new TestMessage("msg2"), ActorRef.noSender());
+        GatedActor.gate.countDown();
+
+        // The dequeue advice decrements the size before it records actor.mailbox.time.
+        eventually(() -> assertEquals(2, metricsBackend.getTimerCount("actor.mailbox.time")));
+
+        assertEquals(0, metricsBackend.getGaugeValue("actor.mailbox.size"));
+    }
+
+    @Test
+    void testMailboxTimeIsRecorded() throws Exception {
+
+        // Create actor and send message
+        ActorRef actor = actorSystem.actorOf(Props.create(FastActor.class), "timer-actor");
+        actor.tell(new TestMessage("test"), ActorRef.noSender());
+
+        eventually(() -> {
+            long timerCount = metricsBackend.getTimerCount("actor.mailbox.time");
+            assertTrue(timerCount > 0, "Mailbox time should be recorded");
+        });
+
+        eventually(() -> {
+            long totalTime = metricsBackend.getTimerTotalTime("actor.mailbox.time");
+            assertTrue(totalTime > 0, "Total mailbox time should be greater than 0");
+        });
+    }
+
+    @Test
+    void testMultipleActorsHaveSeparateMailboxes() throws Exception {
+
+        // Create actors of different classes (to get separate gauges per class)
+        ActorRef actor1 = actorSystem.actorOf(Props.create(SlowActor.class), "actor-1");
+        ActorRef actor2 = actorSystem.actorOf(Props.create(FastActor.class), "actor-2");
+
+        // Send messages to each
+        actor1.tell(new TestMessage("msg1"), ActorRef.noSender());
+        actor1.tell(new TestMessage("msg2"), ActorRef.noSender());
+        actor2.tell(new TestMessage("msg3"), ActorRef.noSender());
+
+        // Wait for gauges to be registered
+        eventually(() -> {
+            int gaugeCount = metricsBackend.gaugeCount();
+            assertTrue(
+                    gaugeCount >= 2,
+                    String.format("Should have at least 2 mailbox gauges (one per actor class), got: %d", gaugeCount));
+        });
+    }
+
+    @Test
+    void testMailboxMetricsHaveActorClassTag() throws Exception {
+
+        // Create actor and send message
+        ActorRef actor = actorSystem.actorOf(Props.create(FastActor.class), "tagged-actor");
+        actor.tell(new TestMessage("test"), ActorRef.noSender());
+
+        eventually(() -> assertTrue(
+                metricsBackend.hasMetricWithTag("actor.mailbox.size", "actor.class"),
+                "Mailbox size gauge should have actor.class tag"));
+        eventually(() -> assertTrue(
+                metricsBackend.hasMetricWithTag("actor.mailbox.time", "actor.class"),
+                "Mailbox timer should have actor.class tag"));
+    }
+
+    @Test
+    void testMailboxOverflowIncrementsWhenBoundedMailboxFull() throws Exception {
+        // Use NonBlockingBoundedMailbox with capacity 2
+        Config overflowConfig = ConfigFactory.parseString("overflow-test-mailbox {\n"
+                        + "  mailbox-type = \"org.apache.pekko.dispatch.NonBlockingBoundedMailbox\"\n"
+                        + "  mailbox-capacity = 2\n"
+                        + "}")
+                .withFallback(ConfigFactory.load());
+
+        ActorSystem overflowSystem = ActorSystem.create("overflow-test-system", overflowConfig);
+
+        try {
+            MetricsAgent.setRegistry(metricsRegistry);
+
+            // Create slow actor with bounded mailbox (capacity 2)
+            ActorRef actor = overflowSystem.actorOf(
+                    Props.create(SlowActor.class).withMailbox("overflow-test-mailbox"), "overflow-actor");
+
+            // Send 5 messages - actor processes slowly, mailbox holds 2, rest overflow
+            for (int i = 0; i < 5; i++) {
+                actor.tell(new TestMessage("msg" + i), ActorRef.noSender());
+            }
+
+            eventually(() -> {
+                long overflowCount = (long) metricsBackend.getCounterValue("actor.mailbox.overflow");
+                assertTrue(
+                        overflowCount > 0,
+                        String.format(
+                                "Overflow counter should increment when bounded mailbox full, got: %d", overflowCount));
+            });
+        } finally {
+            overflowSystem.terminate();
+            Await.result(overflowSystem.whenTerminated(), Duration.apply(5, TimeUnit.SECONDS));
+        }
+    }
+
+    @Test
+    void testMailboxTimeHasMessageTypeTag() throws Exception {
+
+        // Create actor and send message
+        ActorRef actor = actorSystem.actorOf(Props.create(FastActor.class), "message-type-actor");
+        actor.tell(new TestMessage("test"), ActorRef.noSender());
+
+        eventually(() -> assertTrue(
+                metricsBackend.hasMetricWithTag("actor.mailbox.time", "message.type"),
+                "Mailbox timer should have message.type tag"));
+    }
+
+    // Test actors
+
+    public static class SlowActor extends AbstractActor {
+        @Override
+        public Receive createReceive() {
+            return receiveBuilder()
+                    .match(TestMessage.class, msg -> {
+                        // Simulate slow processing
+                        Thread.sleep(500);
+                    })
+                    .build();
+        }
+    }
+
+    public static class GatedActor extends AbstractActor {
+        static volatile CountDownLatch gate = new CountDownLatch(0);
+
+        public GatedActor() throws InterruptedException {
+            if (!gate.await(10, TimeUnit.SECONDS)) {
+                throw new IllegalStateException("gate was never opened");
+            }
+        }
+
+        @Override
+        public Receive createReceive() {
+            return receiveBuilder().match(TestMessage.class, msg -> {}).build();
+        }
+    }
+
+    public static class FastActor extends AbstractActor {
+        @Override
+        public Receive createReceive() {
+            return receiveBuilder()
+                    .match(TestMessage.class, msg -> {
+                        // Fast processing
+                    })
+                    .build();
+        }
+    }
+
+    // Test message
+    public static class TestMessage {
+        private final String value;
+
+        public TestMessage(String value) {
+            this.value = value;
+        }
+
+        public String getValue() {
+            return value;
+        }
+    }
+}

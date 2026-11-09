@@ -1,6 +1,6 @@
 plugins {
-	id("org.springframework.boot") version "2.7.0"
-	id("io.spring.dependency-management") version "1.1.7"
+	id("org.springframework.boot")
+	id("io.spring.dependency-management")
 }
 
 apply(plugin = "org.springframework.boot")
@@ -10,15 +10,10 @@ repositories {
 	mavenCentral()
 }
 
-dependencyManagement {
-	imports {
-		// pekko-serialization-jackson_3 require minimum 2.17.3 version of jackson
-		mavenBom("com.fasterxml.jackson:jackson-bom:2.17.3")
-	}
-}
-
 dependencies {
-	implementation(project(":core"))
+	implementation(project(":actor-spring-boot-starter-cluster"))
+	// Uses Pekko directly through unwrap(...): declare it, the starter does not export it.
+	implementation("org.apache.pekko:pekko-actor-typed_3:${property("pekkoVersion")}")
 
 	implementation("org.springframework.boot:spring-boot-starter")
 	implementation("org.springframework.boot:spring-boot-starter-webflux")

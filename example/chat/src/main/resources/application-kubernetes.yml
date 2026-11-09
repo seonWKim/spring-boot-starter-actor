@@ -4,8 +4,7 @@
 
 spring:
   actor:
-    pekko:
-      cluster:
-        # Don't use hardcoded seed nodes in Kubernetes
-        # Cluster Bootstrap will be configured via ConfigMap
-        seed-nodes: []
+    cluster:
+      # Don't use hardcoded seed nodes in Kubernetes
+      # Cluster Bootstrap will be configured via ConfigMap
+      seed-nodes: []

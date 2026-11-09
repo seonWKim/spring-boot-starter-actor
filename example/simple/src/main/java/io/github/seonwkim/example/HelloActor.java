@@ -1,12 +1,11 @@
 package io.github.seonwkim.example;
 
-import io.github.seonwkim.core.*;
+import io.github.seonwkim.actor.*;
+import io.github.seonwkim.actor.PostStop;
+import io.github.seonwkim.actor.PreRestart;
+import io.github.seonwkim.actor.SpringActorBehavior;
+import io.github.seonwkim.actor.SupervisionStrategy;
 import java.time.Duration;
-import org.apache.pekko.actor.typed.Behavior;
-import org.apache.pekko.actor.typed.PostStop;
-import org.apache.pekko.actor.typed.PreRestart;
-import org.apache.pekko.actor.typed.SupervisorStrategy;
-import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.springframework.stereotype.Component;
 
 /**
@@ -57,7 +56,7 @@ public class HelloActor implements SpringActor<HelloActor.Command> {
                 .onMessage(TriggerFailure.class, HelloActorBehavior::onTriggerFailure)
                 .onSignal(PreRestart.class, HelloActorBehavior::onPreRestart)
                 .onSignal(PostStop.class, HelloActorBehavior::onPostStop)
-                .withSupervisionStrategy(SupervisorStrategy.restart().withLimit(10, Duration.ofMinutes(1)))
+                .withSupervisionStrategy(SupervisionStrategy.restart().withLimit(10, Duration.ofMinutes(1)))
                 .build();
     }
 
@@ -86,14 +85,14 @@ public class HelloActor implements SpringActor<HelloActor.Command> {
          * @param msg The SayHello message
          * @return The next behavior (same in this case)
          */
-        private Behavior<Command> onSayHello(SayHello msg) {
+        private SpringActorBehavior<Command> onSayHello(SayHello msg) {
             // Log the received message
             ctx.getLog().info("Received SayHello for id={}", actorContext.actorId());
 
             // Send a response back to the caller
             msg.reply("Hello from actor " + actorContext.actorId());
 
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
 
         /**
@@ -103,7 +102,7 @@ public class HelloActor implements SpringActor<HelloActor.Command> {
          * @param msg The TriggerFailure message
          * @return Never returns (throws exception)
          */
-        private Behavior<Command> onTriggerFailure(TriggerFailure msg) {
+        private SpringActorBehavior<Command> onTriggerFailure(TriggerFailure msg) {
             ctx.getLog().warn("Triggering failure for actor {}", actorContext.actorId());
             // Reply before throwing to confirm the command was received
             msg.reply("Triggering failure - actor will restart");
@@ -118,14 +117,14 @@ public class HelloActor implements SpringActor<HelloActor.Command> {
          * @param signal The PreRestart signal
          * @return The same behavior (actor will be restarted)
          */
-        private Behavior<Command> onPreRestart(PreRestart signal) {
+        private SpringActorBehavior<Command> onPreRestart(PreRestart signal) {
             ctx.getLog().warn("Actor {} is being restarted due to failure", actorContext.actorId());
 
             // You can perform cleanup here before the actor restarts
             // For example: closing connections, releasing resources, etc.
             // Note: State will be lost unless you implement state persistence
 
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
 
         /**
@@ -135,14 +134,14 @@ public class HelloActor implements SpringActor<HelloActor.Command> {
          * @param signal The PostStop signal
          * @return The same behavior
          */
-        private Behavior<Command> onPostStop(PostStop signal) {
+        private SpringActorBehavior<Command> onPostStop(PostStop signal) {
             ctx.getLog().info("Actor {} is stopping. Performing cleanup...", actorContext.actorId());
 
             // Perform cleanup here
             // For example: close database connections, release file handles,
             // flush buffers, notify other systems, etc.
 
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
     }
 }

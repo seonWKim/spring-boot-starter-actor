@@ -56,8 +56,8 @@ class RateLimiterTest {
         long start = System.nanoTime();
         List<CompletableFuture<AgentAnswer>> answers = new ArrayList<>();
         for (int i = 0; i < calls; i++) {
-            answers.add(agents.chat("limited-" + i, "hello", Duration.ofSeconds(20))
-                    .toCompletableFuture());
+            answers.add(
+                    agents.chat("limited-" + i, "hello", Duration.ofSeconds(20)).toCompletableFuture());
         }
         CompletableFuture.allOf(answers.toArray(new CompletableFuture[0])).get(30, TimeUnit.SECONDS);
 

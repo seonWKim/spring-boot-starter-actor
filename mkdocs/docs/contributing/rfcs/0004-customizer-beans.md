@@ -9,7 +9,7 @@ Proposed
 ## Problem
 
 To change one part of the actor system, an app must replace the whole `SpringActorSystemBuilder` bean
-(built in [`ActorConfiguration.actorSystemBuilder`](https://github.com/seonWKim/spring-boot-starter-actor/blob/main/core/src/main/java/io/github/seonwkim/core/ActorConfiguration.java))
+(built in [`ActorConfiguration.actorSystemBuilder`](https://github.com/seonWKim/actor-spring-boot-starter/blob/main/core/src/main/java/io/github/seonwkim/core/ActorConfiguration.java))
 and repeat what the starter does: read `ActorProperties`, set the root guardian and the event publisher.
 Spring Boot, Boot's Kafka support, Resilience4j and Temporal let an app add a `*Customizer` bean instead.
 

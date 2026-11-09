@@ -1,13 +1,11 @@
 package io.github.seonwkim.example.counter;
 
-import io.github.seonwkim.core.AskCommand;
-import io.github.seonwkim.core.serialization.JsonSerializable;
-import io.github.seonwkim.core.shard.SpringShardedActor;
-import io.github.seonwkim.core.shard.SpringShardedActorBehavior;
-import io.github.seonwkim.core.shard.SpringShardedActorContext;
-import org.apache.pekko.actor.typed.Behavior;
-import org.apache.pekko.actor.typed.javadsl.Behaviors;
-import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
+import io.github.seonwkim.actor.AskCommand;
+import io.github.seonwkim.actor.SpringActorBehavior;
+import io.github.seonwkim.actor.serialization.JsonSerializable;
+import io.github.seonwkim.actor.shard.ShardedEntityType;
+import io.github.seonwkim.actor.shard.SpringShardedActor;
+import io.github.seonwkim.actor.shard.SpringShardedActorContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -33,7 +31,7 @@ public class CounterActor implements SpringShardedActor<CounterActor.Command> {
     private static final Logger logger = LoggerFactory.getLogger(CounterActor.class);
 
     // Define a type key for this actor type
-    public static final EntityTypeKey<Command> TYPE_KEY = EntityTypeKey.create(Command.class, "CounterActor");
+    public static final ShardedEntityType<Command> TYPE_KEY = ShardedEntityType.of(Command.class, "CounterActor");
 
     /** Base interface for all commands that can be sent to the counter actor. */
     public interface Command extends JsonSerializable {}
@@ -49,13 +47,13 @@ public class CounterActor implements SpringShardedActor<CounterActor.Command> {
     }
 
     @Override
-    public EntityTypeKey<Command> typeKey() {
+    public ShardedEntityType<Command> entityType() {
         return TYPE_KEY;
     }
 
     @Override
-    public SpringShardedActorBehavior<Command> create(SpringShardedActorContext<Command> ctx) {
-        return SpringShardedActorBehavior.builder(Command.class, ctx)
+    public SpringActorBehavior<Command> create(SpringShardedActorContext<Command> ctx) {
+        return SpringActorBehavior.builder(Command.class, ctx)
                 .withState(context -> new CounterActorBehavior(ctx.getEntityId()))
                 .onMessage(Increment.class, CounterActorBehavior::onIncrement)
                 .onMessage(GetValue.class, CounterActorBehavior::onGetValue)
@@ -84,11 +82,11 @@ public class CounterActor implements SpringShardedActor<CounterActor.Command> {
          * @param msg The Increment message
          * @return The next behavior (same in this case)
          */
-        private Behavior<Command> onIncrement(Increment msg) {
+        private SpringActorBehavior<Command> onIncrement(Increment msg) {
             logger.debug("Incrementing counter with ID: {}", counterId);
             value++;
             logger.debug("Counter with ID: {} incremented to: {}", counterId, value);
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
 
         /**
@@ -97,10 +95,10 @@ public class CounterActor implements SpringShardedActor<CounterActor.Command> {
          * @param msg The GetValue message
          * @return The next behavior (same in this case)
          */
-        private Behavior<Command> onGetValue(GetValue msg) {
+        private SpringActorBehavior<Command> onGetValue(GetValue msg) {
             logger.debug("Getting value for counter with ID: {}", counterId);
             msg.reply(value);
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
     }
 }

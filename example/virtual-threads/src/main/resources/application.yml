@@ -2,15 +2,19 @@ spring:
   application:
     name: virtual-threads-example
   actor:
+    name: virtual-threads-example
+    provider: local
     pekko:
-      name: virtual-threads-example
       actor:
-        provider: local
         allow-java-serialization: off
         warn-about-java-serializer-usage: on
-      # Custom dispatcher using virtual threads
-    virtual-threads-dispatcher:
-      executor: virtual-thread-executor
+    # withBlockingDispatcher() runs on virtual threads
+    virtual-threads:
+      enabled: true
+    # A named dispatcher on virtual threads: withDispatcherFromConfig("virtual-threads-dispatcher")
+    dispatchers:
+      virtual-threads-dispatcher:
+        virtual: true
 
 server:
   port: 8080

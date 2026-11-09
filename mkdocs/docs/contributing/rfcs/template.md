@@ -25,10 +25,8 @@ Each other option, and why we did not pick it. "Do nothing" is always one of the
 
 ## Risks and rollout
 
-What can break, for whom, and how we ship it: default on or off, deprecation steps, which release,
-Boot 2 (`core`) and Boot 3 (`core-boot3`) differences.
+What can break, for whom, and how we ship it: default on or off, deprecation steps, which release.
 
 ## Files it would change
 
-The files the implementation adds or edits, one per line. `core-boot3` sources are generated from
-`core` by `syncAllBoot3Sources`; list a `core-boot3` file only when it differs.
+The files the implementation adds or edits, one per line.

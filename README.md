@@ -4,33 +4,35 @@
   <img src="mkdocs/docs/logo.png" alt="Library Logo" />
 </td>
 <td>
-  <h2>Spring Boot Starter Actor</h2>
+  <h2>Actor Spring Boot Starter</h2>
   <p>Bring the power of the actor model to your Spring Boot applications with <a href="https://pekko.apache.org/">Pekko</a> (an open-source fork of Akka).</p>
 </td>
 </tr>
 </table>
 
 [![Discord](https://img.shields.io/badge/Discord-Join%20Us-7289DA?style=flat&logo=discord&logoColor=white)](https://discord.com/channels/1439734161614045205/1439734162100846655)
-[![Documentation](https://img.shields.io/badge/docs-latest-blue)](https://seonwkim.github.io/spring-boot-starter-actor/)
+[![Documentation](https://img.shields.io/badge/docs-latest-blue)](https://seonwkim.github.io/actor-spring-boot-starter/)
 
-## Why spring-boot-starter-actor?
+## Why actor-spring-boot-starter?
 
 I'm a Java developer, and I love using the actor model. However, Spring is everywhere in production. The goal of this project is to help Spring Boot projects easily integrate actor models with a great developer experience.
 
 **Key Features:**
 
-- Auto-configure necessary actor components (e.g., ActorSystem) within Spring Boot's context
+- Auto-configure the actor system within Spring Boot's context, with typed `spring.actor.*` properties
 - Dependency injection for actors
-- Simplify cluster and sharding
-- Built-in metrics using ByteBuddy to intercept actors and collect metrics
+- Simple cluster, sharding, singletons and cluster events as Spring `ApplicationEvent`s
+- Actors on Spring `Executor` beans, and a Spring lifecycle (graceful shutdown, restart on a downed node)
+- Metrics for actors and mailboxes (`actor-metrics`)
+- Pekko stays an implementation detail: the API you compile against has no Pekko types
 
 <div style="border: 2px solid #ccc; display: inline-block; border-radius: 8px; overflow: hidden; margin: 20px 0;">
   <img src="mkdocs/docs/chat.gif" alt="Live Demo - Distributed Chat Application"/>
 </div>
 
-With spring-boot-starter-actor, you can build stateful distributed systems without third-party middleware (e.g., Redis, Kafka).
+With actor-spring-boot-starter, you can build stateful distributed systems without third-party middleware (e.g., Redis, Kafka).
 
-Building AI agents? Each agent can be one sharded actor that keeps its own conversation, calls the model without blocking, and restarts under supervision. See the [AI Agents guide](https://seonwkim.github.io/spring-boot-starter-actor/guides/ai-agents/) and its runnable example in [`example/agent`](example/agent).
+Building AI agents? Each agent can be one sharded actor that keeps its own conversation, calls the model without blocking, and restarts under supervision. See the [AI Agents guide](https://seonwkim.github.io/actor-spring-boot-starter/guides/ai-agents/) and its runnable example in [`example/agent`](example/agent).
 
 **Architecture** 
 
@@ -75,8 +77,10 @@ graph TB
 
 ### Prerequisites
 
-- Java 11 or higher
-- Spring Boot 2.x or 3.x
+- Java 21 or higher
+- Spring Boot 3.5 or higher
+
+Spring Boot 2 users stay on the 0.x line. See [CHANGELOG.md](CHANGELOG.md) for migrating from 0.x.
 
 ### Installation
 
@@ -85,53 +89,23 @@ Add the dependency to your project:
 **Gradle:**
 
 ```gradle
-dependencyManagement {
-    imports {
-        // Pekko requires Jackson 2.17.3+
-        mavenBom("com.fasterxml.jackson:jackson-bom:2.17.3")
-    }
-}
-
-// Spring Boot 2.7.x
-implementation 'io.github.seonwkim:spring-boot-starter-actor:0.3.0'
-
-// Spring Boot 3.2.x
-implementation 'io.github.seonwkim:spring-boot-starter-actor_3:0.3.0'
+implementation 'io.github.seonwkim:actor-spring-boot-starter:1.0.0'
 ```
 
 **Maven:**
 
 ```xml
-
-<dependencyManagement>
-    <dependencies>
-        <dependency>
-            <groupId>com.fasterxml.jackson</groupId>
-            <artifactId>jackson-bom</artifactId>
-            <version>2.17.3</version>
-            <type>pom</type>
-            <scope>import</scope>
-        </dependency>
-    </dependencies>
-</dependencyManagement>
-
-        <!-- Spring Boot 2.7.x -->
 <dependency>
-<groupId>io.github.seonwkim</groupId>
-<artifactId>spring-boot-starter-actor</artifactId>
-<version>0.3.0</version>
-</dependency>
-
-        <!-- Spring Boot 3.2.x -->
-<dependency>
-<groupId>io.github.seonwkim</groupId>
-<artifactId>spring-boot-starter-actor_3</artifactId>
-<version>0.3.0</version>
+    <groupId>io.github.seonwkim</groupId>
+    <artifactId>actor-spring-boot-starter</artifactId>
+    <version>1.0.0</version>
 </dependency>
 ```
 
-Latest
-versions: [spring-boot-starter-actor](https://central.sonatype.com/artifact/io.github.seonwkim/spring-boot-starter-actor) | [spring-boot-starter-actor_3](https://central.sonatype.com/artifact/io.github.seonwkim/spring-boot-starter-actor_3)
+For cluster features (sharding, singletons, cluster events, Pekko Management), depend on
+`io.github.seonwkim:actor-spring-boot-starter-cluster` instead.
+
+Spring Boot's dependency management already provides the Jackson version Pekko needs (2.18+), so no `jackson-bom` override is required.
 
 ### Enable Actor Support
 
@@ -173,7 +147,7 @@ public class GreeterActor implements SpringActor<GreeterActor.Command> {
         return SpringActorBehavior.builder(Command.class, actorContext)
                 .onMessage(Greet.class, (ctx, msg) -> {
                     msg.reply("Hello, " + msg.name + "!");
-                    return Behaviors.same();
+                    return SpringActorBehavior.same();
                 })
                 .build();
     }
@@ -303,7 +277,7 @@ public class OrderActor implements SpringActor<OrderActor.Command> {
                 .onMessage(ProcessOrder.class, (ctx, msg) -> {
                     Order order = orderRepository.findById(msg.orderId);
                     // Process order...
-                    return Behaviors.same();
+                    return SpringActorBehavior.same();
                 })
                 .build();
     }
@@ -314,31 +288,33 @@ public class OrderActor implements SpringActor<OrderActor.Command> {
 
 ### Local Mode (Default)
 
+Nothing to configure. Name the actor system if you like:
+
 ```yaml
 spring:
   actor:
-    pekko:
-      actor:
-        provider: local
+    name: orders
 ```
 
 ### Cluster Mode
 
+With `actor-spring-boot-starter-cluster`:
+
 ```yaml
 spring:
   actor:
-    pekko:
-      actor:
-        provider: cluster
-      remote:
-        artery:
-          canonical:
-            hostname: "127.0.0.1"
-            port: 2551
-      cluster:
-        seed-nodes:
-          - "pekko://MyActorSystem@127.0.0.1:2551"
+    name: orders
+    provider: cluster
+    remote:
+      hostname: 127.0.0.1
+      port: 2551
+    cluster:
+      seed-nodes:
+        - pekko://orders@127.0.0.1:2551
 ```
+
+Every other Pekko setting can be set raw under `spring.actor.pekko.*` (for example
+`spring.actor.pekko.loglevel: DEBUG`). See the [configuration guide](https://seonwkim.github.io/actor-spring-boot-starter/guides/configuration/).
 
 ## Advanced Features
 
@@ -353,8 +329,8 @@ For distributed systems, use sharded actors that are automatically distributed a
 @Component
 public class UserSessionActor implements SpringShardedActor<UserSessionActor.Command> {
 
-    public static final EntityTypeKey<Command> TYPE_KEY =
-            EntityTypeKey.create(Command.class, "UserSession");
+    public static final ShardedEntityType<Command> TYPE =
+            ShardedEntityType.of(Command.class, "UserSession");
 
     public interface Command extends JsonSerializable {
     }
@@ -368,35 +344,35 @@ public class UserSessionActor implements SpringShardedActor<UserSessionActor.Com
     }
 
     @Override
-    public EntityTypeKey<Command> typeKey() {
-        return TYPE_KEY;
+    public ShardedEntityType<Command> entityType() {
+        return TYPE;
     }
 
     @Override
-    public SpringShardedActorBehavior<Command> create(SpringShardedActorContext<Command> ctx) {
-        return SpringShardedActorBehavior.builder(Command.class, ctx)
-                .withState(entityCtx -> new UserSessionBehavior(ctx.getEntityId()))
-                .onMessage(UpdateActivity.class, UserSessionBehavior::onUpdateActivity)
-                .onMessage(GetActivity.class, UserSessionBehavior::onGetActivity)
+    public SpringActorBehavior<Command> create(SpringShardedActorContext<Command> ctx) {
+        return SpringActorBehavior.builder(Command.class, ctx)
+                .withState(behaviorCtx -> new UserSession(ctx.getEntityId()))
+                .onMessage(UpdateActivity.class, UserSession::onUpdateActivity)
+                .onMessage(GetActivity.class, UserSession::onGetActivity)
                 .build();
     }
 
-    private static class UserSessionBehavior {
+    private static class UserSession {
         private final String userId;
         private String activity = "idle";
 
-        UserSessionBehavior(String userId) {
+        UserSession(String userId) {
             this.userId = userId;
         }
 
-        Behavior<Command> onUpdateActivity(UpdateActivity msg) {
-            this.activity = msg.activity;
-            return Behaviors.same();
+        SpringActorBehavior<Command> onUpdateActivity(UpdateActivity msg) {
+            this.activity = msg.activity();
+            return SpringActorBehavior.same();
         }
 
-        Behavior<Command> onGetActivity(GetActivity msg) {
+        SpringActorBehavior<Command> onGetActivity(GetActivity msg) {
             msg.reply(activity);
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
     }
 }
@@ -437,16 +413,16 @@ Build self-healing systems with supervision strategies:
 
 ```java
 // Restart on failure (default)
-SupervisorStrategy.restart()
+SupervisionStrategy.restart()
 
 // Restart with limit (e.g., 3 times within 1 minute)
-SupervisorStrategy.restart().withLimit(3, Duration.ofMinutes(1))
+SupervisionStrategy.restart().withLimit(3, Duration.ofMinutes(1))
 
 // Stop on failure
-SupervisorStrategy.stop()
+SupervisionStrategy.stop()
 
 // Resume and ignore failure
-SupervisorStrategy.resume()
+SupervisionStrategy.resume()
 ```
 
 **Spawn Actors with Supervision:**
@@ -455,7 +431,7 @@ SupervisorStrategy.resume()
 // Top-level actor
 actorSystem.actor(WorkerActor.class)
     .withId("worker-1")
-    .withSupervisionStrategy(SupervisorStrategy.restart().withLimit(3, Duration.ofMinutes(1)))
+    .withSupervisionStrategy(SupervisionStrategy.restart().withLimit(3, Duration.ofMinutes(1)))
     .spawn();
 ```
 
@@ -473,15 +449,13 @@ public class SupervisorActor implements SpringActor<SupervisorActor.Command> {
     public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
         return SpringActorBehavior.builder(Command.class, actorContext)
                 .onMessage(DelegateWork.class, (ctx, msg) -> {
-                    SpringActorHandle<Command> self = new SpringActorHandle<>(ctx.getSystem().scheduler(), ctx.getSelf());
-
                     // Spawn supervised child
-                    self.child(WorkerActor.class)
+                    ctx.getSelf().child(WorkerActor.class)
                             .withId("worker-1")
-                            .withSupervisionStrategy(SupervisorStrategy.restart())
+                            .withSupervisionStrategy(SupervisionStrategy.restart())
                             .spawn();
 
-                    return Behaviors.same();
+                    return SpringActorBehavior.same();
                 })
                 .build();
     }
@@ -530,12 +504,12 @@ $ sh cluster-stop.sh
 
 ## Monitoring
 
-WIP
+Add `io.github.seonwkim:actor-metrics` for actor, mailbox and message metrics through Micrometer.
 
 ## Documentation
 
 Full
-documentation: [https://seonwkim.github.io/spring-boot-starter-actor/](https://seonwkim.github.io/spring-boot-starter-actor/)
+documentation: [https://seonwkim.github.io/actor-spring-boot-starter/](https://seonwkim.github.io/actor-spring-boot-starter/)
 
 ## Community & Support
 
@@ -543,9 +517,9 @@ Join our community to ask questions, share ideas, and get help:
 
 - **Discord**: [Join our Discord server](https://discord.com/channels/1439734161614045205/1439734162100846655) -
   Real-time chat with the community
-- **Issues**: [GitHub Issues](https://github.com/seonwkim/spring-boot-starter-actor/issues) - Bug reports and feature
+- **Issues**: [GitHub Issues](https://github.com/seonWKim/actor-spring-boot-starter/issues) - Bug reports and feature
   requests
-- **Discussions**: [GitHub Discussions](https://github.com/seonwkim/spring-boot-starter-actor/discussions) - Q&A and
+- **Discussions**: [GitHub Discussions](https://github.com/seonWKim/actor-spring-boot-starter/discussions) - Q&A and
   general discussions
 
 ## Contributing
@@ -557,7 +531,7 @@ Contributions welcome! Please:
 3. Run `./gradlew spotlessApply` for formatting
 4. Ensure tests pass
 
-See [roadmap/ROADMAP.md](roadmap/ROADMAP.md) for the implementation roadmap.
+See [ARCHITECTURE.md](ARCHITECTURE.md) for how the modules fit together and [AGENTS.md](AGENTS.md) for the testing rules.
 
 ## License
 

@@ -1,0 +1,43 @@
+plugins {
+    id("io.spring.dependency-management")
+}
+
+val pekkoVersion: String by project
+val pekkoManagementVersion: String by project
+val springBootVersion: String by project
+
+dependencyManagement {
+    imports {
+        mavenBom("org.springframework.boot:spring-boot-dependencies:${springBootVersion}")
+    }
+}
+
+dependencies {
+    api(project(":actor-api"))
+    implementation(project(":actor-core"))
+    // Cluster and management configurations apply only when these are on the application's classpath.
+    compileOnly(project(":actor-cluster"))
+    compileOnly("org.apache.pekko:pekko-management-cluster-bootstrap_3:${pekkoManagementVersion}")
+    compileOnly("org.apache.pekko:pekko-management-cluster-http_3:${pekkoManagementVersion}")
+
+    implementation("org.apache.pekko:pekko-actor-typed_3:$pekkoVersion")
+
+    implementation("com.google.code.findbugs:jsr305")
+    implementation("org.springframework.boot:spring-boot-starter")
+
+    // Generates META-INF/spring-configuration-metadata.json from @ConfigurationProperties classes
+    annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
+
+    testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("com.fasterxml.jackson.core:jackson-databind")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+}
+
+// The configuration processor merges META-INF/additional-spring-configuration-metadata.json
+// from the processed resources, so resources must be processed before compiling.
+tasks.compileJava {
+    inputs.files(tasks.processResources)
+    // An incremental compile regenerates the metadata from the changed classes only, dropping
+    // the keys of the others. This module is small: always compile it whole.
+    options.isIncremental = false
+}

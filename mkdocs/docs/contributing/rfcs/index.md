@@ -5,9 +5,9 @@ from a "Change" row in the [Spring conventions comparison](../spring-conventions
 exactly one RFC.
 
 Items already tracked by an issue do not get an RFC:
-[#97](https://github.com/seonWKim/spring-boot-starter-actor/issues/97) (configuration properties),
-[#99](https://github.com/seonWKim/spring-boot-starter-actor/issues/99) (shutdown) and
-[#100](https://github.com/seonWKim/spring-boot-starter-actor/issues/100) (health).
+[#97](https://github.com/seonWKim/actor-spring-boot-starter/issues/97) (configuration properties),
+[#99](https://github.com/seonWKim/actor-spring-boot-starter/issues/99) (shutdown) and
+[#100](https://github.com/seonWKim/actor-spring-boot-starter/issues/100) (health).
 
 To write a new RFC, copy the [template](template.md).
 

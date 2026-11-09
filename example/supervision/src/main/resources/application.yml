@@ -3,10 +3,9 @@ spring:
     name: actor-supervision-example
 
   actor:
+    provider: local
     pekko:
       loglevel: INFO
-      actor:
-        provider: local
 
 server:
   port: 8080

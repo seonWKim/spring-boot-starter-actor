@@ -21,7 +21,7 @@ property for this. The starter already has two narrower switches: `spring.actor.
    to the core auto-configuration and to every auto-configuration that depends on `SpringActorSystem`
    (management, metrics, endpoint).
 2. Document the key in the configuration metadata. The metadata file itself is part of
-   [#97](https://github.com/seonWKim/spring-boot-starter-actor/issues/97); this RFC only adds one key to it.
+   [#97](https://github.com/seonWKim/actor-spring-boot-starter/issues/97); this RFC only adds one key to it.
 3. Keep the two narrower switches as they are.
 
 Example, a batch job that shares the app's jar but needs no actors:

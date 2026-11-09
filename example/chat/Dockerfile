@@ -1,5 +1,5 @@
 # Use OpenJDK 17 as base image
-FROM eclipse-temurin:17-jre-jammy
+FROM eclipse-temurin:21-jre-jammy
 
 # Set working directory
 WORKDIR /app
@@ -31,9 +31,9 @@ echo "  SEED_NODES=${SEED_NODES}"
 echo "  SERVER_PORT=${SERVER_PORT}"
 
 exec java $JAVA_OPTS -jar app.jar \
-  --spring.actor.pekko.remote.artery.canonical.hostname=${PEKKO_HOSTNAME} \
-  --spring.actor.pekko.remote.artery.canonical.port=${PEKKO_PORT} \
-  --spring.actor.pekko.cluster.seed-nodes=${SEED_NODES} \
+  --spring.actor.remote.hostname=${PEKKO_HOSTNAME} \
+  --spring.actor.remote.port=${PEKKO_PORT} \
+  --spring.actor.cluster.seed-nodes=${SEED_NODES} \
   --server.port=${SERVER_PORT}
 EOF
 

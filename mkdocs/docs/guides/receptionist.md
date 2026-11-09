@@ -1,12 +1,12 @@
 # Receptionist (Service Discovery)
 
-The receptionist lets you find actors by a **service key** instead of by name or path. Actors register under a key; other code looks the key up once or subscribes to changes. It wraps Pekko's typed [Receptionist](https://pekko.apache.org/docs/pekko/current/typed/actor-discovery.html).
+The receptionist lets you find actors by a **service name** instead of by actor id or path. Actors register under a name; other code looks the name up once or subscribes to changes. It wraps Pekko's typed [Receptionist](https://pekko.apache.org/docs/pekko/current/typed/actor-discovery.html).
 
 ## Overview
 
 **Key Features:**
 
-- Register any actor under a typed `ServiceKey`
+- Register any actor under a typed `ServiceName`
 - One-time lookup that returns `SpringActorHandle` refs
 - Subscriptions that are called on every change and can be cancelled
 - Actors can register themselves from behavior setup
@@ -18,13 +18,13 @@ The receptionist lets you find actors by a **service key** instead of by name or
 - Reacting when instances of a service come and go
 - Discovering actors that live on other cluster nodes
 
-## Service Keys
+## Service Names
 
-A key combines a message type and an id. Keys with the same type and id are equal, on every node:
+A service name combines a message type and an id. Names with the same type and id are equal, on every node:
 
 ```java
-public static final ServiceKey<WorkerCommand> WORKERS =
-        SpringReceptionist.serviceKey(WorkerCommand.class, "workers");
+public static final ServiceName<WorkerCommand> WORKERS =
+        ServiceName.of(WorkerCommand.class, "workers");
 ```
 
 In cluster mode the messages must be serializable (`JsonSerializable` or `CborSerializable`), as for any remote message.
@@ -68,9 +68,10 @@ public class JobDispatcher {
 }
 ```
 
-`find(key)` and `find(key, timeout)` return a `CompletionStage<Set<SpringActorHandle<T>>>`. The set may be empty. Each handle supports `tell` and `ask` like any other `SpringActorHandle`.
+`find(name)` and `find(name, timeout)` return a `CompletionStage<Set<SpringActorHandle<T>>>`. The set may be empty. Each handle supports `tell` and `ask` like any other `SpringActorHandle`.
 
-A stopped actor is removed from the listing automatically. Use `deregister(key, handle)` to remove a running actor.
+A stopped actor is removed from the listing automatically. Use `deregister(name, handle)` to remove a running actor. `register` and `deregister` take any
+`SpringActorRef`: a handle, or `ctx.getSelf()` inside an actor.
 
 ## Registering from Behavior Setup
 
@@ -126,9 +127,9 @@ Listings from a node that leaves the cluster are removed once the node is remove
 
 | Method | Description |
 |---|---|
-| `SpringReceptionist.serviceKey(type, id)` | Creates a service key |
-| `register(key, handle)` | Registers an actor under a key |
-| `deregister(key, handle)` | Removes an actor from a key |
-| `find(key)` / `find(key, timeout)` | One-time lookup, returns `SpringActorHandle` refs |
-| `subscribe(key, listener)` | Calls the listener on every change; returns a cancellable subscription |
-| `SpringBehaviorContext.registerWithReceptionist(key)` | Registers the current actor from behavior setup |
+| `ServiceName.of(type, id)` | Creates a service name |
+| `register(name, ref)` | Registers an actor under a name |
+| `deregister(name, ref)` | Removes an actor from a name |
+| `find(name)` / `find(name, timeout)` | One-time lookup, returns `SpringActorHandle` refs |
+| `subscribe(name, listener)` | Calls the listener on every change; returns a cancellable subscription |
+| `SpringBehaviorContext.registerWithReceptionist(name)` | Registers the current actor from behavior setup |

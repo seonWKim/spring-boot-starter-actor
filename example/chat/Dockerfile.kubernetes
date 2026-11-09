@@ -2,7 +2,7 @@
 # This Dockerfile is optimized for Kubernetes with Cluster Bootstrap
 # Uses Spring profiles and ConfigMap for configuration
 
-FROM eclipse-temurin:17-jre-jammy
+FROM eclipse-temurin:21-jre-jammy
 
 WORKDIR /app
 
@@ -20,5 +20,6 @@ USER appuser
 EXPOSE 8080 8558 2551
 
 # Run with kubernetes profile
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# JAVA_OPTS (set in the Deployment) goes to the JVM; the arguments after the image go to Spring.
+ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar app.jar \"$@\"", "--"]
 CMD ["--spring.profiles.active=kubernetes"]

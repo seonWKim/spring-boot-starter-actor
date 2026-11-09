@@ -1,7 +1,7 @@
 package io.github.seonwkim.example.agent;
 
-import io.github.seonwkim.core.SpringActorHandle;
-import io.github.seonwkim.core.SpringActorSystem;
+import io.github.seonwkim.actor.SpringActorHandle;
+import io.github.seonwkim.actor.SpringActorSystem;
 import io.github.seonwkim.example.agent.approval.ApprovalActor;
 import io.github.seonwkim.example.agent.ratelimit.RateLimiterActor;
 import org.apache.pekko.cluster.typed.Cluster;
@@ -32,7 +32,7 @@ public class AgentRuntime {
         this.approvals =
                 actorSystem.actor(ApprovalActor.class).withId("approvals").spawnAndWait();
 
-        Cluster cluster = actorSystem.getCluster();
+        Cluster cluster = actorSystem.unwrap(Cluster.class);
         if (properties.isSelfJoin() && cluster != null) {
             cluster.manager().tell(Join.create(cluster.selfMember().address()));
         }

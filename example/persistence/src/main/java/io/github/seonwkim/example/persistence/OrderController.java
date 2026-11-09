@@ -1,6 +1,6 @@
 package io.github.seonwkim.example.persistence;
 
-import io.github.seonwkim.core.SpringActorSystem;
+import io.github.seonwkim.actor.SpringActorSystem;
 import io.github.seonwkim.example.persistence.eventsourcing.EventSourcedOrderActor;
 import io.github.seonwkim.example.persistence.snapshot.SnapshotOrderActor;
 import java.time.Duration;

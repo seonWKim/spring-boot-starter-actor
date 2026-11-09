@@ -2,17 +2,17 @@ package io.github.seonwkim.example.agent;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.github.seonwkim.core.AskCommand;
-import io.github.seonwkim.core.serialization.JsonSerializable;
-import io.github.seonwkim.core.shard.SpringShardedActor;
-import io.github.seonwkim.core.shard.SpringShardedActorBehavior;
-import io.github.seonwkim.core.shard.SpringShardedActorContext;
+import io.github.seonwkim.actor.AskCommand;
+import io.github.seonwkim.actor.SpringActorBehavior;
+import io.github.seonwkim.actor.serialization.JsonSerializable;
+import io.github.seonwkim.actor.shard.ShardedEntityType;
+import io.github.seonwkim.actor.shard.SpringShardedActor;
+import io.github.seonwkim.actor.shard.SpringShardedActorContext;
 import io.github.seonwkim.example.agent.llm.LlmClient;
 import io.github.seonwkim.example.agent.persistence.AgentSnapshotStore;
 import io.github.seonwkim.example.agent.tool.ToolRegistry;
 import org.apache.pekko.actor.typed.ActorRef;
-import org.apache.pekko.actor.typed.javadsl.Behaviors;
-import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
+import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.springframework.stereotype.Component;
 
 // --8<-- [start:agent-actor]
@@ -27,7 +27,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class AgentActor implements SpringShardedActor<AgentActor.Command> {
 
-    public static final EntityTypeKey<Command> TYPE_KEY = EntityTypeKey.create(Command.class, "Agent");
+    public static final ShardedEntityType<Command> TYPE_KEY = ShardedEntityType.of(Command.class, "Agent");
 
     /** Commands may cross nodes, so they are JSON serializable. */
     public interface Command extends AgentBrain.Message, JsonSerializable {}
@@ -63,32 +63,33 @@ public class AgentActor implements SpringShardedActor<AgentActor.Command> {
                 llm,
                 tools,
                 snapshots,
-                runtime.rateLimiter().getUnderlying(),
-                runtime.approvals().getUnderlying(),
+                runtime.rateLimiter().unwrap(ActorRef.class),
+                runtime.approvals().unwrap(ActorRef.class),
                 properties.getApprovalTimeout(),
                 properties.getMaxToolSteps());
     }
 
     @Override
-    public EntityTypeKey<Command> typeKey() {
+    public ShardedEntityType<Command> entityType() {
         return TYPE_KEY;
     }
 
     @Override
-    public SpringShardedActorBehavior<Command> create(SpringShardedActorContext<Command> ctx) {
+    public SpringActorBehavior<Command> create(SpringShardedActorContext<Command> ctx) {
         String agentId = ctx.getEntityId();
-        return SpringShardedActorBehavior.builder(Command.class, ctx)
+        return SpringActorBehavior.builder(Command.class, ctx)
                 .withState(behaviorCtx -> {
-                    ActorRef<AgentBrain.Message> brain =
-                            behaviorCtx.spawn(AgentBrain.create(agentId, dependencies), "brain");
+                    ActorRef<AgentBrain.Message> brain = behaviorCtx
+                            .unwrap(ActorContext.class)
+                            .spawn(AgentBrain.create(agentId, dependencies), "brain");
                     // If the brain stops for good (restart limit hit), the shell stops too and
                     // sharding starts a fresh agent on the next message.
-                    behaviorCtx.getUnderlying().watch(brain);
+                    behaviorCtx.unwrap(ActorContext.class).watch(brain);
                     return brain;
                 })
                 .onMessage(Command.class, (brain, command) -> {
                     brain.tell(command);
-                    return Behaviors.same();
+                    return SpringActorBehavior.same();
                 })
                 .build();
     }

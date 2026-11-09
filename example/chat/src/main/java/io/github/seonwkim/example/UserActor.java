@@ -1,12 +1,11 @@
 package io.github.seonwkim.example;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
-import io.github.seonwkim.core.*;
-import io.github.seonwkim.core.serialization.JsonSerializable;
-import io.github.seonwkim.core.shard.SpringShardedActorHandle;
+import io.github.seonwkim.actor.*;
+import io.github.seonwkim.actor.SpringActorBehavior;
+import io.github.seonwkim.actor.serialization.JsonSerializable;
+import io.github.seonwkim.actor.shard.SpringShardedActorHandle;
 import javax.annotation.Nullable;
-import org.apache.pekko.actor.typed.Behavior;
-import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Sinks;
 
@@ -150,15 +149,15 @@ public class UserActor implements SpringActorWithContext<UserActor.Command, User
             this.messageSink = messageSink;
         }
 
-        private Behavior<Command> onConnect(Connect connect) {
+        private SpringActorBehavior<Command> onConnect(Connect connect) {
             sendEvent("connected", json -> {
                 json.append(",\"userId\":\"").append(escapeJson(userId)).append("\"");
             });
 
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
 
-        private Behavior<Command> onJoinRoom(JoinRoom command) {
+        private SpringActorBehavior<Command> onJoinRoom(JoinRoom command) {
             currentRoomId = command.getRoomId();
             final var roomActor = getRoomActor();
             sendEvent("joined", json -> {
@@ -168,15 +167,14 @@ public class UserActor implements SpringActorWithContext<UserActor.Command, User
             // TODO: how can we send SpringActorHandle across the clusters?
             // currently we have schedulers as field under the ref, that's why it's hard to send it across the cluster
             // because we now have to serde scheduler which isn't possible(and shouldn't be)
-            roomActor.tell(
-                    new ChatRoomActor.JoinRoom(userId, context.getUnderlying().getSelf()));
-            return Behaviors.same();
+            roomActor.tell(new ChatRoomActor.JoinRoom(userId, context.getSelf()));
+            return SpringActorBehavior.same();
         }
 
-        private Behavior<Command> onLeaveRoom(LeaveRoom command) {
+        private SpringActorBehavior<Command> onLeaveRoom(LeaveRoom command) {
             if (currentRoomId == null) {
                 context.getLog().info("{} user has not joined any room.", userId);
-                return Behaviors.same();
+                return SpringActorBehavior.same();
             }
 
             sendEvent("left", json -> {
@@ -184,45 +182,44 @@ public class UserActor implements SpringActorWithContext<UserActor.Command, User
             });
 
             final var roomActor = getRoomActor();
-            roomActor.tell(
-                    new ChatRoomActor.LeaveRoom(userId, context.getUnderlying().getSelf()));
+            roomActor.tell(new ChatRoomActor.LeaveRoom(userId, context.getSelf()));
 
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
 
-        private Behavior<Command> onSendMessage(SendMessage command) {
+        private SpringActorBehavior<Command> onSendMessage(SendMessage command) {
             if (currentRoomId == null) {
                 context.getLog().info("{} user has not joined any room.", userId);
-                return Behaviors.same();
+                return SpringActorBehavior.same();
             }
 
             final var roomActor = getRoomActor();
             roomActor.tell(new ChatRoomActor.SendMessage(userId, command.getMessage()));
 
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
 
-        private Behavior<Command> onJoinRoomEvent(JoinRoomEvent event) {
+        private SpringActorBehavior<Command> onJoinRoomEvent(JoinRoomEvent event) {
             sendEvent("user_joined", json -> {
                 json.append(",\"userId\":\"")
                         .append(escapeJson(event.getUserId()))
                         .append("\"");
                 json.append(",\"roomId\":\"").append(escapeJson(currentRoomId)).append("\"");
             });
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
 
-        private Behavior<Command> onLeaveRoomEvent(LeaveRoomEvent event) {
+        private SpringActorBehavior<Command> onLeaveRoomEvent(LeaveRoomEvent event) {
             sendEvent("user_left", json -> {
                 json.append(",\"userId\":\"")
                         .append(escapeJson(event.getUserId()))
                         .append("\"");
                 json.append(",\"roomId\":\"").append(escapeJson(currentRoomId)).append("\"");
             });
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
 
-        private Behavior<Command> onSendMessageEvent(SendMessageEvent event) {
+        private SpringActorBehavior<Command> onSendMessageEvent(SendMessageEvent event) {
             sendEvent("message", json -> {
                 json.append(",\"userId\":\"")
                         .append(escapeJson(event.getUserId()))
@@ -232,7 +229,7 @@ public class UserActor implements SpringActorWithContext<UserActor.Command, User
                         .append("\"");
                 json.append(",\"roomId\":\"").append(escapeJson(currentRoomId)).append("\"");
             });
-            return Behaviors.same();
+            return SpringActorBehavior.same();
         }
 
         private SpringShardedActorHandle<ChatRoomActor.Command> getRoomActor() {

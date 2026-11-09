@@ -1,9 +1,9 @@
 package io.github.seonwkim.example.agent.approval;
 
-import io.github.seonwkim.core.AskCommand;
-import io.github.seonwkim.core.SpringActor;
-import io.github.seonwkim.core.SpringActorBehavior;
-import io.github.seonwkim.core.SpringActorContext;
+import io.github.seonwkim.actor.AskCommand;
+import io.github.seonwkim.actor.SpringActor;
+import io.github.seonwkim.actor.SpringActorBehavior;
+import io.github.seonwkim.actor.SpringActorContext;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -26,8 +26,8 @@ public class ApprovalActor implements SpringActor<ApprovalActor.Command> {
     public interface Command {}
 
     /** Sent by an agent with Pekko's ask; {@code replyTo} is the ask's temporary actor. */
-    public record RequestApproval(
-            PendingApproval request, Duration timeout, ActorRef<ApprovalDecision> replyTo) implements Command {}
+    public record RequestApproval(PendingApproval request, Duration timeout, ActorRef<ApprovalDecision> replyTo)
+            implements Command {}
 
     public static final class ListPending extends AskCommand<List<PendingApproval>> implements Command {}
 
@@ -46,7 +46,7 @@ public class ApprovalActor implements SpringActor<ApprovalActor.Command> {
 
     @Override
     public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
-        return SpringActorBehavior.wrap(Behaviors.withTimers(timers -> new Gateway(timers).behavior()));
+        return SpringActorBehavior.wrap(Behaviors.<Command>withTimers(timers -> new Gateway(timers).behavior()));
     }
 
     private static final class Gateway {

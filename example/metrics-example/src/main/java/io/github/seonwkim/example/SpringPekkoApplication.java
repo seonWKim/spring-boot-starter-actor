@@ -1,6 +1,6 @@
 package io.github.seonwkim.example;
 
-import io.github.seonwkim.core.EnableActorSupport;
+import io.github.seonwkim.actor.EnableActorSupport;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
@@ -11,9 +11,9 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * (the agent is attached automatically via the bootRun task configuration).
  *
  * <p><b>Running from IntelliJ:</b> The metrics Java agent must be added manually.
- * Build the agent first ({@code ./gradlew :metrics:agentJar}), then add this VM option
+ * Build the agent first ({@code ./gradlew :actor-metrics:agentJar}), then add this VM option
  * to your Run Configuration (Run &gt; Edit Configurations &gt; VM options):
- * <pre>-javaagent:metrics/build/libs/spring-boot-starter-actor-metrics-0.8.0-agent.jar</pre>
+ * <pre>-javaagent:actor-metrics/build/libs/actor-metrics-0.8.0-agent.jar</pre>
  * Without the agent, the application starts normally but no actor metrics are collected.
  */
 @SpringBootApplication

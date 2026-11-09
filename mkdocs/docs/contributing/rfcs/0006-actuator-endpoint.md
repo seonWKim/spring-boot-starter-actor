@@ -12,7 +12,7 @@ Operators cannot see the actor system from Actuator. Spring Cloud Stream (`bindi
 (`integrationgraph`) and Resilience4j (`circuitbreakers`) all expose their runtime state as an endpoint.
 Here, the only view is Pekko Management HTTP, which is optional, listens on its own port, and covers the
 cluster only. Health is a separate topic, tracked in
-[#100](https://github.com/seonWKim/spring-boot-starter-actor/issues/100), and is not part of this RFC.
+[#100](https://github.com/seonWKim/actor-spring-boot-starter/issues/100), and is not part of this RFC.
 
 ## Proposal
 

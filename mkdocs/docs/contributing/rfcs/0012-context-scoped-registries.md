@@ -8,9 +8,9 @@ Proposed
 
 ## Problem
 
-[`ActorTypeRegistry`](https://github.com/seonWKim/spring-boot-starter-actor/blob/main/core/src/main/java/io/github/seonwkim/core/ActorTypeRegistry.java)
+[`ActorTypeRegistry`](https://github.com/seonWKim/actor-spring-boot-starter/blob/main/core/src/main/java/io/github/seonwkim/core/ActorTypeRegistry.java)
 and
-[`ShardedActorRegistry`](https://github.com/seonWKim/spring-boot-starter-actor/blob/main/core/src/main/java/io/github/seonwkim/core/shard/ShardedActorRegistry.java)
+[`ShardedActorRegistry`](https://github.com/seonWKim/actor-spring-boot-starter/blob/main/core/src/main/java/io/github/seonwkim/core/shard/ShardedActorRegistry.java)
 hold actor factories in `static` maps. The configuration's Javadoc says this avoids circular dependencies.
 But the Spring TestContext framework caches contexts, so one JVM often holds several contexts at once.
 Each context's actors overwrite the others' entries, and a cached context can create actors from beans of

@@ -1,6 +1,6 @@
 package io.github.seonwkim.example.logging;
 
-import io.github.seonwkim.core.EnableActorSupport;
+import io.github.seonwkim.actor.EnableActorSupport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;

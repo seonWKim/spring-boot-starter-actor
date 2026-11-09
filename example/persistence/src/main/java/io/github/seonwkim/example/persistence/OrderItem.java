@@ -1,7 +1,7 @@
 package io.github.seonwkim.example.persistence;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import javax.persistence.*;
+import jakarta.persistence.*;
 
 @Entity
 @Table(name = "order_items")

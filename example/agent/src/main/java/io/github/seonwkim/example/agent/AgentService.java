@@ -1,7 +1,7 @@
 package io.github.seonwkim.example.agent;
 
-import io.github.seonwkim.core.SpringActorSystem;
-import io.github.seonwkim.core.shard.SpringShardedActorHandle;
+import io.github.seonwkim.actor.SpringActorSystem;
+import io.github.seonwkim.actor.shard.SpringShardedActorHandle;
 import java.time.Duration;
 import java.util.concurrent.CompletionStage;
 import org.springframework.stereotype.Service;
@@ -18,7 +18,10 @@ public class AgentService {
     }
 
     public CompletionStage<AgentAnswer> chat(String agentId, String text, Duration timeout) {
-        return agent(agentId).ask(new AgentActor.Chat(text)).withTimeout(timeout).execute();
+        return agent(agentId)
+                .ask(new AgentActor.Chat(text))
+                .withTimeout(timeout)
+                .execute();
     }
 
     public CompletionStage<ConversationView> conversation(String agentId, Duration timeout) {

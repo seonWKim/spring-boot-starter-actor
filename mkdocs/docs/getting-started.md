@@ -1,73 +1,40 @@
 # Getting Started
 
-This guide will help you get started with Spring Boot Starter Actor in your Spring Boot application.
+This guide will help you get started with Actor Spring Boot Starter in your Spring Boot application.
 
 ## Prerequisites
 
-- Java 11 or higher (Java 21+ recommended for virtual thread support)
-- Spring Boot 2.x or 3.x
+- Java 21 or higher
+- Spring Boot 3.5 or higher
+
+Spring Boot 2 users stay on the 0.x line (`spring-boot-starter-actor`). See [Migrating from 0.x](migrating-from-0x.md).
 
 ## Installation
 
 Add the dependency to your project:
 
-### Gradle 
+### Gradle
 ```gradle
-// Manually overwrite spring managed jackson dependency 
-dependencyManagement {
-    imports {
-        // require minimum 2.17.3 version of jackson
-        mavenBom("com.fasterxml.jackson:jackson-bom:2.17.3")
-    }
-}
-
-// Gradle(spring boot 2.7.x)
-implementation 'io.github.seonwkim:spring-boot-starter-actor:0.3.0'
-
-// Gradle(spring boot 3.2.x)
-implementation 'io.github.seonwkim:spring-boot-starter-actor_3:0.3.0'
+implementation 'io.github.seonwkim:actor-spring-boot-starter:1.0.0'
 ```
 
-### Maven 
+### Maven
 ```xml
-<dependencyManagement>
-  <dependencies>
-    <!-- Override Spring Boot's jackson-bom with 2.17.3 -->
-    <dependency>
-      <groupId>com.fasterxml.jackson</groupId>
-      <artifactId>jackson-bom</artifactId>
-      <version>2.17.3</version>
-      <type>pom</type>
-      <scope>import</scope>
-    </dependency>
-  </dependencies>
-</dependencyManagement>
-
-<!-- Maven(spring boot 2.7.x) -->
 <dependency>
   <groupId>io.github.seonwkim</groupId>
-  <artifactId>spring-boot-starter-actor</artifactId>
-  <version>0.3.0</version>
-</dependency>
-
-<!-- Maven(spring boot 3.2.x) -->
-<dependency>
-  <groupId>io.github.seonwkim</groupId>
-  <artifactId>spring-boot-starter-actor_3</artifactId>
-  <version>0.3.0</version>
+  <artifactId>actor-spring-boot-starter</artifactId>
+  <version>1.0.0</version>
 </dependency>
 ```
 
-To view the latest versions, refer to the following:
-- [spring-boot-starter-actor](https://central.sonatype.com/artifact/io.github.seonwkim/spring-boot-starter-actor)
-- [spring-boot-starter-actor_3](https://central.sonatype.com/artifact/io.github.seonwkim/spring-boot-starter-actor_3)
+To view the latest version, see [actor-spring-boot-starter](https://central.sonatype.com/artifact/io.github.seonwkim/actor-spring-boot-starter).
 
 !!! note
-    The library requires Jackson 2.17.3 or later. Ensure you override Spring Boot's managed Jackson dependency as shown above.
+    Spring Boot 3.5 manages Jackson 2.18+, which satisfies Pekko. No `jackson-bom` override is needed.
 
 ## Basic Configuration
 
-Spring Boot Starter Actor uses Spring Boot's auto-configuration to set up the actor system. By default, it creates a local actor system with sensible defaults.
+Actor Spring Boot Starter uses Spring Boot's auto-configuration to set up the actor system. By default, it creates a local actor system with sensible defaults.
 
 ### Enable Actor Support
 
@@ -93,14 +60,12 @@ spring:
   application:
     name: spring-pekko
   actor:
-    pekko:
-      actor:
-        provider: local
+    provider: local
 ```
 
 ## Next Steps
 
-Now that you have set up Spring Boot Starter Actor in your project, you can:
+Now that you have set up Actor Spring Boot Starter in your project, you can:
 
 1. [Learn how to register actors and send messages](guides/actor-registration-messaging.md)
 2. [Explore pub/sub topics for distributed messaging](guides/pub-sub-topics.md)

@@ -1,7 +1,7 @@
 package io.github.seonwkim.example.persistence.snapshot;
 
+import jakarta.persistence.*;
 import java.time.Instant;
-import javax.persistence.*;
 
 @Entity
 @Table(name = "actor_snapshots")

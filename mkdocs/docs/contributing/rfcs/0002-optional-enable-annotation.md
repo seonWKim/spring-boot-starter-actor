@@ -8,7 +8,7 @@ Proposed
 
 ## Problem
 
-[`@EnableActorSupport`](https://github.com/seonWKim/spring-boot-starter-actor/blob/main/core/src/main/java/io/github/seonwkim/core/EnableActorSupport.java)
+[`@EnableActorSupport`](https://github.com/seonWKim/actor-spring-boot-starter/blob/main/core/src/main/java/io/github/seonwkim/core/EnableActorSupport.java)
 is the only way to start the actor system. In Boot, `@Enable*` annotations for Kafka and Spring Data are
 optional because the auto-configuration applies them. Once [RFC 0001](0001-auto-configuration-registration.md)
 registers the auto-configuration, the annotation needs a defined meaning: today it `@Import`s the
