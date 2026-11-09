@@ -14,6 +14,8 @@ import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.sql.init.DatabaseInitializationMode;
+import org.springframework.util.ClassUtils;
 
 /**
  * Typed settings of the actor system. Each one sets a Pekko key; a raw key under
@@ -203,6 +205,34 @@ public class ActorProperties {
     /** Cluster membership (cluster provider). */
     public static class Cluster {
 
+        /** How a node finds the cluster to join. */
+        public enum Join {
+            /** Join the nodes listed in seed-nodes (or itself, with join-self). */
+            SEED_NODES,
+            /** Find peers through discovery.method and form or join the cluster with Cluster Bootstrap. */
+            DISCOVERY
+        }
+
+        /**
+         * How this node finds the cluster: seed-nodes (the listed nodes) or discovery (peers found
+         * through spring.actor.cluster.discovery.method, with Pekko Cluster Bootstrap).
+         */
+        private Join join = Join.SEED_NODES;
+
+        private final Discovery discovery = new Discovery();
+
+        public Join getJoin() {
+            return join;
+        }
+
+        public void setJoin(Join join) {
+            this.join = join;
+        }
+
+        public Discovery getDiscovery() {
+            return discovery;
+        }
+
         /** Nodes to join at startup, as pekko://<name>@<host>:<port> (pekko.cluster.seed-nodes). */
         private List<String> seedNodes = new ArrayList<>();
 
@@ -244,6 +274,93 @@ public class ActorProperties {
 
         public void setRoles(List<String> roles) {
             this.roles = new ArrayList<>(roles);
+        }
+    }
+
+    /** Finding peers when spring.actor.cluster.join=discovery. */
+    public static class Discovery {
+
+        /** Where peers are found. */
+        public enum Method {
+            /** The actor_peer table on the application's DataSource (actor-jdbc). */
+            JDBC,
+            /** Keys with a TTL on the application's RedisConnectionFactory (actor-redis). */
+            REDIS,
+            /** The application's own PeerRegistry bean. */
+            CUSTOM,
+            /** The Kubernetes API (pekko-discovery-kubernetes-api; needs RBAC to list pods). */
+            KUBERNETES_API,
+            /** DNS SRV or A records (Pekko's pekko-dns method). */
+            DNS,
+            /** A static list under pekko.discovery.config.services (Pekko's config method). */
+            CONFIG
+        }
+
+        /**
+         * Where peers are found: jdbc, redis, custom (your PeerRegistry bean), kubernetes-api, dns
+         * or config. A PeerRegistry bean of your own replaces the jdbc and redis stores.
+         */
+        @Nullable private Method method;
+
+        /** How often a node renews its own entry in the peer registry (jdbc, redis, custom). */
+        private Duration heartbeatInterval = Duration.ofSeconds(5);
+
+        /** How long an entry counts as alive after its last renewal (jdbc, redis, custom). */
+        private Duration ttl = Duration.ofSeconds(30);
+
+        private final Jdbc jdbc = new Jdbc();
+
+        @Nullable public Method getMethod() {
+            return method;
+        }
+
+        public void setMethod(@Nullable Method method) {
+            this.method = method;
+        }
+
+        public Duration getHeartbeatInterval() {
+            return heartbeatInterval;
+        }
+
+        public void setHeartbeatInterval(Duration heartbeatInterval) {
+            if (heartbeatInterval.isNegative() || heartbeatInterval.isZero()) {
+                throw new IllegalArgumentException(
+                        "spring.actor.cluster.discovery.heartbeat-interval must be positive, got " + heartbeatInterval);
+            }
+            this.heartbeatInterval = heartbeatInterval;
+        }
+
+        public Duration getTtl() {
+            return ttl;
+        }
+
+        public void setTtl(Duration ttl) {
+            if (ttl.isNegative() || ttl.isZero()) {
+                throw new IllegalArgumentException("spring.actor.cluster.discovery.ttl must be positive, got " + ttl);
+            }
+            this.ttl = ttl;
+        }
+
+        public Jdbc getJdbc() {
+            return jdbc;
+        }
+
+        /** The actor_peer table (method jdbc). */
+        public static class Jdbc {
+
+            /**
+             * When to create the actor_peer table: embedded (only in an embedded database), always,
+             * or never (you create it from the schema-*.sql files in actor-jdbc).
+             */
+            private DatabaseInitializationMode initializeSchema = DatabaseInitializationMode.EMBEDDED;
+
+            public DatabaseInitializationMode getInitializeSchema() {
+                return initializeSchema;
+            }
+
+            public void setInitializeSchema(DatabaseInitializationMode initializeSchema) {
+                this.initializeSchema = initializeSchema;
+            }
         }
     }
 
@@ -324,6 +441,11 @@ public class ActorProperties {
     /** Read by the cluster module, which joins the node to itself when it is true. */
     private static final String JOIN_SELF_KEY = "spring-actor.cluster.join-self";
 
+    /** The discovery method of actor-cluster's PeerRegistry adapter (PeerRegistryServiceDiscovery.METHOD). */
+    private static final String PEER_REGISTRY_METHOD = "spring-actor-peer-registry";
+
+    private static final String CLUSTER_BOOTSTRAP = "org.apache.pekko.management.cluster.bootstrap.ClusterBootstrap";
+
     /** Pekko's executor that starts one virtual thread per task (Java 21+). */
     private static final String VIRTUAL_EXECUTOR = "virtual-thread-executor";
 
@@ -361,6 +483,9 @@ public class ActorProperties {
             }
             keys.add(new TypedKey("cluster.join-self", JOIN_SELF_KEY, true));
         }
+        if (cluster.join == Cluster.Join.DISCOVERY) {
+            keys.addAll(discoveryKeys());
+        }
         if (!cluster.roles.isEmpty()) {
             keys.add(new TypedKey("cluster.roles", "pekko.cluster.roles", cluster.roles));
         }
@@ -397,6 +522,45 @@ public class ActorProperties {
             }
         });
         return keys;
+    }
+
+    private List<TypedKey> discoveryKeys() {
+        if (!cluster.seedNodes.isEmpty() || cluster.joinSelf) {
+            throw new IllegalArgumentException(
+                    "spring.actor.cluster.join=discovery finds its peers: remove spring.actor.cluster.seed-nodes and join-self");
+        }
+        Discovery discovery = cluster.discovery;
+        if (discovery.method == null) {
+            throw new IllegalArgumentException(
+                    "spring.actor.cluster.join=discovery needs spring.actor.cluster.discovery.method:"
+                            + " jdbc, redis, custom, kubernetes-api, dns or config");
+        }
+        if (!ClassUtils.isPresent(CLUSTER_BOOTSTRAP, ActorProperties.class.getClassLoader())) {
+            throw new IllegalStateException("spring.actor.cluster.join=discovery needs Pekko Cluster Bootstrap: add"
+                    + " org.apache.pekko:pekko-management-cluster-bootstrap_3 and pekko-management-cluster-http_3");
+        }
+        String key = "cluster.discovery.method";
+        return switch (discovery.method) {
+            case KUBERNETES_API -> List.of(new TypedKey(key, "pekko.discovery.method", "kubernetes-api"));
+            case DNS -> List.of(new TypedKey(key, "pekko.discovery.method", "pekko-dns"));
+            case CONFIG -> List.of(new TypedKey(key, "pekko.discovery.method", "config"));
+            case JDBC, REDIS, CUSTOM -> {
+                String adapter = "pekko.discovery." + PEER_REGISTRY_METHOD;
+                yield List.of(
+                        new TypedKey(key, "pekko.discovery.method", PEER_REGISTRY_METHOD),
+                        new TypedKey(
+                                "cluster.discovery.heartbeat-interval",
+                                adapter + ".heartbeat-interval",
+                                discovery.heartbeatInterval.toMillis() + "ms"),
+                        new TypedKey("cluster.discovery.ttl", adapter + ".ttl", discovery.ttl.toMillis() + "ms"),
+                        // The registry lists only management ports, so Bootstrap must not drop the
+                        // ones that differ from this node's own (several nodes on one host).
+                        new TypedKey(
+                                key,
+                                "pekko.management.cluster.bootstrap.contact-point.filter-on-fallback-port",
+                                false));
+            }
+        };
     }
 
     @Nullable private static Object lookup(Map<String, Object> root, String path) {

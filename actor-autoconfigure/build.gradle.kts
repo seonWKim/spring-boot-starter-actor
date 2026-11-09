@@ -17,6 +17,11 @@ dependencies {
     implementation(project(":actor-core"))
     // Cluster and management configurations apply only when these are on the application's classpath.
     compileOnly(project(":actor-cluster"))
+    // Peer registry stores apply only when their module and Spring library are on the classpath.
+    compileOnly(project(":actor-jdbc"))
+    compileOnly(project(":actor-redis"))
+    compileOnly("org.springframework:spring-jdbc")
+    compileOnly("org.springframework.data:spring-data-redis")
     compileOnly("org.apache.pekko:pekko-management-cluster-bootstrap_3:${pekkoManagementVersion}")
     compileOnly("org.apache.pekko:pekko-management-cluster-http_3:${pekkoManagementVersion}")
 
@@ -42,6 +47,8 @@ dependencies {
     testImplementation("io.opentelemetry:opentelemetry-sdk-testing")
     testImplementation(project(":actor-metrics"))
     testImplementation("org.awaitility:awaitility")
+    // spring.actor.cluster.join=discovery checks that Cluster Bootstrap is present.
+    testRuntimeOnly("org.apache.pekko:pekko-management-cluster-bootstrap_3:${pekkoManagementVersion}")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 

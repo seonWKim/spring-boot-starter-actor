@@ -1,5 +1,7 @@
 plugins {
     id("io.spring.dependency-management")
+    // DiscoveryClusterContract: the store modules' tests form clusters through their stores.
+    `java-test-fixtures`
 }
 
 val pekkoVersion: String by project
@@ -29,6 +31,13 @@ dependencies {
     implementation("com.google.code.findbugs:jsr305")
     implementation("org.springframework.boot:spring-boot-starter")
 
+    testFixturesApi(project(":actor-autoconfigure"))
+    testFixturesApi("org.springframework.boot:spring-boot-starter-test")
+    testFixturesApi("org.apache.pekko:pekko-cluster-typed_3:$pekkoVersion")
+    testFixturesApi("org.apache.pekko:pekko-management-cluster-bootstrap_3:${pekkoManagementVersion}")
+    testFixturesApi("org.apache.pekko:pekko-management-cluster-http_3:${pekkoManagementVersion}")
+    testFixturesApi("org.awaitility:awaitility")
+
     testImplementation(project(":actor-autoconfigure"))
     testImplementation(testFixtures(project(":actor-core")))
     testImplementation("com.fasterxml.jackson.core:jackson-databind")
@@ -38,4 +47,13 @@ dependencies {
     testImplementation("org.apache.pekko:pekko-actor-testkit-typed_3:$pekkoVersion")
     testImplementation("org.awaitility:awaitility")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+}
+
+// The test fixtures are for this repository's tests only: keep them out of the published artifact.
+val javaComponent = components["java"] as AdhocComponentWithVariants
+javaComponent.withVariantsFromConfiguration(configurations["testFixturesApiElements"]) { skip() }
+javaComponent.withVariantsFromConfiguration(configurations["testFixturesRuntimeElements"]) { skip() }
+// The publish plugin adds the fixtures sources variant once the project is evaluated.
+afterEvaluate {
+    javaComponent.withVariantsFromConfiguration(configurations["testFixturesSourcesElements"]) { skip() }
 }
