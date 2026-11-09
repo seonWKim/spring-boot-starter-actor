@@ -1,20 +1,23 @@
 package io.github.seonwkim.actor.autoconfigure.cluster;
 
 import io.github.seonwkim.actor.SpringActorSystem;
+import io.github.seonwkim.actor.ddata.ReplicatedData;
 import io.github.seonwkim.actor.internal.PekkoActorSystem;
+import io.github.seonwkim.actor.internal.cluster.ddata.PekkoReplicatedData;
 import io.github.seonwkim.actor.internal.shard.ShardedActorRegistry;
 import io.github.seonwkim.actor.shard.SpringShardedActor;
 import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.event.ContextRefreshedEvent;
 
 /**
- * Registers {@link SpringShardedActor} beans with cluster sharding. Applies only when
- * {@code actor-cluster} is on the classpath.
+ * Registers {@link SpringShardedActor} beans with cluster sharding and provides {@link ReplicatedData}.
+ * Applies only when {@code actor-cluster} is on the classpath.
  */
 @Configuration
 @ConditionalOnClass(name = "io.github.seonwkim.actor.internal.cluster.PekkoClusterSupport")
@@ -61,5 +64,12 @@ public class ClusterConfiguration {
                 pekko.initializeClusterSharding();
             }
         };
+    }
+
+    /** Handles to replicated maps, counters and sets; the replicator starts on first use. */
+    @Bean
+    @ConditionalOnMissingBean(ReplicatedData.class)
+    public ReplicatedData replicatedData(SpringActorSystem actorSystem) {
+        return new PekkoReplicatedData(actorSystem);
     }
 }

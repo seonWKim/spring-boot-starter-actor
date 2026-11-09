@@ -121,6 +121,11 @@
   `singleton.use-lease` and `sharding.use-lease`, so a singleton or shard runs on one node only. Redis leases
   can be lost on a Redis failover; see the guide.
 
+- **Replicated maps, counters and sets.** In cluster mode, the `ReplicatedData` bean hands out
+  `ReplicatedMap`, `ReplicatedCounter` and `ReplicatedSet` (Pekko Distributed Data CRDTs) with
+  `CompletionStage` reads and writes and `local`, `majority` or `all` consistency. Every node starts the
+  replicator with the actor system.
+
 ### Fixed
 
 - **Cluster events during startup reach `@EventListener` beans.** Events published while the context
