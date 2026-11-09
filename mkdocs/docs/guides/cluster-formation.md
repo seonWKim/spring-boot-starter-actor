@@ -152,5 +152,9 @@ shutdown hook; a store only stores and reads entries.
 - The nodes of one cluster use the same `spring.actor.name`: it is the service name their entries are stored
   under.
 
+The Kubernetes example has ready-made overlays for both stores, with the NetworkPolicies:
+see `example/kubernetes/overlays/discovery-jdbc` and `discovery-redis` and the "Without RBAC" section of
+its README.
+
 Bootstrap waits for `pekko.management.cluster.bootstrap.contact-point-discovery.required-contact-point-nr`
 (default `2`) peers before it forms a new cluster. Set it to `1` for a single replica.

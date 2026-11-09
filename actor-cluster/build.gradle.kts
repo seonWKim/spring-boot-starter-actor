@@ -34,8 +34,6 @@ dependencies {
     testFixturesApi(project(":actor-autoconfigure"))
     testFixturesApi("org.springframework.boot:spring-boot-starter-test")
     testFixturesApi("org.apache.pekko:pekko-cluster-typed_3:$pekkoVersion")
-    testFixturesApi("org.apache.pekko:pekko-management-cluster-bootstrap_3:${pekkoManagementVersion}")
-    testFixturesApi("org.apache.pekko:pekko-management-cluster-http_3:${pekkoManagementVersion}")
     testFixturesApi("org.awaitility:awaitility")
 
     testImplementation(project(":actor-autoconfigure"))

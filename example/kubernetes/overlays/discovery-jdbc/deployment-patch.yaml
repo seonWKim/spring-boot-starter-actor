@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spring-actor
+spec:
+  template:
+    spec:
+      containers:
+      - name: spring-actor
+        env:
+        - name: SPRING_ACTOR_CLUSTER_DISCOVERY_METHOD
+          value: jdbc
+        # Create actor_peer at startup. Set "never" when your migrations create it.
+        - name: SPRING_ACTOR_CLUSTER_DISCOVERY_JDBC_INITIALIZE_SCHEMA
+          value: always
+        - name: SPRING_DATASOURCE_URL
+          value: jdbc:postgresql://postgres:5432/app
+        - name: SPRING_DATASOURCE_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: spring-actor-db
+              key: username
+        - name: SPRING_DATASOURCE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: spring-actor-db
+              key: password
