@@ -9,6 +9,7 @@ import io.github.seonwkim.actor.shard.SpringShardedActor;
 import io.github.seonwkim.actor.shard.SpringShardedActorBuilder;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import javax.annotation.Nullable;
 import org.apache.pekko.actor.setup.ActorSystemSetup;
 import org.apache.pekko.actor.setup.Setup;
@@ -60,9 +61,6 @@ public final class PekkoClusterSupport implements ClusterSupport {
     @Override
     public ClusterRuntime start(ActorSystem<?> system, ApplicationEventPublisher publisher) {
         Cluster cluster = Cluster.get(system);
-        ActorRef<ClusterDomainEvent> listener =
-                system.systemActorOf(PekkoClusterEvents.publisher(publisher), "cluster-event-listener", Props.empty());
-        cluster.subscriptions().tell(new Subscribe<>(listener, ClusterDomainEvent.class));
         if (system.settings().config().hasPath(JOIN_SELF_KEY)
                 && system.settings().config().getBoolean(JOIN_SELF_KEY)) {
             cluster.manager().tell(Join.create(cluster.selfMember().address()));
@@ -72,7 +70,14 @@ public final class PekkoClusterSupport implements ClusterSupport {
                 .get(ShardedActorsSetup.class)
                 .map(found -> found.registry)
                 .orElseGet(ShardedActorRegistry::new);
-        return new Runtime(system, cluster, ClusterSharding.get(system), ClusterSingleton.get(system), sharded);
+        return new Runtime(
+                system,
+                cluster,
+                ClusterSharding.get(system),
+                ClusterSingleton.get(system),
+                sharded,
+                publisher,
+                new AtomicBoolean());
     }
 
     @Override
@@ -86,7 +91,9 @@ public final class PekkoClusterSupport implements ClusterSupport {
             Cluster cluster,
             ClusterSharding sharding,
             ClusterSingleton singleton,
-            ShardedActorRegistry shardedActors)
+            ShardedActorRegistry shardedActors,
+            ApplicationEventPublisher publisher,
+            AtomicBoolean publishing)
             implements ClusterRuntime {
 
         @Override
@@ -103,6 +110,16 @@ public final class PekkoClusterSupport implements ClusterSupport {
                         + "Ensure the actor is annotated with @Component and implements SpringShardedActor.");
             }
             return new PekkoShardedActorBuilder<>(actor.entityType(), sharding, system);
+        }
+
+        @Override
+        public void publishEvents() {
+            if (publishing.compareAndSet(false, true)) {
+                ActorRef<ClusterDomainEvent> listener = system.systemActorOf(
+                        PekkoClusterEvents.publisher(publisher), "cluster-event-listener", Props.empty());
+                // A typed subscription starts with the current state as events (InitialStateAsEvents).
+                cluster.subscriptions().tell(new Subscribe<>(listener, ClusterDomainEvent.class));
+            }
         }
 
         @Override

@@ -88,7 +88,8 @@ class GracefulShutdownClusterTest {
                         .toCompletableFuture()
                         .isDone())
                 .isTrue();
-        await().atMost(20, SECONDS).pollInterval(200, MILLISECONDS).until(() -> events1.events.stream()
+        // untilAsserted, so a timeout lists the events node 1 saw (this wait timed out once in CI, #163).
+        await().atMost(20, SECONDS).pollInterval(200, MILLISECONDS).untilAsserted(() -> assertThat(events1.events)
                 .anyMatch(e -> e instanceof ClusterEvent.MemberRemoved
                         && ((ClusterEvent.MemberRemoved) e).member().address().equals(address2)));
 

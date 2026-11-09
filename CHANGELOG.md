@@ -112,6 +112,12 @@
   dashboard ConfigMap for Grafana's sidecar). A test checks every metric they query against the documented
   meters.
 
+### Fixed
+
+- **Cluster events during startup reach `@EventListener` beans.** Events published while the context
+  started, such as the node's own `MemberUp`, used to be lost. The starter now subscribes once the context
+  has refreshed, and Pekko replays the current state as events.
+
 ### Migrating from 0.x
 
 1. Upgrade to Java 21 and Spring Boot 3.5 or later. Boot 2 applications stay on 0.x.
