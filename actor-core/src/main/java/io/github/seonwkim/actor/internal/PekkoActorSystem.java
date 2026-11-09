@@ -160,13 +160,7 @@ public final class PekkoActorSystem implements SpringActorSystem, DisposableBean
     @Override
     public <A extends SpringActorWithContext<C, ?>, C> CompletionStage<SpringActorHandle<C>> getOrSpawn(
             Class<A> actorClass, String actorId, Duration timeout) {
-        return exists(actorClass, actorId, timeout).thenCompose(exists -> {
-            if (exists) {
-                return get(actorClass, actorId, timeout);
-            } else {
-                return actor(actorClass).withId(actorId).withTimeout(timeout).spawn();
-            }
-        });
+        return actor(actorClass).withId(actorId).withTimeout(timeout).getOrSpawn();
     }
 
     public <A extends SpringActorWithContext<C, ?>, C> CompletionStage<SpringActorHandle<C>> spawn(

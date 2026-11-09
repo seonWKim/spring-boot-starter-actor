@@ -175,6 +175,15 @@ public interface SpringActorSpawnBuilder<A extends SpringActorWithContext<C, ?>,
     CompletionStage<SpringActorHandle<C>> spawn();
 
     /**
+     * Returns the running actor with this builder's id, or spawns it with this builder's settings
+     * (dispatcher, mailbox, supervision and the rest) when none runs.
+     *
+     * @return A CompletionStage that will be completed with a reference to the actor
+     * @throws IllegalStateException If neither actorId nor actorContext is set
+     */
+    CompletionStage<SpringActorHandle<C>> getOrSpawn();
+
+    /**
      * Spawns the actor synchronously and returns the actor reference. This method blocks until the
      * actor is spawned.
      *

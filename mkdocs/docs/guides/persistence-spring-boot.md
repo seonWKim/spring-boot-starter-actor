@@ -142,9 +142,11 @@ public class OrderActor implements SpringActor<Command> {
 }
 ```
 
-### Reactive Repositories
+### Reactive Repositories (R2DBC)
 
-Use reactive repositories for non-blocking operations:
+A JPA call blocks its thread until the database answers. Spring Data R2DBC returns a `Mono` instead, so
+the actor never waits. Turn the result into a message with `pipeToSelf`: the actor handles it like any
+other message, one at a time, so its state stays safe without locks.
 
 ```java
 @Component
@@ -160,40 +162,61 @@ public class ReactiveOrderActor implements SpringActor<Command> {
         return SpringActorBehavior.builder(Command.class, ctx)
             .withState(actorCtx -> new ReactiveBehavior(actorCtx, repository))
             .onMessage(SaveOrder.class, ReactiveBehavior::handleSave)
-            .onMessage(SaveComplete.class, ReactiveBehavior::handleComplete)
+            .onMessage(SaveDone.class, ReactiveBehavior::handleSaveDone)
             .build();
     }
 
-    // Internal messages for async results
-    private record SaveComplete(Order order) implements Command {}
+    // The result of a save, sent by the actor to itself. It carries the caller's command, so the
+    // actor can reply once the database has answered.
+    private record SaveDone(SaveOrder cmd, Order saved, Throwable failure) implements Command {}
 
     private static class ReactiveBehavior {
         private final SpringBehaviorContext<Command> ctx;
         private final ReactiveOrderRepository repository;
         private Order currentOrder;
 
-        public ReactiveBehavior(SpringBehaviorContext<Command> ctx, ReactiveOrderRepository repository) {
+        ReactiveBehavior(SpringBehaviorContext<Command> ctx, ReactiveOrderRepository repository) {
             this.ctx = ctx;
             this.repository = repository;
         }
 
         private SpringActorBehavior<Command> handleSave(SaveOrder cmd) {
-            repository.save(currentOrder)
-                .subscribe(
-                    saved -> ctx.getSelf().tell(new SaveComplete(saved)),
-                    error -> ctx.getLog().error("Save failed", error)
-                );
+            // Returns at once; the save runs on R2DBC's threads, not the actor's.
+            ctx.pipeToSelf(
+                repository.save(cmd.order()).toFuture(),
+                (saved, failure) -> new SaveDone(cmd, saved, failure));
             return SpringActorBehavior.same();
         }
 
-        private SpringActorBehavior<Command> handleComplete(SaveComplete msg) {
-            this.currentOrder = msg.order();
-            ctx.getLog().info("Order saved successfully: {}", currentOrder.getId());
+        private SpringActorBehavior<Command> handleSaveDone(SaveDone done) {
+            if (done.failure() != null) {
+                ctx.getLog().error("Save failed", done.failure());
+                done.cmd().reply(new OrderResponse(false, null, "Save failed"));
+                return SpringActorBehavior.same();
+            }
+            currentOrder = done.saved();  // state changes only inside a message handler
+            done.cmd().reply(new OrderResponse(true, currentOrder, "Order saved"));
             return SpringActorBehavior.same();
         }
     }
 }
 ```
+
+!!! warning "Don't touch state in a callback"
+    Never change actor state in `subscribe(...)`, `thenAccept(...)` or any other callback: it runs on
+    another thread, alongside the actor. Send the result to the actor with `pipeToSelf` and change state
+    in the handler.
+
+### Choosing an approach
+
+| Approach | Use it when | What to watch |
+|---|---|---|
+| JPA or JDBC on the blocking dispatcher | The app already uses JPA, and most Spring apps do | Each call holds a thread of the blocking dispatcher. Size its pool, or run it on virtual threads (`spring.actor.virtual-threads.enabled`, see [Dispatchers](dispatchers.md)) |
+| R2DBC with `pipeToSelf` | Many concurrent actors talk to the database, or the app is already reactive | Every result comes back as a message, so each call needs a result message type |
+
+The [persistence example](https://github.com/seonWKim/actor-spring-boot-starter/tree/main/example/persistence)
+uses JPA on purpose, because that is what most Spring users have. Its controller spawns the JPA-backed
+actors with `withBlockingDispatcher().getOrSpawn()`, as shown below.
 
 ## Handling Blocking Operations
 
@@ -209,7 +232,7 @@ public class OrderController {
         return actorSystem.actor(OrderActor.class)
             .withId(orderId)
             .withBlockingDispatcher()  // Configure dispatcher here
-            .spawn()
+            .getOrSpawn()              // the running actor, or a new one on this dispatcher
             .thenCompose(ref -> ref.ask(new CreateOrder(...))
                 .withTimeout(Duration.ofSeconds(5))
                 .execute());
