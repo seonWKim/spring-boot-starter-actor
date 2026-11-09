@@ -51,6 +51,8 @@ public class ActorProperties {
 
     private final Shutdown shutdown = new Shutdown();
 
+    private final Jdbc jdbc = new Jdbc();
+
     private final VirtualThreads virtualThreads = new VirtualThreads();
 
     /**
@@ -90,6 +92,10 @@ public class ActorProperties {
 
     public Shutdown getShutdown() {
         return shutdown;
+    }
+
+    public Jdbc getJdbc() {
+        return jdbc;
     }
 
     public Map<String, Dispatcher> getDispatchers() {
@@ -221,6 +227,32 @@ public class ActorProperties {
 
         private final Discovery discovery = new Discovery();
 
+        private final Downing downing = new Downing();
+
+        private final Lease lease = new Lease();
+
+        private final LeaseUser singleton = new LeaseUser();
+
+        private final LeaseUser sharding = new LeaseUser();
+
+        public Downing getDowning() {
+            return downing;
+        }
+
+        public Lease getLease() {
+            return lease;
+        }
+
+        /** Cluster singletons. */
+        public LeaseUser getSingleton() {
+            return singleton;
+        }
+
+        /** Cluster sharding. */
+        public LeaseUser getSharding() {
+            return sharding;
+        }
+
         public Join getJoin() {
             return join;
         }
@@ -277,6 +309,144 @@ public class ActorProperties {
         }
     }
 
+    /** What the cluster does with nodes it can no longer reach (Pekko's split brain resolver). */
+    public static class Downing {
+
+        /** The split brain resolver strategy, or none. */
+        public enum Strategy {
+            /** The side with more nodes stays; on a tie, the side with the lowest address. */
+            KEEP_MAJORITY,
+            /** The side that acquires a lease (spring.actor.cluster.lease.store) stays. */
+            LEASE_MAJORITY,
+            /** A side with at least quorum-size nodes stays. */
+            STATIC_QUORUM,
+            /** The side with the oldest node stays. */
+            KEEP_OLDEST,
+            /** All nodes are downed. */
+            DOWN_ALL,
+            /** No downing: unreachable nodes stay members until removed by hand. */
+            NONE
+        }
+
+        /**
+         * The split brain resolver strategy: keep-majority, lease-majority, static-quorum,
+         * keep-oldest, down-all or none. Default keep-majority with join=discovery, none otherwise.
+         */
+        @Nullable private Strategy strategy;
+
+        /** Nodes a side needs to stay up (static-quorum). Set it above half the cluster's size. */
+        @Nullable private Integer quorumSize;
+
+        @Nullable public Strategy getStrategy() {
+            return strategy;
+        }
+
+        public void setStrategy(@Nullable Strategy strategy) {
+            this.strategy = strategy;
+        }
+
+        @Nullable public Integer getQuorumSize() {
+            return quorumSize;
+        }
+
+        public void setQuorumSize(@Nullable Integer quorumSize) {
+            if (quorumSize != null && quorumSize < 1) {
+                throw new IllegalArgumentException(
+                        "spring.actor.cluster.downing.quorum-size must be at least 1, got " + quorumSize);
+            }
+            this.quorumSize = quorumSize;
+        }
+    }
+
+    /** Leases on a LeaseStore, for lease-majority downing, singletons and shards. */
+    public static class Lease {
+
+        /** Where leases are kept. */
+        public enum Store {
+            /** The actor_lease table on the application's DataSource (actor-jdbc). */
+            JDBC,
+            /** Keys with a TTL on the application's RedisConnectionFactory (actor-redis). */
+            REDIS,
+            /** The application's own LeaseStore bean. */
+            CUSTOM
+        }
+
+        /**
+         * Where leases are kept: jdbc, redis or custom (your LeaseStore bean). Needed by
+         * downing.strategy=lease-majority, singleton.use-lease and sharding.use-lease.
+         */
+        @Nullable private Store store;
+
+        /** How long a lease is held after its last renewal before another node may take it. */
+        private Duration ttl = Duration.ofSeconds(120);
+
+        /** How often a held lease is renewed. */
+        private Duration renewInterval = Duration.ofSeconds(12);
+
+        /**
+         * A holder counts its lease as lost this long before the ttl runs out since its last
+         * renewal, so it stops before another node can take the lease.
+         */
+        private Duration expiryMargin = Duration.ofSeconds(10);
+
+        @Nullable public Store getStore() {
+            return store;
+        }
+
+        public void setStore(@Nullable Store store) {
+            this.store = store;
+        }
+
+        public Duration getTtl() {
+            return ttl;
+        }
+
+        public void setTtl(Duration ttl) {
+            this.ttl = positive("lease.ttl", ttl);
+        }
+
+        public Duration getRenewInterval() {
+            return renewInterval;
+        }
+
+        public void setRenewInterval(Duration renewInterval) {
+            this.renewInterval = positive("lease.renew-interval", renewInterval);
+        }
+
+        public Duration getExpiryMargin() {
+            return expiryMargin;
+        }
+
+        public void setExpiryMargin(Duration expiryMargin) {
+            this.expiryMargin = positive("lease.expiry-margin", expiryMargin);
+        }
+
+        private static Duration positive(String key, Duration value) {
+            if (value.isNegative() || value.isZero()) {
+                throw new IllegalArgumentException("spring.actor.cluster." + key + " must be positive, got " + value);
+            }
+            return value;
+        }
+    }
+
+    /** A cluster feature that can run only while it holds a lease. */
+    public static class LeaseUser {
+
+        /**
+         * Run only while holding a lease from spring.actor.cluster.lease.store, so two nodes never
+         * run it at once, even during a network split.
+         */
+        private boolean useLease;
+
+        public boolean isUseLease() {
+            return useLease;
+        }
+
+        public void setUseLease(boolean useLease) {
+            this.useLease = useLease;
+        }
+    }
+
     /** Finding peers when spring.actor.cluster.join=discovery. */
     public static class Discovery {
 
@@ -308,8 +478,6 @@ public class ActorProperties {
         /** How long an entry counts as alive after its last renewal (jdbc, redis, custom). */
         private Duration ttl = Duration.ofSeconds(30);
 
-        private final Jdbc jdbc = new Jdbc();
-
         @Nullable public Method getMethod() {
             return method;
         }
@@ -340,27 +508,23 @@ public class ActorProperties {
             }
             this.ttl = ttl;
         }
+    }
 
-        public Jdbc getJdbc() {
-            return jdbc;
+    /** The tables of actor-jdbc (actor_peer, actor_lease). */
+    public static class Jdbc {
+
+        /**
+         * When to create the actor-jdbc tables (actor_peer, actor_lease): embedded (only in an
+         * embedded database), always, or never (you create them from the schema-*.sql files in actor-jdbc).
+         */
+        private DatabaseInitializationMode initializeSchema = DatabaseInitializationMode.EMBEDDED;
+
+        public DatabaseInitializationMode getInitializeSchema() {
+            return initializeSchema;
         }
 
-        /** The actor_peer table (method jdbc). */
-        public static class Jdbc {
-
-            /**
-             * When to create the actor_peer table: embedded (only in an embedded database), always,
-             * or never (you create it from the schema-*.sql files in actor-jdbc).
-             */
-            private DatabaseInitializationMode initializeSchema = DatabaseInitializationMode.EMBEDDED;
-
-            public DatabaseInitializationMode getInitializeSchema() {
-                return initializeSchema;
-            }
-
-            public void setInitializeSchema(DatabaseInitializationMode initializeSchema) {
-                this.initializeSchema = initializeSchema;
-            }
+        public void setInitializeSchema(DatabaseInitializationMode initializeSchema) {
+            this.initializeSchema = initializeSchema;
         }
     }
 
@@ -399,7 +563,7 @@ public class ActorProperties {
 
     /** The keys under {@code spring.actor} that are typed settings rather than Pekko configuration. */
     static final List<String> TYPED_ROOTS =
-            List.of("name", "provider", "remote", "cluster", "shutdown", "dispatchers", "virtual-threads");
+            List.of("name", "provider", "remote", "cluster", "shutdown", "dispatchers", "virtual-threads", "jdbc");
 
     /**
      * The Pekko configuration. Every key under {@code spring.actor} except the typed settings is
@@ -435,6 +599,12 @@ public class ActorProperties {
             }
         }
         config.computeIfAbsent("pekko", key -> new LinkedHashMap<String, Object>());
+        if ("cluster".equals(String.valueOf(lookup(config, "pekko.actor.provider")))
+                && lookup(config, "pekko.cluster.downing-provider-class") == null) {
+            log.warn("This cluster has no downing: after a network split or a crash, unreachable nodes stay members"
+                    + " and both sides of a split keep running. Set spring.actor.cluster.downing.strategy"
+                    + " (keep-majority, lease-majority, static-quorum, keep-oldest or down-all)");
+        }
         return config;
     }
 
@@ -486,6 +656,7 @@ public class ActorProperties {
         if (cluster.join == Cluster.Join.DISCOVERY) {
             keys.addAll(discoveryKeys());
         }
+        keys.addAll(downingAndLeaseKeys());
         if (!cluster.roles.isEmpty()) {
             keys.add(new TypedKey("cluster.roles", "pekko.cluster.roles", cluster.roles));
         }
@@ -521,6 +692,79 @@ public class ActorProperties {
                 keys.add(new TypedKey(prefix + "throughput", dispatcherName + ".throughput", dispatcher.throughput));
             }
         });
+        return keys;
+    }
+
+    /** The lease config path of actor-cluster's LeaseStore adapter (LeaseStoreLease.CONFIG_PATH). */
+    private static final String LEASE_PATH = "spring-actor.lease";
+
+    private static final String SPLIT_BRAIN_RESOLVER = "org.apache.pekko.cluster.sbr.SplitBrainResolverProvider";
+
+    /** The downing strategy in effect: the set one, or keep-majority with discovery, or none. */
+    Downing.Strategy downingStrategy() {
+        Downing.Strategy strategy = cluster.downing.strategy;
+        if (strategy != null) {
+            return strategy;
+        }
+        return cluster.join == Cluster.Join.DISCOVERY ? Downing.Strategy.KEEP_MAJORITY : Downing.Strategy.NONE;
+    }
+
+    private List<TypedKey> downingAndLeaseKeys() {
+        List<TypedKey> keys = new ArrayList<>();
+        Downing.Strategy strategy = downingStrategy();
+        if (strategy != Downing.Strategy.NONE) {
+            String name = strategy.name().toLowerCase(Locale.ROOT).replace('_', '-');
+            keys.add(new TypedKey(
+                    "cluster.downing.strategy", "pekko.cluster.downing-provider-class", SPLIT_BRAIN_RESOLVER));
+            keys.add(new TypedKey(
+                    "cluster.downing.strategy", "pekko.cluster.split-brain-resolver.active-strategy", name));
+        }
+        if (strategy == Downing.Strategy.STATIC_QUORUM) {
+            if (cluster.downing.quorumSize == null) {
+                throw new IllegalArgumentException(
+                        "spring.actor.cluster.downing.strategy=static-quorum needs spring.actor.cluster.downing.quorum-size");
+            }
+            keys.add(new TypedKey(
+                    "cluster.downing.quorum-size",
+                    "pekko.cluster.split-brain-resolver.static-quorum.quorum-size",
+                    cluster.downing.quorumSize));
+        }
+        List<String> leaseUsers = new ArrayList<>();
+        if (strategy == Downing.Strategy.LEASE_MAJORITY) {
+            leaseUsers.add("downing.strategy=lease-majority");
+            keys.add(new TypedKey(
+                    "cluster.downing.strategy",
+                    "pekko.cluster.split-brain-resolver.lease-majority.lease-implementation",
+                    LEASE_PATH));
+        }
+        if (cluster.singleton.useLease) {
+            leaseUsers.add("singleton.use-lease");
+            keys.add(new TypedKey("cluster.singleton.use-lease", "pekko.cluster.singleton.use-lease", LEASE_PATH));
+        }
+        if (cluster.sharding.useLease) {
+            leaseUsers.add("sharding.use-lease");
+            keys.add(new TypedKey("cluster.sharding.use-lease", "pekko.cluster.sharding.use-lease", LEASE_PATH));
+        }
+        Lease lease = cluster.lease;
+        if (!leaseUsers.isEmpty() && lease.store == null) {
+            throw new IllegalArgumentException("spring.actor.cluster." + String.join(", ", leaseUsers)
+                    + " needs spring.actor.cluster.lease.store: jdbc, redis or custom");
+        }
+        if (lease.store != null) {
+            if (lease.expiryMargin.compareTo(lease.ttl) >= 0) {
+                throw new IllegalArgumentException(
+                        "spring.actor.cluster.lease.expiry-margin must be less than lease.ttl");
+            }
+            keys.add(new TypedKey("cluster.lease.ttl", LEASE_PATH + ".heartbeat-timeout", lease.ttl.toMillis() + "ms"));
+            keys.add(new TypedKey(
+                    "cluster.lease.renew-interval",
+                    LEASE_PATH + ".heartbeat-interval",
+                    lease.renewInterval.toMillis() + "ms"));
+            keys.add(new TypedKey(
+                    "cluster.lease.expiry-margin",
+                    LEASE_PATH + ".expiry-margin",
+                    lease.expiryMargin.toMillis() + "ms"));
+        }
         return keys;
     }
 

@@ -99,28 +99,23 @@ class ActorPropertiesTest {
 
     @Test
     void discoveryThroughAStoreUsesThePeerRegistryAdapterWithItsTimings() {
-        ActorProperties properties = new ActorProperties();
-        properties.getCluster().setJoin(ActorProperties.Cluster.Join.DISCOVERY);
-        properties.getCluster().getDiscovery().setMethod(ActorProperties.Discovery.Method.JDBC);
-        properties.getCluster().getDiscovery().setHeartbeatInterval(Duration.ofSeconds(2));
-        properties.getCluster().getDiscovery().setTtl(Duration.ofSeconds(12));
-
-        assertThat(properties.toPekkoConfig(Map.of(), false))
-                .isEqualTo(Map.of(
-                        "pekko",
-                        Map.of(
-                                "discovery",
-                                Map.of(
-                                        "method",
-                                        "spring-actor-peer-registry",
-                                        "spring-actor-peer-registry",
-                                        Map.of("heartbeat-interval", "2000ms", "ttl", "12000ms")),
-                                "management",
-                                Map.of(
-                                        "cluster",
-                                        Map.of(
-                                                "bootstrap",
-                                                Map.of("contact-point", Map.of("filter-on-fallback-port", false)))))));
+        runner.withPropertyValues(
+                        "spring.actor.cluster.join=discovery",
+                        "spring.actor.cluster.discovery.method=jdbc",
+                        "spring.actor.cluster.discovery.heartbeat-interval=2s",
+                        "spring.actor.cluster.discovery.ttl=12s")
+                .run(context -> {
+                    Config config = pekkoConfig(context);
+                    assertThat(config.getString("pekko.discovery.method")).isEqualTo("spring-actor-peer-registry");
+                    assertThat(config.getDuration("pekko.discovery.spring-actor-peer-registry.heartbeat-interval"))
+                            .isEqualTo(Duration.ofSeconds(2));
+                    assertThat(config.getDuration("pekko.discovery.spring-actor-peer-registry.ttl"))
+                            .isEqualTo(Duration.ofSeconds(12));
+                    // The registry lists only management ports: Bootstrap must keep them all.
+                    assertThat(config.getBoolean(
+                                    "pekko.management.cluster.bootstrap.contact-point.filter-on-fallback-port"))
+                            .isFalse();
+                });
     }
 
     @Test
@@ -146,5 +141,75 @@ class ActorPropertiesTest {
                         "spring.actor.cluster.seed-nodes=pekko://orders@10.0.0.7:25521")
                 .run(context -> assertThat(context.getStartupFailure())
                         .hasStackTraceContaining("remove spring.actor.cluster.seed-nodes and join-self"));
+    }
+
+    @Test
+    void discoveryDownsUnreachableNodesWithKeepMajorityByDefault() {
+        runner.withPropertyValues("spring.actor.cluster.join=discovery", "spring.actor.cluster.discovery.method=dns")
+                .run(context -> {
+                    Config config = pekkoConfig(context);
+                    assertThat(config.getString("pekko.cluster.downing-provider-class"))
+                            .isEqualTo("org.apache.pekko.cluster.sbr.SplitBrainResolverProvider");
+                    assertThat(config.getString("pekko.cluster.split-brain-resolver.active-strategy"))
+                            .isEqualTo("keep-majority");
+                });
+    }
+
+    @Test
+    void leaseMajorityAndUseLeasePointPekkoAtTheLeaseStoreWithItsTimings() {
+        runner.withPropertyValues(
+                        "spring.actor.cluster.downing.strategy=lease-majority",
+                        "spring.actor.cluster.singleton.use-lease=true",
+                        "spring.actor.cluster.sharding.use-lease=true",
+                        "spring.actor.cluster.lease.store=custom",
+                        "spring.actor.cluster.lease.ttl=60s",
+                        "spring.actor.cluster.lease.renew-interval=6s",
+                        "spring.actor.cluster.lease.expiry-margin=5s")
+                .run(context -> {
+                    Config config = pekkoConfig(context);
+                    assertThat(config.getString("pekko.cluster.split-brain-resolver.active-strategy"))
+                            .isEqualTo("lease-majority");
+                    assertThat(config.getString(
+                                    "pekko.cluster.split-brain-resolver.lease-majority.lease-implementation"))
+                            .isEqualTo("spring-actor.lease");
+                    assertThat(config.getString("pekko.cluster.singleton.use-lease"))
+                            .isEqualTo("spring-actor.lease");
+                    assertThat(config.getString("pekko.cluster.sharding.use-lease"))
+                            .isEqualTo("spring-actor.lease");
+                    assertThat(config.getDuration("spring-actor.lease.heartbeat-timeout"))
+                            .isEqualTo(Duration.ofSeconds(60));
+                    assertThat(config.getDuration("spring-actor.lease.heartbeat-interval"))
+                            .isEqualTo(Duration.ofSeconds(6));
+                    assertThat(config.getDuration("spring-actor.lease.expiry-margin"))
+                            .isEqualTo(Duration.ofSeconds(5));
+                });
+    }
+
+    @Test
+    void aLeaseUserWithoutAStoreFailsNamingTheKeys() {
+        runner.withPropertyValues("spring.actor.cluster.singleton.use-lease=true")
+                .run(context -> assertThat(context.getStartupFailure())
+                        .hasStackTraceContaining(
+                                "spring.actor.cluster.singleton.use-lease needs spring.actor.cluster.lease.store"));
+    }
+
+    @Test
+    void staticQuorumNeedsAQuorumSize() {
+        runner.withPropertyValues("spring.actor.cluster.downing.strategy=static-quorum")
+                .run(context -> assertThat(context.getStartupFailure())
+                        .hasStackTraceContaining("needs spring.actor.cluster.downing.quorum-size"));
+    }
+
+    @Test
+    void aClusterWithoutDowningIsWarnedAbout(CapturedOutput output) {
+        ActorProperties properties = new ActorProperties();
+        properties.setProvider(ActorProperties.Provider.CLUSTER);
+        properties.toPekkoConfig(Map.of(), false);
+        assertThat(output).contains("This cluster has no downing");
+
+        properties.getCluster().getDowning().setStrategy(ActorProperties.Downing.Strategy.KEEP_OLDEST);
+        int warnings = output.toString().split("This cluster has no downing", -1).length;
+        properties.toPekkoConfig(Map.of(), false);
+        assertThat(output.toString().split("This cluster has no downing", -1)).hasSize(warnings);
     }
 }

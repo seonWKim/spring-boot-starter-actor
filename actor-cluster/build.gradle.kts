@@ -20,6 +20,8 @@ dependencies {
 
     implementation("org.apache.pekko:pekko-actor-typed_3:$pekkoVersion")
     implementation("org.apache.pekko:pekko-cluster-typed_3:$pekkoVersion")
+    // Leases (split brain resolver lease-majority, singleton and sharding use-lease).
+    implementation("org.apache.pekko:pekko-coordination_3:$pekkoVersion")
     implementation("org.apache.pekko:pekko-cluster-sharding-typed_3:$pekkoVersion")
     implementation("org.apache.pekko:pekko-serialization-jackson_3:$pekkoVersion")
 
@@ -37,6 +39,7 @@ dependencies {
     testFixturesApi("org.awaitility:awaitility")
 
     testImplementation(project(":actor-autoconfigure"))
+    testImplementation(testFixtures(project(":actor-api")))
     testImplementation(testFixtures(project(":actor-core")))
     testImplementation("com.fasterxml.jackson.core:jackson-databind")
     testImplementation("org.springframework.boot:spring-boot-starter-test")

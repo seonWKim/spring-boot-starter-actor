@@ -10,8 +10,8 @@ spec:
         env:
         - name: SPRING_ACTOR_CLUSTER_DISCOVERY_METHOD
           value: jdbc
-        # Create actor_peer at startup. Set "never" when your migrations create it.
-        - name: SPRING_ACTOR_CLUSTER_DISCOVERY_JDBC_INITIALIZE_SCHEMA
+        # Create the actor-jdbc tables at startup. Set "never" when your migrations create it.
+        - name: SPRING_ACTOR_JDBC_INITIALIZE_SCHEMA
           value: always
         - name: SPRING_DATASOURCE_URL
           value: jdbc:postgresql://postgres:5432/app
