@@ -12,6 +12,7 @@ import org.apache.pekko.cluster.sharding.typed.ShardingMessageExtractor;
 import org.apache.pekko.cluster.sharding.typed.javadsl.ClusterSharding;
 import org.apache.pekko.cluster.sharding.typed.javadsl.Entity;
 import org.apache.pekko.cluster.sharding.typed.javadsl.EntityTypeKey;
+import org.springframework.util.ClassUtils;
 
 /** Maps the starter's sharding types to Pekko Cluster Sharding. */
 public final class PekkoSharding {
@@ -32,12 +33,15 @@ public final class PekkoSharding {
     /** Registers the actor's entity type; on nodes without its role this starts a proxy only. */
     public static <T> void init(ActorSystem<?> system, ClusterSharding sharding, SpringShardedActor<T> actor) {
         ShardedEntityType<T> type = actor.entityType();
+        Class<?> actorClass = ClassUtils.getUserClass(actor);
         Entity<T, ShardEnvelope<T>> entity = Entity.of(
                         typeKey(type),
                         entityCtx -> MessageTracingSetup.receiving(
                                 system,
-                                PekkoBehaviors.toPekko(
-                                        actor.create(new SpringShardedActorContext<>(type, entityCtx.getEntityId())))))
+                                PekkoBehaviors.forNewActor(
+                                        actor.create(new SpringShardedActorContext<>(type, entityCtx.getEntityId())),
+                                        actorClass,
+                                        system)))
                 .withMessageExtractor(extractor(actor.sharding()));
         if (actor.role().isPresent()) {
             entity = entity.withRole(actor.role().get());

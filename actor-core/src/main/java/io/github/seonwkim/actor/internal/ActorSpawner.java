@@ -107,7 +107,7 @@ public final class ActorSpawner {
 
         // The behavior comes from this actor system's registry (its Spring context's actor beans)
         SpringActorBehavior<?> defined = ActorTypeRegistry.of(ctx.getSystem()).createBehavior(actorClass, actorContext);
-        Behavior<?> behavior = PekkoBehaviors.toPekko(defined);
+        Behavior<?> behavior = PekkoBehaviors.forNewActor(defined, actorClass, ctx.getSystem());
         if (defined.kind() != SpringActorBehavior.Kind.ROUTER) {
             // A router passes traced messages on to its workers, which receive them.
             behavior = MessageTracingSetup.receiving(ctx.getSystem(), behavior);

@@ -8,8 +8,10 @@ import io.github.seonwkim.actor.SpringActorBehavior;
 import io.github.seonwkim.actor.SpringActorContext;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import javax.annotation.Nullable;
 import org.apache.pekko.actor.typed.ActorRef;
+import org.apache.pekko.actor.typed.ActorSystem;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.Signal;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
@@ -19,6 +21,20 @@ import org.apache.pekko.actor.typed.javadsl.Behaviors;
 public final class PekkoBehaviors {
 
     private PekkoBehaviors() {}
+
+    /**
+     * The behavior of a new actor of {@code actorClass}, with the system's {@link ActorInstrumentation}s.
+     * A behavior the starter compiles gets them inside its own supervision, so they see failures and
+     * restarts.
+     */
+    public static <C> Behavior<C> forNewActor(
+            SpringActorBehavior<C> behavior, Class<?> actorClass, ActorSystem<?> system) {
+        ActorInstrumentation.Installed installed = ActorInstrumentation.Installed.of(system);
+        if (behavior.kind() == SpringActorBehavior.Kind.DEFINED) {
+            return compile(behavior.definition(), inner -> installed.instrument(actorClass, inner));
+        }
+        return installed.instrument(actorClass, toPekko(behavior));
+    }
 
     @SuppressWarnings("unchecked")
     public static <C> Behavior<C> toPekko(SpringActorBehavior<C> behavior) {
@@ -33,16 +49,17 @@ public final class PekkoBehaviors {
                 }
                 yield (Behavior<C>) pekko;
             }
-            case DEFINED -> compile(behavior.definition());
+            case DEFINED -> compile(behavior.definition(), UnaryOperator.identity());
             case ROUTER -> PekkoRouters.pool(behavior.routerPool());
         };
     }
 
-    private static <C, S> Behavior<C> compile(SpringActorBehavior.Definition<C, S> definition) {
-        Behavior<C> behavior = Behaviors.setup(ctx -> Behaviors.withTimers(timers -> {
+    private static <C, S> Behavior<C> compile(
+            SpringActorBehavior.Definition<C, S> definition, UnaryOperator<Behavior<C>> instrument) {
+        Behavior<C> behavior = instrument.apply(Behaviors.setup(ctx -> Behaviors.withTimers(timers -> {
             S state = definition.stateFactory().apply(new PekkoBehaviorContext<>(ctx, timers));
             return receive(ctx, definition, state);
-        }));
+        })));
         if (definition.supervisionStrategy() != null) {
             behavior = Behaviors.supervise(behavior).onFailure(PekkoProps.supervisor(definition.supervisionStrategy()));
         }

@@ -23,7 +23,8 @@ public final class PekkoRouters {
             @SuppressWarnings("unchecked")
             SpringActorBehavior<C> worker = (SpringActorBehavior<C>)
                     ActorTypeRegistry.of(ctx.getSystem()).createBehavior(pool.workerClass(), workerContext);
-            Behavior<C> workerBehavior = MessageTracingSetup.receiving(ctx.getSystem(), PekkoBehaviors.toPekko(worker));
+            Behavior<C> workerBehavior = MessageTracingSetup.receiving(
+                    ctx.getSystem(), PekkoBehaviors.forNewActor(worker, pool.workerClass(), ctx.getSystem()));
             if (pool.workerSupervision().isPresent()) {
                 workerBehavior = Behaviors.supervise(workerBehavior)
                         .onFailure(
