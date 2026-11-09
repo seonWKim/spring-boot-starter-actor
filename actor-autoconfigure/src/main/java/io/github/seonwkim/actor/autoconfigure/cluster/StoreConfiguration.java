@@ -1,6 +1,7 @@
 package io.github.seonwkim.actor.autoconfigure.cluster;
 
 import io.github.seonwkim.actor.autoconfigure.ActorProperties;
+import io.github.seonwkim.actor.autoconfigure.SchemaScriptInitializer;
 import io.github.seonwkim.actor.jdbc.JdbcLeaseStore;
 import io.github.seonwkim.actor.jdbc.JdbcPeerRegistry;
 import io.github.seonwkim.actor.redis.RedisLeaseStore;
@@ -12,10 +13,7 @@ import org.springframework.boot.autoconfigure.condition.AnyNestedCondition;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.jdbc.init.DataSourceScriptDatabaseInitializer;
-import org.springframework.boot.jdbc.init.PlatformPlaceholderDatabaseDriverResolver;
 import org.springframework.boot.sql.init.DatabaseInitializationMode;
-import org.springframework.boot.sql.init.DatabaseInitializationSettings;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
@@ -80,22 +78,10 @@ public class StoreConfiguration {
         }
 
         /** Creates the actor-jdbc tables from its schema file for the database in use. */
-        static class ActorTableInitializer extends DataSourceScriptDatabaseInitializer {
+        static class ActorTableInitializer extends SchemaScriptInitializer {
 
             ActorTableInitializer(DataSource dataSource, DatabaseInitializationMode mode) {
-                super(dataSource, settings(dataSource, mode));
-            }
-
-            private static DatabaseInitializationSettings settings(
-                    DataSource dataSource, DatabaseInitializationMode mode) {
-                DatabaseInitializationSettings settings = new DatabaseInitializationSettings();
-                settings.setMode(mode);
-                if (mode != DatabaseInitializationMode.NEVER) {
-                    // Finding the database's schema file opens a connection: only when it may run.
-                    settings.setSchemaLocations(new PlatformPlaceholderDatabaseDriverResolver()
-                            .resolveAll(dataSource, JdbcPeerRegistry.SCHEMA_LOCATION));
-                }
-                return settings;
+                super(dataSource, mode, JdbcPeerRegistry.SCHEMA_LOCATION);
             }
         }
     }

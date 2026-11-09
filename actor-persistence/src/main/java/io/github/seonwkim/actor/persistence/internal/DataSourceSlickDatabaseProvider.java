@@ -1,11 +1,7 @@
 package io.github.seonwkim.actor.persistence.internal;
 
 import com.typesafe.config.Config;
-import com.zaxxer.hikari.HikariConfigMXBean;
 import io.github.seonwkim.actor.internal.SpringBeansSetup;
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.util.Locale;
 import javax.annotation.Nullable;
 import javax.sql.DataSource;
 import org.apache.pekko.actor.ActorSystem;
@@ -29,9 +25,6 @@ import slick.util.AsyncExecutor$;
  * system, from {@code pekko-persistence-jdbc.database-provider-fqcn}.
  */
 public final class DataSourceSlickDatabaseProvider implements SlickDatabaseProvider {
-
-    /** Threads that run the JDBC calls, when the pool size is unknown. */
-    private static final int DEFAULT_THREADS = 10;
 
     private final ActorSystem system;
 
@@ -60,7 +53,7 @@ public final class DataSourceSlickDatabaseProvider implements SlickDatabaseProvi
                         "actor-persistence needs an actor system built by the starter (it reads the DataSource bean)"))
                 .beanFactory()
                 .getBean(DataSource.class);
-        int threads = dataSource instanceof HikariConfigMXBean hikari ? hikari.getMaximumPoolSize() : DEFAULT_THREADS;
+        int threads = JdbcDatabase.poolSize(dataSource);
         AsyncExecutor executor =
                 AsyncExecutor$.MODULE$.apply("spring-actor-persistence", threads, threads, 1000, threads);
         JdbcDatabaseDef db =
@@ -70,31 +63,14 @@ public final class DataSourceSlickDatabaseProvider implements SlickDatabaseProvi
         return new ApplicationDatabase(db, profile(dataSource));
     }
 
-    static JdbcProfile profile(DataSource dataSource) {
-        String product;
-        try (Connection connection = dataSource.getConnection()) {
-            product = connection.getMetaData().getDatabaseProductName();
-        } catch (SQLException e) {
-            throw new IllegalStateException("Could not read the database type of the DataSource", e);
-        }
-        String name = product.toLowerCase(Locale.ROOT);
-        if (name.contains("h2")) {
-            return H2Profile$.MODULE$;
-        }
-        if (name.contains("postgres")) {
-            return PostgresProfile$.MODULE$;
-        }
-        if (name.contains("mysql") || name.contains("mariadb")) {
-            return MySQLProfile$.MODULE$;
-        }
-        if (name.contains("oracle")) {
-            return OracleProfile$.MODULE$;
-        }
-        if (name.contains("sql server")) {
-            return SQLServerProfile$.MODULE$;
-        }
-        throw new IllegalStateException("actor-persistence supports H2, PostgreSQL, MySQL, MariaDB, Oracle and SQL"
-                + " Server; the DataSource is " + product);
+    private static JdbcProfile profile(DataSource dataSource) {
+        return switch (JdbcDatabase.of(dataSource)) {
+            case H2 -> H2Profile$.MODULE$;
+            case POSTGRES -> PostgresProfile$.MODULE$;
+            case MYSQL -> MySQLProfile$.MODULE$;
+            case ORACLE -> OracleProfile$.MODULE$;
+            case SQL_SERVER -> SQLServerProfile$.MODULE$;
+        };
     }
 
     private record ApplicationDatabase(JdbcDatabaseDef database, JdbcProfile profile) implements SlickDatabase {
