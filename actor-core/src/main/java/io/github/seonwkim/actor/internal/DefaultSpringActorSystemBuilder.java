@@ -108,7 +108,7 @@ public class DefaultSpringActorSystemBuilder implements SpringActorSystemBuilder
         Map<String, Object> withDefaults = found == null ? configMap : found.withDefaults(configMap);
         // Other modules, such as persistence, add their plugins' settings.
         for (ModuleSupport module : ModuleSupport.all()) {
-            withDefaults = module.withDefaults(withDefaults);
+            withDefaults = module.withDefaults(withDefaults, beanFactory);
         }
         // Agent-free hooks, such as the metrics module's actor meters.
         final List<ActorInstrumentation> instrumentations = beanFactory == null

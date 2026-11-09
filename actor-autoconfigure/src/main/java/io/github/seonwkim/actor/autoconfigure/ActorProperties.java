@@ -534,13 +534,13 @@ public class ActorProperties {
         }
     }
 
-    /** The journal and snapshot tables of actor-persistence (event_journal, event_tag, snapshot). */
+    /** The tables of actor-persistence (journal, snapshots) and actor-projection (offsets). */
     public static class Persistence {
 
         /**
-         * When to create the actor-persistence tables (event_journal, event_tag, snapshot): embedded
-         * (only in an embedded database), always, or never (you create them from the schema-*.sql files
-         * in actor-persistence).
+         * When to create the actor-persistence tables (event_journal, event_tag, snapshot) and the
+         * actor-projection offset tables: embedded (only in an embedded database), always, or never (you
+         * create them from the schema-*.sql files in those modules).
          */
         private DatabaseInitializationMode initializeSchema = DatabaseInitializationMode.EMBEDDED;
 

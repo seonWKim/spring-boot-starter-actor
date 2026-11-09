@@ -143,6 +143,10 @@
   the state, with snapshots every N events and tags. The journal and snapshots are Pekko Persistence JDBC
   tables on the application's `DataSource` (scripts for H2, PostgreSQL, MySQL and MariaDB), created per
   `spring.actor.persistence.initialize-schema`. R2DBC is not supported yet.
+- **Projections (`actor-projection`).** A `SpringProjection` bean reads the events of one tag into the
+  application's database (Spring Data, `JdbcTemplate`) or anywhere else, such as Spring Kafka. Its offset is
+  stored on the application's `DataSource`, in the handler's transaction (`EXACTLY_ONCE`, the default) or
+  after it (`AT_LEAST_ONCE`), so it resumes after a restart. In cluster mode it runs as a cluster singleton.
 
 ### Fixed
 

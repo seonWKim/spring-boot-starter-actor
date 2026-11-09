@@ -25,7 +25,9 @@ dependencies {
     compileOnly("io.projectreactor:reactor-core")
     // Journal tables apply only when actor-persistence is on the classpath.
     compileOnly(project(":actor-persistence"))
+    compileOnly(project(":actor-projection"))
     compileOnly("org.springframework:spring-jdbc")
+    compileOnly("org.springframework:spring-tx")
     compileOnly("org.springframework.data:spring-data-redis")
     compileOnly("org.apache.pekko:pekko-management-cluster-bootstrap_3:${pekkoManagementVersion}")
     compileOnly("org.apache.pekko:pekko-management-cluster-http_3:${pekkoManagementVersion}")

@@ -31,7 +31,7 @@ application with a message that names the key.
 | `spring.actor.cluster.singleton.use-lease` | `false` | `pekko.cluster.singleton.use-lease` | A cluster singleton runs only while it holds a lease. |
 | `spring.actor.cluster.sharding.use-lease` | `false` | `pekko.cluster.sharding.use-lease` | Each shard runs only while it holds a lease. |
 | `spring.actor.jdbc.initialize-schema` | `embedded` | | When to create the `actor_peer` and `actor_lease` tables: `embedded`, `always` or `never`. |
-| `spring.actor.persistence.initialize-schema` | `embedded` | | When to create the journal and snapshot tables of `actor-persistence` (`event_journal`, `event_tag`, `snapshot`): `embedded`, `always` or `never`. See [Event-Sourced Actors](event-sourcing.md). |
+| `spring.actor.persistence.initialize-schema` | `embedded` | | When to create the journal and snapshot tables of `actor-persistence` (`event_journal`, `event_tag`, `snapshot`) and the offset tables of `actor-projection`: `embedded`, `always` or `never`. See [Event-Sourced Actors](event-sourcing.md) and [Projections](projections.md). |
 | `spring.actor.cluster.roles` | none | `pekko.cluster.roles` | Roles of this node. Sharded actors and singletons can be limited to a role. |
 | `spring.actor.dispatchers.<name>.executor` | none | `<name>.*` | Declares a dispatcher that runs on the named Spring `Executor` bean. See [Dispatchers](dispatchers.md). |
 | `spring.actor.dispatchers.<name>.virtual` | `false` | `<name>.executor` | Declares a dispatcher that runs on virtual threads (instead of `executor`). |

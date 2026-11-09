@@ -1,14 +1,12 @@
 package io.github.seonwkim.actor.autoconfigure.persistence;
 
 import io.github.seonwkim.actor.autoconfigure.ActorProperties;
+import io.github.seonwkim.actor.autoconfigure.SchemaScriptInitializer;
 import io.github.seonwkim.actor.persistence.internal.PersistenceModuleSupport;
 import javax.sql.DataSource;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.jdbc.init.DataSourceScriptDatabaseInitializer;
-import org.springframework.boot.jdbc.init.PlatformPlaceholderDatabaseDriverResolver;
 import org.springframework.boot.sql.init.DatabaseInitializationMode;
-import org.springframework.boot.sql.init.DatabaseInitializationSettings;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -33,21 +31,10 @@ public class PersistenceConfiguration {
     }
 
     /** Creates the actor-persistence tables from its schema file for the database in use. */
-    static class PersistenceTableInitializer extends DataSourceScriptDatabaseInitializer {
+    static class PersistenceTableInitializer extends SchemaScriptInitializer {
 
         PersistenceTableInitializer(DataSource dataSource, DatabaseInitializationMode mode) {
-            super(dataSource, settings(dataSource, mode));
-        }
-
-        private static DatabaseInitializationSettings settings(DataSource dataSource, DatabaseInitializationMode mode) {
-            DatabaseInitializationSettings settings = new DatabaseInitializationSettings();
-            settings.setMode(mode);
-            if (mode != DatabaseInitializationMode.NEVER) {
-                // Finding the database's schema file opens a connection: only when it may run.
-                settings.setSchemaLocations(new PlatformPlaceholderDatabaseDriverResolver()
-                        .resolveAll(dataSource, PersistenceModuleSupport.SCHEMA_LOCATION));
-            }
-            return settings;
+            super(dataSource, mode, PersistenceModuleSupport.SCHEMA_LOCATION);
         }
     }
 }

@@ -148,6 +148,8 @@ read model or publish to Kafka:
 .withTagger(event -> Set.of("accounts"))
 ```
 
+See [Projections](projections.md).
+
 ## Failures
 
 If storing an event fails, the actor stops (Pekko's default) and the command gets no reply; an `ask`
