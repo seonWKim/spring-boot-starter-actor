@@ -1,6 +1,7 @@
 package io.github.seonwkim.actor;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 import java.time.Duration;
 import org.junit.jupiter.api.Test;
@@ -79,27 +80,14 @@ public class ClusterSingletonClusterModeTest extends AbstractClusterTest {
                 .toCompletableFuture()
                 .get();
 
-        // Wait a bit for singleton to initialize
-        Thread.sleep(2000);
-
         // When: Sending increment messages from all three nodes using their respective proxies
         singleton1.tell(new ClusterSingletonTest.SingletonTestActor.Increment());
         singleton2.tell(new ClusterSingletonTest.SingletonTestActor.Increment());
         singleton3.tell(new ClusterSingletonTest.SingletonTestActor.Increment());
 
-        // Wait for messages to be processed
-        Thread.sleep(1000);
-
         // Then: All messages should be handled by the same instance
         // Query from any node should return the same count
-        ClusterSingletonTest.SingletonTestActor.CountResponse response = singleton1
-                .ask(new ClusterSingletonTest.SingletonTestActor.GetCount())
-                .withTimeout(Duration.ofSeconds(5))
-                .execute()
-                .toCompletableFuture()
-                .get();
-
-        assertThat(response.count).isEqualTo(3);
+        awaitCount(singleton1, 3);
     }
 
     /**
@@ -120,26 +108,13 @@ public class ClusterSingletonClusterModeTest extends AbstractClusterTest {
                 .toCompletableFuture()
                 .get();
 
-        // Wait for singleton to initialize
-        Thread.sleep(2000);
-
         // When: Sending messages from different nodes via the proxy
         singleton.tell(new ClusterSingletonTest.SingletonTestActor.Increment()); // from node 1
         singleton.tell(new ClusterSingletonTest.SingletonTestActor.Increment()); // from node 1
         singleton.tell(new ClusterSingletonTest.SingletonTestActor.Increment()); // from node 1
 
-        // Wait for processing
-        Thread.sleep(1000);
-
         // Then: Query from any node should return the same count
-        ClusterSingletonTest.SingletonTestActor.CountResponse response = singleton
-                .ask(new ClusterSingletonTest.SingletonTestActor.GetCount())
-                .withTimeout(Duration.ofSeconds(5))
-                .execute()
-                .toCompletableFuture()
-                .get();
-
-        assertThat(response.count).isEqualTo(3);
+        awaitCount(singleton, 3);
     }
 
     /**
@@ -179,16 +154,25 @@ public class ClusterSingletonClusterModeTest extends AbstractClusterTest {
         singleton1.tell(new ClusterSingletonTest.SingletonTestActor.Increment());
         singleton2.tell(new ClusterSingletonTest.SingletonTestActor.Increment());
 
-        Thread.sleep(1000);
-
         // Query should show 2 increments (same instance)
-        ClusterSingletonTest.SingletonTestActor.CountResponse response = singleton1
-                .ask(new ClusterSingletonTest.SingletonTestActor.GetCount())
-                .withTimeout(Duration.ofSeconds(5))
-                .execute()
-                .toCompletableFuture()
-                .get();
+        awaitCount(singleton1, 2);
+    }
 
-        assertThat(response.count).isEqualTo(2);
+    /**
+     * Waits until the singleton has counted {@code expected} increments. Messages sent through
+     * proxies on different nodes are not ordered with each other, so a single read could run
+     * before an increment from another node arrives.
+     */
+    private static void awaitCount(
+            SpringActorHandle<ClusterSingletonTest.SingletonTestActor.Command> singleton, int expected) {
+        await().atMost(Duration.ofSeconds(15))
+                .until(() -> singleton
+                                .ask(new ClusterSingletonTest.SingletonTestActor.GetCount())
+                                .withTimeout(Duration.ofSeconds(5))
+                                .execute()
+                                .toCompletableFuture()
+                                .get()
+                                .count
+                        == expected);
     }
 }

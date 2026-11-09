@@ -241,8 +241,6 @@ public class SerializationClusterTest extends AbstractClusterTest {
         jsonActor2.tell(new SerializationTestActor.JsonMessageWithoutRef("json-tell-2", 200));
         jsonActor3.tell(new SerializationTestActor.JsonMessageWithoutRef("json-tell-3", 300));
 
-        Thread.sleep(500); // Allow messages to be processed
-
         // ========== Test 2: JSON Serializer with ActorRef (Ask Pattern) ==========
         SpringShardedActorHandle<SerializationTestActor.Command> jsonAskActor1 = system1.sharded(
                         SerializationTestActor.class)
@@ -309,8 +307,6 @@ public class SerializationClusterTest extends AbstractClusterTest {
         cborActor1.tell(new SerializationTestActor.CborMessageWithoutRef("cbor-tell-1", 100));
         cborActor2.tell(new SerializationTestActor.CborMessageWithoutRef("cbor-tell-2", 200));
         cborActor3.tell(new SerializationTestActor.CborMessageWithoutRef("cbor-tell-3", 300));
-
-        Thread.sleep(500); // Allow messages to be processed
 
         // ========== Test 4: CBOR Serializer with ActorRef (Ask Pattern) ==========
         SpringShardedActorHandle<SerializationTestActor.Command> cborAskActor1 = system1.sharded(
