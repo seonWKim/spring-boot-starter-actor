@@ -214,12 +214,11 @@ directory has a Grafana dashboard and Prometheus alert rules for the meters on t
 [Prometheus names](#prometheus-names). A test (`MonitoringFilesTest`) checks that every metric they query is
 a meter described on this page.
 
-Versioned downloads and a one-command Grafana stack: [#179](https://github.com/seonWKim/actor-spring-boot-starter/issues/179).
 
 ### The Actors dashboard
 
-`monitoring/grafana/actor-dashboard.json`. Import it in Grafana and pick your Prometheus data source. The
-variables `instance` and `system` filter by instance and actor system.
+`monitoring/grafana/actor-dashboard.json`. [Set up Grafana](#set-up-grafana) loads it; you can also import it
+by hand and pick your Prometheus data source. The variables `instance` and `system` filter by instance and actor system.
 
 | Row | Panels |
 |---|---|
@@ -252,6 +251,59 @@ yq '.spec' monitoring/prometheus/actor-alerts.yaml > actor-alerts.rules.yml
 
 The thresholds are starting points; tune them to your load. The rules group by `namespace`, the label the
 Prometheus Operator adds; with another setup, change it to the label that tells your applications apart.
+
+### Set up Grafana
+
+#### Download the files for your version
+
+Use the files of the release you depend on: the dashboard on `main` may query meters a later release added.
+Each GitHub release attaches them, with the version in their names:
+
+```text
+https://github.com/seonWKim/actor-spring-boot-starter/releases/download/v<version>/actor-grafana-dashboard-<version>.json
+https://github.com/seonWKim/actor-spring-boot-starter/releases/download/v<version>/actor-prometheus-alerts-<version>.yaml
+https://github.com/seonWKim/actor-spring-boot-starter/releases/download/v<version>/actor-monitoring-<version>.zip
+```
+
+The dashboard carries the version as a `v<version>` tag and at the end of its description. The zip holds the
+`monitoring/` directory for that version: the dashboard, the alert rules, the provisioning files and `docker-compose.yml`.
+
+#### Provisioning
+
+To load the dashboard into your own Grafana without clicks, copy the two provisioning files into Grafana's
+provisioning directory (`/etc/grafana/provisioning` by default) and the dashboard into the directory the
+dashboard provider reads:
+
+| File | Goes to | Change |
+|---|---|---|
+| `monitoring/grafana/provisioning/datasources/prometheus.yaml` | `provisioning/datasources/` | `url`: your Prometheus. Skip the file if Grafana already has a default Prometheus data source |
+| `monitoring/grafana/provisioning/dashboards/actor.yaml` | `provisioning/dashboards/` | `options.path` if you keep dashboards elsewhere |
+| `monitoring/grafana/actor-dashboard.json` | `/var/lib/grafana/dashboards/actor/` (the provider's `options.path`) | |
+
+The dashboard's **Data source** variable starts on Grafana's default Prometheus data source.
+
+#### Run it locally
+
+With your application running on port 8080 and exposing `/actuator/prometheus`:
+
+```bash
+cd monitoring                     # or the unzipped actor-monitoring-<version>/
+docker compose up -d
+```
+
+- Grafana: <http://localhost:3000> (`admin` / `admin`), dashboard **Actors** in the **Actors** folder.
+- Prometheus: <http://localhost:9090>, the alert rules under *Alerts*, the scrape target under *Status > Targets*.
+
+Prometheus scrapes `host.docker.internal:8080/actuator/prometheus`. Set `ACTOR_TARGET` for another address:
+
+```bash
+ACTOR_TARGET=host.docker.internal:9000 docker compose up -d
+docker compose down -v            # stop and remove the containers and the generated files
+```
+
+The `setup` service writes the scrape target and turns `actor-alerts.yaml` into a plain rules file
+(its `spec`) before Prometheus starts. The cluster alerts group by `namespace`, which a local stack doesn't
+have, so they treat everything Prometheus scrapes as one group.
 
 ### Installing on Kubernetes
 
