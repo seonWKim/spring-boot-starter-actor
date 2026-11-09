@@ -16,7 +16,7 @@ import reactor.core.publisher.Mono;
  * </ul>
  *
  * <p>This is the recommended pattern for most use cases. For advanced scenarios
- * (custom supervision, explicit spawn control), see the supervision example.
+ * (custom supervision, explicit spawn control), see the Supervision and Actor Registration guides.
  */
 @Service
 public class HelloService {

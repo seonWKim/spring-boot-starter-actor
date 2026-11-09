@@ -2,11 +2,11 @@ package io.github.seonwkim.example;
 
 import io.github.seonwkim.actor.AskCommand;
 import io.github.seonwkim.actor.SpringActorBehavior;
+import io.github.seonwkim.actor.SpringBehaviorContext;
 import io.github.seonwkim.actor.serialization.JsonSerializable;
 import io.github.seonwkim.actor.shard.ShardedEntityType;
 import io.github.seonwkim.actor.shard.SpringShardedActor;
 import io.github.seonwkim.actor.shard.SpringShardedActorContext;
-import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.springframework.stereotype.Component;
 
 /**
@@ -46,7 +46,7 @@ public class HelloActor implements SpringShardedActor<HelloActor.Command> {
         final String entityId = ctx.getEntityId();
 
         return SpringActorBehavior.builder(Command.class, ctx)
-                .withState(actorCtx -> new HelloActorBehavior(actorCtx.unwrap(ActorContext.class), entityId))
+                .withState(actorCtx -> new HelloActorBehavior(actorCtx, entityId))
                 .onMessage(SayHello.class, (state, msg) -> state.onSayHello(msg))
                 .build();
     }
@@ -55,10 +55,10 @@ public class HelloActor implements SpringShardedActor<HelloActor.Command> {
      * Behavior handler for hello actor. Holds the entity ID and handles messages.
      */
     private static class HelloActorBehavior {
-        private final org.apache.pekko.actor.typed.javadsl.ActorContext<Command> ctx;
+        private final SpringBehaviorContext<Command> ctx;
         private final String entityId;
 
-        HelloActorBehavior(org.apache.pekko.actor.typed.javadsl.ActorContext<Command> ctx, String entityId) {
+        HelloActorBehavior(SpringBehaviorContext<Command> ctx, String entityId) {
             this.ctx = ctx;
             this.entityId = entityId;
         }
@@ -71,7 +71,7 @@ public class HelloActor implements SpringShardedActor<HelloActor.Command> {
          */
         private SpringActorBehavior<Command> onSayHello(SayHello msg) {
             // Get information about the current node and entity
-            final String nodeAddress = ctx.getSystem().address().toString();
+            final String nodeAddress = ctx.nodeAddress();
 
             // Create a response message with node and entity information
             final String message = "Received from entity [" + entityId + "] on node [" + nodeAddress + "]";

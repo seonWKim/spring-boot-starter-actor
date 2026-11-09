@@ -35,6 +35,9 @@ public interface SpringBehaviorContext<T> {
     /** This actor's path. */
     String path();
 
+    /** The address of the node this actor runs on; see {@link SpringActorSystem#nodeAddress()}. */
+    String nodeAddress();
+
     /** The child actor with this name, if it is running. */
     Optional<SpringActorRef<Void>> getChild(String name);
 
