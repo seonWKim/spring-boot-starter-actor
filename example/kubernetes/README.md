@@ -252,6 +252,46 @@ curl http://localhost:8080/api/hello
 # Output: Hello from v2!
 ```
 
+## Canary and Blue-Green
+
+A rolling update replaces pods one at a time inside one cluster. Two more ways to roll out a version:
+
+| Strategy | What runs | Traffic | Script |
+|---|---|---|---|
+| Rolling update | One cluster; old and new pods side by side during the rollout | Moves pod by pod | `kubectl set image` |
+| Canary | One cluster; a few new pods join the running cluster | Share = canary pods / all pods | `scripts/canary.sh` |
+| Blue-green | Two separate clusters (blue and green) | Switches in one step | `scripts/blue-green.sh` |
+
+```bash
+# Canary: one pod of v3 joins the cluster and serves about 1 in 4 requests
+scripts/canary.sh start spring-actor-chat:v3
+scripts/canary.sh promote        # roll the main pods to v3 and remove the canary
+# scripts/canary.sh abort        # or remove the canary and keep v2
+
+# Blue-green: green is its own cluster on v4; blue keeps serving until the switch
+scripts/blue-green.sh deploy spring-actor-chat:v4
+scripts/blue-green.sh switch     # the HTTP Service now selects the green pods
+# scripts/blue-green.sh rollback # switch back to blue
+scripts/blue-green.sh finish     # delete blue
+```
+
+`scripts/test-strategies.sh` runs all three under load on the kind cluster from `setup-local.sh` and fails if any request failed:
+
+```bash
+scripts/test-strategies.sh
+# rolling        total=... ok=... failed=0 ok
+# canary         total=... ok=... failed=0 ok
+# blue-green     total=... ok=... failed=0 ok
+```
+
+The new versions there are retags of the same image, so it checks the rollout mechanics, not a change in the code.
+
+### Changing Versions
+
+- **Rolling update and canary mix versions in one cluster.** Old and new pods exchange messages, and a sharded entity can move from an old pod to a new one. Keep every message and every piece of entity state that crosses nodes readable by both versions: add fields as optional, don't rename or remove fields or types in the same release, and keep each type on the same serializer (`JsonSerializable` or `CborSerializable`). Make an incompatible change in two releases: first one that reads both formats, then one that writes the new format.
+- **Blue-green never mixes versions.** Green finds its peers with its own label (`app=spring-actor-green`), so the two clusters never exchange messages and the message format can change freely. In-memory state does not move: entities, singletons and topics start empty on green. Keep state that must survive the switch in a database or event journal both clusters read.
+- **Rollback.** A canary is removed with `canary.sh abort`; until `blue-green.sh finish`, `blue-green.sh rollback` sends traffic back to blue, which still has its state.
+
 ## Testing Cluster Resilience
 
 ### Simulate Pod Failure
@@ -312,7 +352,11 @@ example/kubernetes/
 └── scripts/                    # Advanced deployment scripts
     ├── deploy.sh
     ├── rollout.sh
-    └── debug.sh
+    ├── debug.sh
+    ├── load.sh                 # Requests under load; counts failures
+    ├── canary.sh               # Canary: start, promote, abort
+    ├── blue-green.sh           # Blue-green: deploy, switch, rollback, finish
+    └── test-strategies.sh      # Runs all three strategies under load on kind
 ```
 
 ## Troubleshooting
