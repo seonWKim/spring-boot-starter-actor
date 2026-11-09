@@ -76,3 +76,29 @@ spring:
 ```
 
 Here the worst case is 10s (`preStop`) + 10s (web drain) + 20s (actor system) = 40s, inside the 45s grace period. If you must keep `terminationGracePeriodSeconds: 30` with a 10s `preStop` sleep, lower `spring.actor.shutdown.timeout` (for example to `15s`) and the web drain timeout so the sum stays under 30s.
+
+## Health checks
+
+With Spring Boot Actuator on the classpath, `/actuator/health` gets two components:
+
+| Component | When | Status |
+|---|---|---|
+| `actorSystem` | always | `UP` while the actor system runs, `DOWN` once it has terminated |
+| `actorCluster` | `spring.actor.provider=cluster` | `UP` when this node is an `Up` member; `OUT_OF_SERVICE` while it has not joined yet, is joining, weakly up, leaving or shutting down; `DOWN` when it was downed or removed, or other members report it unreachable |
+
+`actorCluster` details hold this node's status, the member count and the unreachable count, never addresses. An unreachable peer shows only in the count: one partitioned peer does not make every node unhealthy. `management.health.actor.enabled=false` turns both off.
+
+Neither is in the Kubernetes probe groups by default; add `actorCluster` to readiness so a pod gets traffic only once it is a cluster member, and stops getting it as soon as it leaves:
+
+```yaml
+management:
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      group:
+        readiness:
+          include: readinessState,actorCluster
+```
+
+Keep it out of liveness: a node that is still joining is not broken, and restarting it would only delay the join. Cluster Bootstrap reaches pods through Pekko Management, not through the readiness-gated Service, so a cluster still forms while every pod is not ready yet.

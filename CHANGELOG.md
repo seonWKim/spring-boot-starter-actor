@@ -74,6 +74,10 @@
   contexts in one JVM (in tests, for example) spawned each other's actor beans.
 - A spawn that cannot start (an unknown dispatcher, for example) now fails the returned stage
   with the cause. In 0.x it stopped the actor system and `spawnAndWait()` never returned.
+- **Actuator health.** With Actuator present, `/actuator/health` has an `actorSystem` component and, in
+  cluster mode, an `actorCluster` component that is `UP` only while this node is an `Up` member. Add
+  `actorCluster` to the readiness group to gate traffic on membership. `management.health.actor.enabled`
+  turns both off.
 
 ### Migrating from 0.x
 

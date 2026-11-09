@@ -83,6 +83,10 @@ data:
           probes:
             enabled: true
           show-details: always
+          group:
+            readiness:
+              # Ready only while this pod is an Up cluster member.
+              include: readinessState,actorCluster
       health:
         readinessState:
           enabled: true
