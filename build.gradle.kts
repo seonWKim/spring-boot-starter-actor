@@ -13,6 +13,10 @@ plugins {
     id("net.ltgt.errorprone") version "3.1.0"
     id("org.springframework.boot") version "3.5.16" apply false
     id("io.spring.dependency-management") version "1.1.7" apply false
+    // Kotlin 1.9.25 is the version Spring Boot 3.5 manages: actor-kotlin's metadata stays readable
+    // by the Kotlin compiler Boot 3.5 applications use.
+    kotlin("jvm") version "1.9.25" apply false
+    kotlin("plugin.spring") version "1.9.25" apply false
 }
 
 repositories {
@@ -210,6 +214,11 @@ spotless {
         indentWithSpaces(4)
         trimTrailingWhitespace()
         endWithNewline()
+    }
+    kotlin {
+        target("**/*.kt")
+        targetExclude("**/build/**")
+        ktlint()
     }
 }
 

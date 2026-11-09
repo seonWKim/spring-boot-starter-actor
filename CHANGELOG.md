@@ -147,6 +147,11 @@
   application's database (Spring Data, `JdbcTemplate`) or anywhere else, such as Spring Kafka. Its offset is
   stored on the application's `DataSource`, in the handler's transaction (`EXACTLY_ONCE`, the default) or
   after it (`AT_LEAST_ONCE`), so it resumes after a restart. In cluster mode it runs as a cluster singleton.
+- **Kotlin support.** The new `actor-kotlin` module adds `suspend` functions (`awaitAsk`, `AskBuilder.await()`,
+  `awaitSpawn`, `awaitGetOrSpawn`, `awaitGet`, `awaitExists`), reified helpers (`actor<A, _>()`,
+  `sharded<A, _>()`, `actorBehavior<C>()`, `unwrap<X>()`) and `kotlin.time.Duration` timeouts on top of
+  the Java API. Every `actor-api` package now declares non-null defaults (`@NonNullApi`, `@NonNullFields`),
+  so Kotlin with `-Xjsr305=strict` sees the API's nullability. See the Kotlin guide and `example/kotlin`.
 
 ### Fixed
 

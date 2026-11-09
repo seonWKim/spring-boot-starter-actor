@@ -23,6 +23,10 @@ The Simple Example demonstrates the basic usage of Actor Spring Boot Starter in 
 
 **Best for:** Beginners learning the basics of the actor model and Spring Boot integration.
 
+The same example in Kotlin, with `suspend` functions from `actor-kotlin`, is in
+[example/kotlin](https://github.com/seonWKim/actor-spring-boot-starter/tree/main/example/kotlin). See the
+[Kotlin guide](../guides/kotlin.md).
+
 ### [Cluster Example](cluster.md)
 
 The Cluster Example shows how to use Actor Spring Boot Starter in a clustered environment, focusing on sharded actors. It demonstrates:

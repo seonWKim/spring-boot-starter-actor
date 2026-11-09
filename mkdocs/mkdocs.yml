@@ -61,6 +61,7 @@ nav:
     - Running in Production: guides/production.md
     - AI Agents: guides/ai-agents.md
     - Testing: guides/testing.md
+    - Kotlin: guides/kotlin.md
     - Configuration Reference: guides/configuration.md
   - Examples:
     - Overview: examples/index.md
