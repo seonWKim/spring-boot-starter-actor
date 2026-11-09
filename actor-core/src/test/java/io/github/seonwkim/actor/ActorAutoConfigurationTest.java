@@ -175,4 +175,18 @@ public class ActorAutoConfigurationTest {
 
         assertThat(failure).rootCause().hasMessageContaining("actor-spring-boot-starter-cluster");
     }
+
+    @Test
+    void remoteModeWithoutPekkoRemoteFailsNamingTheStarterToAdd() {
+        Throwable failure = catchThrowable(() -> new SpringApplicationBuilder(TestApp.class)
+                .web(WebApplicationType.NONE)
+                .properties("spring.actor.provider=remote")
+                .run()
+                .close());
+
+        assertThat(failure)
+                .rootCause()
+                .hasMessage(
+                        "spring.actor.provider=remote needs Pekko Remote: depend on io.github.seonwkim:actor-spring-boot-starter-cluster");
+    }
 }

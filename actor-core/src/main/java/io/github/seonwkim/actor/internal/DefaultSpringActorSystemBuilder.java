@@ -33,6 +33,17 @@ public class DefaultSpringActorSystemBuilder implements SpringActorSystemBuilder
     /** The default actor system name */
     private final String DEFAULT_SYSTEM_NAME = "system";
 
+    private static final String REMOTE_PROVIDER = "org.apache.pekko.remote.RemoteActorRefProvider";
+
+    private static boolean onClasspath(String className) {
+        try {
+            Class.forName(className, false, DefaultSpringActorSystemBuilder.class.getClassLoader());
+            return true;
+        } catch (ClassNotFoundException e) {
+            return false;
+        }
+    }
+
     /**
      * Sets the root guardian supplier for the actor system.
      *
@@ -101,6 +112,10 @@ public class DefaultSpringActorSystemBuilder implements SpringActorSystemBuilder
         final boolean isClusterMode = Objects.equals(config.getString("pekko.actor.provider"), "cluster");
         // Fail with the missing module's name before Pekko fails on its missing classes.
         final ClusterSupport clusterSupport = !isClusterMode ? null : found != null ? found : ClusterSupport.require();
+        if (Objects.equals(config.getString("pekko.actor.provider"), "remote") && !onClasspath(REMOTE_PROVIDER)) {
+            throw new IllegalStateException(
+                    "spring.actor.provider=remote needs Pekko Remote: depend on io.github.seonwkim:actor-spring-boot-starter-cluster");
+        }
 
         ActorSystemSetup setup = ActorSystemSetup.create(BootstrapSetup.create(config));
         // The actor beans of this builder's Spring context; another context in the JVM has its own.
