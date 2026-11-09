@@ -66,6 +66,9 @@
   `SpringActorSystem.whenTerminated()` completes when the actor system has terminated.
 - `SpringActorSystem.nodeAddress()` and `SpringBehaviorContext.nodeAddress()` give this node's address
   (`pekko://<name>@<host>:<port>`, or `pekko://<name>` locally) without unwrapping Pekko.
+- `SpringBehaviorContext` has timers (`startSingleTimer`, `startTimerAtFixedRate`, `cancelTimer`),
+  `watch` with the `ActorTerminated` signal, and `messageAdapter`, so actors no longer wrap Pekko behaviors
+  for them.
 - Actor and sharded actor registries belong to each Spring context. In 0.x they were static, so two
   contexts in one JVM (in tests, for example) spawned each other's actor beans.
 - A spawn that cannot start (an unknown dispatcher, for example) now fails the returned stage

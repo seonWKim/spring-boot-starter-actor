@@ -172,8 +172,6 @@ it with the `ActorSnapshot` entity and `ActorSnapshotRepository` from
 
 The example builds these itself:
 
-- **Timers.** There is no timer wrapper; the rate limiter and the approval gateway use Pekko's
-  `Behaviors.withTimers` through `SpringActorBehavior.wrap`.
 - **Rate limiting.** There is no rate limiter in the starter; the example's is an actor.
 - **Supervision of sharded entities.** `SpringShardedActorBehavior` has no supervision or signal option, so
   the agent puts its logic in a supervised child.

@@ -1,6 +1,7 @@
 package io.github.seonwkim.actor.internal;
 
 import io.github.seonwkim.actor.ActorSignal;
+import io.github.seonwkim.actor.ActorTerminated;
 import io.github.seonwkim.actor.PostStop;
 import io.github.seonwkim.actor.PreRestart;
 import io.github.seonwkim.actor.SpringActorBehavior;
@@ -38,10 +39,10 @@ public final class PekkoBehaviors {
     }
 
     private static <C, S> Behavior<C> compile(SpringActorBehavior.Definition<C, S> definition) {
-        Behavior<C> behavior = Behaviors.setup(ctx -> {
-            S state = definition.stateFactory().apply(new PekkoBehaviorContext<>(ctx));
+        Behavior<C> behavior = Behaviors.setup(ctx -> Behaviors.withTimers(timers -> {
+            S state = definition.stateFactory().apply(new PekkoBehaviorContext<>(ctx, timers));
             return receive(ctx, definition, state);
-        });
+        }));
         if (definition.supervisionStrategy() != null) {
             behavior = Behaviors.supervise(behavior).onFailure(PekkoProps.supervisor(definition.supervisionStrategy()));
         }
@@ -92,6 +93,9 @@ public final class PekkoBehaviors {
         }
         if (signal instanceof org.apache.pekko.actor.typed.PostStop) {
             return PostStop.INSTANCE;
+        }
+        if (signal instanceof org.apache.pekko.actor.typed.Terminated terminated) {
+            return new ActorTerminated(new PekkoActorRef<>(terminated.getRef()));
         }
         return null;
     }
