@@ -1,0 +1,12 @@
+# Grafana dashboard provisioning: loads every dashboard JSON in options.path at startup.
+# docker-compose.yml mounts actor-dashboard.json into that directory.
+apiVersion: 1
+
+providers:
+  - name: actor-spring-boot-starter
+    folder: Actors
+    type: file
+    disableDeletion: true
+    allowUiUpdates: false
+    options:
+      path: /var/lib/grafana/dashboards/actor

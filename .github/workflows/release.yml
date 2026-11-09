@@ -201,6 +201,9 @@ jobs:
           echo "✅ Agent JAR built: $AGENT_JAR"
           echo "AGENT_JAR_PATH=$AGENT_JAR" >> $GITHUB_ENV
 
+      - name: 📊 Build monitoring files
+        run: scripts/release/monitoring-assets.sh "${{ needs.bump-version.outputs.version }}" build/monitoring-assets
+
       - name: 📝 Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
@@ -232,8 +235,13 @@ jobs:
             ```
 
             See [Metrics Documentation](https://github.com/seonWKim/actor-spring-boot-starter/blob/main/actor-metrics/README.md) for detailed setup instructions.
+
+            ### Grafana and Prometheus
+
+            The monitoring files for this version are attached below: `actor-grafana-dashboard-${{ needs.bump-version.outputs.version }}.json`, `actor-prometheus-alerts-${{ needs.bump-version.outputs.version }}.yaml`, and `actor-monitoring-${{ needs.bump-version.outputs.version }}.zip` (Grafana provisioning and a `docker compose` stack). See [monitoring/README.md](https://github.com/seonWKim/actor-spring-boot-starter/blob/${{ needs.prepare.outputs.tag }}/monitoring/README.md).
           files: |
             ${{ env.AGENT_JAR_PATH }}
+            build/monitoring-assets/*
           draft: false
           prerelease: false
         env:

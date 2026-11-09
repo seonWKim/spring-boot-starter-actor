@@ -1,0 +1,54 @@
+# Local Prometheus and Grafana with the Actors dashboard and the actor alert rules loaded.
+#
+#   docker compose up -d                                  # scrapes host.docker.internal:8080/actuator/prometheus
+#   ACTOR_TARGET=host.docker.internal:9000 docker compose up -d
+#   docker compose down -v
+#
+# Grafana: http://localhost:3000 (admin/admin), Prometheus: http://localhost:9090.
+services:
+  # Writes the scrape target and turns the PrometheusRule into a plain rules file (its spec).
+  setup:
+    image: mikefarah/yq:4.44.3
+    user: root
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        mkdir -p /generated/rules /generated/targets
+        yq '.spec' /monitoring/prometheus/actor-alerts.yaml > /generated/rules/actor-alerts.yml
+        printf '[{"targets": ["%s"]}]\n' "$$ACTOR_TARGET" > /generated/targets/actor.json
+    environment:
+      ACTOR_TARGET: ${ACTOR_TARGET:-host.docker.internal:8080}
+    volumes:
+      - ./prometheus/actor-alerts.yaml:/monitoring/prometheus/actor-alerts.yaml:ro
+      - prometheus-generated:/generated
+
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    depends_on:
+      setup:
+        condition: service_completed_successfully
+    ports:
+      - "9090:9090"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-generated:/etc/prometheus/generated:ro
+
+  grafana:
+    image: grafana/grafana:11.3.0
+    depends_on:
+      - prometheus
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/actor-dashboard.json:/var/lib/grafana/dashboards/actor/actor-dashboard.json:ro
+
+volumes:
+  prometheus-generated:
