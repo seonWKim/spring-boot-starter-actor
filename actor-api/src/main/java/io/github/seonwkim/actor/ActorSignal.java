@@ -6,4 +6,4 @@ package io.github.seonwkim.actor;
  * @see PreRestart
  * @see PostStop
  */
-public sealed interface ActorSignal permits PreRestart, PostStop {}
+public sealed interface ActorSignal permits PreRestart, PostStop, ActorTerminated {}

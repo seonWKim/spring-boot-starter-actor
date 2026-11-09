@@ -460,6 +460,36 @@ self.child(LoggerActor.class)
     .spawn();
 ```
 
+## Timers, Watching and Message Adapters
+
+The behavior context (the `ctx` given to `withState`) has the actor tools that run inside the actor:
+
+```java
+public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
+    return SpringActorBehavior.builder(Command.class, actorContext)
+        .withState(ctx -> {
+            // Send Tick to this actor every second, until cancelled with ctx.cancelTimer("tick")
+            ctx.startTimerAtFixedRate("tick", new Tick(), Duration.ofSeconds(1));
+            return new State(ctx);
+        })
+        .onMessage(Tick.class, (state, msg) -> state.onTick())
+        .onMessage(WatchWorker.class, (state, msg) -> {
+            state.ctx().watch(msg.worker());   // ActorTerminated arrives when the worker stops
+            return SpringActorBehavior.same();
+        })
+        .onSignal(ActorTerminated.class, (state, signal) -> state.onWorkerStopped(signal.ref()))
+        .build();
+}
+```
+
+- `startSingleTimer(key, message, delay)` sends `message` once. `startTimerAtFixedRate(key, message, interval)`
+  sends it repeatedly. Starting a timer with an active key replaces it, and `cancelTimer(key)` stops it. Timers
+  belong to the actor and stop with it.
+- `watch(ref)` delivers the `ActorTerminated` signal when `ref` stops. An actor that watches another and has
+  no `onSignal(ActorTerminated.class, ...)` handler fails when the watched actor stops.
+- `messageAdapter(Type.class, value -> new MyCommand(value))` returns a reference that accepts another
+  actor's reply type and delivers it to this actor as one of its own commands.
+
 ## Best Practices
 
 1. **Use getOrSpawn**: For most cases, use `getOrSpawn()` instead of manually checking exists/get/spawn - it's simpler and reduces boilerplate

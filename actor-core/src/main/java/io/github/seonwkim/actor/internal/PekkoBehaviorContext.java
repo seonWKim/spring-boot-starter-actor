@@ -4,11 +4,14 @@ import io.github.seonwkim.actor.SpringActorHandle;
 import io.github.seonwkim.actor.SpringActorRef;
 import io.github.seonwkim.actor.SpringBehaviorContext;
 import io.github.seonwkim.actor.receptionist.ServiceName;
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
+import org.apache.pekko.actor.typed.javadsl.TimerScheduler;
 import org.apache.pekko.actor.typed.receptionist.Receptionist;
 import org.slf4j.Logger;
 
@@ -16,8 +19,10 @@ import org.slf4j.Logger;
 public final class PekkoBehaviorContext<T> implements SpringBehaviorContext<T> {
 
     private final ActorContext<T> ctx;
+    private final TimerScheduler<T> timers;
 
-    public PekkoBehaviorContext(ActorContext<T> ctx) {
+    public PekkoBehaviorContext(ActorContext<T> ctx, TimerScheduler<T> timers) {
+        this.timers = timers;
         this.ctx = ctx;
     }
 
@@ -56,6 +61,31 @@ public final class PekkoBehaviorContext<T> implements SpringBehaviorContext<T> {
     @Override
     public void stop(SpringActorRef<?> child) {
         ctx.stop(PekkoActorRef.toPekko(child));
+    }
+
+    @Override
+    public void startSingleTimer(Object key, T message, Duration delay) {
+        timers.startSingleTimer(key, message, delay);
+    }
+
+    @Override
+    public void startTimerAtFixedRate(Object key, T message, Duration interval) {
+        timers.startTimerAtFixedRate(key, message, interval);
+    }
+
+    @Override
+    public void cancelTimer(Object key) {
+        timers.cancel(key);
+    }
+
+    @Override
+    public void watch(SpringActorRef<?> other) {
+        ctx.watch(PekkoActorRef.toPekko(other));
+    }
+
+    @Override
+    public <U> SpringActorRef<U> messageAdapter(Class<U> messageClass, Function<U, ? extends T> toCommand) {
+        return new PekkoActorRef<>(ctx.messageAdapter(messageClass, toCommand::apply));
     }
 
     @Override

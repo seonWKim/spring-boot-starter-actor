@@ -1,10 +1,12 @@
 package io.github.seonwkim.actor;
 
 import io.github.seonwkim.actor.receptionist.ServiceName;
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 import org.slf4j.Logger;
 
 /**
@@ -46,6 +48,27 @@ public interface SpringBehaviorContext<T> {
 
     /** Stops a child actor of this actor. */
     void stop(SpringActorRef<?> child);
+
+    /**
+     * Sends {@code message} to this actor once, after {@code delay}. Starting a timer with a key
+     * that is already active replaces it.
+     */
+    void startSingleTimer(Object key, T message, Duration delay);
+
+    /** Sends {@code message} to this actor every {@code interval}, until the timer is cancelled. */
+    void startTimerAtFixedRate(Object key, T message, Duration interval);
+
+    /** Cancels the timer with this key; a message it already sent is not delivered. */
+    void cancelTimer(Object key);
+
+    /** Watches {@code other}: when it stops, this actor receives the {@link ActorTerminated} signal. */
+    void watch(SpringActorRef<?> other);
+
+    /**
+     * A reference that accepts messages of another protocol and delivers them to this actor as
+     * commands, for example to receive replies from an actor that does not know this actor's type.
+     */
+    <U> SpringActorRef<U> messageAdapter(Class<U> messageClass, Function<U, ? extends T> toCommand);
 
     /**
      * Sends this actor a message when {@code future} completes, built from its value or failure.
