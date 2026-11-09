@@ -64,6 +64,8 @@
   process exits with status 1, so Kubernetes or systemd restarts it. Set
   `spring.actor.shutdown.exit-process=false` to only close the context.
   `SpringActorSystem.whenTerminated()` completes when the actor system has terminated.
+- Actor and sharded actor registries belong to each Spring context. In 0.x they were static, so two
+  contexts in one JVM (in tests, for example) spawned each other's actor beans.
 - A spawn that cannot start (an unknown dispatcher, for example) now fails the returned stage
   with the cause. In 0.x it stopped the actor system and `spawnAndWait()` never returned.
 

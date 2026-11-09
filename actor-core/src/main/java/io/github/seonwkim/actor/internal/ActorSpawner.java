@@ -104,8 +104,9 @@ public final class ActorSpawner {
             TagsConfig tagsConfig,
             boolean isClusterSingleton) {
 
-        // Create behavior from static registry using Spring DI
-        Behavior<?> behavior = PekkoBehaviors.toPekko(ActorTypeRegistry.createBehavior(actorClass, actorContext));
+        // The behavior comes from this actor system's registry (its Spring context's actor beans)
+        Behavior<?> behavior =
+                PekkoBehaviors.toPekko(ActorTypeRegistry.of(ctx.getSystem()).createBehavior(actorClass, actorContext));
 
         if (supervisorStrategy != null) {
             behavior = Behaviors.supervise(behavior).onFailure(PekkoProps.supervisor(supervisorStrategy));

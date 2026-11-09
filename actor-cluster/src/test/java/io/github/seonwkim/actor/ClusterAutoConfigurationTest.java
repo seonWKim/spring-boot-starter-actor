@@ -59,6 +59,9 @@ class ClusterAutoConfigurationTest {
     @Autowired
     Room room;
 
+    @Autowired
+    ShardedActorRegistry shardedActors;
+
     @Test
     void theClusterModuleIsFoundAndStartsClusterMode() {
         assertThat(actorSystem.isClusterMode()).isTrue();
@@ -67,7 +70,7 @@ class ClusterAutoConfigurationTest {
 
     @Test
     void shardedActorBeansAreRegisteredAndReachable() {
-        assertThat(ShardedActorRegistry.get(Room.TYPE)).isSameAs(room);
+        assertThat(shardedActors.get(Room.TYPE)).isSameAs(room);
         assertThat(actorSystem.sharded(Room.class).withId("r1").get().entityId())
                 .isEqualTo("r1");
     }

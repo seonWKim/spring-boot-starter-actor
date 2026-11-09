@@ -1,13 +1,12 @@
 package io.github.seonwkim.actor;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.github.seonwkim.actor.ActorTypeRegistryTest.DummyActor.Command;
 import io.github.seonwkim.actor.internal.ActorTypeRegistry;
 import io.github.seonwkim.actor.internal.DefaultSpringActorContext;
 import java.util.UUID;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 public class ActorTypeRegistryTest {
@@ -22,41 +21,36 @@ public class ActorTypeRegistryTest {
         }
     }
 
-    @BeforeEach
-    public void setUp() {
-        // Clear static registry before each test to ensure test isolation
-        ActorTypeRegistry.clear();
-    }
+    private final ActorTypeRegistry registry = new ActorTypeRegistry();
 
     @Test
-    public void testRegisterAndRetrieveByClass() {
-        ActorTypeRegistry.register(DummyActor.class, (id) -> SpringActorBehavior.builder(Command.class, id)
+    public void createsTheBehaviorFromTheRegisteredFactory() {
+        SpringActorBehavior<Command> registered = SpringActorBehavior.builder(
+                        Command.class, new DefaultSpringActorContext("dummy"))
                 .onMessage(Command.class, (ctx, msg) -> SpringActorBehavior.same())
-                .build());
+                .build();
+        registry.register(DummyActor.class, id -> registered);
 
-        SpringActorBehavior<DummyActor.Command> behavior = ActorTypeRegistry.createTypedBehavior(
-                DummyActor.class,
-                new DefaultSpringActorContext(UUID.randomUUID().toString()));
-        assertNotNull(behavior);
+        assertSame(
+                registered,
+                registry.createTypedBehavior(
+                        DummyActor.class,
+                        new DefaultSpringActorContext(UUID.randomUUID().toString())));
     }
 
     @Test
-    public void testRegisterAndRetrieveByStringKey() {
-        ActorTypeRegistry.register(DummyActor.class, (id) -> SpringActorBehavior.builder(Command.class, id)
-                .onMessage(Command.class, (a, b) -> SpringActorBehavior.same())
-                .build());
-
-        SpringActorBehavior<DummyActor.Command> behavior =
-                ActorTypeRegistry.createTypedBehavior(DummyActor.class, new DefaultSpringActorContext("custom-id"));
-
-        assertNotNull(behavior);
-    }
-
-    @Test
-    public void testThrowsOnMissingClassKey() {
+    public void anUnregisteredClassIsRejected() {
         assertThrows(
                 IllegalArgumentException.class,
-                () -> ActorTypeRegistry.createTypedBehavior(
-                        DummyActor.class, new DefaultSpringActorContext("missing")));
+                () -> registry.createTypedBehavior(DummyActor.class, new DefaultSpringActorContext("missing")));
+    }
+
+    @Test
+    public void registriesAreIndependent() {
+        registry.register(DummyActor.class, id -> SpringActorBehavior.builder(Command.class, id)
+                .build());
+
+        assertThrows(IllegalArgumentException.class, () -> new ActorTypeRegistry()
+                .createTypedBehavior(DummyActor.class, new DefaultSpringActorContext("other")));
     }
 }

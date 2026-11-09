@@ -34,13 +34,14 @@ import org.springframework.core.env.Environment;
  * <p><b>Initialization Flow:</b>
  * <ol>
  *   <li>Spring scans and creates actor beans (with DI)</li>
- *   <li>{@link #actorRegistrationBeanPostProcessor()} registers actors in static registries</li>
+ *   <li>{@link #actorRegistrationBeanPostProcessor} registers actors in this context's {@link ActorTypeRegistry}</li>
  *   <li>{@link #actorSystem(SpringActorSystemBuilder)} builds the actor system</li>
  *   <li>In cluster mode, {@code actor-cluster} registers sharded actors once all beans exist</li>
  * </ol>
  *
- * <p><b>Key Design:</b> Uses the static {@link ActorTypeRegistry}
- * to avoid circular dependencies between actor system components.
+ * <p><b>Key Design:</b> Actors are created from the {@link ActorTypeRegistry} rather than looked up as
+ * beans, which avoids circular dependencies between actor beans and the actor system. The registry belongs
+ * to this context, so several contexts in one JVM keep their actors apart.
  */
 @Configuration
 @EnableConfigurationProperties(ActorProperties.class)
@@ -53,7 +54,7 @@ public class ActorConfiguration {
     // ==================================================================================
 
     /**
-     * Registers actor beans in static registries as they are initialized.
+     * Registers actor beans in this context's registry as they are initialized.
      *
      * <p>Runs automatically after each bean initialization to register:
      * <ul>
@@ -64,11 +65,11 @@ public class ActorConfiguration {
      * <ul>
      *   <li>Automatic - no manual registration needed</li>
      *   <li>Runs after bean creation - Spring DI already complete</li>
-     *   <li>Avoids circular dependencies - registries are static</li>
+     *   <li>Avoids circular dependencies - actors are found in the registry, not looked up as beans</li>
      * </ul>
      */
     @Bean
-    public BeanPostProcessor actorRegistrationBeanPostProcessor() {
+    public static BeanPostProcessor actorRegistrationBeanPostProcessor(ActorTypeRegistry actorTypeRegistry) {
         return new BeanPostProcessor() {
             @Override
             @SuppressWarnings({"rawtypes", "unchecked"})
@@ -80,7 +81,7 @@ public class ActorConfiguration {
             }
 
             private void registerActor(SpringActorWithContext actor) {
-                ActorTypeRegistry.registerInternal(actor.getClass(), actorContext -> {
+                actorTypeRegistry.registerInternal(actor.getClass(), actorContext -> {
                     try {
                         return actor.create(actorContext);
                     } catch (Exception e) {
@@ -98,10 +99,13 @@ public class ActorConfiguration {
     // PHASE 2: Actor System Construction
     // ==================================================================================
 
-    /**
-     * Creates the root guardian that manages all actors.
-     * Uses static {@link ActorTypeRegistry} to avoid circular dependencies.
-     */
+    /** This context's actor beans by class; the actor system built here carries it. */
+    @Bean
+    public static ActorTypeRegistry actorTypeRegistry() {
+        return new ActorTypeRegistry();
+    }
+
+    /** Creates the root guardian that manages all actors. */
     @Bean
     @ConditionalOnMissingBean(RootGuardianSupplierWrapper.class)
     public RootGuardianSupplierWrapper rootGuardianSupplierWrapper() {
@@ -140,7 +144,7 @@ public class ActorConfiguration {
     /**
      * Creates the main actor system.
      *
-     * <p>At this point, actors are registered in static registries
+     * <p>At this point, actors are registered in this context's registries
      * but cluster sharding is not yet initialized.
      */
     @Bean
