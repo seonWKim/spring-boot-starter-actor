@@ -30,7 +30,7 @@ The full text of the Getting Started page and every guide, with code inlined, is
 - [Cluster](https://seonwkim.github.io/actor-spring-boot-starter/examples/cluster/): sharded actors across several cluster nodes
 - [Synchronization](https://seonwkim.github.io/actor-spring-boot-starter/examples/synchronization/): actor-based synchronization compared with locks and databases
 - [Chat](https://seonwkim.github.io/actor-spring-boot-starter/examples/chat/): a real-time chat built on pub/sub topics, with no extra middleware
-- [Monitoring](https://seonwkim.github.io/actor-spring-boot-starter/examples/monitoring/): experimental actor metrics through Micrometer, exposed to Prometheus
+- [Monitoring](https://seonwkim.github.io/actor-spring-boot-starter/examples/monitoring/): actor metrics through Micrometer without a Java agent (tags, overhead, the optional agent), exposed to Prometheus
 
 ## Reference
 

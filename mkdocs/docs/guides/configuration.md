@@ -27,7 +27,8 @@ application with a message that names the key.
 | `spring.actor.shutdown.exit-process` | `true` | | When the actor system terminates by itself (for example after this node is downed), the context closes; with this set, the process then exits with status 1. |
 | `spring.actor.pekko.management.enabled` | `true` | | Whether to start the Pekko Management HTTP server and Cluster Bootstrap in cluster mode, when the Pekko Management libraries are on the classpath. |
 | `management.health.actor.enabled` | `true` | | Whether to add the `actorSystem` and (in cluster mode) `actorCluster` health components when Actuator is on the classpath. See [Health checks](production.md#health-checks). |
-| `spring.actor.metrics.enabled` | `true` | | Whether to register the actor `MetricsRegistry` bean and, in cluster mode, the `actor.cluster.*` and `actor.sharding.*` meters (`actor-metrics`). See [Cluster metrics](production.md#cluster-metrics). |
+| `spring.actor.metrics.enabled` | `true` | | Whether to register the actor meters, the actor `MetricsRegistry` bean and, in cluster mode, the `actor.cluster.*` and `actor.sharding.*` meters (`actor-metrics`). See [Monitoring](../examples/monitoring.md) and [Cluster metrics](production.md#cluster-metrics). |
+| `spring.actor.metrics.path-tag-limit` | `0` | | How many actor paths get their own `actor.path` tag on the `actor.message.*` meters; the rest share `actor.path=other`. `0` adds no `actor.path` tag. |
 
 ```yaml
 spring:
