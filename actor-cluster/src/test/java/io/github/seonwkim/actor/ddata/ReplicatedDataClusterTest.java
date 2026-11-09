@@ -44,12 +44,16 @@ class ReplicatedDataClusterTest extends AbstractClusterTest {
         Consistency all = Consistency.all(Duration.ofSeconds(5));
 
         // A local write is on node 1 only; a read from all nodes on node 2 asks node 1 for it.
-        onNode1.put("alice", new Cart(List.of("book", "pen"), 2)).toCompletableFuture().join();
+        onNode1.put("alice", new Cart(List.of("book", "pen"), 2))
+                .toCompletableFuture()
+                .join();
         assertThat(onNode2.get("alice", all).toCompletableFuture().join())
                 .contains(new Cart(List.of("book", "pen"), 2));
 
         // A write to all nodes is on node 2 when it completes; a local read there finds it.
-        onNode1.put("bob", new Cart(List.of("cup"), 1), all).toCompletableFuture().join();
+        onNode1.put("bob", new Cart(List.of("cup"), 1), all)
+                .toCompletableFuture()
+                .join();
         assertThat(onNode2.get("bob").toCompletableFuture().join()).contains(new Cart(List.of("cup"), 1));
         assertThat(onNode2.get("carol").toCompletableFuture().join()).isEqualTo(Optional.empty());
     }
