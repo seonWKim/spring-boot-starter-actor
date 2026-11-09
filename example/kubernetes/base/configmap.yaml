@@ -10,18 +10,18 @@ data:
       application:
         name: spring-actor-app
       actor:
+        name: spring-actor-system
+        provider: cluster
+        remote:
+          hostname: ${POD_IP}
+          port: 2551
         pekko:
-          name: spring-actor-system
           actor:
-            provider: cluster
             allow-java-serialization: off
             warn-about-java-serializer-usage: on
 
           remote:
             artery:
-              canonical:
-                hostname: ${POD_IP}
-                port: 2551
               bind:
                 hostname: 0.0.0.0
                 port: 2551
@@ -35,14 +35,14 @@ data:
 
             shutdown-after-unsuccessful-join-seed-nodes: 60s
 
-            coordinated-shutdown:
-              phases:
-                cluster-leave:
-                  timeout: 10s
-                cluster-sharding-shutdown-region:
-                  timeout: 10s
-                actor-system-terminate:
-                  timeout: 10s
+          coordinated-shutdown:
+            phases:
+              cluster-leave:
+                timeout: 10s
+              cluster-sharding-shutdown-region:
+                timeout: 10s
+              actor-system-terminate:
+                timeout: 10s
 
             bootstrap:
               contact-point-discovery:

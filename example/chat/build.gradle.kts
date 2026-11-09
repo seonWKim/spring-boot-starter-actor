@@ -18,6 +18,12 @@ dependencies {
 	implementation("org.apache.pekko:pekko-cluster-sharding-typed_3:${property("pekkoVersion")}")
 	implementation(project(":actor-metrics"))
 
+	// Kubernetes deployment (example/kubernetes): the cluster forms through Pekko Cluster Bootstrap,
+	// which finds the other pods through the Kubernetes API.
+	runtimeOnly("org.apache.pekko:pekko-management-cluster-bootstrap_3:${property("pekkoManagementVersion")}")
+	runtimeOnly("org.apache.pekko:pekko-management-cluster-http_3:${property("pekkoManagementVersion")}")
+	runtimeOnly("org.apache.pekko:pekko-discovery-kubernetes-api_3:${property("pekkoManagementVersion")}")
+
 	implementation("org.springframework.boot:spring-boot-starter")
 	implementation("org.springframework.boot:spring-boot-starter-webflux")
 	// Removed spring-boot-starter-websocket (blocking WebSocket, uses Tomcat)
@@ -39,3 +45,6 @@ tasks.named<org.springframework.boot.gradle.tasks.run.BootRun>("bootRun") {
 		"-javaagent:${rootProject.projectDir}/actor-metrics/build/libs/actor-metrics-${rootProject.version}-agent.jar"
 	)
 }
+
+// The Docker image copies the one Boot jar from build/libs; the plain jar would make that copy ambiguous.
+tasks.named<Jar>("jar") { enabled = false }
