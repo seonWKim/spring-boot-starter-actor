@@ -50,3 +50,9 @@ A test earns its place by failing when a real bug is introduced. Before you add 
 ```
 
 The build must pass before a change is done.
+
+## Docs
+
+- Guides live in `mkdocs/docs/guides/` and are listed in `mkdocs/mkdocs.yml`.
+- `mkdocs/docs/llms.txt` is the index for AI assistants, one line per page. When you add, rename or remove a page, update it too. `scripts/docs/test.sh` fails on a dead link or a guide that is missing from it.
+- `llms-full.txt` is generated at build time by `mkdocs/hooks/llms_full.py`. Never commit it.

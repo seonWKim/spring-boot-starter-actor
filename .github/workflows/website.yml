@@ -34,5 +34,8 @@ jobs:
 
       - run: pip install mkdocs-material
 
+      - name: Check llms.txt and llms-full.txt
+        run: scripts/docs/test.sh
+
       - name: Deploy MkDocs site
         run: mkdocs gh-deploy --config-file mkdocs/mkdocs.yml --force
