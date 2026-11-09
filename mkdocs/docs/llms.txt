@@ -24,6 +24,7 @@ The full text of the Getting Started page and every guide, with code inlined, is
 - [Persistence with Spring Boot](https://seonwkim.github.io/actor-spring-boot-starter/guides/persistence-spring-boot/): keep actor state with Spring Data and other Spring Boot tools
 - [Running in Production](https://seonwkim.github.io/actor-spring-boot-starter/guides/production/): graceful shutdown, health checks, Kubernetes probes, cluster metrics, the actors endpoint and tracing across tell and ask
 - [AI Agents](https://seonwkim.github.io/actor-spring-boot-starter/guides/ai-agents/): one sharded actor per agent, supervised conversations, non-blocking model calls and rate limits
+- [Testing](https://seonwkim.github.io/actor-spring-boot-starter/guides/testing/): the `@ActorTest` slice, multi-node clusters in one JVM with `ActorCluster`, and the contract suites for your own `PeerRegistry` or `LeaseStore`
 
 ## Examples
 

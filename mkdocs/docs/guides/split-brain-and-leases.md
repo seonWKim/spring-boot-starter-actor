@@ -128,4 +128,5 @@ public interface LeaseStore {
 ```
 
 Each method must be atomic in the store. Methods may block: the starter calls them on the blocking
-dispatcher, and owns the renewal timers.
+dispatcher, and owns the renewal timers. Run `LeaseStoreContract` from `actor-test` against your store to
+check it (see [Testing](testing.md#contract-suites-for-your-own-store)).
