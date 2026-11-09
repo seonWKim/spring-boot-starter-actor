@@ -11,6 +11,7 @@ include(":actor-jdbc")
 include(":actor-redis")
 include(":actor-test")
 include(":actor-streams")
+include(":actor-persistence")
 
 // Test-only: the ARCHITECTURE.md rules every module's ArchitectureTest runs. Not published.
 include(":architecture-rules")
