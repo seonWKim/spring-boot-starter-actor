@@ -105,7 +105,11 @@ public class DefaultSpringActorSystemBuilder implements SpringActorSystemBuilder
 
         // The cluster module, when present, adds serialization (messages cross nodes only there).
         final ClusterSupport found = ClusterSupport.find().orElse(null);
-        final Map<String, Object> withDefaults = found == null ? configMap : found.withDefaults(configMap);
+        Map<String, Object> withDefaults = found == null ? configMap : found.withDefaults(configMap);
+        // Other modules, such as persistence, add their plugins' settings.
+        for (ModuleSupport module : ModuleSupport.all()) {
+            withDefaults = module.withDefaults(withDefaults);
+        }
         // Agent-free hooks, such as the metrics module's actor meters.
         final List<ActorInstrumentation> instrumentations = beanFactory == null
                 ? List.of()
