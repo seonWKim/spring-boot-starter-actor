@@ -18,6 +18,11 @@ application with a message that names the key.
 | `spring.actor.remote.port` | Pekko's default (`25520`) | `pekko.remote.artery.canonical.port` | Port for other nodes, `0` to `65535`; `0` picks a free port. |
 | `spring.actor.cluster.seed-nodes` | none | `pekko.cluster.seed-nodes` | Nodes to join at startup, as `pekko://<name>@<host>:<port>`. |
 | `spring.actor.cluster.join-self` | `false` | none | Joins the node to itself: a one-node cluster without seed nodes, on any port (local runs, tests). Not with `seed-nodes`. |
+| `spring.actor.cluster.join` | `seed-nodes` | | `seed-nodes` or `discovery` (peers through `discovery.method`, with Cluster Bootstrap). See [Cluster Formation](cluster-formation.md). |
+| `spring.actor.cluster.discovery.method` | none | `pekko.discovery.method` | `jdbc`, `redis`, `custom` (your `PeerRegistry` bean), `kubernetes-api`, `dns` or `config`. Required with `join: discovery`. |
+| `spring.actor.cluster.discovery.heartbeat-interval` | `5s` | | How often a node renews its own entry (`jdbc`, `redis`, `custom`). |
+| `spring.actor.cluster.discovery.ttl` | `30s` | | How long an entry counts as alive after its last renewal (`jdbc`, `redis`, `custom`). |
+| `spring.actor.cluster.discovery.jdbc.initialize-schema` | `embedded` | | When to create the `actor_peer` table: `embedded`, `always` or `never`. |
 | `spring.actor.cluster.roles` | none | `pekko.cluster.roles` | Roles of this node. Sharded actors and singletons can be limited to a role. |
 | `spring.actor.dispatchers.<name>.executor` | none | `<name>.*` | Declares a dispatcher that runs on the named Spring `Executor` bean. See [Dispatchers](dispatchers.md). |
 | `spring.actor.dispatchers.<name>.virtual` | `false` | `<name>.executor` | Declares a dispatcher that runs on virtual threads (instead of `executor`). |
