@@ -19,6 +19,7 @@ import java.util.stream.Stream;
  *   <li>{@code actor.cluster.members}: members this node sees
  *   <li>{@code actor.cluster.unreachable}: of them, how many are unreachable
  *   <li>{@code actor.cluster.leader}: 1 while this node is the leader, else 0
+ *   <li>{@code actor.cluster.singleton.host}: 1 while this node runs the cluster singletons, else 0
  *   <li>{@code actor.cluster.events} tagged {@code event}: cluster events this node received, one series
  *       per {@link ClusterEvent} type from the start, so dashboards see zeros instead of gaps
  * </ul>
@@ -28,15 +29,18 @@ public final class ClusterMeters implements MeterBinder {
     private final IntSupplier members;
     private final IntSupplier unreachable;
     private final BooleanSupplier leader;
+    private final BooleanSupplier singletonHost;
     // Counted here, not in a registry counter: the first events (this node's MemberUp) arrive before
     // Spring Boot binds the meters.
     private final Map<Class<?>, LongAdder> events = Stream.of(ClusterEvent.class.getPermittedSubclasses())
             .collect(Collectors.toUnmodifiableMap(type -> type, type -> new LongAdder()));
 
-    public ClusterMeters(IntSupplier members, IntSupplier unreachable, BooleanSupplier leader) {
+    public ClusterMeters(
+            IntSupplier members, IntSupplier unreachable, BooleanSupplier leader, BooleanSupplier singletonHost) {
         this.members = members;
         this.unreachable = unreachable;
         this.leader = leader;
+        this.singletonHost = singletonHost;
     }
 
     @Override
@@ -49,6 +53,9 @@ public final class ClusterMeters implements MeterBinder {
                 .register(registry);
         Gauge.builder("actor.cluster.leader", leader, l -> l.getAsBoolean() ? 1 : 0)
                 .description("1 while this node is the cluster leader")
+                .register(registry);
+        Gauge.builder("actor.cluster.singleton.host", singletonHost, h -> h.getAsBoolean() ? 1 : 0)
+                .description("1 while this node runs the cluster singletons")
                 .register(registry);
         events.forEach((type, count) -> FunctionCounter.builder("actor.cluster.events", count, LongAdder::sum)
                 .description("Cluster events this node received")

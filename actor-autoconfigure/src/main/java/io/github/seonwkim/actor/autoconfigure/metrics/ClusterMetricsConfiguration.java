@@ -3,7 +3,10 @@ package io.github.seonwkim.actor.autoconfigure.metrics;
 import io.github.seonwkim.actor.SpringActorSystem;
 import io.github.seonwkim.actor.cluster.ClusterEvent;
 import io.github.seonwkim.actor.internal.cluster.ClusterStateView;
+import io.github.seonwkim.actor.internal.shard.ShardedActorRegistry;
+import io.github.seonwkim.actor.internal.shard.ShardingStats;
 import io.github.seonwkim.actor.metrics.cluster.ClusterMeters;
+import io.github.seonwkim.actor.metrics.cluster.ShardingMeters;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -11,9 +14,9 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.event.EventListener;
 
 /**
- * Cluster membership meters ({@code actor-metrics}) in cluster mode, when Micrometer is on the classpath.
- * Spring Boot binds the {@link ClusterMeters} bean to every {@code MeterRegistry}.
- * {@code spring.actor.metrics.enabled=false} turns them off.
+ * Cluster and sharding meters ({@code actor-metrics}) in cluster mode, when Micrometer is on the
+ * classpath. Spring Boot binds the {@link ClusterMeters} and {@link ShardingMeters} beans to every
+ * {@code MeterRegistry}. {@code spring.actor.metrics.enabled=false} turns them off.
  */
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnClass(
@@ -31,7 +34,19 @@ public class ClusterMetricsConfiguration {
         return new ClusterMeters(
                 () -> ClusterStateView.of(actorSystem).members(),
                 () -> ClusterStateView.of(actorSystem).unreachable(),
-                () -> ClusterStateView.of(actorSystem).leader());
+                () -> ClusterStateView.of(actorSystem).leader(),
+                () -> ClusterStateView.of(actorSystem).singletonHost());
+    }
+
+    /** Each read returns the answer to the previous read: a scrape never waits on the cluster. */
+    @Bean
+    public ShardingMeters actorShardingMeters(SpringActorSystem actorSystem, ShardedActorRegistry registry) {
+        ShardingStats stats = new ShardingStats(actorSystem, registry);
+        return new ShardingMeters(
+                stats::types,
+                type -> stats.latest(type).regions(),
+                type -> stats.latest(type).shards(),
+                type -> stats.latest(type).entities());
     }
 
     @Bean
