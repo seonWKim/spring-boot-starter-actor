@@ -20,6 +20,8 @@ data:
           discovery:
             heartbeat-interval: 5s
             ttl: 30s
+          downing:
+            strategy: keep-majority
         shutdown:
           timeout: 25s
         pekko:
@@ -31,9 +33,7 @@ data:
                 hostname: 0.0.0.0
                 port: 25520
           cluster:
-            downing-provider-class: org.apache.pekko.cluster.sbr.SplitBrainResolverProvider
             split-brain-resolver:
-              active-strategy: keep-majority
               stable-after: 20s
           management:
             http:

@@ -65,15 +65,15 @@ spring:
       join: discovery
       discovery:
         method: jdbc
-        jdbc:
-          initialize-schema: always   # default: embedded (only H2, HSQLDB, Derby)
+    jdbc:
+      initialize-schema: always   # default: embedded (only H2, HSQLDB, Derby)
     pekko:
       management:
         http:
           port: 7626
 ```
 
-The entries live in the `actor_peer` table. `initialize-schema` decides when the starter creates it:
+The entries live in the `actor_peer` table. `spring.actor.jdbc.initialize-schema` decides when the starter creates it:
 `embedded` (the default) only in an embedded database, `always`, or `never`. With `never`, create it
 yourself, for example in a Flyway or Liquibase migration, from the schema file for your database in the
 `actor-jdbc` jar: `io/github/seonwkim/actor/jdbc/schema-{h2,postgresql,mysql,mariadb}.sql`.
@@ -158,3 +158,6 @@ its README.
 
 Bootstrap waits for `pekko.management.cluster.bootstrap.contact-point-discovery.required-contact-point-nr`
 (default `2`) peers before it forms a new cluster. Set it to `1` for a single replica.
+
+With `join: discovery`, the split brain resolver defaults to `keep-majority`. To choose another strategy, or
+to keep singletons and shards on one node with a lease, see [Split Brain and Leases](split-brain-and-leases.md).
