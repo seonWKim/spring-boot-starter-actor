@@ -28,7 +28,7 @@ public final class PekkoBehaviorContext<T> implements SpringBehaviorContext<T> {
 
     @Override
     public SpringActorHandle<T> getSelf() {
-        return new PekkoActorHandle<>(ctx.getSystem().scheduler(), ctx.getSelf());
+        return new PekkoActorHandle<>(ctx.getSystem(), ctx.getSelf());
     }
 
     @Override

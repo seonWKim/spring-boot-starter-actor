@@ -125,6 +125,12 @@ public class DefaultSpringActorSystemBuilder implements SpringActorSystemBuilder
                         : beanFactory.getBeanProvider(ActorTypeRegistry.class).getIfAvailable(ActorTypeRegistry::new));
         if (beanFactory != null) {
             setup = setup.withSetup(new SpringBeansSetup(beanFactory));
+            // Present only while tracing is on (an ObservationRegistry bean exists).
+            MessageTracing tracing =
+                    beanFactory.getBeanProvider(MessageTracing.class).getIfAvailable();
+            if (tracing != null) {
+                setup = setup.withSetup(new MessageTracingSetup(tracing));
+            }
         }
         if (found != null) {
             setup = found.withSetup(setup, beanFactory);

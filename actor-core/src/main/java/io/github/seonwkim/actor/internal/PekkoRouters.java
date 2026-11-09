@@ -23,7 +23,7 @@ public final class PekkoRouters {
             @SuppressWarnings("unchecked")
             SpringActorBehavior<C> worker = (SpringActorBehavior<C>)
                     ActorTypeRegistry.of(ctx.getSystem()).createBehavior(pool.workerClass(), workerContext);
-            Behavior<C> workerBehavior = PekkoBehaviors.toPekko(worker);
+            Behavior<C> workerBehavior = MessageTracingSetup.receiving(ctx.getSystem(), PekkoBehaviors.toPekko(worker));
             if (pool.workerSupervision().isPresent()) {
                 workerBehavior = Behaviors.supervise(workerBehavior)
                         .onFailure(
@@ -51,6 +51,9 @@ public final class PekkoRouters {
     }
 
     static String hashKey(Object message) {
+        if (message instanceof TracedMessage traced) {
+            return hashKey(traced.message());
+        }
         if (message instanceof ConsistentHashable hashable) {
             String key = hashable.getConsistentHashKey();
             if (key == null) {

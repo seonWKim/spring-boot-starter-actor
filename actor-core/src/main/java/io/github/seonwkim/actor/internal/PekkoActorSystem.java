@@ -146,7 +146,7 @@ public final class PekkoActorSystem implements SpringActorSystem, DisposableBean
 
                     @SuppressWarnings("unchecked")
                     ActorRef<C> typedRef = (ActorRef<C>) response.ref;
-                    return new PekkoActorHandle<>(actorSystem.scheduler(), typedRef, defaultActorRefTimeout);
+                    return new PekkoActorHandle<>(actorSystem, typedRef, defaultActorRefTimeout);
                 })
                 .exceptionally(throwable -> null);
     }
@@ -203,7 +203,7 @@ public final class PekkoActorSystem implements SpringActorSystem, DisposableBean
                     @SuppressWarnings("unchecked")
                     ActorRef<C> typedRef = (ActorRef<C>) spawned.ref;
                     return CompletableFuture.completedFuture(
-                            new PekkoActorHandle<>(actorSystem.scheduler(), typedRef, defaultActorRefTimeout));
+                            new PekkoActorHandle<>(actorSystem, typedRef, defaultActorRefTimeout));
                 });
     }
 

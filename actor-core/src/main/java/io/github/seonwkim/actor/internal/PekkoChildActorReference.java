@@ -7,13 +7,13 @@ import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 import org.apache.pekko.actor.typed.ActorRef;
-import org.apache.pekko.actor.typed.Scheduler;
+import org.apache.pekko.actor.typed.ActorSystem;
 import org.apache.pekko.actor.typed.javadsl.AskPattern;
 
 /** Pekko-backed {@link SpringChildActorReference}. */
 public final class PekkoChildActorReference<P, C> implements SpringChildActorReference<P, C> {
     private final ActorRef<P> parentRef;
-    private final Scheduler scheduler;
+    private final ActorSystem<?> system;
     private final Class<? extends SpringActorWithContext<C, ?>> childActorClass;
     private final String childId;
     private final Duration defaultTimeout;
@@ -23,22 +23,22 @@ public final class PekkoChildActorReference<P, C> implements SpringChildActorRef
      * Creates a new SpringChildActorReference.
      *
      * @param parentRef The parent actor reference
-     * @param scheduler The scheduler for ask operations
+     * @param system The actor system, for asks and tracing
      * @param childActorClass The child actor class
      * @param childId The unique ID of the child actor
      * @param defaultTimeout The default timeout for operations
      */
     public PekkoChildActorReference(
             ActorRef<P> parentRef,
-            Scheduler scheduler,
+            ActorSystem<?> system,
             Class<? extends SpringActorWithContext<C, ?>> childActorClass,
             String childId,
             Duration defaultTimeout) {
         if (parentRef == null) {
             throw new IllegalArgumentException("parentRef must not be null");
         }
-        if (scheduler == null) {
-            throw new IllegalArgumentException("scheduler must not be null");
+        if (system == null) {
+            throw new IllegalArgumentException("system must not be null");
         }
         if (childActorClass == null) {
             throw new IllegalArgumentException("childActorClass must not be null");
@@ -47,7 +47,7 @@ public final class PekkoChildActorReference<P, C> implements SpringChildActorRef
             throw new IllegalArgumentException("childId must not be null or empty");
         }
         this.parentRef = parentRef;
-        this.scheduler = scheduler;
+        this.system = system;
         this.childActorClass = childActorClass;
         this.childId = childId;
         this.defaultTimeout = defaultTimeout;
@@ -73,10 +73,10 @@ public final class PekkoChildActorReference<P, C> implements SpringChildActorRef
                         (ActorRef<FrameworkCommands.GetChildResponse<C>> replyTo) ->
                                 new FrameworkCommands.GetChild<>(childActorClass, childId, replyTo),
                         timeout,
-                        scheduler)
+                        system.scheduler())
                 .thenApply(response -> {
                     if (response.found && response.childRef != null) {
-                        return Optional.of(new PekkoActorHandle<>(scheduler, response.childRef, defaultTimeout));
+                        return Optional.of(new PekkoActorHandle<>(system, response.childRef, defaultTimeout));
                     } else {
                         return Optional.empty();
                     }
@@ -93,7 +93,7 @@ public final class PekkoChildActorReference<P, C> implements SpringChildActorRef
                         (ActorRef<FrameworkCommands.ExistsChildResponse> replyTo) ->
                                 new FrameworkCommands.ExistsChild<>(childActorClass, childId, replyTo),
                         timeout,
-                        scheduler)
+                        system.scheduler())
                 .thenApply(response -> response.exists);
     }
 }

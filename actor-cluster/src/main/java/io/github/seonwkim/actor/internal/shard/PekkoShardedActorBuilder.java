@@ -1,13 +1,14 @@
 package io.github.seonwkim.actor.internal.shard;
 
 import io.github.seonwkim.actor.ActorConstants;
+import io.github.seonwkim.actor.internal.MessageTracingSetup;
 import io.github.seonwkim.actor.shard.ShardedEntityType;
 import io.github.seonwkim.actor.shard.SpringShardedActorBuilder;
 import io.github.seonwkim.actor.shard.SpringShardedActorHandle;
 import java.time.Duration;
 import java.util.Objects;
 import javax.annotation.Nullable;
-import org.apache.pekko.actor.typed.Scheduler;
+import org.apache.pekko.actor.typed.ActorSystem;
 import org.apache.pekko.cluster.sharding.typed.javadsl.ClusterSharding;
 
 /** {@link SpringShardedActorBuilder} on Pekko {@link ClusterSharding}. */
@@ -17,17 +18,17 @@ public final class PekkoShardedActorBuilder<T> implements SpringShardedActorBuil
 
     @Nullable private final ClusterSharding sharding;
 
-    private final Scheduler scheduler;
+    private final ActorSystem<?> system;
 
     @Nullable private String entityId;
 
     private Duration timeout = ActorConstants.DEFAULT_TIMEOUT;
 
     public PekkoShardedActorBuilder(
-            ShardedEntityType<T> entityType, @Nullable ClusterSharding sharding, Scheduler scheduler) {
+            ShardedEntityType<T> entityType, @Nullable ClusterSharding sharding, ActorSystem<?> system) {
         this.entityType = entityType;
         this.sharding = sharding;
-        this.scheduler = scheduler;
+        this.system = system;
     }
 
     @Override
@@ -54,6 +55,10 @@ public final class PekkoShardedActorBuilder<T> implements SpringShardedActorBuil
             throw new IllegalStateException("Cluster sharding not configured");
         }
         return new PekkoShardedActorHandle<>(
-                entityType, sharding.entityRefFor(PekkoSharding.typeKey(entityType), entityId), scheduler, timeout);
+                entityType,
+                sharding.entityRefFor(PekkoSharding.typeKey(entityType), entityId),
+                system.scheduler(),
+                MessageTracingSetup.of(system),
+                timeout);
     }
 }

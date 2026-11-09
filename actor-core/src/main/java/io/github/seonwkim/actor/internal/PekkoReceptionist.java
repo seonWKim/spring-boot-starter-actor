@@ -21,7 +21,6 @@ import org.apache.pekko.actor.typed.ActorSystem;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.PostStop;
 import org.apache.pekko.actor.typed.Props;
-import org.apache.pekko.actor.typed.Scheduler;
 import org.apache.pekko.actor.typed.javadsl.AskPattern;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.apache.pekko.actor.typed.receptionist.Receptionist;
@@ -71,7 +70,7 @@ public final class PekkoReceptionist implements SpringReceptionist {
         ActorSystem<?> system = system();
         return AskPattern.<Receptionist.Command, Receptionist.Listing>ask(
                         system.receptionist(), replyTo -> Receptionist.find(key, replyTo), timeout, system.scheduler())
-                .thenApply(listing -> toHandles(key, listing, system.scheduler()));
+                .thenApply(listing -> toHandles(key, listing, system));
     }
 
     @Override
@@ -81,7 +80,7 @@ public final class PekkoReceptionist implements SpringReceptionist {
         ActorSystem<?> system = system();
         AtomicBoolean cancelled = new AtomicBoolean(false);
         CompletableFuture<Void> terminated = new CompletableFuture<>();
-        Behavior<HelperCommand> behavior = helperBehavior(key, listener, cancelled, terminated, system.scheduler());
+        Behavior<HelperCommand> behavior = helperBehavior(key, listener, cancelled, terminated);
         ActorRef<HelperCommand> helper =
                 system.systemActorOf(behavior, "receptionist-subscriber-" + UUID.randomUUID(), Props.empty());
         return new Subscription<>(name, helper, cancelled, terminated);
@@ -95,8 +94,7 @@ public final class PekkoReceptionist implements SpringReceptionist {
             ServiceKey<T> key,
             Consumer<Set<SpringActorHandle<T>>> listener,
             AtomicBoolean cancelled,
-            CompletableFuture<Void> terminated,
-            Scheduler scheduler) {
+            CompletableFuture<Void> terminated) {
         return Behaviors.setup(ctx -> {
             ActorRef<Receptionist.Listing> adapter =
                     ctx.messageAdapter(Receptionist.Listing.class, ListingReceived::new);
@@ -105,7 +103,7 @@ public final class PekkoReceptionist implements SpringReceptionist {
                     .onMessage(ListingReceived.class, msg -> {
                         if (!cancelled.get()) {
                             try {
-                                listener.accept(toHandles(key, msg.listing, scheduler));
+                                listener.accept(toHandles(key, msg.listing, ctx.getSystem()));
                             } catch (RuntimeException e) {
                                 log.warn("Receptionist listener for key {} failed", key.id(), e);
                             }
@@ -123,10 +121,10 @@ public final class PekkoReceptionist implements SpringReceptionist {
     }
 
     private static <T> Set<SpringActorHandle<T>> toHandles(
-            ServiceKey<T> key, Receptionist.Listing listing, Scheduler scheduler) {
+            ServiceKey<T> key, Receptionist.Listing listing, ActorSystem<?> system) {
         Set<SpringActorHandle<T>> handles = new LinkedHashSet<>();
         for (ActorRef<T> ref : listing.getServiceInstances(key)) {
-            handles.add(new PekkoActorHandle<>(scheduler, ref));
+            handles.add(new PekkoActorHandle<>(system, ref));
         }
         return Collections.unmodifiableSet(handles);
     }

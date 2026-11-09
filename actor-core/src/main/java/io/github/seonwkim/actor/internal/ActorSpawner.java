@@ -2,6 +2,7 @@ package io.github.seonwkim.actor.internal;
 
 import io.github.seonwkim.actor.DispatcherConfig;
 import io.github.seonwkim.actor.MailboxConfig;
+import io.github.seonwkim.actor.SpringActorBehavior;
 import io.github.seonwkim.actor.SpringActorContext;
 import io.github.seonwkim.actor.SupervisionStrategy;
 import io.github.seonwkim.actor.TagsConfig;
@@ -105,8 +106,12 @@ public final class ActorSpawner {
             boolean isClusterSingleton) {
 
         // The behavior comes from this actor system's registry (its Spring context's actor beans)
-        Behavior<?> behavior =
-                PekkoBehaviors.toPekko(ActorTypeRegistry.of(ctx.getSystem()).createBehavior(actorClass, actorContext));
+        SpringActorBehavior<?> defined = ActorTypeRegistry.of(ctx.getSystem()).createBehavior(actorClass, actorContext);
+        Behavior<?> behavior = PekkoBehaviors.toPekko(defined);
+        if (defined.kind() != SpringActorBehavior.Kind.ROUTER) {
+            // A router passes traced messages on to its workers, which receive them.
+            behavior = MessageTracingSetup.receiving(ctx.getSystem(), behavior);
+        }
 
         if (supervisorStrategy != null) {
             behavior = Behaviors.supervise(behavior).onFailure(PekkoProps.supervisor(supervisorStrategy));

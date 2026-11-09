@@ -14,14 +14,14 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import javax.annotation.Nullable;
 import org.apache.pekko.actor.typed.ActorRef;
-import org.apache.pekko.actor.typed.Scheduler;
+import org.apache.pekko.actor.typed.ActorSystem;
 import org.apache.pekko.actor.typed.javadsl.AskPattern;
 import org.springframework.util.ObjectUtils;
 
 /** Pekko-backed {@link SpringChildActorBuilder}. */
 public final class PekkoChildActorBuilder<P, C> implements SpringChildActorBuilder<P, C> {
     private final ActorRef<P> parentRef;
-    private final Scheduler scheduler;
+    private final ActorSystem<?> system;
     private final Class<? extends SpringActorWithContext<C, ?>> childActorClass;
     private final Duration defaultTimeout;
 
@@ -44,26 +44,26 @@ public final class PekkoChildActorBuilder<P, C> implements SpringChildActorBuild
      * Creates a new SpringChildActorBuilder.
      *
      * @param parentRef The parent actor reference
-     * @param scheduler The scheduler for ask operations
+     * @param system The actor system, for asks and tracing
      * @param childActorClass The child actor class
      * @param defaultTimeout The default timeout for operations
      */
     public PekkoChildActorBuilder(
             ActorRef<P> parentRef,
-            Scheduler scheduler,
+            ActorSystem<?> system,
             Class<? extends SpringActorWithContext<C, ?>> childActorClass,
             Duration defaultTimeout) {
         if (parentRef == null) {
             throw new IllegalArgumentException("parentRef must not be null");
         }
-        if (scheduler == null) {
-            throw new IllegalArgumentException("scheduler must not be null");
+        if (system == null) {
+            throw new IllegalArgumentException("system must not be null");
         }
         if (childActorClass == null) {
             throw new IllegalArgumentException("childActorClass must not be null");
         }
         this.parentRef = parentRef;
-        this.scheduler = scheduler;
+        this.system = system;
         this.childActorClass = childActorClass;
         this.defaultTimeout = defaultTimeout;
         this.timeout = defaultTimeout;
@@ -169,11 +169,11 @@ public final class PekkoChildActorBuilder<P, C> implements SpringChildActorBuild
                                 new FrameworkCommands.SpawnChild<>(
                                         childActorClass, context, strategy, mailbox, dispatcher, tags, replyTo),
                         timeout,
-                        scheduler)
+                        system.scheduler())
                 .thenApply(response -> {
                     if ((response.success || "Child already exists".equals(response.message))
                             && response.childRef != null) {
-                        return new PekkoActorHandle<>(scheduler, response.childRef, defaultTimeout);
+                        return new PekkoActorHandle<>(system, response.childRef, defaultTimeout);
                     } else {
                         throw new RuntimeException("Failed to spawn child actor "
                                 + childActorClass.getName()
@@ -210,12 +210,12 @@ public final class PekkoChildActorBuilder<P, C> implements SpringChildActorBuild
                         (ActorRef<FrameworkCommands.GetChildResponse<C>> replyTo) ->
                                 new FrameworkCommands.GetChild<>(childActorClass, context.actorId(), replyTo),
                         timeout,
-                        scheduler)
+                        system.scheduler())
                 .thenCompose(response -> {
                     if (response.found && response.childRef != null) {
                         // Child exists, return it
                         return CompletableFuture.completedFuture(
-                                new PekkoActorHandle<>(scheduler, response.childRef, defaultTimeout));
+                                new PekkoActorHandle<>(system, response.childRef, defaultTimeout));
                     } else {
                         // Child doesn't exist, spawn it
                         return spawn();
@@ -241,10 +241,10 @@ public final class PekkoChildActorBuilder<P, C> implements SpringChildActorBuild
                         (ActorRef<FrameworkCommands.GetChildResponse<C>> replyTo) ->
                                 new FrameworkCommands.GetChild<>(childActorClass, context.actorId(), replyTo),
                         timeout,
-                        scheduler)
+                        system.scheduler())
                 .thenApply(response -> {
                     if (response.found && response.childRef != null) {
-                        return new PekkoActorHandle<>(scheduler, response.childRef, defaultTimeout);
+                        return new PekkoActorHandle<>(system, response.childRef, defaultTimeout);
                     } else {
                         return null;
                     }
@@ -269,7 +269,7 @@ public final class PekkoChildActorBuilder<P, C> implements SpringChildActorBuild
                         (ActorRef<FrameworkCommands.ExistsChildResponse> replyTo) ->
                                 new FrameworkCommands.ExistsChild<>(childActorClass, context.actorId(), replyTo),
                         timeout,
-                        scheduler)
+                        system.scheduler())
                 .thenApply(response -> response.exists);
     }
 }
