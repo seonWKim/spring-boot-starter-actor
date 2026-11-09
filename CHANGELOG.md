@@ -93,6 +93,13 @@
   started by an HTTP request continues through `tell`, `ask` and sharded messages, also between nodes (W3C
   `traceparent` fields next to the message), and the trace id is in the MDC of the actor's log lines. Without an
   `ObservationRegistry`, messages are sent as before.
+- **Actor metrics without the agent.** With `actor-metrics` and a Micrometer `MeterRegistry`, the actor
+  system meters messages processed, processing time, failures, mailbox size and time, running actors,
+  restarts and the default dispatchers' pools from hooks the starter owns: a behavior interceptor, an
+  instrumented default mailbox and the dispatcher executors. Tags are `actor.class`, `dispatcher` and
+  `system`, so 10,000 entities add no series; `spring.actor.metrics.path-tag-limit` opts into a capped
+  `actor.path` tag. The Java agent is optional: when it is attached, it keeps the meters it records and
+  the hooks add only the ones it lacks.
 
 ### Migrating from 0.x
 

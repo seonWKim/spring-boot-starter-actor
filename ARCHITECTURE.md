@@ -112,6 +112,7 @@ The code still differs from the target in these places:
 - **Trace propagation lives in `actor-core`, not `actor-metrics`.** It has to wrap the message at `tell`/`ask` and unwrap it where actors are spawned, both inside `actor-core`'s internals, which `actor-metrics` does not depend on. It needs only `micrometer-observation` (`compileOnly`), and its class loads only when an `ObservationRegistry` bean exists.
 
 - **The actor system stays opt-in through `@EnableActorSupport`.** It imports `ActorConfiguration` and the Pekko Management configuration from `actor-autoconfigure` by class name, so `actor-api` has no compile dependency on `actor-autoconfigure`. They are not listed in `AutoConfiguration.imports`: that would start an actor system in every application that has the starter, which 0.x never did.
+- **The agent stays in `actor-metrics`; there is no `actor-metrics-agent` module yet.** The agent-free actor meters (`metrics.internal.hooks`) are the default; the agent jar (`actor-metrics-<version>-agent.jar`) is still built from `actor-metrics`. To implement the actor system's `ActorInstrumentation` hook, `actor-metrics` compiles against `actor-core` (`compileOnly`), not only `actor-api`.
 - **`actor-metrics` keeps its own auto-configuration** (`io.github.seonwkim.actor.metrics.autoconfigure`, registered in its `AutoConfiguration.imports`). Moving it into `actor-autoconfigure` needs `actor-autoconfigure` to depend on `actor-metrics` behind `@ConditionalOnClass`; that comes with the metrics rework.
 
 ## Extension points (SPI)

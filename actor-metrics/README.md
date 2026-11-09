@@ -1,7 +1,9 @@
 # Actor Metrics(Experimental)
 
-ByteBuddy-based instrumentation for Pekko actors. Tracks lifecycle, mailbox, message processing, and system metrics via
-Micrometer.
+Actor meters through Micrometer. Without any agent, the actor system the starter builds records message, mailbox,
+lifecycle and dispatcher meters from hooks it owns (`internal.hooks`, wired by `actor-autoconfigure`); see
+[Monitoring](../mkdocs/docs/examples/monitoring.md). The rest of this page is about the optional ByteBuddy agent, which
+instruments Pekko internals for the few meters no public hook exposes.
 
 Note that this is an experimental feature.
 

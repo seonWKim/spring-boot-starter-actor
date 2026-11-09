@@ -6,6 +6,7 @@ import com.typesafe.config.ConfigValueFactory;
 import io.github.seonwkim.actor.SpringActorSystem;
 import io.github.seonwkim.actor.SpringActorSystemBuilder;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import javax.annotation.Nullable;
@@ -105,8 +106,18 @@ public class DefaultSpringActorSystemBuilder implements SpringActorSystemBuilder
         // The cluster module, when present, adds serialization (messages cross nodes only there).
         final ClusterSupport found = ClusterSupport.find().orElse(null);
         final Map<String, Object> withDefaults = found == null ? configMap : found.withDefaults(configMap);
-        final Config config =
+        // Agent-free hooks, such as the metrics module's actor meters.
+        final List<ActorInstrumentation> instrumentations = beanFactory == null
+                ? List.of()
+                : beanFactory
+                        .getBeanProvider(ActorInstrumentation.class)
+                        .orderedStream()
+                        .toList();
+        Config config =
                 ConfigFactory.parseMap(ConfigValueFactory.fromMap(withDefaults)).withFallback(ConfigFactory.load());
+        for (ActorInstrumentation instrumentation : instrumentations) {
+            config = instrumentation.configure(config);
+        }
         final String name = config.hasPath("pekko.name") ? config.getString("pekko.name") : DEFAULT_SYSTEM_NAME;
 
         final boolean isClusterMode = Objects.equals(config.getString("pekko.actor.provider"), "cluster");
@@ -134,6 +145,10 @@ public class DefaultSpringActorSystemBuilder implements SpringActorSystemBuilder
         }
         if (found != null) {
             setup = found.withSetup(setup, beanFactory);
+        }
+        setup = setup.withSetup(new ActorInstrumentation.Installed(instrumentations));
+        for (ActorInstrumentation instrumentation : instrumentations) {
+            setup = instrumentation.setup(setup);
         }
         final ActorSystem<RootGuardian.Command> actorSystem = ActorSystem.create(supplier.get(), name, setup);
 
