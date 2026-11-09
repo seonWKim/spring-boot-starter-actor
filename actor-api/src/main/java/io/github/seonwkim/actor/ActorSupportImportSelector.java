@@ -15,7 +15,8 @@ final class ActorSupportImportSelector implements ImportSelector {
         return new String[] {
             "io.github.seonwkim.actor.autoconfigure.ActorConfiguration",
             "io.github.seonwkim.actor.autoconfigure.cluster.ClusterConfiguration",
-            "io.github.seonwkim.actor.autoconfigure.management.PekkoManagementAutoConfiguration"
+            "io.github.seonwkim.actor.autoconfigure.management.PekkoManagementAutoConfiguration",
+            "io.github.seonwkim.actor.autoconfigure.health.ActorHealthConfiguration"
         };
     }
 }

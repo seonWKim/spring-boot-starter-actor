@@ -26,6 +26,7 @@ application with a message that names the key.
 | `spring.actor.shutdown.timeout` | `20s` | | How long closing the Spring context waits for the actor system's coordinated shutdown. |
 | `spring.actor.shutdown.exit-process` | `true` | | When the actor system terminates by itself (for example after this node is downed), the context closes; with this set, the process then exits with status 1. |
 | `spring.actor.pekko.management.enabled` | `true` | | Whether to start the Pekko Management HTTP server and Cluster Bootstrap in cluster mode, when the Pekko Management libraries are on the classpath. |
+| `management.health.actor.enabled` | `true` | | Whether to add the `actorSystem` and (in cluster mode) `actorCluster` health components when Actuator is on the classpath. See [Health checks](production.md#health-checks). |
 | `spring.actor.metrics.enabled` | `true` | | Whether to register the actor `MetricsRegistry` bean (`actor-metrics`). |
 
 ```yaml

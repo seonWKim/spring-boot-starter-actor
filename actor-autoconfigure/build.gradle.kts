@@ -21,6 +21,8 @@ dependencies {
     compileOnly("org.apache.pekko:pekko-management-cluster-http_3:${pekkoManagementVersion}")
 
     implementation("org.apache.pekko:pekko-actor-typed_3:$pekkoVersion")
+    // Health indicators apply only when Actuator is on the application's classpath.
+    compileOnly("org.springframework.boot:spring-boot-actuator")
 
     implementation("com.google.code.findbugs:jsr305")
     implementation("org.springframework.boot:spring-boot-starter")
@@ -29,6 +31,7 @@ dependencies {
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("org.springframework.boot:spring-boot-starter-actuator")
     testImplementation("com.fasterxml.jackson.core:jackson-databind")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }

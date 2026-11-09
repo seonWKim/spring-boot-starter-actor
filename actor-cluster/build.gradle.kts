@@ -33,6 +33,7 @@ dependencies {
     testImplementation(testFixtures(project(":actor-core")))
     testImplementation("com.fasterxml.jackson.core:jackson-databind")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("org.springframework.boot:spring-boot-starter-actuator")
     testImplementation("org.apache.pekko:pekko-actor-testkit-typed_3:$pekkoVersion")
     testImplementation("org.awaitility:awaitility")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
