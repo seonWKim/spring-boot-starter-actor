@@ -101,7 +101,7 @@ flowchart TB
 
 ## Migration status
 
-The modules `actor-api`, `actor-core`, `actor-cluster`, `actor-autoconfigure`, `actor-spring-boot-starter`, `actor-spring-boot-starter-cluster`, `actor-metrics`, `actor-jdbc`, `actor-redis` and `actor-test` exist, under the package root `io.github.seonwkim.actor`.
+The modules `actor-api`, `actor-core`, `actor-cluster`, `actor-autoconfigure`, `actor-spring-boot-starter`, `actor-spring-boot-starter-cluster`, `actor-metrics`, `actor-jdbc`, `actor-redis`, `actor-test` and `actor-streams` exist, under the package root `io.github.seonwkim.actor`.
 
 - The public API is in `actor-api`, which depends on Spring (`spring-context`) and SLF4J (`SpringBehaviorContext.getLog()`) and never on Pekko. `actor-core` holds only `..internal..`. Every module's ArchUnit freeze store is empty; the stores stay so that a new violation fails the build.
 - `actor-core` has no Pekko Cluster dependency: it finds `actor-cluster` at runtime through `ServiceLoader` (`internal.ClusterSupport`) and fails at startup, naming the cluster starter, when `pekko.actor.provider` is `cluster` and the module is missing.
