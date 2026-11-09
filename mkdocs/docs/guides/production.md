@@ -112,6 +112,29 @@ With `actor-metrics` and Micrometer on the classpath (for example through `sprin
 | `actor.cluster.members` | gauge | Members this node sees |
 | `actor.cluster.unreachable` | gauge | Of them, how many are unreachable |
 | `actor.cluster.leader` | gauge | `1` while this node is the leader, else `0` |
+| `actor.cluster.singleton.host` | gauge | `1` while this node runs the cluster singletons (it is the oldest member that is up), else `0` |
 | `actor.cluster.events` | counter, tag `event` | Cluster events this node received after the application started: `MemberUp`, `MemberRemoved`, `UnreachableMember` and the other `ClusterEvent` types. Every type has a series from the start, so a dashboard sees `0`, not a gap |
 
+| `actor.sharding.regions` | gauge, tag `type` | Shard regions that host the entity type in the cluster |
+| `actor.sharding.shards` | gauge, tag `type` | The entity type's shards on this node |
+| `actor.sharding.entities` | gauge, tag `type` | The entity type's running entities on this node |
+
+The `actor.sharding.*` gauges ask every shard region in the cluster, so a scrape never waits for the answer: each read shows the answer to the previous read. Sum `actor.sharding.entities` over the nodes for the cluster total.
+
+Pekko reports no rebalance events, so there is no rebalance counter. A shard that moves shows up as `actor.sharding.shards` going down on one node and up on another.
+
 `spring.actor.metrics.enabled=false` turns them off. Alert on `actor.cluster.unreachable > 0` for longer than the split brain resolver's `stable-after`, and on a `members` count below the replica count.
+
+## The `actors` endpoint
+
+With Actuator on the classpath, cluster mode adds a read-only `actors` endpoint. Like every Actuator endpoint except `health`, it is not exposed over HTTP until you name it:
+
+```yaml
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,actors
+```
+
+`GET /actuator/actors` returns this node's address, its view of the cluster (its own status, whether it leads and runs the singletons, and each member with its status, roles and reachability) and, for each sharded entity type, the regions, and the shards and entities on this node. A read asks every shard region, so it can take up to 3 seconds. `management.endpoint.actors.access=none` turns the endpoint off.

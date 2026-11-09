@@ -8,6 +8,7 @@ import io.github.seonwkim.actor.SpringActorSystem;
 import io.github.seonwkim.actor.cluster.MemberStatus;
 import io.github.seonwkim.actor.internal.cluster.ClusterStateView;
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import org.apache.pekko.cluster.typed.Cluster;
 import org.apache.pekko.cluster.typed.Leave;
@@ -97,7 +98,7 @@ class ActorClusterHealthTest {
     }
 
     private static ClusterStateView self(MemberStatus status) {
-        return new ClusterStateView(status, false, false, 3, 0, false);
+        return new ClusterStateView(status, false, false, 3, 0, false, false, List.of());
     }
 
     @ParameterizedTest
@@ -119,14 +120,14 @@ class ActorClusterHealthTest {
     @Test
     void anUpMemberThatOthersCannotReachIsDown() {
         assertThat(ActorClusterHealthIndicator.statusOf(
-                        new ClusterStateView(MemberStatus.UP, true, false, 3, 1, false)))
+                        new ClusterStateView(MemberStatus.UP, true, false, 3, 1, false, false, List.of())))
                 .isEqualTo(Status.DOWN);
     }
 
     @Test
     void anUnreachablePeerDoesNotMakeThisNodeUnhealthy() {
         assertThat(ActorClusterHealthIndicator.statusOf(
-                        new ClusterStateView(MemberStatus.UP, false, false, 3, 1, false)))
+                        new ClusterStateView(MemberStatus.UP, false, false, 3, 1, false, false, List.of())))
                 .isEqualTo(Status.UP);
     }
 }

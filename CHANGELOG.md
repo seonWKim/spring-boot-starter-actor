@@ -83,7 +83,12 @@
   defaults, so a blocking actor got the default dispatcher.
 - **Cluster metrics without the agent.** In cluster mode, `actor-metrics` with Micrometer adds the gauges
   `actor.cluster.members`, `actor.cluster.unreachable` and `actor.cluster.leader`, and the counter
-  `actor.cluster.events` tagged by event type.
+  `actor.cluster.events` tagged by event type. The gauge `actor.cluster.singleton.host` shows the node
+  that runs the singletons, and `actor.sharding.regions`, `actor.sharding.shards` and
+  `actor.sharding.entities` (tagged by entity type) show Cluster Sharding.
+- **`actors` Actuator endpoint.** In cluster mode, a read-only endpoint reports the members this node
+  sees and each sharded entity type. It is exposed only when you add it to
+  `management.endpoints.web.exposure.include`.
 
 ### Migrating from 0.x
 
