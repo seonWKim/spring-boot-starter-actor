@@ -7,14 +7,15 @@ spring:
     remote:
       hostname: 127.0.0.1
       port: 2551
+    cluster:
+      # A one-node cluster. For more nodes, remove join-self and list seed-nodes instead.
+      join-self: true
     pekko:
       actor:
         allow-java-serialization: off
         warn-about-java-serializer-usage: on
       cluster:
         name: agent-example
-        # No seed nodes: agent.self-join makes this a one-node cluster.
-        # For more nodes, list seed-nodes here and set agent.self-join to false.
         downing-provider-class: org.apache.pekko.cluster.sbr.SplitBrainResolverProvider
 
 agent:
@@ -22,5 +23,4 @@ agent:
   approval-timeout: 30s
   max-tool-steps: 5
   fake-llm-latency: 200ms
-  self-join: true
   demo: true

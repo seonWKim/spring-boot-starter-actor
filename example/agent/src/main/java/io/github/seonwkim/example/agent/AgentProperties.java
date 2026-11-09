@@ -22,9 +22,6 @@ public class AgentProperties {
     /** Delay of each fake LLM reply, to mimic a slow model. */
     private Duration fakeLlmLatency = Duration.ZERO;
 
-    /** Join this node to itself, for a single-node cluster without seed nodes. */
-    private boolean selfJoin = true;
-
     /** Run one demo conversation on start-up and log it. */
     private boolean demo = true;
 
@@ -66,14 +63,6 @@ public class AgentProperties {
 
     public void setFakeLlmLatency(Duration fakeLlmLatency) {
         this.fakeLlmLatency = fakeLlmLatency;
-    }
-
-    public boolean isSelfJoin() {
-        return selfJoin;
-    }
-
-    public void setSelfJoin(boolean selfJoin) {
-        this.selfJoin = selfJoin;
     }
 
     public boolean isDemo() {

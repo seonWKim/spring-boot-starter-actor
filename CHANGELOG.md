@@ -69,6 +69,7 @@
 - `SpringBehaviorContext` has timers (`startSingleTimer`, `startTimerAtFixedRate`, `cancelTimer`),
   `watch` with the `ActorTerminated` signal, and `messageAdapter`, so actors no longer wrap Pekko behaviors
   for them.
+- `spring.actor.cluster.join-self` forms a one-node cluster without seed nodes, also on port 0.
 - Actor and sharded actor registries belong to each Spring context. In 0.x they were static, so two
   contexts in one JVM (in tests, for example) spawned each other's actor beans.
 - A spawn that cannot start (an unknown dispatcher, for example) now fails the returned stage

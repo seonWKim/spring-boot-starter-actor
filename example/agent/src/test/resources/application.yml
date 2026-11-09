@@ -1,17 +1,17 @@
 spring:
   actor:
+    name: agent-example
+    provider: cluster
+    remote:
+      hostname: 127.0.0.1
+      # A free port per test context, so test classes can run in parallel.
+      port: 0
+    cluster:
+      join-self: true
     pekko:
-      name: agent-example
       actor:
-        provider: cluster
         allow-java-serialization: off
         warn-about-java-serializer-usage: on
-      remote:
-        artery:
-          canonical:
-            hostname: 127.0.0.1
-            # A free port per test context, so test classes can run in parallel.
-            port: 0
       cluster:
         name: agent-example
         downing-provider-class: org.apache.pekko.cluster.sbr.SplitBrainResolverProvider
@@ -20,7 +20,6 @@ agent:
   calls-per-second: 1000
   approval-timeout: 5s
   fake-llm-latency: 0ms
-  self-join: true
   demo: false
   # Relative to the module directory, where Gradle runs the tests.
   snapshot-dir: build/agent-snapshots/${random.uuid}
