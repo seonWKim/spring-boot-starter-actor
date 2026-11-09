@@ -20,6 +20,9 @@ dependencies {
     // Peer registry stores apply only when their module and Spring library are on the classpath.
     compileOnly(project(":actor-jdbc"))
     compileOnly(project(":actor-redis"))
+    // The ActorStreams bean applies only when actor-streams is on the classpath.
+    compileOnly(project(":actor-streams"))
+    compileOnly("io.projectreactor:reactor-core")
     compileOnly("org.springframework:spring-jdbc")
     compileOnly("org.springframework.data:spring-data-redis")
     compileOnly("org.apache.pekko:pekko-management-cluster-bootstrap_3:${pekkoManagementVersion}")
