@@ -102,3 +102,16 @@ management:
 ```
 
 Keep it out of liveness: a node that is still joining is not broken, and restarting it would only delay the join. Cluster Bootstrap reaches pods through Pekko Management, not through the readiness-gated Service, so a cluster still forms while every pod is not ready yet.
+
+## Cluster metrics
+
+With `actor-metrics` and Micrometer on the classpath (for example through `spring-boot-starter-actuator`), cluster mode adds these meters. They need no Java agent.
+
+| Meter | Type | What |
+|---|---|---|
+| `actor.cluster.members` | gauge | Members this node sees |
+| `actor.cluster.unreachable` | gauge | Of them, how many are unreachable |
+| `actor.cluster.leader` | gauge | `1` while this node is the leader, else `0` |
+| `actor.cluster.events` | counter, tag `event` | Cluster events this node received after the application started: `MemberUp`, `MemberRemoved`, `UnreachableMember` and the other `ClusterEvent` types. Every type has a series from the start, so a dashboard sees `0`, not a gap |
+
+`spring.actor.metrics.enabled=false` turns them off. Alert on `actor.cluster.unreachable > 0` for longer than the split brain resolver's `stable-after`, and on a `members` count below the replica count.

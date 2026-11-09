@@ -29,7 +29,7 @@ public class ActorHealthConfiguration {
     }
 
     @Configuration(proxyBeanMethods = false)
-    @ConditionalOnClass(name = {ACTUATOR, "io.github.seonwkim.actor.internal.cluster.ClusterHealthView"})
+    @ConditionalOnClass(name = {ACTUATOR, "io.github.seonwkim.actor.internal.cluster.ClusterStateView"})
     @ConditionalOnProperty(name = ENABLED, matchIfMissing = true)
     @ConditionalOnProperty(name = "spring.actor.provider", havingValue = "cluster")
     static class Cluster {
