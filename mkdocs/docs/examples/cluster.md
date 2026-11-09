@@ -1,217 +1,74 @@
 # Cluster Example
 
-This guide demonstrates how to use Actor Spring Boot Starter in a clustered environment, focusing on sharded actors.
+A three-node cluster with two kinds of cluster actors: sharded actors (one instance per id, spread over
+the nodes) and a cluster singleton (one instance in the whole cluster).
 
-## Overview
+- **Source:** [`example/cluster`](https://github.com/seonWKim/actor-spring-boot-starter/tree/main/example/cluster)
+- **Runs:** three nodes on one machine (`spring.actor.provider: cluster`)
+- **Modules:** `actor-spring-boot-starter-cluster`, Spring WebFlux
 
-The cluster example shows how to:
+## What it shows
 
-- Create and use sharded actors across a cluster
-- Distribute actor instances across multiple nodes
-- Send messages to specific entity instances
-- Handle entity state in a distributed environment
+- A sharded actor (`SpringShardedActor`) addressed by entity id from any node
+- A cluster singleton (`asClusterSingleton()`) that collects data sent from every node
+- `ask` with `onTimeout` for a fallback answer
+- Messages that cross nodes implementing `JsonSerializable`
+- Seed-node cluster formation on localhost
 
-This example demonstrates the power of the actor model for building scalable, distributed applications with Spring Boot.
+## Run it
 
-!!! info "Cluster Sharding"
-    Cluster sharding automatically distributes entities across nodes and provides location transparency for messaging.
+The repository root has scripts that start several nodes of an example in the background:
 
-## Source Code
-
-You can find the complete source code for this example on GitHub:
-
-[Cluster Example Source Code](https://github.com/seonWKim/actor-spring-boot-starter/tree/main/example/cluster)
-
-!!! tip "Prerequisites"
-    Familiarity with the [Simple Example](simple.md) is recommended before diving into cluster concepts.
-
-## Key Components
-
-### HelloActor
-
-`HelloActor` is a sharded actor that responds to messages in a clustered environment. Each entity is a separate instance identified by an entity ID. The actor demonstrates:
-
-- How to implement the `SpringShardedActor` interface
-- How to define serializable message types for cluster communication
-- How to create entity behaviors
-- How to handle messages in a clustered environment
-
-```java
-@Component
-public class HelloActor implements SpringShardedActor<HelloActor.Command> {
-
-    public static final ShardedEntityType<Command> TYPE_KEY = ShardedEntityType.of(Command.class, "HelloActor");
-
-    /** Base interface for all commands that can be sent to the hello actor. */
-    public interface Command extends JsonSerializable {}
-
-    /** Command to say hello and get a response. */
-    public static class SayHello extends AskCommand<String> implements Command {
-        public final String message;
-
-        public SayHello(String message) {
-            this.message = message;
-        }
-    }
-
-    @Override
-    public ShardedEntityType<Command> entityType() {
-        return TYPE_KEY;
-    }
-
-    /**
-     * Creates the behavior for this actor when it's started.
-     *
-     * @param ctx The sharded actor context containing information about this entity
-     * @return The behavior for the actor
-     */
-    @Override
-    public SpringActorBehavior<Command> create(SpringShardedActorContext<Command> ctx) {
-        final String entityId = ctx.getEntityId();
-
-        return SpringActorBehavior.builder(Command.class, ctx)
-                .withState(actorCtx -> new HelloActorBehavior(actorCtx, entityId))
-                .onMessage(SayHello.class, HelloActorBehavior::onSayHello)
-                .build();
-    }
-
-    /**
-     * Behavior handler for hello actor. Holds the entity ID and handles messages.
-     */
-    private static class HelloActorBehavior {
-        private final SpringBehaviorContext<Command> ctx;
-        private final String entityId;
-
-        HelloActorBehavior(SpringBehaviorContext<Command> ctx, String entityId) {
-            this.ctx = ctx;
-            this.entityId = entityId;
-        }
-
-        /**
-         * Handles SayHello commands by responding with node and entity information.
-         *
-         * @param msg The SayHello message
-         * @return The next behavior (same in this case)
-         */
-        private SpringActorBehavior<Command> onSayHello(SayHello msg) {
-            // Get information about the current node and entity
-            final String nodeAddress = ctx.nodeAddress();
-
-            // Create a response message with node and entity information
-            final String message = "Received from entity [" + entityId + "] on node [" + nodeAddress + "]";
-
-            // Send the response back to the caller
-            msg.reply(message);
-
-            // Log the message for debugging
-            ctx.getLog().info(message);
-
-            return SpringActorBehavior.same();
-        }
-    }
-}
+```bash
+# from the repository root
+sh cluster-start.sh cluster io.github.seonwkim.example.SpringPekkoApplication 8080 2551 3
 ```
 
-### HelloService
+This starts three nodes: HTTP ports 8080, 8081, 8082 and remoting ports 2551, 2552, 2553. Each node logs to
+`log_cluster_<port>.txt`. Give the cluster 10 to 20 seconds to form. Stop all three with:
 
-`HelloService` acts as an intermediary between the REST API and the actor system:
-
-- It gets references to actor entities using the sharded method
-- It provides methods to send messages to specific entities and return the responses
-- It converts actor responses to reactive Mono objects for use with Spring WebFlux
-
-```java
-@Service
-public class HelloService {
-
-    private final SpringActorSystem springActorSystem;
-
-    /**
-     * Creates a new HelloService with the given actor system.
-     *
-     * @param springActorSystem The Spring actor system
-     */
-    public HelloService(SpringActorSystem springActorSystem) {
-        this.springActorSystem = springActorSystem;
-    }
-
-    /**
-     * Sends a hello message to a sharded actor entity.
-     *
-     * <p>Best practices for sharded actors:
-     * <ul>
-     *   <li>Get reference on each request (references are lightweight)
-     *   <li>No need to cache (entities are managed by cluster sharding)
-     *   <li>No need to check existence (entities are created on-demand)
-     *   <li>Use ask() for timeout and error handling
-     * </ul>
-     *
-     * @param message The message to send
-     * @param entityId The ID of the entity to send the message to
-     * @return A Mono containing the response from the actor
-     */
-    public Mono<String> hello(String message, String entityId) {
-        // Get a reference to the actor entity
-        SpringShardedActorHandle<HelloActor.Command> actorRef =
-                springActorSystem.sharded(HelloActor.class).withId(entityId).get();
-
-        // Send the message using the fluent ask API with timeout and error handling
-        CompletionStage<String> response = actorRef.ask(new HelloActor.SayHello(message))
-                .withTimeout(Duration.ofSeconds(3))
-                .onTimeout(() -> "Request timed out for entity: " + entityId)
-                .execute();
-
-        // Convert the CompletionStage to a Mono for reactive programming
-        return Mono.fromCompletionStage(response);
-    }
-}
+```bash
+sh cluster-stop.sh
 ```
 
-### HelloController
+To start the nodes by hand, use one terminal per node:
 
-`HelloController` exposes the actor functionality via a REST API:
+```bash
+./gradlew :example:cluster:bootRun
+./gradlew :example:cluster:bootRun --args='--server.port=8081 --spring.actor.remote.port=2552'
+./gradlew :example:cluster:bootRun --args='--server.port=8082 --spring.actor.remote.port=2553'
+```
 
-- It injects the HelloService
-- It defines REST endpoints that call the service methods with entity IDs
-- It returns the actor responses as HTTP responses
+### Sharded actors
 
-```java
-@RestController
-public class HelloController {
+```bash
+curl "http://localhost:8080/hello?message=Hello&entityId=entity-1"
+curl "http://localhost:8081/hello?message=World&entityId=entity-2"
+# Received from entity [entity-2] on node [pekko://spring-pekko-example@127.0.0.1:2553]
 
-    private final HelloService helloService;
+# The same entity id answers from the same node, whichever node you call
+curl "http://localhost:8080/hello?message=First&entityId=shared"
+curl "http://localhost:8082/hello?message=Second&entityId=shared"
+```
 
-    /**
-     * Creates a new HelloController with the given service.
-     *
-     * @param helloService The service for interacting with HelloActors
-     */
-    public HelloController(HelloService helloService) {
-        this.helloService = helloService;
-    }
+### Cluster singleton
 
-    /**
-     * Endpoint to send a hello message to an actor entity.
-     *
-     * @param message The message to send
-     * @param entityId The ID of the entity to send the message to
-     * @return A Mono containing the response from the actor
-     */
-    @GetMapping("/hello")
-    public Mono<String> hello(@RequestParam String message, @RequestParam String entityId) {
-        return helloService.hello(message, entityId);
-    }
-}
+```bash
+# Record a metric from two different nodes
+curl -X POST "http://localhost:8080/api/singleton/metrics?name=requests&value=100"
+curl -X POST "http://localhost:8081/api/singleton/metrics?name=requests&value=200"
+
+# Read everything the singleton holds, from any node
+curl http://localhost:8082/api/singleton/metrics
+# {"metrics":{...per node...},"singletonNodeAddress":"pekko://spring-pekko-example@127.0.0.1:2551"}
+
+curl -X DELETE http://localhost:8080/api/singleton/metrics
 ```
 
 ## Configuration
 
-The cluster example requires additional configuration to set up the actor cluster:
-
 ```yaml
 spring:
-  application:
-    name: spring-pekko
   actor:
     name: spring-pekko-example
     provider: cluster
@@ -226,58 +83,150 @@ spring:
     pekko:
       actor:
         allow-java-serialization: off
-        warn-about-java-serializer-usage: on
       cluster:
-        name: spring-pekko-example
         downing-provider-class: org.apache.pekko.cluster.sbr.SplitBrainResolverProvider
-
-server:
-  port: 8080
 ```
 
-!!! warning "Serialization"
-    Java serialization is disabled for security and performance. Always use `JsonSerializable` or `CborSerializable` for cluster messages.
+Every node uses the same file; the start script overrides `server.port` and `spring.actor.remote.port`.
+The seed-node addresses use the actor system name (`spring.actor.name`), so all nodes must share it.
 
-## Running the Example
+## Walkthrough
 
-To run the cluster example:
+### A sharded actor: `HelloActor`
 
-1. **Start multiple instances** with different ports:
-```bash
-sh cluster-start.sh cluster io.github.seonwkim.example.SpringPekkoApplication 8080 2551 3
+A sharded actor declares an entity type. The cluster runs at most one instance per entity id and routes
+every message for that id to it.
+
+```java
+@Component
+public class HelloActor implements SpringShardedActor<HelloActor.Command> {
+
+    public static final ShardedEntityType<Command> TYPE_KEY = ShardedEntityType.of(Command.class, "HelloActor");
+
+    public interface Command extends JsonSerializable {}
+
+    public static class SayHello extends AskCommand<String> implements Command {
+        public final String message;
+
+        public SayHello(String message) {
+            this.message = message;
+        }
+    }
+
+    @Override
+    public ShardedEntityType<Command> entityType() {
+        return TYPE_KEY;
+    }
+
+    @Override
+    public SpringActorBehavior<Command> create(SpringShardedActorContext<Command> ctx) {
+        final String entityId = ctx.getEntityId();
+        return SpringActorBehavior.builder(Command.class, ctx)
+                .withState(actorCtx -> new HelloActorBehavior(actorCtx, entityId))
+                .onMessage(SayHello.class, HelloActorBehavior::onSayHello)
+                .build();
+    }
+}
 ```
 
-2. **Send messages** to test entity distribution:
-```bash
-# Try different entity IDs to see distribution
-curl "http://localhost:8080/hello?message=test&entityId=entity-1"
-curl "http://localhost:8081/hello?message=test&entityId=entity-2"
-curl "http://localhost:8082/hello?message=test&entityId=entity-3"
+The handler replies with the entity id and `ctx.nodeAddress()`, so you can see where the entity runs.
+
+`HelloService` gets a handle by id and asks. You never spawn a sharded actor yourself; the first message
+starts it. The Kotlin tab shows the same call with `actor-kotlin`, from a `suspend` function.
+
+=== "Java"
+
+    ```java
+    public Mono<String> hello(String message, String entityId) {
+        SpringShardedActorHandle<HelloActor.Command> actorRef =
+                springActorSystem.sharded(HelloActor.class).withId(entityId).get();
+
+        CompletionStage<String> response = actorRef.ask(new HelloActor.SayHello(message))
+                .withTimeout(Duration.ofSeconds(3))
+                .onTimeout(() -> "Request timed out for entity: " + entityId)
+                .execute();
+
+        return Mono.fromCompletionStage(response);
+    }
+    ```
+
+=== "Kotlin"
+
+    ```kotlin
+    suspend fun hello(message: String, entityId: String): String =
+        actorSystem.sharded<HelloActor, _>()
+            .withId(entityId)
+            .get()
+            .ask(HelloActor.SayHello(message))
+            .withTimeout(3.seconds)
+            .onTimeout { "Request timed out for entity: $entityId" }
+            .await()
+    ```
+
+### A cluster singleton: `ClusterMetricsAggregator`
+
+`ClusterMetricsAggregator` is a plain actor that keeps a map of metrics per node.
+`ClusterSingletonService` spawns it as a cluster singleton when the app starts:
+
+=== "Java"
+
+    ```java
+    // in a @PostConstruct method
+    metricsAggregator = springActorSystem
+            .actor(ClusterMetricsAggregator.class)
+            .withId("metrics-aggregator")
+            .asClusterSingleton()
+            .spawn()
+            .toCompletableFuture()
+            .get();
+    ```
+
+=== "Kotlin"
+
+    ```kotlin
+    // spawnAndWait() blocks until the singleton proxy is ready, like spawn().get() in the Java tab
+    val metricsAggregator = actorSystem.actor<ClusterMetricsAggregator, _>()
+        .withId("metrics-aggregator")
+        .asClusterSingleton()
+        .spawnAndWait()
+    ```
+
+Every node runs this code, and every node gets a handle. The actor itself runs on one node only (the
+oldest member); the handles on the other nodes forward to it. Recording a metric is a `tell`, reading
+is an `ask` with a fallback:
+
+```java
+metricsAggregator.tell(new ClusterMetricsAggregator.RecordMetric(nodeAddress, metricName, value, timestamp));
+
+metricsAggregator.ask(new ClusterMetricsAggregator.GetMetrics())
+        .withTimeout(Duration.ofSeconds(3))
+        .onTimeout(() -> new ClusterMetricsAggregator.MetricsResponse(Map.of(), "timeout"))
+        .execute();
 ```
 
-3. **Observe behavior:**
-- The same entity ID always routes to the same node
-- Different entity IDs are distributed across the cluster
-- Try sending the same entity ID to different nodes to verify routing
+The response includes `singletonNodeAddress`, the node the singleton runs on.
 
-!!! tip "Entity Affinity"
-    Notice that regardless of which node receives the HTTP request, messages for the same entity ID always go to the same actor instance in the cluster.
+## Try next
 
-## Entity Benefits
+- **Singleton failover.** Find the singleton's node in `singletonNodeAddress`, stop that node (for
+  port 8080: `kill $(lsof -t -i:8080)`), wait 10 to 20 seconds and read the metrics from another node.
+  The singleton now runs elsewhere, and its map is empty: its state lived in memory.
+- **Entity rebalancing.** Call several entity ids, stop one node, and call them again. Entities from the
+  stopped node start again on the remaining nodes, with fresh state.
+- Add a field to `SayHello` and keep it readable by both old and new nodes (see
+  [Deployments](../guides/operations/deployments.md)).
 
-Entities in Actor Spring Boot Starter provide:
+## Troubleshooting
 
-- **Automatic distribution** across the cluster
-- **Location transparency** for messaging - send messages without knowing which node hosts the entity
-- **Scalability** with cluster expansion - add nodes to increase capacity
-- **Fault tolerance** with automatic recreation - entities restart on different nodes if a node fails
-- **Simplified state management** - each entity maintains its own isolated state
+- **Cluster does not form:** wait 10 to 20 seconds; check that the seed nodes match and that every node
+  uses the same `spring.actor.name`.
+- **Asks time out across nodes:** check that the command classes implement `JsonSerializable` and that
+  Jackson can write and read them.
 
-!!! success "Scalability"
-    Simply add more nodes to the cluster to increase capacity. The system automatically rebalances entities across all nodes.
+## Related
 
-## Next Steps
-
-- [Sharded Actors Guide](../guides/sharded-actors.md) - Deep dive into cluster sharding concepts
-- [Chat Example](chat.md) - Build a distributed real-time chat application
-- [Synchronization Example](synchronization.md) - Compare actor-based vs traditional synchronization
+- [Sharded actors](../guides/cluster/sharded-actors.md)
+- [Cluster singletons](../guides/cluster/singletons.md)
+- [Cluster formation](../guides/cluster/cluster-formation.md)
+- [Split brain and leases](../guides/cluster/split-brain-and-leases.md)
+- [Chat example](chat.md): sharded actors with pub/sub topics and WebSockets

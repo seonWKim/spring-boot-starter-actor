@@ -37,33 +37,65 @@ turns its auto-configuration off and keeps only actor beans from the component s
 `DataSource` or your services. Only configuration properties, Jackson and Spring's task executor are
 auto-configured, because the actor system uses them when they are there.
 
-```java
-@ActorTest
-class GreeterActorTest {
+=== "Java"
 
-    @Autowired
-    SpringActorSystem actorSystem;
+    ```java
+    @ActorTest
+    class GreeterActorTest {
 
-    @Test
-    void greets() throws Exception {
-        String reply = actorSystem.actor(GreeterActor.class)
-                .withId("greeter")
-                .spawnAndWait()
-                .ask(new GreeterActor.Greet("Ada"))
-                .execute()
-                .toCompletableFuture()
-                .get();
+        @Autowired
+        SpringActorSystem actorSystem;
 
-        assertThat(reply).isEqualTo("hello Ada");
+        @Test
+        void greets() throws Exception {
+            String reply = actorSystem.actor(GreeterActor.class)
+                    .withId("greeter")
+                    .spawnAndWait()
+                    .ask(new GreeterActor.Greet("Ada"))
+                    .execute()
+                    .toCompletableFuture()
+                    .get();
+
+            assertThat(reply).isEqualTo("hello Ada");
+        }
     }
-}
-```
+    ```
 
-Name actors to start only those, and add properties:
+=== "Kotlin"
 
-```java
-@ActorTest(actors = GreeterActor.class, properties = "spring.actor.name=greeter-test")
-```
+    ```kotlin
+    @ActorTest
+    class GreeterActorTest {
+
+        @Autowired
+        lateinit var actorSystem: SpringActorSystem
+
+        @Test
+        fun greets() = runBlocking<Unit> {
+            val reply: String = actorSystem.actor<GreeterActor, _>()
+                .withId("greeter")
+                .awaitSpawn()
+                .awaitAsk(GreeterActor.Greet("Ada"))
+
+            assertThat(reply).isEqualTo("hello Ada")
+        }
+    }
+    ```
+
+In Kotlin, `runBlocking` (from `kotlinx-coroutines-core`, which `actor-kotlin` brings) runs the `suspend` calls
+in the test. Name actors to start only those, and add properties:
+
+=== "Java"
+
+    ```java
+    @ActorTest(actors = GreeterActor.class, properties = "spring.actor.name=greeter-test")
+    ```
+
+=== "Kotlin"
+
+    ```kotlin
+    @ActorTest(actors = [GreeterActor::class], properties = ["spring.actor.name=greeter-test"])
+    ```
 
 An actor that needs another bean gets it with `@Import(MyService.class)` or `@MockitoBean`. `includeFilters`,
 `excludeFilters` and `excludeAutoConfiguration` work as on Spring Boot's own slices.
@@ -79,37 +111,74 @@ every node sees every node up. With Pekko Management on the classpath, each node
 too.
 
 With JUnit 5, register `ActorClusterExtension`. On an instance field it starts a cluster for each test; on a
-static field, one for the whole class.
+static field (in Kotlin, a `@JvmField` in a `companion object`), one for the whole class.
 
-```java
-class ShardedCounterClusterTest {
+=== "Java"
 
-    @RegisterExtension
-    final ActorClusterExtension cluster = new ActorClusterExtension(
-            ActorCluster.builder(MyApplication.class)
-                    .nodes(3)
-                    .roles(1, "frontend")
-                    .properties("app.feature.enabled=true"));
+    ```java
+    class ShardedCounterClusterTest {
 
-    @Test
-    void anEntityKeepsItsStateWhenANodeLeaves() {
-        SpringActorSystem first = cluster.node(1).getBean(SpringActorSystem.class);
-        // ... message a sharded entity from node 1
+        @RegisterExtension
+        final ActorClusterExtension cluster = new ActorClusterExtension(
+                ActorCluster.builder(MyApplication.class)
+                        .nodes(3)
+                        .roles(1, "frontend")
+                        .properties("app.feature.enabled=true"));
 
-        cluster.cluster().stop(2);
-        cluster.cluster().awaitMembersUp(2);
-        // ... the entity answers from another node
+        @Test
+        void anEntityKeepsItsStateWhenANodeLeaves() {
+            SpringActorSystem first = cluster.node(1).getBean(SpringActorSystem.class);
+            // ... message a sharded entity from node 1
+
+            cluster.cluster().stop(2);
+            cluster.cluster().awaitMembersUp(2);
+            // ... the entity answers from another node
+        }
     }
-}
-```
+    ```
+
+=== "Kotlin"
+
+    ```kotlin
+    class ShardedCounterClusterTest {
+
+        @JvmField
+        @RegisterExtension
+        val cluster = ActorClusterExtension(
+            ActorCluster.builder(MyApplication::class.java)
+                .nodes(3)
+                .roles(1, "frontend")
+                .properties("app.feature.enabled=true"))
+
+        @Test
+        fun anEntityKeepsItsStateWhenANodeLeaves() {
+            val first = cluster.node(1).getBean(SpringActorSystem::class.java)
+            // ... message a sharded entity from node 1
+
+            cluster.cluster().stop(2)
+            cluster.cluster().awaitMembersUp(2)
+            // ... the entity answers from another node
+        }
+    }
+    ```
 
 Without JUnit, use it directly; it is `AutoCloseable`:
 
-```java
-try (ActorCluster cluster = ActorCluster.builder(MyApplication.class).nodes(3).start()) {
-    // ...
-}
-```
+=== "Java"
+
+    ```java
+    try (ActorCluster cluster = ActorCluster.builder(MyApplication.class).nodes(3).start()) {
+        // ...
+    }
+    ```
+
+=== "Kotlin"
+
+    ```kotlin
+    ActorCluster.builder(MyApplication::class.java).nodes(3).start().use { cluster ->
+        // ...
+    }
+    ```
 
 | Builder method | What it sets |
 |---|---|
@@ -126,32 +195,56 @@ node sees up, and `awaitMembersUp(count)` waits until every running node sees th
 
 ## Contract suites for your own store
 
-A `PeerRegistry` or `LeaseStore` of your own ([Cluster Formation](cluster-formation.md#your-own-store),
-[Split Brain and Leases](split-brain-and-leases.md#your-own-store)) must behave like the built-in ones: for
+A `PeerRegistry` or `LeaseStore` of your own ([Cluster Formation](cluster/cluster-formation.md#your-own-store),
+[Split Brain and Leases](cluster/split-brain-and-leases.md#your-own-store)) must behave like the built-in ones: for
 example, of twenty nodes that try to take a lease at once, exactly one wins. `actor-test` publishes the
 tests the built-in JDBC and Redis stores pass. Extend the suite and return your store:
 
-```java
-class MyLeaseStoreContractTest extends LeaseStoreContract {
+=== "Java"
 
-    private final MyLeaseStore store = new MyLeaseStore(testDatabase());
+    ```java
+    class MyLeaseStoreContractTest extends LeaseStoreContract {
 
-    @Override
-    protected LeaseStore store() {
-        return store;
+        private final MyLeaseStore store = new MyLeaseStore(testDatabase());
+
+        @Override
+        protected LeaseStore store() {
+            return store;
+        }
     }
-}
-```
+    ```
 
-```java
-class MyPeerRegistryContractTest extends PeerRegistryContract {
+=== "Kotlin"
 
-    @Override
-    protected PeerRegistry registry() {
-        return new MyPeerRegistry(testDatabase());
+    ```kotlin
+    class MyLeaseStoreContractTest : LeaseStoreContract() {
+
+        private val store = MyLeaseStore(testDatabase())
+
+        override fun store(): LeaseStore = store
     }
-}
-```
+    ```
+
+=== "Java"
+
+    ```java
+    class MyPeerRegistryContractTest extends PeerRegistryContract {
+
+        @Override
+        protected PeerRegistry registry() {
+            return new MyPeerRegistry(testDatabase());
+        }
+    }
+    ```
+
+=== "Kotlin"
+
+    ```kotlin
+    class MyPeerRegistryContractTest : PeerRegistryContract() {
+
+        override fun registry(): PeerRegistry = MyPeerRegistry(testDatabase())
+    }
+    ```
 
 Each test uses its own lease or service name, so one store may serve every test. Some tests wait for a
 ttl of one to two seconds to pass, because stores may keep time in whole seconds.
@@ -159,3 +252,9 @@ ttl of one to two seconds to pass, because stores may keep time in whole seconds
 `InMemoryPeerRegistry` and `InMemoryLeaseStore` pass the same suites. Declare one as a bean to run cluster
 tests with `discovery.method: custom` or `lease.store: custom` without a database; nodes in one JVM can
 share one instance.
+
+## Related
+
+- [Kotlin](kotlin.md): the `suspend` helpers used in the Kotlin tests
+- [Cluster Formation](cluster/cluster-formation.md) and [Split Brain and Leases](cluster/split-brain-and-leases.md): the stores the contract suites cover
+- [Sharded Actors](cluster/sharded-actors.md)

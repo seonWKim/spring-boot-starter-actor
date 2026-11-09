@@ -64,7 +64,7 @@ Callers address agents by id and never need to know which node hosts them:
 !!! info "Single node by default"
     The example sets `spring.actor.cluster.join-self: true`, so one node forms its own cluster.
     For more nodes, remove it and list `spring.actor.cluster.seed-nodes` as in the
-    [Sharded Actors](sharded-actors.md) guide.
+    [Sharded Actors](cluster/sharded-actors.md) guide.
 
 ## The agent loop without blocking
 
@@ -97,7 +97,7 @@ The node-local actors are spawned once, when Spring starts:
 
 !!! note "Per node, not per cluster"
     With three nodes the cluster can make three times `agent.calls-per-second` calls. For a
-    cluster-wide limit, run the limiter as a cluster singleton (`asClusterSingleton()`) instead.
+    cluster-wide limit, run the limiter as a [cluster singleton](cluster/singletons.md) (`asClusterSingleton()`) instead.
 
 ## A human approval step
 
@@ -132,8 +132,9 @@ finds the agent where it left off:
 ```
 
 The store is an interface. The example writes one JSON file per agent; for a database, implement
-it with the `ActorSnapshot` entity and `ActorSnapshotRepository` from
-[Persistence with Spring Boot](persistence-spring-boot.md).
+it with a JPA entity and repository like `ActorSnapshot` and `ActorSnapshotRepository` in the
+[persistence example](../examples/persistence.md) (see also
+[State in a Database](data/state-in-a-database.md)).
 
 ```java
 --8<-- "example/agent/src/main/java/io/github/seonwkim/example/agent/persistence/AgentSnapshotStore.java:snapshot-store"

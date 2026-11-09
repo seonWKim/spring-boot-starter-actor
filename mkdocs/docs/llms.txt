@@ -6,43 +6,72 @@ The full text of the Getting Started page and every guide, with code inlined, is
 
 ## Getting started
 
-- [Introduction](https://seonwkim.github.io/actor-spring-boot-starter/): what the starter is for and how actors fit into a Spring Boot application
-- [Getting Started](https://seonwkim.github.io/actor-spring-boot-starter/getting-started/): dependencies for Gradle and Maven, `@EnableActorSupport`, and the first configuration
+- [Introduction](https://seonwkim.github.io/actor-spring-boot-starter/): what the starter is for, the modules, and how actors fit into a Spring Boot application
+- [Getting Started](https://seonwkim.github.io/actor-spring-boot-starter/getting-started/): dependency, `@EnableActorSupport`, a first actor and an HTTP endpoint that asks it, in Java and Kotlin
 - [Migrating from 0.x](https://seonwkim.github.io/actor-spring-boot-starter/migrating-from-0x/): new coordinates, packages and APIs in 1.0, step by step
 
 ## Guides
 
-- [Actor Registration and Messaging](https://seonwkim.github.io/actor-spring-boot-starter/guides/actor-registration-messaging/): register actors as beans, spawn them, use tell and ask, timers, watching and message adapters
-- [Pub/Sub Topics](https://seonwkim.github.io/actor-spring-boot-starter/guides/pub-sub-topics/): one-to-many messaging where publishers do not know the subscribers
-- [Routers](https://seonwkim.github.io/actor-spring-boot-starter/guides/routers/): spread messages across a pool of worker actors
-- [Receptionist](https://seonwkim.github.io/actor-spring-boot-starter/guides/receptionist/): find actors by service key, once or by subscribing to changes
-- [Dispatchers](https://seonwkim.github.io/actor-spring-boot-starter/guides/dispatchers/): choose the threads an actor runs on, Spring executors and virtual threads
-- [Logging with MDC and Tags](https://seonwkim.github.io/actor-spring-boot-starter/guides/logging/): add MDC values and actor tags to log lines
-- [Sharded Actors](https://seonwkim.github.io/actor-spring-boot-starter/guides/sharded-actors/): one actor per entity ID, spread across a cluster
-- [Cluster Formation](https://seonwkim.github.io/actor-spring-boot-starter/guides/cluster-formation/): join a cluster through seed nodes, or find peers through a JDBC table, Redis or your own store without Kubernetes RBAC
-- [Split Brain and Leases](https://seonwkim.github.io/actor-spring-boot-starter/guides/split-brain-and-leases/): choose which side of a network split stays up, and keep singletons and shards on one node with a lease in a JDBC table, Redis or your own store
-- [Replicated Data](https://seonwkim.github.io/actor-spring-boot-starter/guides/replicated-data/): maps, counters and sets copied to every node, with local, majority or all consistency
-- [Persistence with Spring Boot](https://seonwkim.github.io/actor-spring-boot-starter/guides/persistence-spring-boot/): keep actor state with Spring Data and other Spring Boot tools
-- [Event-Sourced Actors](https://seonwkim.github.io/actor-spring-boot-starter/guides/event-sourcing/): store events instead of state with actor-persistence, recover after a restart, snapshots, journal tables on the application's DataSource
-- [Projections](https://seonwkim.github.io/actor-spring-boot-starter/guides/projections/): read the events of event-sourced actors into Spring Data or Spring Kafka, exactly once or at least once, resuming from a stored offset
-- [Reactor Streams](https://seonwkim.github.io/actor-spring-boot-starter/guides/reactor-streams/): a `Mono` of an ask, a `Flux` that feeds an actor with backpressure, and a `Flux` of the messages an actor sends (`actor-streams`)
-- [Streaming to Clients](https://seonwkim.github.io/actor-spring-boot-starter/guides/streaming-to-clients/): Server-Sent Events (Spring MVC or WebFlux), WebSocket (`ActorWebSocketHandler`) and gRPC (`ActorGrpc`) from actors; a client disconnect stops the actor-side subscription
-- [Running in Production](https://seonwkim.github.io/actor-spring-boot-starter/guides/production/): graceful shutdown, health checks, Kubernetes probes, cluster metrics, the actors endpoint and tracing across tell and ask
-- [AI Agents](https://seonwkim.github.io/actor-spring-boot-starter/guides/ai-agents/): one sharded actor per agent, supervised conversations, non-blocking model calls and rate limits
-- [Testing](https://seonwkim.github.io/actor-spring-boot-starter/guides/testing/): the `@ActorTest` slice, multi-node clusters in one JVM with `ActorCluster`, and the contract suites for your own `PeerRegistry` or `LeaseStore`
-- [Kotlin](https://seonwkim.github.io/actor-spring-boot-starter/guides/kotlin/): the `actor-kotlin` module: suspend ask and spawn, reified helpers, null safety
+### Core
+
+- [Actors](https://seonwkim.github.io/actor-spring-boot-starter/guides/core/actors/): define actors as beans, actor ids, spawn/get/getOrSpawn/exists/stop, custom contexts, child actors
+- [Messaging](https://seonwkim.github.io/actor-spring-boot-starter/guides/core/messaging/): tell, ask with timeouts and `onTimeout`, replying, asking from inside an actor, message adapters
+- [Supervision](https://seonwkim.github.io/actor-spring-boot-starter/guides/core/supervision/): stop/restart/resume strategies (default stop), limits, what a restart keeps, supervising children
+- [Behaviors, Timers and Watching](https://seonwkim.github.io/actor-spring-boot-starter/guides/core/behaviors/): the behavior builder, `withState`, signals, timers, watch, `pipeToSelf`, no stash
+- [Routers](https://seonwkim.github.io/actor-spring-boot-starter/guides/core/routers/): spread messages across a pool of worker actors; routing strategies
+- [Pub/Sub Topics](https://seonwkim.github.io/actor-spring-boot-starter/guides/core/pub-sub-topics/): one-to-many messaging where publishers do not know the subscribers
+- [Receptionist](https://seonwkim.github.io/actor-spring-boot-starter/guides/core/receptionist/): find actors by service key, once or by subscribing to changes
+- [Dispatchers and Mailboxes](https://seonwkim.github.io/actor-spring-boot-starter/guides/core/dispatchers/): choose the threads an actor runs on: blocking, Spring executors, virtual threads; mailboxes
+- [Logging](https://seonwkim.github.io/actor-spring-boot-starter/guides/core/logging/): MDC values, request ids and actor tags in log lines
+
+### Cluster
+
+- [Sharded Actors](https://seonwkim.github.io/actor-spring-boot-starter/guides/cluster/sharded-actors/): one actor per entity id, spread across a cluster; roles, passivation, shard leases
+- [Singletons](https://seonwkim.github.io/actor-spring-boot-starter/guides/cluster/singletons/): one actor in the whole cluster with `asClusterSingleton()`, where it runs, handover and leases
+- [Cluster Formation](https://seonwkim.github.io/actor-spring-boot-starter/guides/cluster/cluster-formation/): join through seed nodes, Kubernetes, a JDBC table, Redis or your own store
+- [Split Brain and Leases](https://seonwkim.github.io/actor-spring-boot-starter/guides/cluster/split-brain-and-leases/): which side of a network split stays up; leases in a JDBC table, Redis or your own store
+- [Replicated Data](https://seonwkim.github.io/actor-spring-boot-starter/guides/cluster/replicated-data/): maps, counters and sets copied to every node, with local, majority or all consistency
+
+### Data
+
+- [State in a Database](https://seonwkim.github.io/actor-spring-boot-starter/guides/data/state-in-a-database/): load on start and save on change with Spring Data, JDBC or R2DBC, without event sourcing
+- [Event-Sourced Actors](https://seonwkim.github.io/actor-spring-boot-starter/guides/data/event-sourcing/): store events instead of state with actor-persistence, recovery, snapshots
+- [Projections](https://seonwkim.github.io/actor-spring-boot-starter/guides/data/projections/): read persisted events into Spring Data or Kafka, exactly once or at least once
+
+### Streaming
+
+- [Reactor Streams](https://seonwkim.github.io/actor-spring-boot-starter/guides/streaming/reactor-streams/): a `Mono` of an ask, a `Flux` into an actor with backpressure, a `Flux` out of an actor (`actor-streams`)
+- [Streaming to Clients](https://seonwkim.github.io/actor-spring-boot-starter/guides/streaming/streaming-to-clients/): Server-Sent Events, WebSocket (`ActorWebSocketHandler`) and gRPC (`ActorGrpc`) from actors
+
+### Operations
+
+- [Running in Production](https://seonwkim.github.io/actor-spring-boot-starter/guides/operations/production/): graceful shutdown, health checks, Kubernetes probes, a production checklist
+- [Monitoring](https://seonwkim.github.io/actor-spring-boot-starter/guides/operations/monitoring/): actor, mailbox, dispatcher, cluster and sharding meters, the actors endpoint, tracing, Grafana dashboard and alerts
+- [Deployments](https://seonwkim.github.io/actor-spring-boot-starter/guides/operations/deployments/): rolling, canary and blue-green deployments, and message compatibility across versions
+- [Configuration Reference](https://seonwkim.github.io/actor-spring-boot-starter/guides/operations/configuration/): every `spring.actor.*` key with its default
+
+### More guides
+
+- [Testing](https://seonwkim.github.io/actor-spring-boot-starter/guides/testing/): the `@ActorTest` slice, multi-node clusters in one JVM, contract suites for your own `PeerRegistry` or `LeaseStore`
+- [Kotlin](https://seonwkim.github.io/actor-spring-boot-starter/guides/kotlin/): the `actor-kotlin` module: suspend ask and spawn, reified helpers
+- [AI Agents](https://seonwkim.github.io/actor-spring-boot-starter/guides/ai-agents/): one sharded actor per agent, supervised conversations, non-blocking model calls, approvals
 
 ## Examples
 
-- [Examples overview](https://seonwkim.github.io/actor-spring-boot-starter/examples/): the runnable example projects in the repository and what each shows
-- [Simple](https://seonwkim.github.io/actor-spring-boot-starter/examples/simple/): basic actors in a single, non-clustered application
-- [Cluster](https://seonwkim.github.io/actor-spring-boot-starter/examples/cluster/): sharded actors across several cluster nodes
-- [Synchronization](https://seonwkim.github.io/actor-spring-boot-starter/examples/synchronization/): actor-based synchronization compared with locks and databases
-- [Chat](https://seonwkim.github.io/actor-spring-boot-starter/examples/chat/): a real-time chat built on pub/sub topics, with no extra middleware
-- [Monitoring](https://seonwkim.github.io/actor-spring-boot-starter/examples/monitoring/): actor metrics through Micrometer without a Java agent (tags, overhead, the optional agent), exposed to Prometheus
+- [Examples overview](https://seonwkim.github.io/actor-spring-boot-starter/examples/): every runnable example app, what it shows, and a learning path
+- [Simple](https://seonwkim.github.io/actor-spring-boot-starter/examples/simple/): basic actors, ask and restart in a single application
+- [Cluster](https://seonwkim.github.io/actor-spring-boot-starter/examples/cluster/): sharded actors and a singleton across three nodes
+- [Synchronization](https://seonwkim.github.io/actor-spring-boot-starter/examples/synchronization/): an actor counter compared with database and Redis locks
+- [Chat](https://seonwkim.github.io/actor-spring-boot-starter/examples/chat/): real-time chat with WebSocket, sharded rooms and pub/sub topics
+- [AI Agent](https://seonwkim.github.io/actor-spring-boot-starter/examples/agent/): an AI agent as an actor: tools, approvals, snapshots
+- [Persistence](https://seonwkim.github.io/actor-spring-boot-starter/examples/persistence/): actor state with JPA: current state, event log and snapshots
+- [Metrics](https://seonwkim.github.io/actor-spring-boot-starter/examples/metrics/): actor metrics through Micrometer and Prometheus
+- [Logging](https://seonwkim.github.io/actor-spring-boot-starter/examples/logging/): MDC, tags and request ids in actor logs
+- [Virtual Threads](https://seonwkim.github.io/actor-spring-boot-starter/examples/virtual-threads/): actors on a virtual-thread dispatcher
+- [Kotlin](https://seonwkim.github.io/actor-spring-boot-starter/examples/kotlin/): the starter from Kotlin with coroutines
+- [Kubernetes](https://seonwkim.github.io/actor-spring-boot-starter/examples/kubernetes/): a cluster on Kubernetes: discovery, rollouts and monitoring
 
 ## Reference
 
-- [Configuration Reference](https://seonwkim.github.io/actor-spring-boot-starter/guides/configuration/): every configuration key the starter reads, with its default
+- [How to Contribute](https://seonwkim.github.io/actor-spring-boot-starter/contributing/): report bugs and propose changes through GitHub Issues
 - [Spring Conventions](https://seonwkim.github.io/actor-spring-boot-starter/contributing/spring-conventions/): how the starter compares with the conventions of other Spring projects
-- [RFCs](https://seonwkim.github.io/actor-spring-boot-starter/contributing/rfcs/): design proposals for the starter's API and behaviour

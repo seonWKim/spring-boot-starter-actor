@@ -1,297 +1,76 @@
 # Synchronization Example
 
-This guide demonstrates how to implement efficient synchronization using Actor Spring Boot Starter, comparing it with traditional synchronization approaches.
+A counter that many requests increment at the same time, on three nodes, built three ways: a database
+row lock, a Redis lock, and a sharded actor. A load script checks that each one ends at the right
+value.
 
-## Overview
+- **Source:** [`example/synchronization`](https://github.com/seonWKim/actor-spring-boot-starter/tree/main/example/synchronization)
+- **Runs:** three nodes on one machine, plus MySQL and Redis
+- **Modules:** `actor-spring-boot-starter-cluster`, Spring WebFlux, Spring Data JPA, Spring Data Redis Reactive
 
-The synchronization example shows how to:
+## What it shows
 
-- Implement counters with different synchronization mechanisms
-- Compare database locking, Redis locking, and actor-based synchronization
-- Handle concurrent access to shared resources
-- Achieve high performance with actor-based synchronization
+- Why an actor needs no lock: it handles one message at a time, so `value++` in its handler is safe.
+- A sharded actor per counter id: one instance in the cluster, whichever node gets the request.
+- The cost of the alternatives: a `SELECT ... FOR UPDATE` per increment, or a Redis lock with retries.
 
-This example demonstrates why using actors for synchronization is cheap and efficient compared to other approaches.
+## Run it
 
-## Source Code
+You need MySQL on `localhost:3306` (user `root`, password `root`) and Redis on `localhost:6379`. The
+app creates the `counter_db` database and the `counter` table on start. For example, with Docker:
 
-You can find the complete source code for this example on GitHub:
-
-[Synchronization Example Source Code](https://github.com/seonWKim/actor-spring-boot-starter/tree/main/example/synchronization)
-
-!!! tip "Performance Comparison"
-    This example includes benchmarking code to compare the performance of different synchronization approaches.
-
-## Key Components
-
-The example implements a counter service using three different synchronization approaches:
-
-1. **Database Locking**: Uses database transactions and locks
-2. **Redis Locking**: Uses Redis for distributed locking
-3. **Actor-Based Synchronization**: Uses actors for message-based synchronization
-
-Let's examine each approach to understand their differences and trade-offs.
-
-### Counter Entity
-
-The `Counter` class is a simple JPA entity representing a counter in the database:
-
-```java
-@Entity
-@Table(name = "counter")
-public class Counter {
-
-    @Id
-    @Column(name = "counter_id", nullable = false)
-    private String counterId;
-
-    @Column(name = "value", nullable = false)
-    private long value;
-
-    /** Default constructor required by JPA. */
-    public Counter() {}
-
-    /**
-     * Creates a new counter with the given ID and initial value.
-     *
-     * @param counterId The ID of the counter
-     * @param value The initial value of the counter
-     */
-    public Counter(String counterId, long value) {
-        this.counterId = counterId;
-        this.value = value;
-    }
-
-    /**
-     * Gets the counter ID.
-     *
-     * @return The counter ID
-     */
-    public String getCounterId() {
-        return counterId;
-    }
-
-    /**
-     * Sets the counter ID.
-     *
-     * @param counterId The counter ID
-     */
-    public void setCounterId(String counterId) {
-        this.counterId = counterId;
-    }
-
-    /**
-     * Gets the counter value.
-     *
-     * @return The counter value
-     */
-    public long getValue() {
-        return value;
-    }
-
-    /**
-     * Sets the counter value.
-     *
-     * @param value The counter value
-     */
-    public void setValue(long value) {
-        this.value = value;
-    }
-
-    /**
-     * Increments the counter value by 1.
-     *
-     * @return The new counter value
-     */
-    public long increment() {
-        return ++value;
-    }
-}
+```bash
+docker run -d --name counter-mysql -p 3306:3306 -e MYSQL_ROOT_PASSWORD=root mysql:8
+docker run -d --name counter-redis -p 6379:6379 redis:7
 ```
 
-### Database Synchronization
+Start three nodes from the repository root:
 
-`DbCounterService` uses database transactions and pessimistic locking to ensure synchronized access to counters:
-
-```java
-@Service
-public class DbCounterService implements CounterService {
-
-    private static final Logger logger = LoggerFactory.getLogger(DbCounterService.class);
-
-    private final CounterRepository counterRepository;
-    private final CustomTransactionTemplate customTransactionTemplate;
-
-    /**
-     * Creates a new DbCounterServiceImpl with the given repository.
-     *
-     * @param counterRepository The repository for accessing Counter entities
-     */
-    public DbCounterService(CounterRepository counterRepository, CustomTransactionTemplate customTransactionTemplate) {
-        this.counterRepository = counterRepository;
-        this.customTransactionTemplate = customTransactionTemplate;
-    }
-
-    /**
-     * Increments the counter value by 1 and returns the new value. Uses database pessimistic locking
-     * to ensure synchronization. The blocking logic is delegated to a boundedElastic scheduler.
-     *
-     * @param counterId The ID of the counter to increment
-     */
-    @Override
-    public void increment(String counterId) {
-        incrementInternal(counterId);
-    }
-
-    /**
-     * Gets the current value of the counter. The blocking logic is delegated to a boundedElastic
-     * scheduler.
-     *
-     * @param counterId The ID of the counter to get
-     * @return A Mono containing the current counter value
-     */
-    @Override
-    public Mono<Long> getValue(String counterId) {
-        return Mono.fromCallable(() -> getValueInternal(counterId)).subscribeOn(Schedulers.boundedElastic());
-    }
-
-    public Long incrementInternal(String counterId) {
-        logger.debug("Incrementing counter with ID: {}", counterId);
-
-        return customTransactionTemplate.runInTransaction(() -> {
-            Counter counter = counterRepository.findByIdWithLock(counterId).orElseGet(() -> {
-                logger.debug("Counter not found, creating new counter with ID: {}", counterId);
-                return counterRepository.save(new Counter(counterId, 0));
-            });
-
-            long newValue = counter.increment();
-            counterRepository.save(counter);
-
-            logger.debug("Counter with ID: {} incremented to: {}", counterId, newValue);
-            return newValue;
-        });
-    }
-
-    public Long getValueInternal(String counterId) {
-        logger.debug("Getting value for counter with ID: {}", counterId);
-        return counterRepository.findById(counterId).map(Counter::getValue).orElse(0L);
-    }
-}
+```bash
+sh cluster-start.sh synchronization io.github.seonwkim.example.SpringPekkoApplication 8080 2551 3
 ```
 
-### Redis Synchronization
+Then run the check. It needs Apache Bench (`ab`):
 
-`RedisCounterService` uses Redis distributed locking to ensure synchronized access to counters:
-
-```java
-@Service
-public class RedisCounterService implements CounterService {
-
-    private static final Logger logger = LoggerFactory.getLogger(RedisCounterService.class);
-    private static final String COUNTER_KEY_PREFIX = "counter:";
-    private static final String LOCK_KEY_PREFIX = "counter:lock:";
-    private static final Duration LOCK_TIMEOUT = Duration.ofSeconds(2);
-    private static final Duration RETRY_DELAY = Duration.ofMillis(100);
-    private static final int MAX_RETRIES = 50; // 5 seconds total retry time
-
-    private final ReactiveRedisTemplate<String, Long> redisTemplate;
-    private final ReactiveValueOperations<String, Long> valueOps;
-
-    /**
-     * Creates a new RedisCounterServiceImpl with the given Redis template.
-     *
-     * @param redisTemplate The Redis template for accessing Redis
-     */
-    public RedisCounterService(ReactiveRedisTemplate<String, Long> redisTemplate) {
-        this.redisTemplate = redisTemplate;
-        this.valueOps = redisTemplate.opsForValue();
-    }
-
-    /**
-     * Increments the counter value by 1 and returns the new value. Uses Redis distributed locking to
-     * ensure synchronization.
-     *
-     * @param counterId The ID of the counter to increment
-     */
-    @Override
-    public void increment(String counterId) {
-        logger.debug("Incrementing counter with ID: {}", counterId);
-
-        String counterKey = COUNTER_KEY_PREFIX + counterId;
-        String lockKey = LOCK_KEY_PREFIX + counterId;
-
-        valueOps.setIfAbsent(lockKey, 1L, LOCK_TIMEOUT)
-                .flatMap(locked -> {
-                    if (!locked) {
-                        logger.warn("Failed to acquire lock for counter: {}", counterId);
-                        return Mono.error(new RuntimeException("Failed to acquire lock for counter: " + counterId));
-                    }
-
-                    return valueOps.increment(counterKey)
-                            .doOnSuccess(newValue ->
-                                    logger.debug("Counter with ID: {} incremented to: {}", counterId, newValue))
-                            .doFinally(
-                                    signalType -> redisTemplate.delete(lockKey).subscribe(deleted -> {
-                                        if (deleted > 0) {
-                                            logger.debug("Released lock for counter: {}", counterId);
-                                        } else {
-                                            logger.warn("Failed to release lock for counter: {}", counterId);
-                                        }
-                                    }));
-                })
-                .retryWhen(Retry.backoff(MAX_RETRIES, RETRY_DELAY)
-                        .doBeforeRetry(retrySignal -> logger.debug(
-                                "Retrying lock acquisition for counter: {}, attempt: {}",
-                                counterId,
-                                retrySignal.totalRetries() + 1)))
-                .subscribe(
-                        null, // onNext is ignored since we don't need the result
-                        error -> logger.error("Error while incrementing counter: {}", counterId, error));
-    }
-
-    /**
-     * Gets the current value of the counter.
-     *
-     * @param counterId The ID of the counter to get
-     * @return A Mono containing the current counter value
-     */
-    @Override
-    public Mono<Long> getValue(String counterId) {
-        logger.debug("Getting value for counter with ID: {}", counterId);
-
-        String counterKey = COUNTER_KEY_PREFIX + counterId;
-
-        // Get the counter value or return 0 if it doesn't exist
-        return valueOps.get(counterKey).defaultIfEmpty(0L);
-    }
-}
+```bash
+cd example/synchronization
+./verify.sh
 ```
 
-### CounterActor
+`verify.sh` sends 9,000 increments for one counter id, split over the three nodes with 10 concurrent
+requests each, once per method (`db`, `redis`, `actor`). Then it reads the counter from node 8080 and
+compares it with 9,000. The counter id is fixed in the script (`COUNTER_ID`), so change it, or clear the
+database and Redis, before a second run.
 
-`CounterActor` is a sharded actor that handles counter operations. Each counter is represented by a separate actor instance, identified by its counterId:
+Stop the nodes with `sh cluster-stop.sh` from the repository root.
+
+### Endpoints
+
+| Method | Increment | Read |
+|---|---|---|
+| Database lock | `GET /counter/db/{counterId}/increment` | `GET /counter/db/{counterId}` |
+| Redis lock | `GET /counter/redis/{counterId}/increment` | `GET /counter/redis/{counterId}` |
+| Actor | `GET /counter/actor/{counterId}/increment` | `GET /counter/actor/{counterId}` |
+
+The app also includes springdoc, so Swagger UI is at `http://localhost:8080/swagger-ui.html`.
+
+## Walkthrough
+
+### The actor: `CounterActor`
+
+One sharded entity per counter id. The value lives in the actor's state; no lock, no database.
 
 ```java
 @Component
 public class CounterActor implements SpringShardedActor<CounterActor.Command> {
 
-    private static final Logger logger = LoggerFactory.getLogger(CounterActor.class);
-
-    // Define a type key for this actor type
     public static final ShardedEntityType<Command> TYPE_KEY = ShardedEntityType.of(Command.class, "CounterActor");
 
-    /** Base interface for all commands that can be sent to the counter actor. */
     public interface Command extends JsonSerializable {}
 
-    /** Command to increment the counter and get the new value. */
-    public static class Increment implements Command {
-        public Increment() {}
-    }
+    public static class Increment implements Command {}
 
-    /** Command to get the current value of the counter. */
-    public static class GetValue extends AskCommand<Long> implements Command {
-        public GetValue() {}
-    }
+    public static class GetValue extends AskCommand<Long> implements Command {}
 
     @Override
     public ShardedEntityType<Command> entityType() {
@@ -307,43 +86,20 @@ public class CounterActor implements SpringShardedActor<CounterActor.Command> {
                 .build();
     }
 
-    /**
-     * Inner class to isolate stateful behavior logic. This separates the actor's state and behavior
-     * from its interface.
-     */
     private static class CounterActorBehavior {
         private final String counterId;
         private long value = 0;
 
-        /**
-         * Creates a new behavior with the given context and counter ID.
-         */
         CounterActorBehavior(String counterId) {
             this.counterId = counterId;
-            logger.debug("Created counter actor for ID: {}", counterId);
         }
 
-        /**
-         * Handles Increment commands by incrementing the counter and responding with the new value.
-         *
-         * @param msg The Increment message
-         * @return The next behavior (same in this case)
-         */
         private SpringActorBehavior<Command> onIncrement(Increment msg) {
-            logger.debug("Incrementing counter with ID: {}", counterId);
             value++;
-            logger.debug("Counter with ID: {} incremented to: {}", counterId, value);
             return SpringActorBehavior.same();
         }
 
-        /**
-         * Handles GetValue commands by responding with the current counter value.
-         *
-         * @param msg The GetValue message
-         * @return The next behavior (same in this case)
-         */
         private SpringActorBehavior<Command> onGetValue(GetValue msg) {
-            logger.debug("Getting value for counter with ID: {}", counterId);
             msg.reply(value);
             return SpringActorBehavior.same();
         }
@@ -351,195 +107,79 @@ public class CounterActor implements SpringShardedActor<CounterActor.Command> {
 }
 ```
 
-### ActorCounterService
+`ActorCounterService` sends `Increment` with `tell` (no reply needed) and reads with `ask`:
 
-`ActorCounterService` uses actor-based synchronization to handle counter operations:
+=== "Java"
 
-```java
-@Service
-public class ActorCounterService implements CounterService {
-
-    private static final Logger logger = LoggerFactory.getLogger(ActorCounterService.class);
-
-    private final SpringActorSystem springActorSystem;
-
-    /**
-     * Creates a new ActorCounterServiceImpl with the given actor system.
-     *
-     * @param springActorSystem The Spring actor system
-     */
-    public ActorCounterService(SpringActorSystem springActorSystem) {
-        this.springActorSystem = springActorSystem;
-    }
-
-    /**
-     * Increments the counter value by 1 and returns the new value. Uses actor-based locking to ensure
-     * synchronization.
-     *
-     * @param counterId The ID of the counter to increment
-     */
-    @Override
+    ```java
     public void increment(String counterId) {
-        logger.debug("Incrementing counter with ID: {}", counterId);
-
-        // Get a reference to the sharded actor for this counter using the new simplified API
-        var actorRef =
-                springActorSystem.sharded(CounterActor.class).withId(counterId).get();
-
-        // Send an increment message to the actor and get the response
+        var actorRef = springActorSystem.sharded(CounterActor.class).withId(counterId).get();
         actorRef.tell(new CounterActor.Increment());
     }
 
-    /**
-     * Gets the current value of the counter.
-     *
-     * @param counterId The ID of the counter to get
-     * @return A Mono containing the current counter value
-     */
-    @Override
     public Mono<Long> getValue(String counterId) {
-        logger.debug("Getting value for counter with ID: {}", counterId);
-
-        // Get a reference to the sharded actor for this counter using the new simplified API
-        var actorRef =
-                springActorSystem.sharded(CounterActor.class).withId(counterId).get();
-
-        // Send a get value message to the actor using the ask() method with error handling
+        var actorRef = springActorSystem.sharded(CounterActor.class).withId(counterId).get();
         CompletionStage<Long> response = actorRef.ask(new CounterActor.GetValue())
                 .withTimeout(Duration.ofSeconds(3))
-                .onTimeout(() -> {
-                    logger.warn("Timeout getting value for counter: {}", counterId);
-                    return 0L; // Return default value on timeout
-                })
+                .onTimeout(() -> 0L)
                 .execute();
-
         return Mono.fromCompletionStage(response);
     }
-}
-```
+    ```
 
-### CounterController
+=== "Kotlin"
 
-`CounterController` exposes the counter functionality via HTTP endpoints for all three synchronization approaches:
+    ```kotlin
+    fun increment(counterId: String) {
+        actorSystem.sharded<CounterActor, _>().withId(counterId).get().tell(CounterActor.Increment())
+    }
+
+    // Call from a suspend function or a coroutine.
+    suspend fun getValue(counterId: String): Long =
+        actorSystem.sharded<CounterActor, _>()
+            .withId(counterId)
+            .get()
+            .ask(CounterActor.GetValue())
+            .withTimeout(3.seconds)
+            .onTimeout { 0L }
+            .await()
+    ```
+
+### The database lock: `DbCounterService`
+
+Each increment opens a transaction and locks the row with a native query:
 
 ```java
-@RestController
-@RequestMapping("/counter")
-public class CounterController {
-
-    private final DbCounterService dbCounterService;
-    private final RedisCounterService redisCounterService;
-    private final ActorCounterService actorCounterService;
-
-    /**
-     * Creates a new CounterController with the given services.
-     *
-     * @param dbCounterService The DB-based counter service
-     * @param redisCounterService The Redis-based counter service
-     * @param actorCounterService The actor-based counter service
-     */
-    public CounterController(
-            DbCounterService dbCounterService,
-            RedisCounterService redisCounterService,
-            ActorCounterService actorCounterService) {
-        this.dbCounterService = dbCounterService;
-        this.redisCounterService = redisCounterService;
-        this.actorCounterService = actorCounterService;
-    }
-
-    /**
-     * Endpoint to increment a counter using DB locking.
-     *
-     * @param counterId The ID of the counter to increment
-     * @return A Mono containing the new counter value
-     */
-    @GetMapping("/db/{counterId}/increment")
-    public void incrementDbCounter(@PathVariable String counterId) {
-        dbCounterService.increment(counterId);
-    }
-
-    /**
-     * Endpoint to get a counter value using DB locking.
-     *
-     * @param counterId The ID of the counter to get
-     * @return A Mono containing the current counter value
-     */
-    @GetMapping("/db/{counterId}")
-    public Mono<Long> getDbCounter(@PathVariable String counterId) {
-        return dbCounterService.getValue(counterId);
-    }
-
-    /**
-     * Endpoint to increment a counter using Redis locking.
-     *
-     * @param counterId The ID of the counter to increment
-     */
-    @GetMapping("/redis/{counterId}/increment")
-    public void incrementRedisCounter(@PathVariable String counterId) {
-        redisCounterService.increment(counterId);
-    }
-
-    /**
-     * Endpoint to get a counter value using Redis locking.
-     *
-     * @param counterId The ID of the counter to get
-     * @return A Mono containing the current counter value
-     */
-    @GetMapping("/redis/{counterId}")
-    public Mono<Long> getRedisCounter(@PathVariable String counterId) {
-        return redisCounterService.getValue(counterId);
-    }
-
-    /**
-     * Endpoint to increment a counter using actor-based locking.
-     *
-     * @param counterId The ID of the counter to increment
-     * @return A Mono containing the new counter value
-     */
-    @GetMapping("/actor/{counterId}/increment")
-    public void incrementActorCounter(@PathVariable String counterId) {
-        actorCounterService.increment(counterId);
-    }
-
-    /**
-     * Endpoint to get a counter value using actor-based locking.
-     *
-     * @param counterId The ID of the counter to get
-     * @return A Mono containing the current counter value
-     */
-    @GetMapping("/actor/{counterId}")
-    public Mono<Long> getActorCounter(@PathVariable String counterId) {
-        return actorCounterService.getValue(counterId);
-    }
-}
+@Query(value = "SELECT * FROM counter WHERE counter_id = :counterId FOR UPDATE", nativeQuery = true)
+Optional<Counter> findByIdWithLock(@Param("counterId") String counterId);
 ```
 
-## Actor Efficiency
+Concurrent increments of the same counter wait for each other inside the database, and each one holds a
+connection while it waits.
 
-Actors provide efficient synchronization through:
+### The Redis lock: `RedisCounterService`
 
-- **Message-based concurrency** without explicit locks
-- **Non-blocking asynchronous processing**
-- **Independent actors** that scale across nodes
-- **Reduced contention** between different counters
-- **Built-in supervision** and error handling
+Each increment takes a lock key with `setIfAbsent` (2-second expiry), runs `INCR`, and deletes the lock.
+When the lock is taken, it retries with backoff, up to 50 times. Every increment costs at least three
+Redis round trips, more under contention.
 
-!!! success "Performance Benefits"
-    Actor-based synchronization typically outperforms database and Redis locking by 10-100x in high-concurrency scenarios.
+## Things to keep in mind
 
-## Performance Comparison
+- The actor counter lives in memory. If the node that hosts the entity stops, the count is lost. For a
+  count that must survive, persist it: see [State in a database](../guides/data/state-in-a-database.md)
+  or [Event sourcing](../guides/data/event-sourcing.md).
+- The increment endpoints return before the work is done (the actor `tell` and the Redis chain run in the
+  background). The read at the end of `verify.sh` can run before the last increments are applied.
 
-When benchmarked under high concurrency:
+## Try next
 
-1. **Database Locking** - Slowest due to transaction overhead and lock contention
-2. **Redis Locking** - Better but has network overhead and retry loops
-3. **Actor-Based Synchronization** - Fastest with in-memory processing and no locks
+- Raise `NUM_REQUESTS` and `CONCURRENCY` in `verify.sh` and compare how long each method takes.
+- Use many counter ids instead of one. The actor version spreads them over the nodes; the database
+  version spreads them over rows.
+- Make `Increment` an `AskCommand<Long>` that replies with the new value, so callers wait for it.
 
-!!! info "Benchmark Results"
-    Run the example and use a tool like Apache JMeter or wrk to benchmark the different endpoints under load.
+## Related
 
-## Next Steps
-
-- [Cluster Example](cluster.md) - Distribute actors across multiple nodes
-- [Chat Example](chat.md) - Build real-time applications with actors
-- [Actor Registration Guide](../guides/actor-registration-messaging.md) - Learn more about actor messaging patterns
+- [Sharded actors](../guides/cluster/sharded-actors.md)
+- [Messaging](../guides/core/messaging.md): `tell` and `ask`
+- [Cluster example](cluster.md)

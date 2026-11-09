@@ -18,6 +18,7 @@ theme:
     - search.suggest
     - search.highlight
     - content.code.copy
+    - content.tabs.link
 
 markdown_extensions:
   - admonition
@@ -40,39 +41,96 @@ hooks:
 nav:
   - Home:
     - index.md
-    - getting-started.md
-    - migrating-from-0x.md
+    - Getting Started: getting-started.md
+    - Migrating from 0.x: migrating-from-0x.md
   - Guides:
-    - Actor Registration and Messaging: guides/actor-registration-messaging.md
-    - Pub/Sub Topics: guides/pub-sub-topics.md
-    - Routers: guides/routers.md
-    - Receptionist: guides/receptionist.md
-    - Dispatchers: guides/dispatchers.md
-    - Logging with MDC and Tags: guides/logging.md
-    - Sharded Actors: guides/sharded-actors.md
-    - Cluster Formation: guides/cluster-formation.md
-    - Split Brain and Leases: guides/split-brain-and-leases.md
-    - Replicated Data: guides/replicated-data.md
-    - Persistence with Spring Boot: guides/persistence-spring-boot.md
-    - Event-Sourced Actors: guides/event-sourcing.md
-    - Projections: guides/projections.md
-    - Reactor Streams: guides/reactor-streams.md
-    - Streaming to Clients: guides/streaming-to-clients.md
-    - Running in Production: guides/production.md
-    - AI Agents: guides/ai-agents.md
-    - Testing: guides/testing.md
-    - Kotlin: guides/kotlin.md
-    - Configuration Reference: guides/configuration.md
+    - Core:
+      - Actors: guides/core/actors.md
+      - Messaging: guides/core/messaging.md
+      - Supervision: guides/core/supervision.md
+      - Behaviors, Timers and Watching: guides/core/behaviors.md
+      - Routers: guides/core/routers.md
+      - Pub/Sub Topics: guides/core/pub-sub-topics.md
+      - Receptionist: guides/core/receptionist.md
+      - Dispatchers: guides/core/dispatchers.md
+      - Logging: guides/core/logging.md
+    - Cluster:
+      - Sharded Actors: guides/cluster/sharded-actors.md
+      - Singletons: guides/cluster/singletons.md
+      - Cluster Formation: guides/cluster/cluster-formation.md
+      - Split Brain and Leases: guides/cluster/split-brain-and-leases.md
+      - Replicated Data: guides/cluster/replicated-data.md
+    - Data:
+      - State in a Database: guides/data/state-in-a-database.md
+      - Event-Sourced Actors: guides/data/event-sourcing.md
+      - Projections: guides/data/projections.md
+    - Streaming:
+      - Reactor Streams: guides/streaming/reactor-streams.md
+      - Streaming to Clients: guides/streaming/streaming-to-clients.md
+    - Operations:
+      - Running in Production: guides/operations/production.md
+      - Monitoring: guides/operations/monitoring.md
+      - Deployments: guides/operations/deployments.md
+      - Configuration Reference: guides/operations/configuration.md
+    - More:
+      - Testing: guides/testing.md
+      - Kotlin: guides/kotlin.md
+      - AI Agents: guides/ai-agents.md
   - Examples:
     - Overview: examples/index.md
     - Simple: examples/simple.md
     - Cluster: examples/cluster.md
     - Synchronization: examples/synchronization.md
     - Chat: examples/chat.md
-    - Monitoring: examples/monitoring.md
+    - AI Agent: examples/agent.md
+    - Persistence: examples/persistence.md
+    - Metrics: examples/metrics.md
+    - Logging: examples/logging.md
+    - Virtual Threads: examples/virtual-threads.md
+    - Kotlin: examples/kotlin.md
+    - Kubernetes: examples/kubernetes.md
   - Contributing:
+    - How to Contribute: contributing/index.md
     - Spring Conventions: contributing/spring-conventions.md
-    - RFCs: contributing/rfcs/index.md
+
+plugins:
+  - search
+  - redirects:
+      redirect_maps:
+        guides/actor-registration-messaging.md: guides/core/actors.md
+        guides/pub-sub-topics.md: guides/core/pub-sub-topics.md
+        guides/routers.md: guides/core/routers.md
+        guides/receptionist.md: guides/core/receptionist.md
+        guides/dispatchers.md: guides/core/dispatchers.md
+        guides/logging.md: guides/core/logging.md
+        guides/sharded-actors.md: guides/cluster/sharded-actors.md
+        guides/cluster-formation.md: guides/cluster/cluster-formation.md
+        guides/split-brain-and-leases.md: guides/cluster/split-brain-and-leases.md
+        guides/replicated-data.md: guides/cluster/replicated-data.md
+        guides/persistence-spring-boot.md: guides/data/state-in-a-database.md
+        guides/event-sourcing.md: guides/data/event-sourcing.md
+        guides/projections.md: guides/data/projections.md
+        guides/reactor-streams.md: guides/streaming/reactor-streams.md
+        guides/streaming-to-clients.md: guides/streaming/streaming-to-clients.md
+        guides/production.md: guides/operations/production.md
+        guides/configuration.md: guides/operations/configuration.md
+        examples/monitoring.md: examples/metrics.md
+        contributing/rfcs/index.md: contributing/index.md
+        contributing/rfcs/template.md: contributing/index.md
+        contributing/rfcs/0001-auto-configuration-registration.md: contributing/index.md
+        contributing/rfcs/0002-optional-enable-annotation.md: contributing/index.md
+        contributing/rfcs/0003-conditional-back-off.md: contributing/index.md
+        contributing/rfcs/0004-customizer-beans.md: contributing/index.md
+        contributing/rfcs/0005-observation-api.md: contributing/index.md
+        contributing/rfcs/0006-actuator-endpoint.md: contributing/index.md
+        contributing/rfcs/0007-test-artifact.md: contributing/index.md
+        contributing/rfcs/0008-test-slice.md: contributing/index.md
+        contributing/rfcs/0009-bom.md: contributing/index.md
+        contributing/rfcs/0010-native-hints.md: contributing/index.md
+        contributing/rfcs/0011-enabled-switch.md: contributing/index.md
+        contributing/rfcs/0012-context-scoped-registries.md: contributing/index.md
+        contributing/rfcs/0013-artifact-naming.md: contributing/index.md
+        contributing/rfcs/0014-failure-analyzers.md: contributing/index.md
 
 extra_css:
   - stylesheets/extra.css

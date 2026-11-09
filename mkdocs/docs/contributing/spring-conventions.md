@@ -2,9 +2,8 @@
 
 This page compares the starter with the conventions Spring users already know from
 Spring Boot, Spring for Apache Kafka, Spring Data, Spring Cloud Stream, Micrometer,
-Resilience4j and Temporal. Each row says what we keep and what we change. Every change
-is written up as an RFC first, so the fix is agreed before any code is written.
-See the [RFC index](rfcs/index.md).
+Resilience4j and Temporal. Each row says what we keep and what we change. Changes are proposed
+and tracked in [GitHub Issues](https://github.com/seonWKim/actor-spring-boot-starter/issues).
 
 !!! note "Snapshot"
     "This starter today" describes the 0.10.0 release (the last 0.x `main`), before the 1.0 refactor. The 1.0 changes are in the [changelog](https://github.com/seonWKim/actor-spring-boot-starter/blob/main/CHANGELOG.md). The core configuration is
@@ -22,8 +21,8 @@ Every row has four parts:
 - **This starter today**: what the code does now.
 - **Verdict**: one of
     - **Keep**: we already follow the convention, or we depart from it on purpose (the reason is given).
-    - **Change**: we should follow the convention. The row links to exactly one RFC.
-    - **Tracked**: the gap is already tracked by an open issue. The row links the issue and gets no second RFC.
+    - **Change**: we should follow the convention.
+    - **Tracked**: the gap is already tracked by an open issue. The row links the issue.
 - **Source**: a link to the official documentation of the reference.
 
 Rows 1 to 17 cover the eight topics of
@@ -33,31 +32,31 @@ starter; each names the library it comes from.
 
 ## Summary
 
-The RFC and issue links are in each row below.
+Issue links are in each row below.
 
 | Row | Convention | Verdict |
 |---|---|---|
-| 1 | Auto-configuration registration (Boot 2 and 3) | Change (RFC 0001) |
-| 2 | `@Enable*` annotations | Change (RFC 0002) |
-| 3 | `@ConditionalOn*` back-off | Change (RFC 0003) |
-| 4 | `*Customizer` beans | Change (RFC 0004) |
+| 1 | Auto-configuration registration (Boot 2 and 3) | Change |
+| 2 | `@Enable*` annotations | Change |
+| 3 | `@ConditionalOn*` back-off | Change |
+| 4 | `*Customizer` beans | Change |
 | 5 | `@ConfigurationProperties` and metadata | Tracked (#97) |
 | 6 | Property namespace | Keep |
 | 7 | `SmartLifecycle` phases and graceful shutdown | Tracked (#99) |
 | 8 | Micrometer meters | Keep |
-| 9 | Micrometer Observation | Change (RFC 0005) |
+| 9 | Micrometer Observation | Change |
 | 10 | Actuator health indicator | Tracked (#100) |
-| 11 | Actuator endpoint | Change (RFC 0006) |
-| 12 | Test artifact | Change (RFC 0007) |
-| 13 | Test slice | Change (RFC 0008) |
-| 14 | BOM | Change (RFC 0009) |
-| 15 | Native image hints | Change (RFC 0010) |
+| 11 | Actuator endpoint | Change |
+| 12 | Test artifact | Change |
+| 13 | Test slice | Change |
+| 14 | BOM | Change |
+| 15 | Native image hints | Change |
 | 16 | Starter and auto-configure module split | Keep |
 | 17 | Optional dependencies | Keep |
-| 18 | Global on/off switch (Spring Boot, Spring Cloud, Spring for Apache Kafka) | Change (RFC 0011) |
-| 19 | Registries scoped to the application context (Spring for Apache Kafka) | Change (RFC 0012) |
-| 20 | Starter artifact naming (Spring Boot) | Change (RFC 0013) |
-| 21 | `FailureAnalyzer` for startup errors (Spring Boot) | Change (RFC 0014) |
+| 18 | Global on/off switch (Spring Boot, Spring Cloud, Spring for Apache Kafka) | Change |
+| 19 | Registries scoped to the application context (Spring for Apache Kafka) | Change |
+| 20 | Starter artifact naming (Spring Boot) | Change |
+| 21 | `FailureAnalyzer` for startup errors (Spring Boot) | Change |
 | 22 | Components discovered as beans (Spring for Apache Kafka, Spring Cloud Stream, Temporal) | Keep |
 | 23 | Framework events as `ApplicationEvent` (Spring for Apache Kafka) | Keep |
 | 24 | Configuration ordering with `@AutoConfiguration(after = ...)` (Spring Boot) | Keep |
@@ -80,7 +79,7 @@ The RFC and issue links are in each row below.
   `spring.factories` entry only, so Boot 3 never loads `ActorMetricsAutoConfiguration` on its own.
   The core tests pass without `@EnableActorSupport` only because the test application sits in the
   `io.github.seonwkim.actor` package, and component scanning picks `ActorConfiguration` up.
-- **Verdict**: Change: [RFC 0001](rfcs/0001-auto-configuration-registration.md).
+- **Verdict**: Change.
 - **Source**: [Spring Boot: Creating your own auto-configuration](https://docs.spring.io/spring-boot/reference/features/developing-auto-configuration.html),
   [Spring Boot 2.7 release notes](https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-2.7-Release-Notes),
   [Spring Boot 3.0 migration guide](https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-3.0-Migration-Guide).
@@ -94,7 +93,7 @@ The RFC and issue links are in each row below.
   Outside Boot (plain Spring Framework), the annotation remains the switch.
 - **This starter today**: `@EnableActorSupport` is required. It is the only way to import
   `ActorConfiguration` and `PekkoManagementAutoConfiguration`.
-- **Verdict**: Change: [RFC 0002](rfcs/0002-optional-enable-annotation.md). The annotation stays and is
+- **Verdict**: Change. The annotation stays and is
   not deprecated; it becomes optional in a Boot app.
 - **Source**: [Spring for Apache Kafka: `@KafkaListener` annotation](https://docs.spring.io/spring-kafka/reference/kafka/receiving-messages/listener-annotation.html),
   [Spring Boot: Apache Kafka support](https://docs.spring.io/spring-boot/reference/messaging/kafka.html),
@@ -114,7 +113,7 @@ The RFC and issue links are in each row below.
   `actorSystem` and `topicManager` back off. `actorRegistrationBeanPostProcessor` and
   `clusterShardingInitializer` do not, and the post-processor method is not `static`.
   `PekkoManagementAutoConfiguration` is the only class with `@ConditionalOnClass`.
-- **Verdict**: Change: [RFC 0003](rfcs/0003-conditional-back-off.md).
+- **Verdict**: Change.
 - **Source**: [Spring Boot: Condition annotations](https://docs.spring.io/spring-boot/reference/features/developing-auto-configuration.html),
   [Spring Framework: `BeanPostProcessor` `@Bean` methods](https://docs.spring.io/spring-framework/reference/core/beans/java/bean-annotation.html).
 
@@ -129,7 +128,7 @@ The RFC and issue links are in each row below.
 - **This starter today**: There is no customizer type. To change one thing (for example a Pekko setting
   computed at startup, or an extra root guardian behaviour) the app replaces the whole
   `SpringActorSystemBuilder` or `RootGuardianSupplierWrapper` bean.
-- **Verdict**: Change: [RFC 0004](rfcs/0004-customizer-beans.md).
+- **Verdict**: Change.
 - **Source**: [Spring Boot: Apache Kafka support](https://docs.spring.io/spring-boot/reference/messaging/kafka.html),
   [Resilience4j: Spring Boot 2 getting started](https://resilience4j.readme.io/docs/getting-started-3),
   [Temporal: Spring Boot integration](https://docs.temporal.io/develop/java/spring-boot-integration),
@@ -210,7 +209,7 @@ The RFC and issue links are in each row below.
   app plug in its own `ObservationConvention`.
 - **This starter today**: `tell` and `ask` create `actor.send` and `actor.receive` Observations when an
   `ObservationRegistry` bean exists, and the trace crosses nodes. Actor spawn is not observed.
-- **Verdict**: Change: [RFC 0005](rfcs/0005-observation-api.md).
+- **Verdict**: Change.
 - **Source**: [Micrometer: Observation API](https://docs.micrometer.io/micrometer/reference/observation.html),
   [Spring for Apache Kafka: Monitoring](https://docs.spring.io/spring-kafka/reference/kafka/micrometer.html).
 
@@ -231,7 +230,7 @@ The RFC and issue links are in each row below.
   Spring Cloud Stream's `bindings` and `channels` endpoints; Spring Integration's `integrationgraph`;
   Resilience4j's `circuitbreakers` and `circuitbreakerevents`.
 - **This starter today**: No endpoint. Actor and shard state is available only through Pekko APIs.
-- **Verdict**: Change: [RFC 0006](rfcs/0006-actuator-endpoint.md).
+- **Verdict**: Change.
 - **Source**: [Spring Boot: Implementing custom endpoints](https://docs.spring.io/spring-boot/reference/actuator/endpoints.html),
   [Spring Cloud Stream: Binding visualization and control](https://docs.spring.io/spring-cloud-stream/reference/spring-cloud-stream/binding_visualization_control.html),
   [Resilience4j: Spring Boot 2 getting started](https://resilience4j.readme.io/docs/getting-started-3).
@@ -246,7 +245,7 @@ The RFC and issue links are in each row below.
   Temporal's starter wires in when `spring.temporal.test-server.enabled=true`.
 - **This starter today**: No test artifact. Users wire Pekko's `pekko-actor-testkit-typed` by hand, and
   the core tests use `ActorTypeRegistry.clear()` to reset static state between contexts.
-- **Verdict**: Change: [RFC 0007](rfcs/0007-test-artifact.md).
+- **Verdict**: Change.
 - **Source**: [Spring for Apache Kafka: Testing applications](https://docs.spring.io/spring-kafka/reference/testing.html),
   [Spring Cloud Stream: Testing](https://docs.spring.io/spring-cloud-stream/reference/spring-cloud-stream/spring_integration_test_binder.html),
   [Temporal: Spring Boot integration](https://docs.temporal.io/develop/java/spring-boot-integration),
@@ -259,7 +258,7 @@ The RFC and issue links are in each row below.
   `@ImportAutoConfiguration` and a `META-INF/spring/<annotation>.imports` file.
 - **This starter today**: No slice. A test that needs actors uses `@SpringBootTest` and loads the
   whole application.
-- **Verdict**: Change: [RFC 0008](rfcs/0008-test-slice.md).
+- **Verdict**: Change.
 - **Source**: [Spring Boot: Testing Spring Boot applications, auto-configured tests](https://docs.spring.io/spring-boot/reference/testing/spring-boot-applications.html).
 
 ## 7. Distribution
@@ -272,7 +271,7 @@ The RFC and issue links are in each row below.
 - **This starter today**: Three published artifacts (`spring-boot-starter-actor`,
   `spring-boot-starter-actor_3`, `spring-boot-starter-actor-metrics`) and no BOM. Users repeat the version
   on each.
-- **Verdict**: Change: [RFC 0009](rfcs/0009-bom.md).
+- **Verdict**: Change.
 - **Source**: [Spring Boot: Dependency management](https://docs.spring.io/spring-boot/reference/using/build-systems.html),
   [Micrometer: Installing](https://docs.micrometer.io/micrometer/reference/installing.html).
 
@@ -283,7 +282,7 @@ The RFC and issue links are in each row below.
   Apache Kafka ships `KafkaRuntimeHints`.
 - **This starter today**: No hints. Pekko loads `reference.conf` resources and creates extensions,
   serializers and actor classes by reflection, so a native image cannot start the actor system.
-- **Verdict**: Change: [RFC 0010](rfcs/0010-native-hints.md).
+- **Verdict**: Change.
 - **Source**: [Spring Framework: Ahead of time optimizations, runtime hints](https://docs.spring.io/spring-framework/reference/core/aot.html),
   [Spring Boot: GraalVM native images](https://docs.spring.io/spring-boot/reference/packaging/native-image/index.html).
 
@@ -320,7 +319,7 @@ Source libraries: Spring Boot, Spring Cloud, Spring for Apache Kafka.
   Cloud), `spring.jmx.enabled` (Spring Boot), `spring.kafka.listener.auto-startup` (Boot's Kafka support).
 - **This starter today**: `spring.actor.pekko.management.enabled` turns off Pekko Management and
   `spring.actor.metrics.enabled` turns off metrics, but there is no switch for the actor system itself.
-- **Verdict**: Change: [RFC 0011](rfcs/0011-enabled-switch.md).
+- **Verdict**: Change.
 - **Source**: [Spring Boot: Condition annotations, property conditions](https://docs.spring.io/spring-boot/reference/features/developing-auto-configuration.html),
   [Spring Cloud Commons](https://docs.spring.io/spring-cloud-commons/reference/spring-cloud-commons/common-abstractions.html).
 
@@ -334,7 +333,7 @@ Source library: Spring for Apache Kafka.
   fields leaks between them.
 - **This starter today**: `ActorTypeRegistry` and `ShardedActorRegistry` keep actor factories in
   `static` maps. Tests call `ActorTypeRegistry.clear()` to isolate contexts.
-- **Verdict**: Change: [RFC 0012](rfcs/0012-context-scoped-registries.md).
+- **Verdict**: Change.
 - **Source**: [Spring for Apache Kafka: `@KafkaListener` lifecycle management](https://docs.spring.io/spring-kafka/reference/kafka/receiving-messages/kafkalistener-lifecycle.html),
   [Spring Framework: Context caching](https://docs.spring.io/spring-framework/reference/testing/testcontext-framework/ctx-management/caching.html).
 
@@ -347,8 +346,7 @@ Source library: Spring Boot.
   (`temporal-spring-boot-starter`), as does Resilience4j (`resilience4j-spring-boot3`).
 - **This starter today**: The artifacts are `spring-boot-starter-actor`, `spring-boot-starter-actor_3`
   and `spring-boot-starter-actor-metrics`, under the `io.github.seonwkim` group.
-- **Verdict**: Change: [RFC 0013](rfcs/0013-artifact-naming.md). The RFC weighs a rename against
-  keeping the published names.
+- **Verdict**: Change. The 1.0 release renamed them to `actor-spring-boot-starter` and friends.
 - **Source**: [Spring Boot: Creating your own starter, naming](https://docs.spring.io/spring-boot/reference/features/developing-auto-configuration.html).
 
 ### Row 21: `FailureAnalyzer` for startup errors
@@ -360,7 +358,7 @@ Source library: Spring Boot.
   use", or a missing bean).
 - **This starter today**: A Pekko startup failure (remoting port already bound, a bad `spring.actor.pekko.*`
   value, a missing seed node) reaches the user as a nested stack trace from the `actorSystem` bean.
-- **Verdict**: Change: [RFC 0014](rfcs/0014-failure-analyzers.md).
+- **Verdict**: Change.
 - **Source**: [Spring Boot: Create your own FailureAnalyzer](https://docs.spring.io/spring-boot/how-to/application.html).
 
 ### Row 22: Components discovered as beans
@@ -397,6 +395,6 @@ Source library: Spring Boot.
   `@AutoConfiguration(after = ...)` or `@AutoConfigureAfter`, never by relying on class names or scan order.
 - **This starter today**: `ActorMetricsAutoConfiguration` declares
   `@AutoConfigureAfter(CompositeMeterRegistryAutoConfiguration.class)`. The core classes have no ordering
-  yet because they are not auto-configurations; RFC 0001 adds the ordering they need.
+  yet because they are not auto-configurations; row 1 adds the ordering they need.
 - **Verdict**: Keep. The core ordering is part of [row 1](#row-1-auto-configuration-registration-boot-2-and-3).
 - **Source**: [Spring Boot: Locating auto-configuration candidates](https://docs.spring.io/spring-boot/reference/features/developing-auto-configuration.html).

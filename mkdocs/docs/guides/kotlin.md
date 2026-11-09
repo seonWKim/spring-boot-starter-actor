@@ -124,4 +124,10 @@ class HelloController(private val actorSystem: SpringActorSystem) {
 
 The full application is in
 [example/kotlin](https://github.com/seonWKim/actor-spring-boot-starter/tree/main/example/kotlin): the
-[simple example](../examples/simple.md), written in Kotlin.
+[simple example](../examples/simple.md), written in Kotlin. The [Kotlin example](../examples/kotlin.md) page
+walks through it.
+
+## Related
+
+- [Actors](core/actors.md) and [Messaging](core/messaging.md): the Java API these functions call
+- [Testing](testing.md): `@ActorTest` with `runBlocking`

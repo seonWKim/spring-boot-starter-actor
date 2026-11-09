@@ -28,8 +28,7 @@ class MonitoringFilesTest {
     private static final Path ROOT = Path.of("..").toAbsolutePath().normalize();
     private static final Path DASHBOARD = ROOT.resolve("monitoring/grafana/actor-dashboard.json");
     private static final Path ALERTS = ROOT.resolve("monitoring/prometheus/actor-alerts.yaml");
-    private static final List<Path> METER_DOCS = List.of(
-            ROOT.resolve("mkdocs/docs/examples/monitoring.md"), ROOT.resolve("mkdocs/docs/guides/production.md"));
+    private static final List<Path> METER_DOCS = List.of(ROOT.resolve("mkdocs/docs/guides/operations/monitoring.md"));
 
     /** A docs table row: the meter in backticks, then its type ("Counter", "gauge, tag `type`", ...). */
     private static final Pattern METER_ROW =
