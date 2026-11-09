@@ -1,4 +1,6 @@
-package io.github.seonwkim.actor.spi;
+package io.github.seonwkim.actor.test;
+
+import io.github.seonwkim.actor.spi.PeerRegistry;
 
 /** The in-memory fake passes the same contract as the real stores. */
 class InMemoryPeerRegistryTest extends PeerRegistryContract {

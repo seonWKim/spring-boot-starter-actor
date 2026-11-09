@@ -120,6 +120,11 @@
   (`jdbc`: an `actor_lease` table, `redis`, or your `LeaseStore` bean) backs `lease-majority`,
   `singleton.use-lease` and `sharding.use-lease`, so a singleton or shard runs on one node only. Redis leases
   can be lost on a Redis failover; see the guide.
+- **`actor-test` module** for application tests: the `@ActorTest` slice starts the actor system and the
+  actor beans without web, data or the rest of the application; `ActorCluster` (and the JUnit 5
+  `ActorClusterExtension`) starts several nodes in one JVM on free ports; `PeerRegistryContract` and
+  `LeaseStoreContract` are the test suites the built-in stores pass, to run against your own store, with
+  `InMemoryPeerRegistry` and `InMemoryLeaseStore` fakes.
 
 - **Replicated maps, counters and sets.** In cluster mode, the `ReplicatedData` bean hands out
   `ReplicatedMap`, `ReplicatedCounter` and `ReplicatedSet` (Pekko Distributed Data CRDTs) with

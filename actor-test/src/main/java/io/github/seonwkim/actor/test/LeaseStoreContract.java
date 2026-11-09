@@ -1,8 +1,9 @@
-package io.github.seonwkim.actor.spi;
+package io.github.seonwkim.actor.test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+import io.github.seonwkim.actor.spi.LeaseStore;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;

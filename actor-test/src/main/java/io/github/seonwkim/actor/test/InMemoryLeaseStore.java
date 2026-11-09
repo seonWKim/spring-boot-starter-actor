@@ -1,5 +1,6 @@
-package io.github.seonwkim.actor.spi;
+package io.github.seonwkim.actor.test;
 
+import io.github.seonwkim.actor.spi.LeaseStore;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;

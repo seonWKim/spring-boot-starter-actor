@@ -5,8 +5,8 @@ import static org.awaitility.Awaitility.await;
 
 import com.typesafe.config.ConfigFactory;
 import io.github.seonwkim.actor.internal.SpringBeansSetup;
-import io.github.seonwkim.actor.spi.InMemoryLeaseStore;
 import io.github.seonwkim.actor.spi.LeaseStore;
+import io.github.seonwkim.actor.test.InMemoryLeaseStore;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;

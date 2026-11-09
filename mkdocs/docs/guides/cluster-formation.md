@@ -130,7 +130,8 @@ PeerRegistry peerRegistry(MyStore store) {
 ```
 
 Methods may block: the starter calls them on the blocking dispatcher. The starter owns the timers and the
-shutdown hook; a store only stores and reads entries.
+shutdown hook; a store only stores and reads entries. Run `PeerRegistryContract` from `actor-test` against
+your store to check it behaves like the built-in ones (see [Testing](testing.md#contract-suites-for-your-own-store)).
 
 ## Other discovery methods
 

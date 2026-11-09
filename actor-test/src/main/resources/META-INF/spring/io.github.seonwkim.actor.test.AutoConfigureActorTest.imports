@@ -1,0 +1,5 @@
+# The auto-configuration @ActorTest imports. The actor system itself comes from @EnableActorSupport.
+org.springframework.boot.autoconfigure.context.ConfigurationPropertiesAutoConfiguration
+org.springframework.boot.autoconfigure.context.PropertyPlaceholderAutoConfiguration
+org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration
+org.springframework.boot.autoconfigure.task.TaskExecutionAutoConfiguration
