@@ -63,6 +63,12 @@ spring:
     provider: local
 ```
 
+## Using an AI assistant
+
+If an AI assistant helps you write code with the starter, point it to [llms.txt](llms.txt).
+It is a short index of these docs, following the [llms.txt](https://llmstxt.org/) convention, with one line per page.
+For the full text of this page and every guide in one file, use [llms-full.txt](https://seonwkim.github.io/actor-spring-boot-starter/llms-full.txt).
+
 ## Next Steps
 
 Now that you have set up Actor Spring Boot Starter in your project, you can:

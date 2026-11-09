@@ -35,3 +35,19 @@ jobs:
           ./gradlew build
           -PtestJavaVersion=${{ matrix.java }}
           -Porg.gradle.java.installations.fromEnv=JAVA_HOME_${{ matrix.java }}_X64
+
+  docs:
+    name: Docs (llms.txt links, llms-full.txt, mkdocs build)
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📦 Checkout repository
+        uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - run: pip install mkdocs-material
+
+      - name: 🧪 Docs tooling tests
+        run: scripts/docs/test.sh

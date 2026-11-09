@@ -33,6 +33,10 @@ markdown_extensions:
       alternate_style: true
   - tables
 
+# Writes llms-full.txt (Getting Started and every guide in one file) to the site root.
+hooks:
+  - hooks/llms_full.py
+
 nav:
   - Home:
     - index.md
