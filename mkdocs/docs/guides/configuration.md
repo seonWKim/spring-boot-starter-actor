@@ -13,7 +13,7 @@ application with a message that names the key.
 | Key | Default | Sets Pekko key | Description |
 |---|---|---|---|
 | `spring.actor.name` | `system` | `pekko.name` | Name of the actor system. Nodes of one cluster must use the same name. |
-| `spring.actor.provider` | `local` | `pekko.actor.provider` | `local`, `remote` or `cluster`. `cluster` needs `actor-spring-boot-starter-cluster`. |
+| `spring.actor.provider` | `local` | `pekko.actor.provider` | `local`, `remote` or `cluster`. `remote` and `cluster` need `actor-spring-boot-starter-cluster`. |
 | `spring.actor.remote.hostname` | Pekko's default | `pekko.remote.artery.canonical.hostname` | Host name or address other nodes use to reach this node. |
 | `spring.actor.remote.port` | Pekko's default (`25520`) | `pekko.remote.artery.canonical.port` | Port for other nodes, `0` to `65535`; `0` picks a free port. |
 | `spring.actor.cluster.seed-nodes` | none | `pekko.cluster.seed-nodes` | Nodes to join at startup, as `pekko://<name>@<host>:<port>`. |
