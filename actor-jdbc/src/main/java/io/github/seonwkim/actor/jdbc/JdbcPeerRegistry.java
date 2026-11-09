@@ -16,14 +16,14 @@ import javax.sql.DataSource;
  * A {@link PeerRegistry} in the {@code actor_peer} table of the application's {@link DataSource}.
  * Times come from the database's clock ({@code CURRENT_TIMESTAMP}), so the nodes' clocks need not
  * agree. The statements are plain SQL that H2, PostgreSQL and MySQL all run; the table is created
- * from {@link #SCHEMA_LOCATION}.
+ * from {@link #SCHEMA_LOCATION}, which also creates the {@code actor_lease} table of {@link JdbcLeaseStore}.
  *
  * <p>A node that crashes leaves its row behind. {@link #peers} ignores it once it is older than the
  * ttl; a node that leaves gracefully deletes its row.
  */
 public final class JdbcPeerRegistry implements PeerRegistry {
 
-    /** The schema files, one per database ({@code h2}, {@code postgresql}, {@code mysql}, {@code mariadb}). */
+    /** The module's schema files (actor_peer and actor_lease), one per database ({@code h2}, {@code postgresql}, {@code mysql}, {@code mariadb}). */
     public static final String SCHEMA_LOCATION = "classpath:io/github/seonwkim/actor/jdbc/schema-@@platform@@.sql";
 
     private static final String UPDATE = "UPDATE actor_peer SET host = ?, port = ?, last_seen = CURRENT_TIMESTAMP"
@@ -31,12 +31,8 @@ public final class JdbcPeerRegistry implements PeerRegistry {
     private static final String INSERT = "INSERT INTO actor_peer (host, port, last_seen, service_name, node_id)"
             + " VALUES (?, ?, CURRENT_TIMESTAMP, ?, ?)";
     private static final String DELETE = "DELETE FROM actor_peer WHERE service_name = ? AND node_id = ?";
-    private static final String NOW = "SELECT CURRENT_TIMESTAMP";
     private static final String SELECT =
             "SELECT node_id, host, port FROM actor_peer WHERE service_name = ? AND last_seen >= ?";
-
-    /** SQLSTATE class of integrity constraint violations, such as a duplicate key. */
-    private static final String INTEGRITY_VIOLATION = "23";
 
     private final DataSource dataSource;
 
@@ -54,7 +50,7 @@ public final class JdbcPeerRegistry implements PeerRegistry {
                 write(connection, INSERT, peer);
             } catch (SQLException e) {
                 // Another writer inserted the same row since our update: update it instead.
-                if (e.getSQLState() == null || !e.getSQLState().startsWith(INTEGRITY_VIOLATION)) {
+                if (!Jdbc.isDuplicateKey(e)) {
                     throw e;
                 }
                 write(connection, UPDATE, peer);
@@ -89,7 +85,7 @@ public final class JdbcPeerRegistry implements PeerRegistry {
     @Override
     public List<Peer> peers(String service, Duration ttl) {
         try (Connection connection = dataSource.getConnection()) {
-            Timestamp oldest = Timestamp.from(now(connection).toInstant().minus(ttl));
+            Timestamp oldest = Timestamp.from(Jdbc.now(connection).toInstant().minus(ttl));
             try (PreparedStatement statement = connection.prepareStatement(SELECT)) {
                 statement.setString(1, service);
                 statement.setTimestamp(2, oldest);
@@ -103,14 +99,6 @@ public final class JdbcPeerRegistry implements PeerRegistry {
             }
         } catch (SQLException e) {
             throw new IllegalStateException("Could not read the peers of " + service + " from actor_peer", e);
-        }
-    }
-
-    private static Timestamp now(Connection connection) throws SQLException {
-        try (PreparedStatement statement = connection.prepareStatement(NOW);
-                ResultSet row = statement.executeQuery()) {
-            row.next();
-            return row.getTimestamp(1);
         }
     }
 }
