@@ -17,6 +17,8 @@ dependencies {
 	// This example reads Pekko Cluster state directly (unwrap), so it declares Pekko Cluster itself.
 	implementation("org.apache.pekko:pekko-cluster-sharding-typed_3:${property("pekkoVersion")}")
 	implementation(project(":actor-metrics"))
+	// The WebSocket endpoint connects each connection to a UserActor (ActorWebSocketHandler).
+	implementation(project(":actor-streams"))
 
 	// Kubernetes deployment (example/kubernetes): the cluster forms through Pekko Cluster Bootstrap,
 	// which finds the other pods through the Kubernetes API.

@@ -134,6 +134,10 @@
   an actor from a `Flux` with at most `parallelism` asks in flight (a slow actor slows the producer instead
   of filling its mailbox), and `messages(...)` for a `Flux` of the messages actors send to a reference, with
   a bounded buffer or an acknowledgement per message. Cancelling the `Flux` stops the reference.
+- **SSE, WebSocket and gRPC bridges.** A controller returns the `messages` `Flux` for Server-Sent Events
+  (Spring MVC or WebFlux); `ActorWebSocketHandler` connects each WebFlux WebSocket session to actors;
+  `ActorGrpc.respond` sends a `Flux` or `Mono` to a gRPC response stream with flow control. A client
+  disconnect stops the actor-side reference. The chat example uses the WebSocket bridge.
 
 ### Fixed
 

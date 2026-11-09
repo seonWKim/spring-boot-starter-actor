@@ -272,15 +272,15 @@ public class UserActor implements SpringActorWithContext<UserActor.Command, User
 
     public static class UserActorContext extends SpringActorContext {
         private final SpringActorSystem actorSystem;
-        private final reactor.core.publisher.Sinks.Many<String> messageSink;
+        // The WebSocket client: JSON events sent here go to the browser.
+        private final SpringActorRef<String> client;
 
         private final String userId;
 
-        public UserActorContext(
-                SpringActorSystem actorSystem, String userId, reactor.core.publisher.Sinks.Many<String> messageSink) {
+        public UserActorContext(SpringActorSystem actorSystem, String userId, SpringActorRef<String> client) {
             this.actorSystem = actorSystem;
             this.userId = userId;
-            this.messageSink = messageSink;
+            this.client = client;
         }
 
         @Override
@@ -292,8 +292,11 @@ public class UserActor implements SpringActorWithContext<UserActor.Command, User
     @Override
     public SpringActorBehavior<Command> create(UserActorContext actorContext) {
         return SpringActorBehavior.builder(Command.class, actorContext)
-                .withState(ctx -> new UserActorBehavior(
-                        ctx, actorContext.actorSystem, actorContext.userId, actorContext.messageSink))
+                .withState(ctx -> {
+                    // The client reference stops when the browser disconnects; this actor stops with it.
+                    ctx.watch(actorContext.client);
+                    return new UserActorBehavior(ctx, actorContext.actorSystem, actorContext.userId, actorContext.client);
+                })
                 .onMessage(Connect.class, UserActorBehavior::onConnect)
                 .onMessage(JoinRoom.class, UserActorBehavior::onJoinRoom)
                 .onMessage(LeaveRoom.class, UserActorBehavior::onLeaveRoom)
@@ -301,6 +304,7 @@ public class UserActor implements SpringActorWithContext<UserActor.Command, User
                 .onMessage(JoinRoomEvent.class, UserActorBehavior::onJoinRoomEvent)
                 .onMessage(LeaveRoomEvent.class, UserActorBehavior::onLeaveRoomEvent)
                 .onMessage(SendMessageEvent.class, UserActorBehavior::onSendMessageEvent)
+                .onSignal(ActorTerminated.class, (behavior, signal) -> SpringActorBehavior.stopped())
                 .build();
     }
 
@@ -309,7 +313,7 @@ public class UserActor implements SpringActorWithContext<UserActor.Command, User
         private final SpringActorSystem actorSystem;
 
         private final String userId;
-        private final Sinks.Many<String> messageSink;
+        private final SpringActorRef<String> client;
 
         @Nullable private String currentRoomId;
 
@@ -317,11 +321,11 @@ public class UserActor implements SpringActorWithContext<UserActor.Command, User
                 SpringBehaviorContext<Command> context,
                 SpringActorSystem actorSystem,
                 String userId,
-                Sinks.Many<String> messageSink) {
+                SpringActorRef<String> client) {
             this.context = context;
             this.actorSystem = actorSystem;
             this.userId = userId;
-            this.messageSink = messageSink;
+            this.client = client;
         }
 
         private SpringActorBehavior<Command> onConnect(Connect connect) {
@@ -423,7 +427,7 @@ public class UserActor implements SpringActorWithContext<UserActor.Command, User
                 builder.build(json);
 
                 json.append("}");
-                messageSink.tryEmitNext(json.toString());
+                client.tell(json.toString());
             } catch (Exception e) {
                 context.getLog().error("Failed to send message to WebSocket", e);
             }
@@ -447,6 +451,32 @@ public class UserActor implements SpringActorWithContext<UserActor.Command, User
             void build(StringBuilder json);
         }
     }
+}
+```
+
+### WebSocket endpoint
+
+`ChatWebSocketHandler` connects each WebSocket connection to a new `UserActor` through the
+[`ActorWebSocketHandler`](../guides/streaming-to-clients.md) bridge from `actor-streams`. The bridge creates the
+`client` reference the user actor sends to; the handler turns each JSON frame from the browser into a
+`UserActor` command. When the browser disconnects, the `client` reference stops, and the user actor, which
+watches it, stops too.
+
+```java
+this.bridge = new ActorWebSocketHandler(streams, (session, client) -> actorSystem
+        .actor(UserActor.class)
+        .withContext(new UserActor.UserActorContext(actorSystem, UUID.randomUUID().toString(), client))
+        .spawn()
+        .thenApply(this::connect));
+
+private Consumer<String> connect(SpringActorHandle<UserActor.Command> user) {
+    user.tell(new Connect());
+    return payload -> {
+        UserActor.Command command = parse(payload); // JoinRoom, LeaveRoom or SendMessage
+        if (command != null) {
+            user.tell(command);
+        }
+    };
 }
 ```
 

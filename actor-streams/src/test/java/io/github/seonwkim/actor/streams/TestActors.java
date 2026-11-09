@@ -5,17 +5,29 @@ import io.github.seonwkim.actor.AskCommand;
 import io.github.seonwkim.actor.SpringActor;
 import io.github.seonwkim.actor.SpringActorBehavior;
 import io.github.seonwkim.actor.SpringActorContext;
+import io.github.seonwkim.actor.SpringActorHandle;
 import io.github.seonwkim.actor.SpringActorRef;
 import io.github.seonwkim.actor.SpringBehaviorContext;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 /** Actors the bridge tests talk to. */
 final class TestActors {
 
     private TestActors() {}
+
+    /** How many subscribers the ticker has. */
+    static int subscribers(SpringActorHandle<TickerActor.Command> ticker) throws Exception {
+        return ticker.ask(new TickerActor.Subscribers())
+                .withTimeout(Duration.ofSeconds(10))
+                .execute()
+                .toCompletableFuture()
+                .get(10, TimeUnit.SECONDS);
+    }
 
     /**
      * Doubles numbers, but holds every reply while the gate is closed: a slow actor whose speed the

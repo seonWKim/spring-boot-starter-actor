@@ -55,6 +55,7 @@ nav:
     - Replicated Data: guides/replicated-data.md
     - Persistence with Spring Boot: guides/persistence-spring-boot.md
     - Reactor Streams: guides/reactor-streams.md
+    - Streaming to Clients: guides/streaming-to-clients.md
     - Running in Production: guides/production.md
     - AI Agents: guides/ai-agents.md
     - Testing: guides/testing.md
