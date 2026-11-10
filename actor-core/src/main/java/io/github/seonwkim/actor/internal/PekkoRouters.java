@@ -16,21 +16,28 @@ public final class PekkoRouters {
 
     private PekkoRouters() {}
 
-    /** A Pekko pool router over {@code pool.size()} workers, each created from the registry. */
+    /**
+     * A Pekko pool router over {@code pool.size()} workers, each created from the registry with its
+     * own id. The id is chosen once per worker, outside its supervision, so it survives restarts.
+     */
     static <C> Behavior<C> pool(RouterPool<C> pool) {
         return Behaviors.setup(ctx -> {
-            SpringActorContext workerContext = new DefaultSpringActorContext("worker-" + UUID.randomUUID());
-            @SuppressWarnings("unchecked")
-            SpringActorBehavior<C> worker = (SpringActorBehavior<C>)
-                    ActorTypeRegistry.of(ctx.getSystem()).createBehavior(pool.workerClass(), workerContext);
-            Behavior<C> workerBehavior = MessageTracingSetup.receiving(
-                    ctx.getSystem(), PekkoBehaviors.forNewActor(worker, pool.workerClass(), ctx.getSystem()));
-            if (pool.workerSupervision().isPresent()) {
-                workerBehavior = Behaviors.supervise(workerBehavior)
-                        .onFailure(
-                                PekkoProps.supervisor(pool.workerSupervision().get()));
-            }
-            return withStrategy(Routers.pool(pool.size(), workerBehavior), pool.strategy())
+            Behavior<C> worker = Behaviors.setup(workerCtx -> {
+                SpringActorContext workerContext = new DefaultSpringActorContext("worker-" + UUID.randomUUID());
+                @SuppressWarnings("unchecked")
+                SpringActorBehavior<C> defined = (SpringActorBehavior<C>)
+                        ActorTypeRegistry.of(workerCtx.getSystem()).createBehavior(pool.workerClass(), workerContext);
+                Behavior<C> workerBehavior = MessageTracingSetup.receiving(
+                        workerCtx.getSystem(),
+                        PekkoBehaviors.forNewActor(defined, pool.workerClass(), workerCtx.getSystem()));
+                if (pool.workerSupervision().isPresent()) {
+                    workerBehavior = Behaviors.supervise(workerBehavior)
+                            .onFailure(PekkoProps.supervisor(
+                                    pool.workerSupervision().get()));
+                }
+                return workerBehavior;
+            });
+            return withStrategy(Routers.pool(pool.size(), worker), pool.strategy())
                     .narrow();
         });
     }
