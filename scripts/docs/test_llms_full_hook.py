@@ -70,6 +70,12 @@ class LlmsFullHookTest(unittest.TestCase):
         self.assertIn("int answer = 42;", text)
         self.assertNotIn("--8<--", text)
 
+    def test_inlines_an_indented_snippet_with_its_indent(self):
+        write(os.path.join(self.docs, "guides", "a.md"), '=== "Java"\n\n    ```java\n    --8<-- "src/B.java:body"\n    ```\n')
+        text = self.build()
+        self.assertIn("    ```java\n    int answer = 42;\n    ```", text)
+        self.assertNotIn("--8<--", text)
+
     def test_fails_on_a_missing_snippet(self):
         write(os.path.join(self.docs, "guides", "a.md"), '--8<-- "src/Nope.java:x"\n')
         with self.assertRaises(FileNotFoundError):

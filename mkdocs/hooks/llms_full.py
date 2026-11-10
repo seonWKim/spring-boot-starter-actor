@@ -9,7 +9,8 @@ import os
 import re
 
 OUTPUT = "llms-full.txt"
-SNIPPET = re.compile(r'^--8<-- "([^"]+)"\s*$', re.MULTILINE)
+# The snippet line may be indented, for example inside a content tab; the inlined code gets the same indent.
+SNIPPET = re.compile(r'^([ \t]*)--8<-- "([^"]+)"\s*$', re.MULTILINE)
 
 
 def is_guide(path):
@@ -48,6 +49,10 @@ def read_snippet(spec, base_paths):
     raise FileNotFoundError("snippet not found: " + spec)
 
 
+def indent(code, prefix):
+    return "\n".join(prefix + line if line else line for line in code.split("\n"))
+
+
 def build_llms_full(docs_dir, nav, site_url, base_paths):
     site_url = (site_url or "").rstrip("/") + "/"
     parts = []
@@ -56,7 +61,7 @@ def build_llms_full(docs_dir, nav, site_url, base_paths):
             continue
         with open(os.path.join(docs_dir, page), encoding="utf-8") as f:
             text = f.read()
-        text = SNIPPET.sub(lambda m: read_snippet(m.group(1), base_paths), text)
+        text = SNIPPET.sub(lambda m: indent(read_snippet(m.group(2), base_paths), m.group(1)), text)
         url = site_url + page[: -len(".md")] + "/"
         parts.append("<!-- Source: %s -->\n\n%s" % (url, text.strip()))
     return "\n\n---\n\n".join(parts) + "\n"
