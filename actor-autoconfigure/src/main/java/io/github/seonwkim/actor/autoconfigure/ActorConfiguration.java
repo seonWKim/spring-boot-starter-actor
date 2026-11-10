@@ -29,7 +29,6 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.env.Environment;
-import org.springframework.util.ClassUtils;
 
 /**
  * Auto-configuration for the Spring Boot Actor System.
@@ -76,27 +75,12 @@ public class ActorConfiguration {
     public static BeanPostProcessor actorRegistrationBeanPostProcessor(ActorTypeRegistry actorTypeRegistry) {
         return new BeanPostProcessor() {
             @Override
-            @SuppressWarnings({"rawtypes", "unchecked"})
+            @SuppressWarnings("rawtypes")
             public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
-                if (bean instanceof SpringActorWithContext) {
-                    registerActor((SpringActorWithContext) bean);
+                if (bean instanceof SpringActorWithContext actor) {
+                    actorTypeRegistry.registerBean(actor);
                 }
                 return bean;
-            }
-
-            private void registerActor(SpringActorWithContext actor) {
-                // A proxied bean (for example one with @Transactional) is registered under the class
-                // the user declared, not the generated proxy class, so spawning by that class works.
-                actorTypeRegistry.registerInternal(ClassUtils.getUserClass(actor), actorContext -> {
-                    try {
-                        return actor.create(actorContext);
-                    } catch (Exception e) {
-                        throw new RuntimeException(
-                                "Failed to create actor behavior for "
-                                        + ClassUtils.getUserClass(actor).getName(),
-                                e);
-                    }
-                });
             }
         };
     }
@@ -105,10 +89,13 @@ public class ActorConfiguration {
     // PHASE 2: Actor System Construction
     // ==================================================================================
 
-    /** This context's actor beans by class; the actor system built here carries it. */
+    /**
+     * This context's actor beans by class; the actor system built here carries it. It creates an
+     * actor bean on first spawn when Spring hasn't yet, so a bean may spawn in its constructor.
+     */
     @Bean
-    public static ActorTypeRegistry actorTypeRegistry() {
-        return new ActorTypeRegistry();
+    public static ActorTypeRegistry actorTypeRegistry(BeanFactory beanFactory) {
+        return new ActorTypeRegistry(beanFactory);
     }
 
     /** Creates the root guardian that manages all actors. */

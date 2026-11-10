@@ -195,6 +195,14 @@ public final class PekkoActorSystem implements SpringActorSystem, DisposableBean
                             + "io.github.seonwkim:actor-spring-boot-starter-cluster."));
         }
 
+        // On the caller's thread: a spawn from a bean constructor runs while Spring is still creating
+        // beans, and the actor's own bean may not exist yet. Spring creates it here, on its own thread.
+        try {
+            ActorTypeRegistry.of(actorSystem).resolve(actorClass);
+        } catch (RuntimeException e) {
+            return CompletableFuture.failedFuture(e);
+        }
+
         return AskPattern.ask(
                         actorSystem,
                         (ActorRef<Spawned<?>> replyTo) -> new RootGuardian.SpawnActor(
