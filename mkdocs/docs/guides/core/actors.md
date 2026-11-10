@@ -171,10 +171,10 @@ Things to know:
 - **Blocking calls.** A JPA repository or a blocking HTTP client blocks the thread. Run such actors on
   the blocking dispatcher (`withBlockingDispatcher()`, see [Dispatchers](dispatchers.md)), or the default
   dispatcher's threads can run out.
-- **No proxies on the actor class.** The starter registers the actor under the bean's runtime class. An
-  annotation that makes Spring wrap the bean in a class proxy (such as `@Transactional` on the actor
-  class) changes that class, and spawning by the declared class then fails with "No factory registered".
-  Put such annotations on the services the actor calls instead.
+- **Proxies don't reach the handlers.** A bean that Spring wraps in a class proxy (for example with
+  `@Transactional` on the actor class) is registered under the class you declared, so you spawn it as
+  usual. But the handlers run inside the behavior that `create` returns, not through the proxy, so such
+  annotations have no effect on them. Put them on the services the actor calls instead.
 
 ## Actor ids
 

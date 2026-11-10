@@ -46,6 +46,10 @@
 - **`getOrSpawn` no longer races on a new id.** It checked whether the actor existed and then spawned it,
   so two callers asking for the same new id at once could make one fail with "Could not spawn". The root
   guardian now does both in one step, and every caller gets the same actor (#182).
+- **Proxied actor beans are registered under their declared class.** An actor bean that Spring wraps in a
+  class proxy (for example with `@Transactional`) was registered under the proxy class, so spawning it by
+  its own class failed with "No factory registered". Local and sharded actors now use the declared class
+  (#183).
 
 ### Docs
 
