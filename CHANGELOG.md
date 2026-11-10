@@ -15,6 +15,10 @@
 
 ### Features
 
+- **Builder parity (#190).** The spawn builder takes `withDispatcher(DispatcherConfig)`, and the child
+  builder takes `withBlockingDispatcher()`, `withDefaultDispatcher()`, `withDispatcherFromConfig(name)` and
+  `withDispatcherSameAsParent()`. Topics get `createAsync()` and `getOrCreateAsync()`, which return a
+  `CompletionStage` instead of blocking; the chat example's room actor uses it with `pipeToSelf`.
 - **`AskBuilder.failFastOnError()`** fails an ask at once with the handler's exception instead of letting it
   time out; in Kotlin, `awaitAsk(command, timeout, failFast = true)`. It covers `SpringActorBehavior`
   handlers and event-sourced command handlers, local or sharded. Off by default (#189).
@@ -55,6 +59,9 @@
 
 ### Fixes
 
+- Every worker of a router pool gets its own id (`worker-<uuid>`); they all shared one before. A failed
+  child spawn is told apart from "already exists" by a status, not by comparing message text, and throws
+  `IllegalStateException` (a `RuntimeException`, as before) naming the child's context id (#190).
 - `ask` no longer changes the command you pass: it sends a shallow copy that carries the reply address, so
   one command instance can be asked twice or from several threads. `AskCommand.withReplyTo`, which the
   framework no longer calls, is deprecated (#189).
