@@ -42,10 +42,11 @@ dependencies {
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
+// bootRun attaches the actor-metrics Java agent, built first.
 tasks.named<org.springframework.boot.gradle.tasks.run.BootRun>("bootRun") {
-	jvmArgs = listOf(
-		"-javaagent:${rootProject.projectDir}/actor-metrics/build/libs/actor-metrics-${rootProject.version}-agent.jar"
-	)
+	dependsOn(":actor-metrics:agentJar")
+	val agentJar = project(":actor-metrics").tasks.named<Jar>("agentJar").get()
+	jvmArgs = listOf("-javaagent:${agentJar.archiveFile.get().asFile.absolutePath}")
 }
 
 // The Docker image copies the one Boot jar from build/libs; the plain jar would make that copy ambiguous.

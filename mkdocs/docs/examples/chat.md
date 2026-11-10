@@ -39,11 +39,15 @@ npm install
 npm run build
 ```
 
-`bootRun` attaches the `actor-metrics` Java agent, so build the agent jar, then start three nodes. The
-`cluster-start.sh` script in the repository root does both:
+`bootRun` builds the `actor-metrics` Java agent jar and attaches it. One node, from the repository root:
 
 ```bash
-# from the repository root
+./gradlew :example:chat:bootRun
+```
+
+Three nodes, with the `cluster-start.sh` script in the repository root:
+
+```bash
 sh cluster-start.sh chat io.github.seonwkim.example.SpringPekkoApplication 8080 2551 3
 ```
 
