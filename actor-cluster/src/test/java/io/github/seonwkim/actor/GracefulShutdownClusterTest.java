@@ -24,6 +24,14 @@ import org.springframework.context.event.EventListener;
 /**
  * Two-node cluster: closing one node's Spring context makes it leave the cluster gracefully, so the
  * other node sees it Removed (after Exiting), never unreachable.
+ *
+ * <p>The node that stays is the leader (the lowest address), so the leaving node is a follower: the
+ * leader moves it to Exiting and removes it once it confirms, which Pekko guarantees. When the leader
+ * itself leaves, it moves itself to Exiting and tells the others only best effort before it shuts
+ * down; if that last gossip is lost, the others remove it only after failure detection and the
+ * split brain resolver's {@code stable-after} (20 s), as Down. Random ports made node 2 the leader in
+ * about half of the CI runs (Linux picks ephemeral ports at random), which is the suspected cause of
+ * #163 and #201.
  */
 class GracefulShutdownClusterTest {
 
@@ -60,25 +68,31 @@ class GracefulShutdownClusterTest {
 
     @Test
     void closingANodeContextMakesItLeaveGracefully() {
-        int port1 = freePort();
-        int port2 = freePort();
+        // Node 1 gets the lower port, so it is and stays the leader (see the class comment).
+        int portA = freePort();
+        int portB = freePort();
+        int port1 = Math.min(portA, portB);
+        int port2 = Math.max(portA, portB);
         String seeds = String.format(
                 "pekko://graceful-shutdown@127.0.0.1:%d,pekko://graceful-shutdown@127.0.0.1:%d", port1, port2);
         node1 = startNode(port1, seeds);
         node2 = startNode(port2, seeds);
 
         Cluster cluster1 = context(node1).unwrap(Cluster.class);
+        Cluster cluster2 = context(node2).unwrap(Cluster.class);
         assertThat(cluster1).isNotNull();
+        // Both nodes must see both members Up: node 1 can see node 2 Up before node 2 has caught up, and
+        // a node that leaves before it knows the membership never tells node 1, which then sees it
+        // unreachable instead of Leaving (#201).
         await().atMost(20, SECONDS)
                 .pollInterval(200, MILLISECONDS)
-                .until(() -> cluster1.state()
-                                .members()
-                                .filter(m -> m.status() == org.apache.pekko.cluster.MemberStatus.up())
-                                .size()
-                        == 2);
+                .until(() -> upMembers(cluster1) == 2 && upMembers(cluster2) == 2);
+        assertThat(cluster1.state().getLeader())
+                .as("leader")
+                .isEqualTo(cluster1.selfMember().address());
 
         SpringActorSystem system2 = context(node2);
-        String address2 = system2.unwrap(Cluster.class).selfMember().address().toString();
+        String address2 = cluster2.selfMember().address().toString();
         MembershipEvents events1 = node1.getBean(MembershipEvents.class);
 
         node2.close();
@@ -88,8 +102,9 @@ class GracefulShutdownClusterTest {
                         .toCompletableFuture()
                         .isDone())
                 .isTrue();
-        // untilAsserted, so a timeout lists the events node 1 saw (this wait timed out once in CI, #163).
+        // untilAsserted, so a timeout lists the events node 1 saw and its cluster state (#163, #201).
         await().atMost(20, SECONDS).pollInterval(200, MILLISECONDS).untilAsserted(() -> assertThat(events1.events)
+                .as("events node 1 saw; node 1's cluster state: %s", cluster1.state())
                 .anyMatch(e -> e instanceof ClusterEvent.MemberRemoved
                         && ((ClusterEvent.MemberRemoved) e).member().address().equals(address2)));
 
@@ -109,6 +124,13 @@ class GracefulShutdownClusterTest {
                                 .address()
                                 .equals(address2));
         assertThat(cluster1.state().getUnreachable()).isEmpty();
+    }
+
+    private static int upMembers(Cluster cluster) {
+        return cluster.state()
+                .members()
+                .filter(m -> m.status() == org.apache.pekko.cluster.MemberStatus.up())
+                .size();
     }
 
     private static SpringActorSystem context(ConfigurableApplicationContext ctx) {

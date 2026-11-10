@@ -264,6 +264,9 @@ configure(subprojects.filter { !it.path.startsWith(":relocation") }) {
                 TestLogEvent.PASSED,
                 TestLogEvent.SKIPPED,
             )
+            // A failed test prints its full exception: message, causes and stack (CI keeps no console
+            // history beyond the log).
+            exceptionFormat = TestExceptionFormat.FULL
 
             // set options for log level DEBUG and INFO
             debug {
