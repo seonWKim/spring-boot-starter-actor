@@ -188,10 +188,76 @@ Without JUnit, use it directly; it is `AutoCloseable`:
 | `nodeProperties(int, String...)` | Properties for one node, numbered from 1 |
 | `roles(int, String...)` | Cluster roles of one node |
 | `timeout(Duration)` | How long to wait for members to be up, 30 seconds by default |
+| `classLoader(int, ClassLoader)` | The class loader one node, numbered from 1, loads your classes through. Use it to run two versions of a class side by side |
 
 The properties are passed as command-line arguments, so they override your `application.yml`. The
 cluster tracks membership through the starter's cluster events: `upMembers(node)` is the number of members a
 node sees up, and `awaitMembersUp(count)` waits until every running node sees that many.
+
+### Two versions of a message in one cluster
+
+To check that a message change survives a rolling update, run one node on the next version of the message
+class. Compile the new version into its own folder (for example with `javax.tools.JavaCompiler` in the
+test), and give that node a class loader that loads the class from there and every other class from your
+application:
+
+=== "Java"
+
+    ```java
+    ClassLoader v2 = new ClassLoader(getClass().getClassLoader()) {
+        @Override
+        protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
+            if (!name.equals(SayHello.class.getName())) {
+                return super.loadClass(name, resolve);
+            }
+            synchronized (getClassLoadingLock(name)) {
+                Class<?> loaded = findLoadedClass(name);
+                if (loaded == null) {
+                    byte[] bytes = readClassFile(v2Classes, name); // your helper: the .class file's bytes
+                    loaded = defineClass(name, bytes, 0, bytes.length);
+                }
+                return loaded;
+            }
+        }
+    };
+
+    try (ActorCluster cluster = ActorCluster.builder(MyApplication.class)
+            .nodes(2)
+            .classLoader(2, v2)
+            .start()) {
+        // Node 1 sends the old SayHello to an entity on node 2, and node 2 sends the new one
+        // (created through v2.loadClass(...)) to an entity on node 1.
+    }
+    ```
+
+=== "Kotlin"
+
+    ```kotlin
+    val v2 = object : ClassLoader(javaClass.classLoader) {
+        override fun loadClass(name: String, resolve: Boolean): Class<*> {
+            if (name != SayHello::class.java.name) {
+                return super.loadClass(name, resolve)
+            }
+            synchronized(getClassLoadingLock(name)) {
+                return findLoadedClass(name) ?: readClassFile(v2Classes, name) // your helper: the .class file's bytes
+                    .let { bytes -> defineClass(name, bytes, 0, bytes.size) }
+            }
+        }
+    }
+
+    ActorCluster.builder(MyApplication::class.java)
+        .nodes(2)
+        .classLoader(2, v2)
+        .start()
+        .use { cluster ->
+            // Node 1 sends the old SayHello to an entity on node 2, and node 2 sends the new one
+            // (created through v2.loadClass(...)) to an entity on node 1.
+        }
+    ```
+
+Put the entities on a given node with a role (`roles(1, "v1")` and `role()` on the sharded actor), so each
+message really crosses between the versions. The starter's own build runs this test
+(`MixedVersionMessageTest` in `actor-cluster`).
 
 ## Contract suites for your own store
 
