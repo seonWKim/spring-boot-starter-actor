@@ -100,9 +100,9 @@ The caller sends it with `ask`, sets a timeout, and calls `execute()`:
 In a WebFlux controller, return `Mono.fromCompletionStage(balance)` (Java) or make the handler a
 `suspend fun` (Kotlin).
 
-How ask works: the starter creates a short-lived reply address, stores it in the command
-(`getReplyTo()`), and sends the command with `tell`. `reply(value)` sends the value to that address, and
-the `CompletionStage` completes.
+How ask works: the starter creates a short-lived reply address and sends a shallow copy of the command
+that carries it (`getReplyTo()` on the copy the actor receives). The command you passed is not changed.
+`reply(value)` sends the value to that address, and the `CompletionStage` completes.
 
 ### Timeouts
 
@@ -148,9 +148,34 @@ When you block on the stage (`.toCompletableFuture().get()`), the `TimeoutExcept
 
 ### Errors in the handler
 
-If the handler throws, no reply is sent. The asker only sees a timeout, and the actor is handled by its
-[supervision strategy](supervision.md) (stopped, by default). To report an error to the caller, make it
-part of the reply:
+If the handler throws, no reply is sent, and the actor is handled by its
+[supervision strategy](supervision.md) (stopped, by default). By default the asker only sees a timeout.
+Add `failFastOnError()` to fail the ask at once with the handler's exception instead:
+
+=== "Java"
+
+    ```java
+    CompletionStage<Long> balance = account
+            .ask(new AccountActor.GetBalance("acc-1"))
+            .withTimeout(Duration.ofSeconds(2))
+            .failFastOnError()
+            .execute();   // fails with the handler's exception as soon as it throws
+    ```
+
+=== "Kotlin"
+
+    ```kotlin
+    // In a suspend function: throws the handler's exception as soon as it throws
+    val balance: Long = account.awaitAsk(AccountActor.GetBalance("acc-1"), timeout = 2.seconds, failFast = true)
+    ```
+
+It works for `SpringActorBehavior` handlers and for the command handlers of
+[event-sourced actors](../data/event-sourcing.md), on a local actor or a sharded entity. When the actor
+runs on another node, the exception's class is not sent: the ask fails with an exception whose message
+names the original class and message. The supervision strategy still applies.
+
+`failFastOnError()` reports bugs and unexpected failures quickly. For an error the caller is expected to
+handle, make it part of the reply:
 
 === "Java"
 
@@ -243,8 +268,9 @@ The asker's timeout still applies: a reply after the timeout is dropped.
 
 ### Ask rules
 
-- **One command object per ask.** `ask` stores the reply address in the command object. Create a new
-  command for every ask; don't reuse or share one instance.
+- **A command object can be asked again.** `ask` sends a copy and leaves your object unchanged, so one
+  instance can be asked twice or from several threads at once. (Before 1.1.0, `ask` stored the reply
+  address in the object itself.)
 - **`reply` needs an ask.** Calling `reply` on a command that was sent with `tell` throws
   `IllegalStateException`. If a command can arrive both ways, check `msg.hasReplyTo()` first.
 - **Reply once.** Only the first reply reaches the asker.
@@ -383,9 +409,9 @@ For one message to many actors, see [Pub/sub topics](pub-sub-topics.md) and [Rou
 
 ## Pitfalls
 
-- **Ask timeouts that hide errors.** A handler that throws sends no reply. Put errors in the reply type.
+- **Ask timeouts that hide errors.** A handler that throws sends no reply. Put expected errors in the reply
+  type, and use `failFastOnError()` to see unexpected ones without waiting for the timeout.
 - **Blocking on ask inside an actor.** Use `pipeToSelf`.
-- **Reusing a command object across asks.** Create one per ask.
 - **Mutable messages.** A message changed after sending can be seen half-changed by the actor.
 - **Forgetting serialization in cluster mode.** A message without `JsonSerializable` or
   `CborSerializable` fails when it crosses nodes.

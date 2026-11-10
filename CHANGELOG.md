@@ -15,6 +15,9 @@
 
 ### Features
 
+- **`AskBuilder.failFastOnError()`** fails an ask at once with the handler's exception instead of letting it
+  time out; in Kotlin, `awaitAsk(command, timeout, failFast = true)`. It covers `SpringActorBehavior`
+  handlers and event-sourced command handlers, local or sharded. Off by default (#189).
 - `ActorCluster.Builder.classLoader(node, loader)` in `actor-test`: run one node with its own class loader, for
   example on the next version of a message class, to test a rolling update in one JVM.
 - Tests: an event-sourced actor as a sharded entity recovers its state on another node when its node leaves,
@@ -52,6 +55,9 @@
 
 ### Fixes
 
+- `ask` no longer changes the command you pass: it sends a shallow copy that carries the reply address, so
+  one command instance can be asked twice or from several threads. `AskCommand.withReplyTo`, which the
+  framework no longer calls, is deprecated (#189).
 - A bean can spawn an actor in its constructor or `@PostConstruct` even when Spring hasn't created the
   actor's bean yet. It used to fail with "No factory registered for class" depending on bean creation
   order; the logging example didn't start (#214).
@@ -111,6 +117,9 @@
 - `@EnableActorSupport` keeps working and can be removed from a Spring Boot application. It is still
   needed where auto-configuration is off (a context without `@EnableAutoConfiguration`); `@ActorTest`
   includes it.
+- `ask` sends a copy of the command, so the actor receives a different instance than the one you passed
+  (equal fields, its own reply address). Code that compared the received command by identity with the
+  sent one must compare fields instead (#189).
 - `spring.autoconfigure.exclude` now accepts the actor configurations by class name, for example
   `io.github.seonwkim.actor.autoconfigure.cluster.ClusterConfiguration`.
 
