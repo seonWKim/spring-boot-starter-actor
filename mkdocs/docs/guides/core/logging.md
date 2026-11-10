@@ -204,7 +204,7 @@ tags; give it its own:
 === "Kotlin"
 
     ```kotlin
-    ctx.self.child(WorkerActor::class.java)
+    ctx.self.child<WorkerActor, _>()
         .withId("worker-1")
         .withTags(TagsConfig.of("worker"))
         .withMdc(MdcConfig.of(mapOf("parentId" to actorContext.actorId())))

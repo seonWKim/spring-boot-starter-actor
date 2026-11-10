@@ -70,19 +70,19 @@ There are four places. Set it in one of them per actor.
     // 1. When spawning a top-level actor (in a suspend function)
     actorSystem.actor<OrderActor, _>()
         .withId("order-42")
-        .withSupervisionStrategy(SupervisionStrategy.restart().withLimit(3, 1.minutes.toJavaDuration()))
+        .withSupervisionStrategy(SupervisionStrategy.restart().withLimit(3, 1.minutes))
         .awaitSpawn()
 
     // 2. In the actor's own behavior: applies however the actor is spawned
     override fun create(actorContext: SpringActorContext): SpringActorBehavior<Command> =
         actorBehavior<Command>(actorContext)
-            .withSupervisionStrategy(SupervisionStrategy.restart().withLimit(10, 1.minutes.toJavaDuration()))
+            .withSupervisionStrategy(SupervisionStrategy.restart().withLimit(10, 1.minutes))
             .withState { ctx -> OrderState(ctx) }
             .onMessage(Pay::class.java) { state, msg -> state.onPay(msg) }
             .build()
 
     // 3. When a parent spawns a child
-    ctx.self.child(WorkerActor::class.java)
+    ctx.self.child<WorkerActor, _>()
         .withId("worker-1")
         .withSupervisionStrategy(SupervisionStrategy.resume())
         .spawn()
@@ -131,7 +131,7 @@ from the last snapshot in its constructor, which the `withState` factory calls o
 === "Kotlin"
 
     ```kotlin
-    builder.withSupervisionStrategy(SupervisionStrategy.restart().withLimit(10, 1.minutes.toJavaDuration()))
+    builder.withSupervisionStrategy(SupervisionStrategy.restart().withLimit(10, 1.minutes))
         .withState { ctx -> AgentBrain(ctx, agentId, dependencies) }   // reloads the snapshot
         .onMessage(AgentActor.Chat::class.java) { brain, chat -> brain.onChat(chat) }
         .build()

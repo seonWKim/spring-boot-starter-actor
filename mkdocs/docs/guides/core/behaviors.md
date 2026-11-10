@@ -284,12 +284,12 @@ already active replaces it.
         override fun create(actorContext: SpringActorContext): SpringActorBehavior<Command> =
             actorBehavior<Command>(actorContext)
                 .withState { ctx ->
-                    ctx.startTimerAtFixedRate("flush", Flush, 10.seconds.toJavaDuration())
-                    ctx.startSingleTimer("idle", IdleTimeout, IDLE.toJavaDuration())
+                    ctx.startTimerAtFixedRate("flush", Flush, 10.seconds)
+                    ctx.startSingleTimer("idle", IdleTimeout, IDLE)
                     ctx
                 }
                 .onMessage(Touch::class.java) { ctx, _ ->
-                    ctx.startSingleTimer("idle", IdleTimeout, IDLE.toJavaDuration())   // restart the idle clock
+                    ctx.startSingleTimer("idle", IdleTimeout, IDLE)   // restart the idle clock
                     SpringActorBehavior.same()
                 }
                 .onMessage(Flush::class.java) { ctx, _ ->
