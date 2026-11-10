@@ -192,31 +192,16 @@ class MessageProcessingModuleIntegrationTest {
     }
 
     @Test
-    void testErrorCounterIncrementsOnException() throws Exception {
-        // Wait for system to stabilize
-        Thread.sleep(200);
+    void aFailingMessageIsNotCountedUnderASecondFailureMeter() {
+        double initialProcessed = metricsBackend.getCounterValue("actor.message.processed");
 
-        double initialErrors = metricsBackend.getCounterValue("actor.errors");
-
-        // Create actor that throws on ThrowMessage (default strategy restarts on exception)
         ActorRef actor = actorSystem.actorOf(Props.create(ThrowingActor.class), "throwing-actor");
-
-        // Send message that triggers exception
         actor.tell(new ThrowMessage(), ActorRef.noSender());
+        actor.tell(new StringMessage("after the failure"), ActorRef.noSender());
 
-        eventuallyStays(() -> {
-            double afterError = metricsBackend.getCounterValue("actor.errors");
-            assertEquals(
-                    initialErrors + 1,
-                    afterError,
-                    String.format(
-                            "Error counter should increment by 1 when actor throws. Initial: %.0f, After: %.0f",
-                            initialErrors, afterError));
-        });
-
-        eventually(() -> assertTrue(
-                metricsBackend.hasMetricWithTag("actor.errors", "error.type"),
-                "Error counter should have error.type tag"));
+        // Failures are counted once, as actor.message.failures, by the starter's hooks.
+        eventually(() -> assertEquals(initialProcessed + 2, metricsBackend.getCounterValue("actor.message.processed")));
+        assertEquals(0, metricsBackend.getCounterValue("actor.errors"));
     }
 
     @Test
