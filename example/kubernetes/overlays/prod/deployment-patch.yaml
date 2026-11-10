@@ -16,6 +16,8 @@ spec:
         env:
         - name: ENVIRONMENT
           value: "production"
+        # A -Dspring.actor.pekko.* flag overrides the ConfigMap; a raw -Dpekko.* flag for a key the
+        # ConfigMap sets would be ignored.
         - name: JAVA_OPTS
           value: >-
             -XX:+UseContainerSupport
@@ -28,4 +30,4 @@ spec:
             -XX:+HeapDumpOnOutOfMemoryError
             -XX:HeapDumpPath=/tmp/heapdump.hprof
             -XX:+ExitOnOutOfMemoryError
-            -Dpekko.management.cluster.bootstrap.contact-point-discovery.required-contact-point-nr=3
+            -Dspring.actor.pekko.management.cluster.bootstrap.contact-point-discovery.required-contact-point-nr=3

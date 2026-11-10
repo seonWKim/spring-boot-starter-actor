@@ -142,96 +142,6 @@ echo
 echo -e "${YELLOW}[5/6] Deploying to Kubernetes...${NC}"
 cd ../kubernetes
 
-# Update image reference in manifests
-cat > base/kustomization.yaml << 'KUST_EOF'
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-
-namespace: spring-actor
-
-resources:
-- namespace.yaml
-- rbac.yaml
-- configmap.yaml
-- service.yaml
-- deployment.yaml
-
-commonLabels:
-  app: spring-actor
-  managed-by: kustomize
-
-images:
-- name: your-registry/spring-actor-app
-  newName: spring-actor-chat
-  newTag: local
-KUST_EOF
-
-# Create a local overlay
-mkdir -p overlays/local
-
-cat > overlays/local/kustomization.yaml << 'LOCAL_KUST_EOF'
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-
-namespace: spring-actor
-
-bases:
-- ../../base
-
-replicas:
-- name: spring-actor
-  count: 3
-
-patchesStrategicMerge:
-- service-patch.yaml
-- deployment-patch.yaml
-LOCAL_KUST_EOF
-
-cat > overlays/local/service-patch.yaml << 'SERVICE_PATCH_EOF'
-apiVersion: v1
-kind: Service
-metadata:
-  name: spring-actor-http
-spec:
-  type: NodePort
-  ports:
-  - name: http
-    port: 80
-    targetPort: 8080
-    nodePort: 30080
-    protocol: TCP
-SERVICE_PATCH_EOF
-
-cat > overlays/local/deployment-patch.yaml << 'DEPLOY_PATCH_EOF'
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: spring-actor
-spec:
-  template:
-    spec:
-      containers:
-      - name: spring-actor
-        imagePullPolicy: Never
-        resources:
-          requests:
-            memory: "512Mi"
-            cpu: "250m"
-          limits:
-            memory: "1Gi"
-        env:
-        - name: ENVIRONMENT
-          value: "local"
-        - name: SPRING_PROFILES_ACTIVE
-          value: "kubernetes"
-        - name: JAVA_OPTS
-          value: >-
-            -XX:+UseContainerSupport
-            -XX:MaxRAMPercentage=75
-            -XX:+UseG1GC
-            -Dpekko.management.cluster.bootstrap.contact-point-discovery.required-contact-point-nr=2
-DEPLOY_PATCH_EOF
-
 # Apply manifests
 kubectl apply -k overlays/local
 
@@ -274,7 +184,7 @@ if [ -n "$POD_NAME" ]; then
     sleep 5
 
     echo -e "${YELLOW}Checking cluster members...${NC}"
-    kubectl exec -n spring-actor $POD_NAME -- curl -s localhost:8558/cluster/members 2>/dev/null | \
+    kubectl exec -n spring-actor $POD_NAME -- curl -s localhost:7626/cluster/members 2>/dev/null | \
         jq -r '.members[] | "\(.node) - \(.status)"' 2>/dev/null || \
         echo "Cluster still forming... (this is normal, check again in 30 seconds)"
 fi
@@ -283,7 +193,7 @@ echo
 echo -e "${CYAN}📝 Useful Commands:${NC}"
 echo -e "   ${GREEN}View pods:${NC}             kubectl get pods -n spring-actor"
 echo -e "   ${GREEN}View logs:${NC}             kubectl logs -f -n spring-actor -l app=spring-actor"
-echo -e "   ${GREEN}Check cluster:${NC}         kubectl exec -n spring-actor <pod-name> -- curl localhost:8558/cluster/members | jq"
+echo -e "   ${GREEN}Check cluster:${NC}         kubectl exec -n spring-actor <pod-name> -- curl localhost:7626/cluster/members | jq"
 echo -e "   ${GREEN}Access all pods:${NC}       ./port-forward-pods.sh (ports 8080, 8081, 8082)"
 echo -e "   ${GREEN}Cleanup:${NC}               ./cleanup-local.sh"
 

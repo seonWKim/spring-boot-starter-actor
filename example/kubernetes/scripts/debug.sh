@@ -46,7 +46,7 @@ for POD in $PODS; do
 
     # Check cluster membership
     echo -e "${YELLOW}Cluster membership:${NC}"
-    kubectl exec -n $NAMESPACE $POD -- curl -s http://localhost:8558/cluster/members 2>/dev/null | jq -r '.members[] | "\(.node) - \(.status)"' 2>/dev/null || echo "Unable to connect"
+    kubectl exec -n $NAMESPACE $POD -- curl -s http://localhost:7626/cluster/members 2>/dev/null | jq -r '.members[] | "\(.node) - \(.status)"' 2>/dev/null || echo "Unable to connect"
 done
 
 # Check services
@@ -104,12 +104,12 @@ for POD in $PODS; do
     echo -e "${YELLOW}Testing from $POD ($POD_IP):${NC}"
 
     # Test management port
-    echo "Management port 8558:"
-    kubectl exec -n $NAMESPACE $POD -- curl -s -m 2 http://localhost:8558/ready 2>/dev/null && echo "OK" || echo "FAILED"
+    echo "Management port 7626:"
+    kubectl exec -n $NAMESPACE $POD -- curl -s -m 2 http://localhost:7626/ready 2>/dev/null && echo "OK" || echo "FAILED"
 
     # Test remoting port
-    echo "Remoting port 2551:"
-    kubectl exec -n $NAMESPACE $POD -- nc -zv localhost 2551 2>&1 | grep -q "succeeded" && echo "OK" || echo "FAILED"
+    echo "Remoting port 25520:"
+    kubectl exec -n $NAMESPACE $POD -- nc -zv localhost 25520 2>&1 | grep -q "succeeded" && echo "OK" || echo "FAILED"
 
     echo
 done
@@ -123,11 +123,11 @@ if [ -n "$POD_NAME" ]; then
     echo
 
     echo -e "${YELLOW}Cluster Members:${NC}"
-    kubectl exec -n $NAMESPACE $POD_NAME -- curl -s http://localhost:8558/cluster/members 2>/dev/null | jq || echo "Unable to fetch"
+    kubectl exec -n $NAMESPACE $POD_NAME -- curl -s http://localhost:7626/cluster/members 2>/dev/null | jq || echo "Unable to fetch"
 
     echo
     echo -e "${YELLOW}Cluster Sharding:${NC}"
-    kubectl exec -n $NAMESPACE $POD_NAME -- curl -s http://localhost:8558/cluster/shards 2>/dev/null | jq || echo "No sharding info available"
+    kubectl exec -n $NAMESPACE $POD_NAME -- curl -s http://localhost:7626/cluster/shards 2>/dev/null | jq || echo "No sharding info available"
 fi
 
 echo
@@ -136,5 +136,5 @@ echo
 echo "Common troubleshooting commands:"
 echo "  kubectl describe pod <pod-name> -n $NAMESPACE"
 echo "  kubectl logs -f <pod-name> -n $NAMESPACE"
-echo "  kubectl exec -n $NAMESPACE <pod-name> -- curl localhost:8558/cluster/members"
+echo "  kubectl exec -n $NAMESPACE <pod-name> -- curl localhost:7626/cluster/members"
 echo "  kubectl port-forward -n $NAMESPACE <pod-name> 8080:8080"

@@ -11,12 +11,12 @@ spec:
   publishNotReadyAddresses: true  # Important: Allow discovery of pods before they're ready
   ports:
   - name: management
-    port: 8558
-    targetPort: 8558
+    port: 7626
+    targetPort: 7626
     protocol: TCP
   - name: remoting
-    port: 2551
-    targetPort: 2551
+    port: 25520
+    targetPort: 25520
     protocol: TCP
   selector:
     app: spring-actor

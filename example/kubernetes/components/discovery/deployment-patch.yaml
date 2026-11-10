@@ -7,9 +7,6 @@ spec:
     spec:
       # No API token in the pods: discovery goes through the store.
       automountServiceAccountToken: false
-      # preStop (10s) + the actor system's coordinated shutdown, which leaves the cluster and
-      # deletes this pod's peer entry (spring.actor.shutdown.timeout, 25s) + margin.
-      terminationGracePeriodSeconds: 45
       containers:
       - name: spring-actor
         # Probes on Spring Boot's management health (Actuator): the readiness group includes

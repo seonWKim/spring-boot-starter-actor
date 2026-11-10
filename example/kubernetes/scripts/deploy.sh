@@ -92,7 +92,7 @@ if [ -n "$POD_NAME" ]; then
 
     # Check cluster members
     echo -e "${YELLOW}Cluster members:${NC}"
-    kubectl exec -n $NAMESPACE $POD_NAME -- curl -s localhost:8558/cluster/members | jq -r '.members[] | "\(.node) - \(.status)"' 2>/dev/null || echo "Unable to fetch cluster status (may need to wait for startup)"
+    kubectl exec -n $NAMESPACE $POD_NAME -- curl -s localhost:7626/cluster/members | jq -r '.members[] | "\(.node) - \(.status)"' 2>/dev/null || echo "Unable to fetch cluster status (may need to wait for startup)"
 else
     echo -e "${YELLOW}No pods found yet${NC}"
 fi
@@ -103,5 +103,5 @@ echo
 echo "Useful commands:"
 echo "  kubectl get pods -n $NAMESPACE"
 echo "  kubectl logs -f -n $NAMESPACE -l app=spring-actor"
-echo "  kubectl exec -n $NAMESPACE <pod-name> -- curl localhost:8558/cluster/members"
+echo "  kubectl exec -n $NAMESPACE <pod-name> -- curl localhost:7626/cluster/members"
 echo "  kubectl port-forward -n $NAMESPACE svc/spring-actor-http 8080:80"

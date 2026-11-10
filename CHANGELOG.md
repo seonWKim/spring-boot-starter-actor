@@ -54,6 +54,10 @@
 ### Docs
 
 - The AI agents guide has Kotlin tabs for each of its code samples.
+- Kubernetes example: the base ConfigMap's Cluster Bootstrap settings now reach
+  `pekko.management.cluster.bootstrap` (they were ignored under `coordinated-shutdown`), pods get a 45s grace
+  period, every overlay uses Pekko's default ports (remoting 25520, management 7626), and the `prod` overlay
+  renders again (#195).
 
 ## 1.0.0 (unreleased)
 

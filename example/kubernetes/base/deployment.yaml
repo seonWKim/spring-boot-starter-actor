@@ -31,7 +31,9 @@ spec:
 
     spec:
       serviceAccountName: spring-actor-sa
-      terminationGracePeriodSeconds: 30
+      # preStop (10s) + the web server's graceful drain + the actor system's coordinated shutdown,
+      # which leaves the cluster (spring.actor.shutdown.timeout, 25s) + margin.
+      terminationGracePeriodSeconds: 45
 
       # Anti-affinity: Spread pods across different nodes
       affinity:
@@ -93,7 +95,6 @@ spec:
             -XX:HeapDumpPath=/tmp/heapdump.hprof
             -XX:+ExitOnOutOfMemoryError
             -Djava.net.preferIPv4Stack=true
-            -Dpekko.management.cluster.bootstrap.contact-point-discovery.required-contact-point-nr=2
 
         # Ports
         ports:
@@ -101,10 +102,10 @@ spec:
           containerPort: 8080
           protocol: TCP
         - name: remoting
-          containerPort: 2551
+          containerPort: 25520
           protocol: TCP
         - name: management
-          containerPort: 8558
+          containerPort: 7626
           protocol: TCP
 
         # Liveness probe: Is the application alive?
