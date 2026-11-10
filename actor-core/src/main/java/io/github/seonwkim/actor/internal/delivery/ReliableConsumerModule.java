@@ -4,27 +4,31 @@ import io.github.seonwkim.actor.SpringActorBehavior;
 import io.github.seonwkim.actor.delivery.ReliableDelivery;
 import io.github.seonwkim.actor.internal.ModuleSupport;
 import io.github.seonwkim.actor.internal.PekkoBehaviors;
-import io.github.seonwkim.actor.internal.PekkoProps;
-import java.util.HashMap;
-import java.util.Map;
+import java.time.Duration;
 import javax.annotation.Nullable;
-import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.BehaviorInterceptor;
 import org.apache.pekko.actor.typed.TypedActorContext;
-import org.apache.pekko.actor.typed.delivery.ConsumerController;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
 
 /**
- * Runs {@link ReliableDelivery#consumer}: the actor's behavior behind an interceptor that owns one
- * Pekko {@link ConsumerController} per sender and confirms a delivery when its handler returns.
+ * Runs {@link ReliableDelivery#consumer}: the actor's behavior behind an interceptor that unwraps
+ * {@link ReliableEnvelope}s, skips keys it remembers, and acks once a handler returned.
  *
- * <p>When a handler throws, the interceptor stops that sender's controller before the failure goes
- * on to supervision. The sender then registers a new controller (local) or the next message from
- * the sharded producer creates one, and the producer resends what was not confirmed. Supervision
- * sits outside the interceptor, so a restart also starts with no controllers.
+ * <p>The actor's own supervision stays inside the behavior, where it may swallow a handler's
+ * exception. So the interceptor doesn't ack because the behavior returned, but because a handler
+ * did: the behavior is rebuilt with each message handler marking its success.
  */
 public final class ReliableConsumerModule implements ModuleSupport {
+
+    /** Read by {@link #toBehavior}; set from spring.actor.delivery.idempotency-ttl. */
+    public static final String TTL_KEY = "spring-actor.delivery.idempotency-ttl";
+
+    /** Read by {@link #toBehavior}; set from spring.actor.delivery.max-remembered-keys. */
+    public static final String MAX_KEYS_KEY = "spring-actor.delivery.max-remembered-keys";
+
+    static final Duration DEFAULT_TTL = Duration.ofMinutes(10);
+    static final int DEFAULT_MAX_KEYS = 10_000;
 
     @Override
     @SuppressWarnings("unchecked")
@@ -32,75 +36,99 @@ public final class ReliableConsumerModule implements ModuleSupport {
         if (!(moduleDefinition instanceof ReliableDelivery.ConsumerDefinition<?> definition)) {
             return null;
         }
-        SpringActorBehavior<?> inner = definition.behavior();
-        if (inner.kind() == SpringActorBehavior.Kind.DEFINED
-                && inner.definition().supervisionStrategy() != null) {
+        if (definition.behavior().kind() != SpringActorBehavior.Kind.DEFINED) {
             throw new IllegalArgumentException(
-                    "A reliable consumer can't use the builder's withSupervisionStrategy:"
-                            + " it hides failed deliveries. Pass the strategy to ReliableDelivery.consumer(behavior, strategy)");
+                    "ReliableDelivery.consumer takes a behavior built with SpringActorBehavior.builder(...)");
         }
-        Behavior<Object> innerBehavior = (Behavior<Object>) PekkoBehaviors.toPekko(inner);
-        Behavior<Object> behavior =
-                Behaviors.setup(ctx -> Behaviors.intercept(DeliveryInterceptor::new, innerBehavior));
-        if (definition.supervision() != null) {
-            behavior = Behaviors.supervise(behavior).onFailure(PekkoProps.supervisor(definition.supervision()));
-        }
+        HandlerOutcome outcome = new HandlerOutcome();
+        Behavior<Object> inner = (Behavior<Object>) (Behavior<?>)
+                PekkoBehaviors.toPekko(marking(definition.behavior().definition(), outcome));
+        Duration ttlOverride = definition.idempotencyTtl();
+        Behavior<Object> behavior = Behaviors.setup(ctx -> {
+            var config = ctx.getSystem().settings().config();
+            Duration ttl = ttlOverride != null
+                    ? ttlOverride
+                    : config.hasPath(TTL_KEY) ? config.getDuration(TTL_KEY) : DEFAULT_TTL;
+            int maxKeys = config.hasPath(MAX_KEYS_KEY) ? config.getInt(MAX_KEYS_KEY) : DEFAULT_MAX_KEYS;
+            return Behaviors.intercept(
+                    () -> new DedupInterceptor(new RememberedKeys(ttl, maxKeys, System::nanoTime), outcome), inner);
+        });
         return (Behavior<C>) (Behavior<?>) behavior;
     }
 
-    /** Asks a reliable consumer for its controller for {@code producerId}, created on first use. */
-    public record Connect(String producerId, ActorRef<Connected> replyTo) {}
+    /**
+     * The same behavior, with every message handler setting {@code outcome.handled} when it returns.
+     * Rebuilt through the public builder, field by field of {@link SpringActorBehavior.Definition}.
+     */
+    private static <C, S> SpringActorBehavior<C> marking(
+            SpringActorBehavior.Definition<C, S> definition, HandlerOutcome outcome) {
+        SpringActorBehavior.Builder<C, S> builder = SpringActorBehavior.builder(
+                        definition.commandClass(), definition.actorContext())
+                .withState(definition.stateFactory());
+        for (SpringActorBehavior.MessageHandler<C, S, ?> handler : definition.messageHandlers()) {
+            addMarking(builder, handler, outcome);
+        }
+        for (SpringActorBehavior.SignalHandler<C, S, ?> handler : definition.signalHandlers()) {
+            addSignal(builder, handler);
+        }
+        if (definition.supervisionStrategy() != null) {
+            builder.withSupervisionStrategy(definition.supervisionStrategy());
+        }
+        if (definition.mdcForMessage() != null) {
+            builder.withMdc(definition.mdcForMessage());
+        }
+        return builder.build();
+    }
 
-    /** The reply to {@link Connect}. */
-    public record Connected(ActorRef<ConsumerController.Command<Object>> controller) {}
+    private static <C, S, M extends C> void addMarking(
+            SpringActorBehavior.Builder<C, S> builder,
+            SpringActorBehavior.MessageHandler<C, S, M> handler,
+            HandlerOutcome outcome) {
+        builder.onMessage(handler.type(), (state, message) -> {
+            SpringActorBehavior<C> next = handler.handler().apply(state, message);
+            outcome.handled = true;
+            return next;
+        });
+    }
 
-    private static final class DeliveryInterceptor extends BehaviorInterceptor<Object, Object> {
+    private static <C, S, M extends io.github.seonwkim.actor.ActorSignal> void addSignal(
+            SpringActorBehavior.Builder<C, S> builder, SpringActorBehavior.SignalHandler<C, S, M> handler) {
+        builder.onSignal(handler.type(), handler.handler());
+    }
 
-        private final Map<String, ActorRef<ConsumerController.Command<Object>>> controllers = new HashMap<>();
+    /** Whether a message handler returned for the message being delivered. Only the actor touches it. */
+    private static final class HandlerOutcome {
+        boolean handled;
+    }
 
-        DeliveryInterceptor() {
+    private static final class DedupInterceptor extends BehaviorInterceptor<Object, Object> {
+
+        private final RememberedKeys keys;
+        private final HandlerOutcome outcome;
+
+        DedupInterceptor(RememberedKeys keys, HandlerOutcome outcome) {
             super(Object.class);
+            this.keys = keys;
+            this.outcome = outcome;
         }
 
         @Override
-        @SuppressWarnings("unchecked")
         public Behavior<Object> aroundReceive(
                 TypedActorContext<Object> ctx, Object msg, BehaviorInterceptor.ReceiveTarget<Object> target) {
-            if (msg instanceof Connect connect) {
-                connect.replyTo().tell(new Connected(controller(ctx, connect.producerId())));
+            if (!(msg instanceof ReliableEnvelope envelope)) {
+                return target.apply(ctx, msg);
+            }
+            if (keys.contains(envelope.idempotencyKey())) {
+                envelope.replyTo().tell(ReliableAck.INSTANCE);
                 return Behaviors.same();
             }
-            if (msg instanceof ConsumerController.SequencedMessage<?> sequenced) {
-                // From a sharded producer: it addresses the entity, not a controller.
-                controller(ctx, sequenced.producerId()).tell((ConsumerController.SequencedMessage<Object>) sequenced);
-                return Behaviors.same();
+            outcome.handled = false;
+            Behavior<Object> next = target.apply(ctx, envelope.message()); // throws: no ack, the sender retries
+            if (outcome.handled) {
+                keys.remember(envelope.idempotencyKey());
+                envelope.replyTo().tell(ReliableAck.INSTANCE);
             }
-            if (msg instanceof ConsumerController.Delivery<?> delivery) {
-                Behavior<Object> next;
-                try {
-                    next = target.apply(ctx, delivery.message());
-                } catch (RuntimeException | Error e) {
-                    // Not confirmed: a new controller makes the producer resend it.
-                    controllers.values().remove(delivery.confirmTo());
-                    ctx.asJava().stop(delivery.confirmTo());
-                    throw e;
-                }
-                delivery.confirmTo().tell(ConsumerController.confirmed());
-                return next;
-            }
-            return target.apply(ctx, msg);
-        }
-
-        private ActorRef<ConsumerController.Command<Object>> controller(
-                TypedActorContext<Object> ctx, String producerId) {
-            return controllers.computeIfAbsent(producerId, id -> {
-                ActorRef<ConsumerController.Command<Object>> controller =
-                        ctx.asJava().spawnAnonymous(ConsumerController.create());
-                ActorRef<ConsumerController.Delivery<Object>> deliverTo =
-                        ctx.asJava().getSelf().narrow();
-                controller.tell(new ConsumerController.Start<>(deliverTo));
-                return controller;
-            });
+            return next;
         }
     }
 }

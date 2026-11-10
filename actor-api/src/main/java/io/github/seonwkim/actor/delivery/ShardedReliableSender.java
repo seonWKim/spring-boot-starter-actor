@@ -3,35 +3,28 @@ package io.github.seonwkim.actor.delivery;
 import java.util.concurrent.CompletionStage;
 
 /**
- * Sends messages to the entities of one sharded actor class at least once. Each message is kept, in
- * this sender's memory, until the entity confirms it, and sent again when the entity was restarted,
- * passivated or moved to another node.
- *
- * <p>Messages that are not confirmed when this node stops are lost: there is no durable queue yet.
- * Thread-safe; {@link #close} it when done.
+ * Sends messages to the entities of one sharded actor class at least once: each send is retried
+ * until the entity acknowledges it (see {@link RetryPolicy}). A retry starts the entity again if it
+ * stopped or moved. The entities wrap their behavior with {@link ReliableDelivery#consumer}.
+ * Thread-safe; holds no resources.
  */
-public interface ShardedReliableSender<T> extends AutoCloseable {
+public interface ShardedReliableSender<T> {
 
-    /**
-     * Sends {@code message} to entity {@code entityId}. The stage completes when the entity confirmed
-     * it, and fails when this sender was closed first. It has no timeout of its own.
-     */
+    /** Sends {@code message} to entity {@code entityId} with a new idempotency key. */
     CompletionStage<Void> send(String entityId, T message);
 
-    /** Stops the sender. Stages of unconfirmed messages fail with {@link IllegalStateException}. */
-    @Override
-    void close();
+    /**
+     * Sends {@code message} to entity {@code entityId} with {@code idempotencyKey}. Any send with the
+     * same key to that entity runs the handler once while the entity remembers the key.
+     */
+    CompletionStage<Void> send(String entityId, T message, String idempotencyKey);
 
     /** Configures a sender. */
     interface Builder<T> {
 
-        /**
-         * The sender's name, in logs and in each entity's deduplication. Defaults to a random id.
-         * Two running senders must not share one.
-         */
-        Builder<T> withProducerId(String producerId);
+        /** How sends are retried. Defaults to {@link RetryPolicy#defaults()}. */
+        Builder<T> withRetry(RetryPolicy retryPolicy);
 
-        /** Starts the sender. */
-        ShardedReliableSender<T> start();
+        ShardedReliableSender<T> build();
     }
 }

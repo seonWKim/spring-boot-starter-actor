@@ -2,6 +2,8 @@ package io.github.seonwkim.actor.internal.cluster;
 
 import io.github.seonwkim.actor.AskCommand;
 import io.github.seonwkim.actor.internal.TracedMessage;
+import io.github.seonwkim.actor.internal.delivery.ReliableAck;
+import io.github.seonwkim.actor.internal.delivery.ReliableEnvelope;
 import java.util.List;
 import javax.annotation.Nullable;
 import org.springframework.aot.hint.MemberCategory;
@@ -20,6 +22,7 @@ public final class ClusterRuntimeHints implements RuntimeHintsRegistrar {
             "io.github.seonwkim.actor.internal.cluster.discovery.PeerRegistryServiceDiscovery",
             "io.github.seonwkim.actor.internal.cluster.lease.LeaseStoreLease",
             "io.github.seonwkim.actor.internal.cluster.TracedMessageSerializer",
+            "io.github.seonwkim.actor.internal.cluster.ReliableEnvelopeSerializer",
             "org.apache.pekko.serialization.jackson.JacksonJsonSerializer",
             "org.apache.pekko.serialization.jackson.JacksonCborSerializer");
 
@@ -33,6 +36,8 @@ public final class ClusterRuntimeHints implements RuntimeHintsRegistrar {
             hints.reflection().registerType(TypeReference.of(className), MemberCategory.INVOKE_DECLARED_CONSTRUCTORS);
         }
         hints.reflection().registerType(TracedMessage.class);
+        hints.reflection().registerType(ReliableEnvelope.class);
+        hints.reflection().registerType(ReliableAck.class);
         hints.reflection()
                 .registerType(AskCommand.class, MemberCategory.DECLARED_FIELDS, MemberCategory.INVOKE_PUBLIC_METHODS);
     }

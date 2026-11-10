@@ -3,6 +3,8 @@ package io.github.seonwkim.actor.internal.cluster;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.seonwkim.actor.internal.TracedMessage;
+import io.github.seonwkim.actor.internal.delivery.ReliableAck;
+import io.github.seonwkim.actor.internal.delivery.ReliableEnvelope;
 import java.util.HashMap;
 import java.util.Map;
 import javax.annotation.Nullable;
@@ -39,6 +41,10 @@ final class PekkoJackson {
         // Messages sent while tracing is on carry the trace; the message inside keeps its own binding.
         serializers.putIfAbsent(TracedMessageSerializer.NAME, TracedMessageSerializer.class.getName());
         bindings.putIfAbsent(TracedMessage.class.getName(), TracedMessageSerializer.NAME);
+        // Reliable delivery's envelope carries the message inside, which keeps its own binding.
+        serializers.putIfAbsent(ReliableEnvelopeSerializer.NAME, ReliableEnvelopeSerializer.class.getName());
+        bindings.putIfAbsent(ReliableEnvelope.class.getName(), ReliableEnvelopeSerializer.NAME);
+        bindings.putIfAbsent(ReliableAck.class.getName(), ReliableEnvelopeSerializer.NAME);
         return result;
     }
 

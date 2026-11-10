@@ -3,35 +3,31 @@ package io.github.seonwkim.actor.delivery;
 import java.util.concurrent.CompletionStage;
 
 /**
- * Sends messages to one actor at least once. Each message is kept, in this sender's memory, until
- * the actor confirms it, and sent again after the actor restarted or resumed.
- *
- * <p>Messages that are not confirmed when this node stops are lost: there is no durable queue yet.
- * Thread-safe; {@link #close} it when done.
+ * Sends messages to one actor at least once: each send is retried until the actor acknowledges it
+ * (see {@link RetryPolicy}). The actor wraps its behavior with {@link ReliableDelivery#consumer}.
+ * Thread-safe; holds no resources.
  */
-public interface ReliableSender<T> extends AutoCloseable {
+public interface ReliableSender<T> {
 
     /**
-     * Sends {@code message}. The stage completes when the actor confirmed it, and fails when the
-     * actor stopped or this sender was closed first. It has no timeout of its own: add one with
-     * {@code toCompletableFuture().orTimeout(...)}; the message is still delivered after it.
+     * Sends {@code message} with a new idempotency key, so its retries run the handler once. The
+     * stage completes when the actor acknowledged it and fails with {@link ReliableDeliveryException}
+     * when the retry policy runs out.
      */
     CompletionStage<Void> send(T message);
 
-    /** Stops the sender. Stages of unconfirmed messages fail with {@link IllegalStateException}. */
-    @Override
-    void close();
+    /**
+     * Sends {@code message} with {@code idempotencyKey}, such as an order id. Any send with the same
+     * key, from any sender, runs the handler once while the actor remembers the key.
+     */
+    CompletionStage<Void> send(T message, String idempotencyKey);
 
     /** Configures a sender. */
     interface Builder<T> {
 
-        /**
-         * The sender's name, in logs and in the receiver's deduplication. Defaults to a random id.
-         * Two running senders must not share one.
-         */
-        Builder<T> withProducerId(String producerId);
+        /** How sends are retried. Defaults to {@link RetryPolicy#defaults()}. */
+        Builder<T> withRetry(RetryPolicy retryPolicy);
 
-        /** Starts the sender. */
-        ReliableSender<T> start();
+        ReliableSender<T> build();
     }
 }

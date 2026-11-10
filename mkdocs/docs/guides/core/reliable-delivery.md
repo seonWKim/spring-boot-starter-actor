@@ -1,27 +1,25 @@
 # Reliable Delivery
 
-`tell` is **at most once**: a message that is lost, or that reaches an actor which then crashes, is gone.
-Reliable delivery makes one sender-to-actor flow **at least once**: the sender keeps each message until
-the receiving actor confirms it, and sends it again after the actor crashed, restarted or (for sharded
-entities) moved. It wraps Pekko's
-[reliable delivery](https://pekko.apache.org/docs/pekko/current/typed/reliable-delivery.html)
-(producer and consumer controllers), with no Pekko types in your code.
+`tell` is **at most once**: a message that is lost, or that reaches an actor whose handler fails, is
+gone. Reliable delivery makes a send **at least once, handled once per key**: the sender retries the
+message until the receiving actor acknowledges it, and the receiver remembers the idempotency keys it
+handled, so a retry doesn't run the handler again. It works for local actors and sharded entities.
 
-Use it for messages that must not be lost while the application runs: an order to an order actor, a
-payment step to a sharded entity.
+Use it for commands that must not be dropped while the application runs: an order to an order actor,
+a payment step to a sharded entity.
 
 Don't use it when:
 
-- a lost message is fine or the caller retries anyway (a UI refresh, a cache warm-up): plain `tell` is
-  cheaper;
-- the caller needs an answer: use [`ask`](messaging.md), and retry on timeout;
-- the message must survive a restart of the **sending** node: there is no durable queue yet (see
-  [Limits](#limits)). Store it first, for example with [event sourcing](../data/event-sourcing.md).
+- a lost message is fine (a UI refresh, a cache warm-up): plain `tell` is cheaper;
+- the caller needs an answer: use [`ask`](messaging.md);
+- the message must survive a restart of the **sending** node, or the receiver's deduplication must
+  survive a restart of the **receiving** actor: see [Limits](#limits). Store the work first, for
+  example with [event sourcing](../data/event-sourcing.md).
 
 ## Receiving: wrap the behavior
 
 The receiving actor wraps the behavior its `create` returns with `ReliableDelivery.consumer(...)`. Its
-handlers stay as they are.
+handlers and its supervision stay as they are.
 
 === "Java"
 
@@ -41,14 +39,13 @@ handlers stay as they are.
 
         @Override
         public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
-            return ReliableDelivery.consumer(
-                    SpringActorBehavior.builder(Command.class, actorContext)
-                            .onMessage(PlaceOrder.class, (ctx, msg) -> {
-                                orders.save(msg.orderId()); // throws: not confirmed, delivered again
-                                return SpringActorBehavior.same();
-                            })
-                            .build(),
-                    SupervisionStrategy.restart());
+            return ReliableDelivery.consumer(SpringActorBehavior.builder(Command.class, actorContext)
+                    .withSupervisionStrategy(SupervisionStrategy.restart())
+                    .onMessage(PlaceOrder.class, (ctx, msg) -> {
+                        orders.save(msg.orderId()); // throws: no ack, the sender retries
+                        return SpringActorBehavior.same();
+                    })
+                    .build());
         }
     }
     ```
@@ -66,35 +63,33 @@ handlers stay as they are.
         override fun create(actorContext: SpringActorContext): SpringActorBehavior<Command> =
             ReliableDelivery.consumer(
                 actorBehavior<Command>(actorContext)
+                    .withSupervisionStrategy(SupervisionStrategy.restart())
                     .onMessage(PlaceOrder::class.java) { _, msg ->
-                        orders.save(msg.orderId) // throws: not confirmed, delivered again
+                        orders.save(msg.orderId) // throws: no ack, the sender retries
                         SpringActorBehavior.same()
                     }
                     .build(),
-                SupervisionStrategy.restart(),
             )
     }
     ```
 
-**How it confirms:** a reliably sent message is confirmed when its handler returns. If the handler
-throws, the message is not confirmed, the failure goes to supervision as usual, and the sender delivers
-the message again once the actor restarted or resumed. Messages from one sender arrive one at a time,
-in the order they were sent.
+- **Ack:** a reliable message is acknowledged when one of the actor's handlers returned. If the handler
+  threw, or no handler matched the message, there is no ack and the sender retries.
+- **Deduplication:** the actor remembers the key of every message it handled. A message whose key it
+  remembers is acknowledged again without calling the handler.
+- **How long:** keys are remembered for `spring.actor.delivery.idempotency-ttl` (default 10 minutes).
+  One actor can override it: `ReliableDelivery.consumer(behavior, Duration.ofHours(1))`.
+- **How many:** at most `spring.actor.delivery.max-remembered-keys` keys per actor (default 10,000). Past
+  that, the oldest keys are forgotten first, so a burst can't grow the memory without limit.
+- **Plain messages:** `tell` and `ask` to the same actor keep working, without deduplication.
 
-**Supervision** goes to `ReliableDelivery.consumer(behavior, strategy)`, not to the builder's
-`withSupervisionStrategy`: a supervisor inside the behavior would hide the failure and the message would
-count as confirmed. The actor fails to start if the builder sets one. Without a strategy, the actor
-follows its spawn builder's strategy, and stops on a failure by default; a stopped local actor can't be
-delivered to (see below).
-
-Plain `tell` and `ask` to the same actor keep working; they are not confirmed.
-
-Sharded entities wrap their behavior the same way, in their `create(SpringShardedActorContext)`.
+The behavior must come from `SpringActorBehavior.builder(...)`. Sharded entities wrap their behavior the
+same way, in their `create(SpringShardedActorContext)`.
 
 ## Sending to an actor
 
-Inject the `SpringReliableDelivery` bean and start a sender to an actor handle. `send` returns a
-`CompletionStage` that completes when the actor confirmed the message.
+Inject the `SpringReliableDelivery` bean and build a sender for an actor handle. `send` returns a
+`CompletionStage` that completes when the actor acknowledged the message.
 
 === "Java"
 
@@ -106,16 +101,12 @@ Inject the `SpringReliableDelivery` bean and start a sender to an actor handle. 
         public OrderService(SpringActorSystem actorSystem, SpringReliableDelivery reliableDelivery) {
             SpringActorHandle<OrderActor.Command> orderActor =
                     actorSystem.actor(OrderActor.class).withId("orders").spawnAndWait();
-            this.orders = reliableDelivery.to(orderActor).withProducerId("order-service").start();
+            this.orders = reliableDelivery.to(orderActor).build();
         }
 
         public CompletionStage<Void> placeOrder(String orderId) {
-            return orders.send(new OrderActor.PlaceOrder(orderId));
-        }
-
-        @PreDestroy
-        void close() {
-            orders.close();
+            // The order id is the key: placing the same order twice runs the handler once.
+            return orders.send(new OrderActor.PlaceOrder(orderId), orderId);
         }
     }
     ```
@@ -128,101 +119,110 @@ Inject the `SpringReliableDelivery` bean and start a sender to an actor handle. 
 
         private val orders: ReliableSender<OrderActor.Command> = reliableDelivery
             .to(actorSystem.actor(OrderActor::class.java).withId("orders").spawnAndWait())
-            .withProducerId("order-service")
-            .start()
+            .build()
 
-        // Suspends until the actor confirmed the order (kotlinx.coroutines.future.await).
+        // Suspends until the actor acknowledged the order (kotlinx.coroutines.future.await).
+        // The order id is the key: placing the same order twice runs the handler once.
         suspend fun placeOrder(orderId: String) {
-            orders.send(OrderActor.PlaceOrder(orderId)).await()
+            orders.send(OrderActor.PlaceOrder(orderId), orderId).await()
         }
-
-        @PreDestroy
-        fun close() = orders.close()
     }
     ```
 
-- **Producer id:** names the sender in logs and in the receiver's deduplication. It defaults to a random
-  id. Two running senders must not share one.
-- **No timeout of its own:** the stage waits as long as the message is unconfirmed. Add one with
-  `toCompletableFuture().orTimeout(...)`; the message is still delivered after the timeout.
-- **The actor stops:** stages of unconfirmed messages fail with `IllegalStateException`, and the sender
-  stops. A stopped actor doesn't come back by itself; supervise it with `restart()` so it does.
-- **Thread-safe:** any thread can call `send`. `close()` stops the sender; stages of unconfirmed messages
-  fail with `IllegalStateException`.
+**Idempotency keys:**
 
-## Sending to sharded entities
+- `send(message)`: the starter makes a new key for this send. Its retries run the handler once, but
+  sending the same message again is a new message.
+- `send(message, key)`: you pass a business id, such as an order id or a payment id. Any send with that
+  key runs the handler once while the receiver remembers it: re-sends from another sender, from another
+  node, or after the sender's node restarted.
 
-In cluster mode, `toSharded(...)` starts one sender for all entities of a sharded actor class. `send` takes
-the entity id. The entities wrap their behavior with `ReliableDelivery.consumer(...)` as above.
+A sender holds no resources: build one per receiver and keep it, or build one per call.
+
+## Retries
+
+A send is retried with exponential backoff until it is acknowledged:
+
+| Setting | Default | |
+|---|---|---|
+| `maxAttempts` | 5 | attempts in total, including the first |
+| `timeout` | 30s | from the first attempt; no attempt starts after it |
+| `attemptTimeout` | 3s | how long one attempt waits for the ack |
+| `initialBackoff` / `maxBackoff` | 200ms / 5s | the pause before the next attempt doubles up to the maximum |
 
 === "Java"
 
     ```java
-    ShardedReliableSender<OrderEntity.Command> orders =
-            reliableDelivery.toSharded(OrderEntity.class).withProducerId("order-service").start();
-
-    orders.send("order-42", new OrderEntity.Pay(1_000))
-            .thenRun(() -> log.info("order-42 confirmed the payment"));
+    ReliableSender<OrderActor.Command> orders = reliableDelivery.to(orderActor)
+            .withRetry(RetryPolicy.defaults()
+                    .withMaxAttempts(10)
+                    .withTimeout(Duration.ofMinutes(1))
+                    .withBackoff(Duration.ofMillis(100), Duration.ofSeconds(10)))
+            .build();
     ```
 
 === "Kotlin"
 
     ```kotlin
-    val orders: ShardedReliableSender<OrderEntity.Command> =
-        reliableDelivery.toSharded(OrderEntity::class.java).withProducerId("order-service").start()
-
-    // In a suspend function
-    orders.send("order-42", OrderEntity.Pay(1_000)).await()
+    val orders: ReliableSender<OrderActor.Command> = reliableDelivery.to(orderActor)
+        .withRetry(
+            RetryPolicy.defaults()
+                .withMaxAttempts(10)
+                .withTimeout(Duration.ofMinutes(1))
+                .withBackoff(Duration.ofMillis(100), Duration.ofSeconds(10)),
+        )
+        .build()
     ```
 
-An entity that crashed, was passivated or moved to another node gets its unconfirmed messages again:
-the sender resends the first unconfirmed message to an entity that has been quiet for
-`resend-first-unconfirmed-idle-timeout` (10 seconds), which starts the entity again. Messages must
-implement `JsonSerializable` or `CborSerializable`, as for any message that crosses nodes.
+When the attempts or the timeout run out, the stage fails with `ReliableDeliveryException`, which names
+the key and the number of attempts. The message may still have been handled (only the acks may have been
+lost): sending it again with the same key is safe within the receiver's TTL.
 
-## At least once means duplicates
+## Sending to sharded entities
 
-A message can arrive twice: for example, the handler wrote to the database and the node crashed before
-the confirmation reached the sender. Make handlers idempotent: key writes by an id from the message, or
-remember the last ids handled.
+In cluster mode, `toSharded(...)` builds one sender for all entities of a sharded actor class. `send` takes
+the entity id.
+
+=== "Java"
+
+    ```java
+    ShardedReliableSender<OrderEntity.Command> payments =
+            reliableDelivery.toSharded(OrderEntity.class).build();
+
+    payments.send("order-42", new OrderEntity.Pay(1_000), "payment-77")
+            .thenRun(() -> log.info("order-42 acknowledged payment-77"));
+    ```
+
+=== "Kotlin"
+
+    ```kotlin
+    val payments: ShardedReliableSender<OrderEntity.Command> =
+        reliableDelivery.toSharded(OrderEntity::class.java).build()
+
+    // In a suspend function
+    payments.send("order-42", OrderEntity.Pay(1_000), "payment-77").await()
+    ```
+
+A retry reaches the entity wherever it runs; if the entity stopped or moved, the retry starts it again.
+Messages must implement `JsonSerializable` or `CborSerializable`, as for any message that crosses nodes.
 
 ## What it costs
 
-- **Memory on the sender:** every unconfirmed message stays in the sender's memory, up to the flow
-  control window (50 messages in flight per receiver) plus what waits for demand. A slow receiver makes
-  the sender's queue grow; watch the stages that don't complete.
-- **Extra messages:** each reliably sent message passes through the sender, a producer controller and a
-  consumer controller, and its confirmation travels back the same way: about seven local messages
-  instead of one. Across nodes, two cross the network: the message and its acknowledgement. Each sender
-  is an actor with a producer controller; each receiver has one consumer controller per sender. A
-  sharded sender also runs a short-lived actor per unconfirmed message to complete its stage.
-- **Throughput:** the receiver handles one message at a time, as with `tell`. Up to 50 messages are in
-  flight per receiver; when it falls behind, further messages wait in the sender.
-- **Latency after a failure:** a local actor gets the message again as soon as it restarted. A sharded
-  entity gets it after the idle timeout above.
-
-## Tuning
-
-The underlying settings are Pekko's and can be set as raw keys under `spring.actor.pekko`:
-
-```yaml
-spring:
-  actor:
-    pekko:
-      reliable-delivery:
-        consumer-controller:
-          flow-control-window: 50          # messages in flight per receiver
-          resend-interval-min: 2s          # how soon a receiver asks again for lost messages
-        sharding:
-          producer-controller:
-            resend-first-unconfirmed-idle-timeout: 10s
-            buffer-size: 1000              # messages waiting for an entity with no demand
-```
+- **Per message:** one ask and one ack, and one more of each per retry. No extra actors stay alive.
+- **On the receiver:** a key and an expiry for each handled message, up to the TTL and the key limit
+  (10,000 keys of about 100 bytes each is about 1 MB per actor).
+- **While a receiver is down:** each pending send retries until it gives up; with the defaults, at most
+  5 asks over about 30 seconds.
 
 ## Limits
 
-- **Not durable.** Unconfirmed messages live in the sender's memory and are lost when the sending node
-  stops. A durable queue on the persistence journal is planned.
-- **One sender, one producer id.** Each sender has its own order and deduplication. Messages from two
-  senders to one actor are not ordered relative to each other.
-- **No work pulling.** A pool of workers that pull work as they have capacity is not offered yet.
+- **Dedupe memory is in the actor.** It is lost when the receiving actor restarts by its spawn supervision,
+  stops, or (sharded) is passivated or moves to another node. After that, a retry or a re-send with the
+  same key runs the handler again. Make handlers safe to run twice when that matters. A durable key store
+  is a planned follow-up.
+- **Stopped local actors don't come back.** Retries to a local actor that stopped fail when the retry
+  policy runs out. A sharded entity starts again on the next retry.
+- **No ordering.** Retries can overtake later messages: send one at a time (wait for the stage) when the
+  order matters.
+- **Not durable on the sender.** A send in progress is lost when the sending node stops; the caller sees
+  no result. Re-send with the same key when it restarts.

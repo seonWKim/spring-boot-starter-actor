@@ -10,24 +10,24 @@ import io.github.seonwkim.actor.serialization.JsonSerializable;
 import io.github.seonwkim.actor.shard.ShardedEntityType;
 import io.github.seonwkim.actor.shard.SpringShardedActor;
 import io.github.seonwkim.actor.shard.SpringShardedActorContext;
-import java.util.List;
+import java.time.Duration;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.stream.Stream;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.api.Test;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 
-/** Reliable delivery to sharded entities on a one-node cluster: an entity that failed gets the message again. */
+/**
+ * Reliable delivery to sharded entities on a one-node cluster. Every message is serialized, as
+ * between nodes, so the envelope's serializer is part of what is tested.
+ */
 class ShardedReliableDeliveryTest {
 
     @SpringBootApplication
@@ -39,10 +39,7 @@ class ShardedReliableDeliveryTest {
         }
     }
 
-    /**
-     * Records the orders each entity handled and throws once for ids in {@link #failOnce}. The
-     * entity id's prefix picks its supervision: {@code stop-}, {@code restart-} or {@code resume-}.
-     */
+    /** Counts handler runs per entity; throws once for each {@code entityId/orderId} in {@link #failOnce}. */
     static class OrderEntity implements SpringShardedActor<OrderEntity.Command> {
 
         static final ShardedEntityType<Command> TYPE = ShardedEntityType.of(Command.class, "ReliableOrderEntity");
@@ -52,7 +49,7 @@ class ShardedReliableDeliveryTest {
         record PlaceOrder(String id) implements Command {}
 
         final Set<String> failOnce = ConcurrentHashMap.newKeySet();
-        final Map<String, List<String>> handled = new ConcurrentHashMap<>();
+        final Map<String, AtomicInteger> runs = new ConcurrentHashMap<>();
 
         @Override
         public ShardedEntityType<Command> entityType() {
@@ -62,27 +59,23 @@ class ShardedReliableDeliveryTest {
         @Override
         public SpringActorBehavior<Command> create(SpringShardedActorContext<Command> ctx) {
             String entityId = ctx.getEntityId();
-            SpringActorBehavior<Command> behavior = SpringActorBehavior.builder(Command.class, ctx)
+            return ReliableDelivery.consumer(SpringActorBehavior.builder(Command.class, ctx)
+                    .withSupervisionStrategy(SupervisionStrategy.restart())
                     .onMessage(PlaceOrder.class, (c, order) -> {
+                        runs.computeIfAbsent(entityId, id -> new AtomicInteger())
+                                .incrementAndGet();
                         if (failOnce.remove(entityId + "/" + order.id())) {
                             throw new IllegalStateException("database down for " + order.id());
                         }
-                        handled.computeIfAbsent(entityId, id -> new CopyOnWriteArrayList<>())
-                                .add(order.id());
                         return SpringActorBehavior.same();
                     })
-                    .build();
-            if (entityId.startsWith("restart-")) {
-                return ReliableDelivery.consumer(behavior, SupervisionStrategy.restart());
-            }
-            if (entityId.startsWith("resume-")) {
-                return ReliableDelivery.consumer(behavior, SupervisionStrategy.resume());
-            }
-            return ReliableDelivery.consumer(behavior);
+                    .build());
         }
     }
 
     private static ConfigurableApplicationContext context;
+    private static OrderEntity entity;
+    private static ShardedReliableSender<OrderEntity.Command> sender;
 
     @BeforeAll
     static void startOneNodeCluster() {
@@ -93,10 +86,13 @@ class ShardedReliableDeliveryTest {
                         "spring.actor.remote.port=0",
                         "spring.actor.cluster.join-self=true",
                         "spring.actor.pekko.management.enabled=false",
-                        // Wake a failed entity after 1s instead of 10s.
-                        "spring.actor.pekko.reliable-delivery.sharding.producer-controller"
-                                + ".resend-first-unconfirmed-idle-timeout=1s")
+                        "spring.actor.pekko.actor.serialize-messages=on")
                 .run();
+        entity = context.getBean(OrderEntity.class);
+        sender = context.getBean(SpringReliableDelivery.class)
+                .toSharded(OrderEntity.class)
+                .withRetry(RetryPolicy.defaults().withBackoff(Duration.ofMillis(50), Duration.ofMillis(200)))
+                .build();
     }
 
     @AfterAll
@@ -104,22 +100,26 @@ class ShardedReliableDeliveryTest {
         context.close();
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = {"stop-1", "restart-1", "resume-1"})
-    void entityWhoseHandlerThrewGetsTheMessageAgain(String entityId) throws Exception {
-        OrderEntity entity = context.getBean(OrderEntity.class);
-        entity.failOnce.add(entityId + "/o-2");
+    @Test
+    void throwingEntityHandlerIsRetriedAndSucceedsLater() throws Exception {
+        entity.failOnce.add("retry-1/o-1");
 
-        try (ShardedReliableSender<OrderEntity.Command> sender = context.getBean(SpringReliableDelivery.class)
-                .toSharded(OrderEntity.class)
-                .start()) {
-            CompletableFuture.allOf(Stream.of("o-1", "o-2", "o-3")
-                            .map(id -> sender.send(entityId, new OrderEntity.PlaceOrder(id))
-                                    .toCompletableFuture())
-                            .toArray(CompletableFuture[]::new))
-                    .get(30, SECONDS);
-        }
+        sender.send("retry-1", new OrderEntity.PlaceOrder("o-1"))
+                .toCompletableFuture()
+                .get(30, SECONDS);
 
-        assertThat(entity.handled.get(entityId)).containsExactly("o-1", "o-2", "o-3");
+        assertThat(entity.runs.get("retry-1")).hasValue(2);
+    }
+
+    @Test
+    void sameKeyToAnEntityRunsOnce() throws Exception {
+        sender.send("dedupe-1", new OrderEntity.PlaceOrder("o-1"), "order-1")
+                .toCompletableFuture()
+                .get(30, SECONDS);
+        sender.send("dedupe-1", new OrderEntity.PlaceOrder("o-1"), "order-1")
+                .toCompletableFuture()
+                .get(30, SECONDS);
+
+        assertThat(entity.runs.get("dedupe-1")).hasValue(1);
     }
 }
