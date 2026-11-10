@@ -200,8 +200,8 @@ module adds `suspend` versions).
 | Method | What it does | Default timeout | When it does not work out |
 |---|---|---|---|
 | `getOrSpawn(Class, id)` | Returns the running actor, or spawns it with default settings | 3 s | Fails if the spawn fails |
-| `get(Class, id)` | Returns the running actor | 100 ms | Completes with `null` when there is none, or on timeout |
-| `exists(Class, id)` | Says whether the actor runs | 100 ms | Completes with `false` when there is none, or on timeout |
+| `find(Class, id)` | Returns the running actor | 3 s | Completes with an empty `Optional` when there is none; fails on timeout |
+| `exists(Class, id)` | Says whether the actor runs | 3 s | Completes with `false` when there is none; fails on timeout |
 | `actor(Class)` | Starts a spawn builder for custom settings (see below) | 3 s | |
 
 Each method has an overload with a `Duration timeout` as the last argument.
@@ -309,22 +309,18 @@ default.
     fine in a test or at startup, but not inside an actor's handler or a WebFlux pipeline: compose the
     stage instead, or use the `suspend` functions in Kotlin.
 
-### get and exists
+### find and exists
 
-`get` returns a handle to a running actor and `exists` says whether one runs. Neither spawns anything.
+`find` returns a handle to a running actor and `exists` says whether one runs. Neither spawns anything.
 Use them when an absent actor means something to your code, for example "this order was never
 opened":
 
 === "Java"
 
     ```java
-    actorSystem.get(OrderActor.class, "order-42").thenAccept(order -> {
-        if (order == null) {
-            log.info("order-42 is not running");
-        } else {
-            order.tell(new OrderActor.MarkPaid(42));
-        }
-    });
+    actorSystem.find(OrderActor.class, "order-42").thenAccept(order -> order.ifPresentOrElse(
+            o -> o.tell(new OrderActor.MarkPaid(42)),
+            () -> log.info("order-42 is not running")));
     ```
 
 === "Kotlin"
@@ -339,9 +335,11 @@ opened":
     }
     ```
 
-The default timeout of `get` and `exists` is short (100 ms). When the actor system is very busy, a
-lookup can time out and report "not running" for an actor that runs. Pass a longer timeout if a wrong
-"no" would hurt.
+Both look at the top-level actors of this node and at the [cluster singletons](../cluster/singletons.md)
+this node spawned. When the actor system doesn't answer within the timeout (3 s by default), the stage
+fails with a `TimeoutException`; it never reports a running actor as missing.
+
+`get(Class, id)`, which completes with `null` when no actor runs, is deprecated: use `find`.
 
 ### Keeping a handle
 
@@ -634,7 +632,7 @@ The child builder (`handle.child(ChildClass)`) has the same shape as the spawn b
 | `spawn()` | Spawns the child. If a child with that class and id already runs, returns it. |
 | `getOrSpawn()` | Returns the running child, or spawns it |
 | `spawnAndWait()` | Blocks until the child runs. Never call it inside the parent. |
-| `get()` | The running child, or `null` |
+| `get()` | Deprecated: use `handle.child(ChildClass, id).get()`, which returns an `Optional` |
 | `exists()` | Whether the child runs |
 
 For lookups only, `handle.child(ChildClass, id)` returns a child reference whose `get()` completes with an

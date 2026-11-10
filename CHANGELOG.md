@@ -8,6 +8,10 @@
   counted once, as `actor.message.failures` (tags `actor.class`, `dispatcher`, `system`), by the starter's
   hooks with or without the agent; the bundled dashboard and alerts already use it. If you built your own
   dashboards or alerts on `actor_errors_total`, query `actor_message_failures_total` instead.
+- **A lookup that times out fails.** `exists`, `find` and the deprecated `get` used to turn a timeout into
+  `false` or `null`, so a busy actor system reported running actors as missing. The stage now fails with a
+  `TimeoutException`. Their default timeout is 3 s, like the other calls, instead of 100 ms;
+  `ActorConstants.DEFAULT_QUERY_TIMEOUT` is deprecated (#188).
 
 ### Features
 
@@ -15,6 +19,9 @@
   Pekko's `reference.conf` files, the starter's classes Pekko creates by name, `AskCommand`'s reply address,
   and the schema files. Your own serialized messages still need hints, and so do Pekko's own classes. See
   [Running in Production](https://seonwkim.github.io/actor-spring-boot-starter/guides/operations/production/#native-images-graalvm).
+- **`SpringActorSystem.find(Class, id)`** returns `CompletionStage<Optional<SpringActorHandle<C>>>`.
+  `get(Class, id)`, which completed with `null`, is deprecated. `SpringChildActorBuilder.get()` is
+  deprecated too: `handle.child(ChildClass, id).get()` already returns an `Optional` (#188).
 
 ### Fixes
 
@@ -24,6 +31,8 @@
 - Configuration metadata covers `management.health.actor.enabled` and the `spring.actor.dispatchers.*` sub-keys
   (`executor`, `virtual`, `throughput`), so IDEs complete them.
 - The metrics example no longer passes `-DACTOR_METRICS_DEBUG=true`, a flag no code reads.
+- **`find` and `exists` see cluster singletons** that this node spawned. They used to look only at the
+  root guardian's children (#188).
 - **`getOrSpawn` no longer races on a new id.** It checked whether the actor existed and then spawned it,
   so two callers asking for the same new id at once could make one fail with "Could not spawn". The root
   guardian now does both in one step, and every caller gets the same actor (#182).
