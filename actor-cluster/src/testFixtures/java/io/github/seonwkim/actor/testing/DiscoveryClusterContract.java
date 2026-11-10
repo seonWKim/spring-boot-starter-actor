@@ -52,12 +52,14 @@ public abstract class DiscoveryClusterContract {
                         "spring.actor.name=" + service,
                         "spring.actor.provider=cluster",
                         "spring.actor.remote.hostname=127.0.0.1",
-                        "spring.actor.remote.port=" + freePort(),
+                        // Port 0: the node binds a free port itself, so no other process can take it first (#224).
+                        "spring.actor.remote.port=0",
                         "spring.actor.cluster.join=discovery",
                         "spring.actor.cluster.discovery.heartbeat-interval=500ms",
                         "spring.actor.cluster.discovery.ttl=10s",
                         "spring.actor.shutdown.exit-process=false",
                         "spring.actor.pekko.management.http.hostname=127.0.0.1",
+                        // A picked port, not 0: the node registers this configured port as its contact point.
                         "spring.actor.pekko.management.http.port=" + freePort(),
                         "spring.actor.pekko.management.cluster.bootstrap.contact-point-discovery.required-contact-point-nr=3",
                         "spring.actor.pekko.management.cluster.bootstrap.contact-point-discovery.interval=300ms",

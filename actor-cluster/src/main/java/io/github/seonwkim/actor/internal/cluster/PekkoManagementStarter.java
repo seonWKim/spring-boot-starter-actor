@@ -17,8 +17,17 @@ public final class PekkoManagementStarter {
         PekkoManagement.get(PekkoActorSystem.raw(system).classicSystem()).start();
     }
 
-    public static void startBootstrap(SpringActorSystem system) {
+    /**
+     * Starts Cluster Bootstrap, unless the node joins itself (spring.actor.cluster.join-self): it is
+     * already joining, and Bootstrap would look for peers with a discovery method it has none of.
+     *
+     * @return whether Bootstrap was started
+     */
+    public static boolean startBootstrap(SpringActorSystem system) {
         ActorSystem classic = PekkoActorSystem.raw(system).classicSystem();
+        if (PekkoClusterSupport.joinsSelf(classic.settings().config())) {
+            return false;
+        }
         if (PeerRegistryServiceDiscovery.METHOD.equals(
                 classic.settings().config().getString("pekko.discovery.method"))) {
             // Register this node now, so a missing or broken PeerRegistry fails the startup
@@ -26,5 +35,6 @@ public final class PekkoManagementStarter {
             Discovery.get(classic).discovery();
         }
         ClusterBootstrap.get(classic).start();
+        return true;
     }
 }

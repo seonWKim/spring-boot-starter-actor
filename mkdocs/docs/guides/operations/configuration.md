@@ -55,7 +55,7 @@ Used with `provider: cluster`. See [Cluster Formation](../cluster/cluster-format
 |---|---|---|---|
 | `spring.actor.cluster.join` | `seed-nodes` | none | How this node finds the cluster: `seed-nodes` (the listed nodes) or `discovery` (peers found through `discovery.method`, with Pekko Cluster Bootstrap). |
 | `spring.actor.cluster.seed-nodes` | none | `pekko.cluster.seed-nodes` | Nodes to join at startup, as `pekko://<name>@<host>:<port>`. Not with `join: discovery`. |
-| `spring.actor.cluster.join-self` | `false` | none | Joins this node to itself: a one-node cluster without seed nodes, also on port `0`. For local runs and tests. Not with `seed-nodes` or `join: discovery`. |
+| `spring.actor.cluster.join-self` | `false` | none | Joins this node to itself: a one-node cluster without seed nodes, also on port `0`. For local runs and tests. Not with `seed-nodes` or `join: discovery`. With Pekko Management on the classpath, Cluster Bootstrap is not started for this node. |
 | `spring.actor.cluster.roles` | none | `pekko.cluster.roles` | Roles of this node. Sharded actors and singletons can be limited to a role. |
 
 ### Discovery

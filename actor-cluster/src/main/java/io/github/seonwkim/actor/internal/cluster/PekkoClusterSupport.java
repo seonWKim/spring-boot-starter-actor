@@ -1,6 +1,7 @@
 package io.github.seonwkim.actor.internal.cluster;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.typesafe.config.Config;
 import io.github.seonwkim.actor.internal.ClusterSupport;
 import io.github.seonwkim.actor.internal.shard.PekkoShardedActorBuilder;
 import io.github.seonwkim.actor.internal.shard.PekkoSharding;
@@ -34,6 +35,11 @@ public final class PekkoClusterSupport implements ClusterSupport {
     /** Set by spring.actor.cluster.join-self (ActorProperties): form a one-node cluster. */
     private static final String JOIN_SELF_KEY = "spring-actor.cluster.join-self";
 
+    /** Whether spring.actor.cluster.join-self is set: the node joins itself at startup. */
+    static boolean joinsSelf(Config config) {
+        return config.hasPath(JOIN_SELF_KEY) && config.getBoolean(JOIN_SELF_KEY);
+    }
+
     @Override
     public Map<String, Object> withDefaults(Map<String, Object> config) {
         return PekkoJackson.withSerializers(config);
@@ -62,8 +68,7 @@ public final class PekkoClusterSupport implements ClusterSupport {
     @Override
     public ClusterRuntime start(ActorSystem<?> system, ApplicationEventPublisher publisher) {
         Cluster cluster = Cluster.get(system);
-        if (system.settings().config().hasPath(JOIN_SELF_KEY)
-                && system.settings().config().getBoolean(JOIN_SELF_KEY)) {
+        if (joinsSelf(system.settings().config())) {
             cluster.manager().tell(Join.create(cluster.selfMember().address()));
         }
         // Every node runs a replicator from the start: a majority or all write from one node waits for

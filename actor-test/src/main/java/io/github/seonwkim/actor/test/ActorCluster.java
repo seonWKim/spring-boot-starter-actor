@@ -2,11 +2,9 @@ package io.github.seonwkim.actor.test;
 
 import static org.awaitility.Awaitility.await;
 
+import io.github.seonwkim.actor.SpringActorSystem;
 import io.github.seonwkim.actor.cluster.ClusterEvent;
 import io.github.seonwkim.actor.cluster.MemberStatus;
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.net.ServerSocket;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -22,8 +20,9 @@ import org.springframework.context.PayloadApplicationEvent;
 import org.springframework.core.io.DefaultResourceLoader;
 
 /**
- * A cluster of Spring application contexts in this JVM, one per node, on free ports. Node 1 is the
- * only seed node, so it forms the cluster at once and the others join it.
+ * A cluster of Spring application contexts in this JVM, one per node. Each node binds port 0, so the
+ * operating system picks a free port as it binds and no other process can take it in between. Node 1
+ * joins itself, forming the cluster at once; the others join it at the address it bound.
  *
  * <pre>{@code
  * try (ActorCluster cluster = ActorCluster.builder(MyApp.class).nodes(3).start()) {
@@ -219,16 +218,14 @@ public final class ActorCluster implements AutoCloseable {
 
         /** Starts the nodes in order and waits until every node sees all of them up. */
         public ActorCluster start() {
-            int[] ports = new int[nodes];
-            for (int i = 0; i < nodes; i++) {
-                ports[i] = freePort();
-            }
-            String seed = "pekko://" + systemName + "@127.0.0.1:" + ports[0];
             List<Node> started = new ArrayList<>();
             ActorCluster cluster = new ActorCluster(started, timeout);
             try {
-                for (int i = 0; i < nodes; i++) {
-                    started.add(startNode(i + 1, ports[i], seed));
+                started.add(startNode(1, "spring.actor.cluster.join-self=true"));
+                String seed =
+                        started.get(0).context.getBean(SpringActorSystem.class).nodeAddress();
+                for (int i = 2; i <= nodes; i++) {
+                    started.add(startNode(i, "spring.actor.pekko.cluster.seed-nodes[0]=" + seed));
                 }
                 cluster.awaitMembersUp(nodes);
             } catch (RuntimeException | Error e) {
@@ -242,19 +239,18 @@ public final class ActorCluster implements AutoCloseable {
             return cluster;
         }
 
-        private Node startNode(int number, int port, String seed) {
+        private Node startNode(int number, String join) {
             List<String> args = new ArrayList<>(List.of(
                     "spring.actor.pekko.name=" + systemName,
                     "spring.actor.pekko.actor.provider=cluster",
                     "spring.actor.pekko.remote.artery.canonical.hostname=127.0.0.1",
-                    "spring.actor.pekko.remote.artery.canonical.port=" + port,
-                    // One seed: the first node. As the first seed it forms the cluster at once; with
-                    // every node as a seed, it first waits seed-node-timeout for the others.
-                    "spring.actor.pekko.cluster.seed-nodes[0]=" + seed,
+                    // Port 0: the node binds a free port itself, so no other process can take it first.
+                    "spring.actor.pekko.remote.artery.canonical.port=0",
+                    join,
                     "spring.actor.pekko.cluster.downing-provider-class=org.apache.pekko.cluster.sbr.SplitBrainResolverProvider",
-                    // Used only when Pekko Management is on the classpath: one free port per node.
+                    // Used only when Pekko Management is on the classpath.
                     "spring.actor.pekko.management.http.hostname=127.0.0.1",
-                    "spring.actor.pekko.management.http.port=" + freePort(),
+                    "spring.actor.pekko.management.http.port=0",
                     "spring.actor.shutdown.exit-process=false"));
             args.addAll(properties);
             args.addAll(nodeProperties.getOrDefault(number, List.of()));
@@ -277,14 +273,6 @@ public final class ActorCluster implements AutoCloseable {
                 return new Node(context, members);
             } finally {
                 thread.setContextClassLoader(previous);
-            }
-        }
-
-        private static int freePort() {
-            try (ServerSocket socket = new ServerSocket(0)) {
-                return socket.getLocalPort();
-            } catch (IOException e) {
-                throw new UncheckedIOException(e);
             }
         }
     }

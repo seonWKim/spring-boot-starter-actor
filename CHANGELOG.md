@@ -59,6 +59,11 @@
 
 ### Fixes
 
+- `ActorCluster` (actor-test) no longer races other processes for ports: every node binds port 0, node 1
+  joins itself, and the others join it at the address it bound. Before, it picked free ports first and
+  bound them later, and a port could be taken in between ("Address already in use") (#224).
+- A node with `spring.actor.cluster.join-self` starts with Pekko Management on the classpath. Cluster
+  Bootstrap used to start too, and startup failed for want of a discovery method (#224).
 - Every worker of a router pool gets its own id (`worker-<uuid>`); they all shared one before. A failed
   child spawn is told apart from "already exists" by a status, not by comparing message text, and throws
   `IllegalStateException` (a `RuntimeException`, as before) naming the child's context id (#190).
