@@ -154,18 +154,25 @@ roomActor.tell(new ChatRoomActor.JoinRoom(userId, context.getSelf()));
 ### One sharded actor per room: `ChatRoomActor`
 
 Each room is a sharded entity that owns a topic named `chat-room-<roomId>`. The topic manager is injected
-into the actor bean:
+into the actor bean. The actor asks for the topic with `getOrCreateAsync()` and gets it as a message
+(`pipeToSelf`), so it never blocks its thread; commands that arrive first wait in a list and run once the
+topic is there:
 
 ```java
 @Override
 public SpringActorBehavior<Command> create(SpringShardedActorContext<Command> ctx) {
     final String roomId = ctx.getEntityId();
-    final SpringTopicRef<UserActor.Command> roomTopic = topicManager
-            .topic(TopicName.of(UserActor.Command.class, "chat-room-" + roomId))
-            .getOrCreate();
 
     return SpringActorBehavior.builder(Command.class, ctx)
-            .withState(behaviorCtx -> new ChatRoomBehavior(behaviorCtx, roomId, roomTopic))
+            .withState(behaviorCtx -> {
+                behaviorCtx.pipeToSelf(
+                        topicManager
+                                .topic(TopicName.of(UserActor.Command.class, "chat-room-" + roomId))
+                                .getOrCreateAsync(),
+                        TopicReady::new);
+                return new ChatRoomBehavior(behaviorCtx, roomId);
+            })
+            .onMessage(TopicReady.class, ChatRoomBehavior::onTopicReady)
             .onMessage(JoinRoom.class, ChatRoomBehavior::onJoinRoom)
             .onMessage(LeaveRoom.class, ChatRoomBehavior::onLeaveRoom)
             .onMessage(SendMessage.class, ChatRoomBehavior::onSendMessage)

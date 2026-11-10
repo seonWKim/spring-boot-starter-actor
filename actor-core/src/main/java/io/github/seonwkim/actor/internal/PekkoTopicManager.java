@@ -7,8 +7,13 @@ import io.github.seonwkim.actor.topic.SpringTopicManager;
 import io.github.seonwkim.actor.topic.SpringTopicRef;
 import io.github.seonwkim.actor.topic.TopicName;
 import java.time.Duration;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.TimeoutException;
+import java.util.function.Function;
 import org.apache.pekko.actor.typed.ActorRef;
+import org.apache.pekko.actor.typed.ActorSystem;
 import org.apache.pekko.actor.typed.javadsl.AskPattern;
 import org.apache.pekko.pattern.AskTimeoutException;
 
@@ -61,100 +66,69 @@ public final class PekkoTopicManager implements SpringTopicManager {
             return this;
         }
 
-        /**
-         * Creates the topic.
-         *
-         * @return Reference to the created topic
-         * @throws TopicAlreadyExistsException if the topic already exists
-         * @throws TopicCreationTimeoutException if the creation times out
-         */
         @Override
         public SpringTopicRef<T> create() {
-            String topicName = this.name;
-
-            try {
-                RootGuardian.TopicCreated<T> response = AskPattern.ask(
-                                PekkoActorSystem.raw(actorSystem),
-                                (ActorRef<RootGuardian.TopicCreated<T>> replyTo) ->
-                                        new RootGuardian.CreateTopic<>(messageType, topicName, replyTo),
-                                timeout,
-                                PekkoActorSystem.raw(actorSystem).scheduler())
-                        .toCompletableFuture()
-                        .get();
-
-                // Check if the topic already exists
-                if (response.alreadyExists) {
-                    if (response.errorMessage != null) {
-                        throw new TopicAlreadyExistsException(topicName, messageType, response.errorMessage);
-                    } else {
-                        throw new TopicAlreadyExistsException(topicName, messageType);
-                    }
-                }
-
-                // Check if creation was successful
-                if (!response.isSuccess() || response.topicRef == null) {
-                    throw new RuntimeException("Failed to create topic: " + topicName
-                            + (response.errorMessage != null ? " - " + response.errorMessage : ""));
-                }
-
-                return response.topicRef;
-            } catch (TopicAlreadyExistsException e) {
-                // Re-throw our custom exception
-                throw e;
-            } catch (ExecutionException e) {
-                // Unwrap ExecutionException to check for timeout or other exceptions
-                Throwable cause = e.getCause();
-                if (cause instanceof AskTimeoutException) {
-                    throw new TopicCreationTimeoutException(topicName, messageType, timeout, cause);
-                }
-                throw new RuntimeException("Failed to create topic: " + topicName, e);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new RuntimeException("Topic creation was interrupted: " + topicName, e);
-            } catch (Exception e) {
-                throw new RuntimeException("Failed to create topic: " + topicName, e);
-            }
+            return join(createAsync());
         }
 
-        /**
-         * Gets or creates the topic with idempotent semantics.
-         *
-         * @return Reference to the topic
-         * @throws TopicCreationTimeoutException if the operation times out
-         */
         @Override
         public SpringTopicRef<T> getOrCreate() {
-            String topicName = this.name;
+            return join(getOrCreateAsync());
+        }
 
+        @Override
+        public CompletionStage<SpringTopicRef<T>> createAsync() {
+            return ask(replyTo -> new RootGuardian.CreateTopic<>(messageType, name, replyTo))
+                    .thenApply(response -> {
+                        if (response.alreadyExists) {
+                            throw response.errorMessage != null
+                                    ? new TopicAlreadyExistsException(name, messageType, response.errorMessage)
+                                    : new TopicAlreadyExistsException(name, messageType);
+                        }
+                        return topicOf(response, "Failed to create topic: ");
+                    });
+        }
+
+        @Override
+        public CompletionStage<SpringTopicRef<T>> getOrCreateAsync() {
+            return ask(replyTo -> new RootGuardian.GetOrCreateTopic<>(messageType, name, replyTo))
+                    .thenApply(response -> topicOf(response, "Failed to get or create topic: "));
+        }
+
+        /** The root guardian's answer; a timeout becomes a {@link TopicCreationTimeoutException}. */
+        private CompletionStage<RootGuardian.TopicCreated<T>> ask(
+                Function<ActorRef<RootGuardian.TopicCreated<T>>, RootGuardian.Command> request) {
+            ActorSystem<RootGuardian.Command> system = PekkoActorSystem.raw(actorSystem);
+            CompletableFuture<RootGuardian.TopicCreated<T>> result = new CompletableFuture<>();
+            AskPattern.ask(system, request::apply, timeout, system.scheduler()).whenComplete((response, error) -> {
+                if (error == null) {
+                    result.complete(response);
+                } else if (error instanceof TimeoutException || error instanceof AskTimeoutException) {
+                    result.completeExceptionally(new TopicCreationTimeoutException(name, messageType, timeout, error));
+                } else {
+                    result.completeExceptionally(error);
+                }
+            });
+            return result;
+        }
+
+        private SpringTopicRef<T> topicOf(RootGuardian.TopicCreated<T> response, String failure) {
+            if (!response.isSuccess() || response.topicRef == null) {
+                throw new IllegalStateException(
+                        failure + name + (response.errorMessage != null ? " - " + response.errorMessage : ""));
+            }
+            return response.topicRef;
+        }
+
+        /** Waits for the stage and throws what it failed with, unwrapped. */
+        private SpringTopicRef<T> join(CompletionStage<SpringTopicRef<T>> stage) {
             try {
-                RootGuardian.TopicCreated<T> response = AskPattern.ask(
-                                PekkoActorSystem.raw(actorSystem),
-                                (ActorRef<RootGuardian.TopicCreated<T>> replyTo) ->
-                                        new RootGuardian.GetOrCreateTopic<>(messageType, topicName, replyTo),
-                                timeout,
-                                PekkoActorSystem.raw(actorSystem).scheduler())
-                        .toCompletableFuture()
-                        .get();
-
-                // Check if operation was successful
-                if (!response.isSuccess() || response.topicRef == null) {
-                    throw new RuntimeException("Failed to get or create topic: " + topicName
-                            + (response.errorMessage != null ? " - " + response.errorMessage : ""));
+                return stage.toCompletableFuture().join();
+            } catch (CompletionException e) {
+                if (e.getCause() instanceof RuntimeException runtime) {
+                    throw runtime;
                 }
-
-                return response.topicRef;
-            } catch (ExecutionException e) {
-                // Unwrap ExecutionException to check for timeout or other exceptions
-                Throwable cause = e.getCause();
-                if (cause instanceof AskTimeoutException) {
-                    throw new TopicCreationTimeoutException(topicName, messageType, timeout, cause);
-                }
-                throw new RuntimeException("Failed to get or create topic: " + topicName, e);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new RuntimeException("Topic get or create was interrupted: " + topicName, e);
-            } catch (Exception e) {
-                throw new RuntimeException("Failed to get or create topic: " + topicName, e);
+                throw new IllegalStateException("Failed to create topic: " + name, e.getCause());
             }
         }
     }

@@ -10,6 +10,8 @@ import io.github.seonwkim.actor.shard.SpringShardedActorContext;
 import io.github.seonwkim.actor.topic.SpringTopicManager;
 import io.github.seonwkim.actor.topic.SpringTopicRef;
 import io.github.seonwkim.actor.topic.TopicName;
+import java.util.ArrayList;
+import java.util.List;
 import org.springframework.stereotype.Component;
 
 /**
@@ -76,6 +78,9 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
         }
     }
 
+    /** The room's topic, sent by the actor to itself once it exists. Local only: it never crosses nodes. */
+    private record TopicReady(SpringTopicRef<UserActor.Command> topic, Throwable error) implements Command {}
+
     @Override
     public ShardedEntityType<Command> entityType() {
         return TYPE_KEY;
@@ -84,12 +89,18 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
     @Override
     public SpringActorBehavior<Command> create(SpringShardedActorContext<Command> ctx) {
         final String roomId = ctx.getEntityId();
-        final SpringTopicRef<UserActor.Command> roomTopic = topicManager
-                .topic(TopicName.of(UserActor.Command.class, "chat-room-" + roomId))
-                .getOrCreate();
 
         return SpringActorBehavior.builder(Command.class, ctx)
-                .withState(behaviorCtx -> new ChatRoomBehavior(behaviorCtx, roomId, roomTopic))
+                .withState(behaviorCtx -> {
+                    // Don't block the actor's thread on the topic: ask for it, and get it as a message.
+                    behaviorCtx.pipeToSelf(
+                            topicManager
+                                    .topic(TopicName.of(UserActor.Command.class, "chat-room-" + roomId))
+                                    .getOrCreateAsync(),
+                            TopicReady::new);
+                    return new ChatRoomBehavior(behaviorCtx, roomId);
+                })
+                .onMessage(TopicReady.class, ChatRoomBehavior::onTopicReady)
                 .onMessage(JoinRoom.class, ChatRoomBehavior::onJoinRoom)
                 .onMessage(LeaveRoom.class, ChatRoomBehavior::onLeaveRoom)
                 .onMessage(SendMessage.class, ChatRoomBehavior::onSendMessage)
@@ -97,20 +108,47 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
     }
 
     /**
-     * Behavior handler for chat room actor using pub/sub.
-     * Creates a topic owned by this actor using SpringTopicManager.
+     * Behavior handler for chat room actor using pub/sub. Commands that arrive before the room's
+     * topic exists wait in {@code pending} and run, in order, once it does.
      */
     private static class ChatRoomBehavior {
         private final SpringBehaviorContext<Command> ctx;
         private final String roomId;
-        private final SpringTopicRef<UserActor.Command> roomTopic;
+        private final List<Command> pending = new ArrayList<>();
+        private SpringTopicRef<UserActor.Command> roomTopic;
 
-        ChatRoomBehavior(
-                SpringBehaviorContext<Command> ctx, String roomId, SpringTopicRef<UserActor.Command> roomTopic) {
+        ChatRoomBehavior(SpringBehaviorContext<Command> ctx, String roomId) {
             this.ctx = ctx;
             this.roomId = roomId;
-            this.roomTopic = roomTopic;
+        }
+
+        private SpringActorBehavior<Command> onTopicReady(TopicReady ready) {
+            if (ready.error() != null) {
+                // The room stops; sharding starts it again on its next message, which asks again.
+                throw new IllegalStateException("No topic for chat room " + roomId, ready.error());
+            }
+            roomTopic = ready.topic();
             ctx.getLog().info("Created pub/sub topic for chat room: {}", roomId);
+            for (Command command : pending) {
+                if (command instanceof JoinRoom join) {
+                    onJoinRoom(join);
+                } else if (command instanceof LeaveRoom leave) {
+                    onLeaveRoom(leave);
+                } else if (command instanceof SendMessage send) {
+                    onSendMessage(send);
+                }
+            }
+            pending.clear();
+            return SpringActorBehavior.same();
+        }
+
+        /** True when the command must wait for the topic; it is kept and run later. */
+        private boolean waitForTopic(Command command) {
+            if (roomTopic == null) {
+                pending.add(command);
+                return true;
+            }
+            return false;
         }
 
         /**
@@ -120,6 +158,9 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
          * @return The next behavior (same in this case)
          */
         private SpringActorBehavior<Command> onJoinRoom(JoinRoom msg) {
+            if (waitForTopic(msg)) {
+                return SpringActorBehavior.same();
+            }
 
             // Subscribe the user to the room topic
             roomTopic.subscribe(msg.userActorRef);
@@ -140,6 +181,9 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
          * @return The next behavior (same in this case)
          */
         private SpringActorBehavior<Command> onLeaveRoom(LeaveRoom msg) {
+            if (waitForTopic(msg)) {
+                return SpringActorBehavior.same();
+            }
 
             // Unsubscribe the user from the topic
             roomTopic.unsubscribe(msg.userActorRef);
@@ -160,6 +204,9 @@ public class ChatRoomActor implements SpringShardedActor<ChatRoomActor.Command> 
          * @return The next behavior (same in this case)
          */
         private SpringActorBehavior<Command> onSendMessage(SendMessage msg) {
+            if (waitForTopic(msg)) {
+                return SpringActorBehavior.same();
+            }
             ctx.getLog().debug("Broadcasting message from {} in room {}", msg.userId, roomId);
 
             // Create a message event
