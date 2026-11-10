@@ -1,10 +1,8 @@
 package io.github.seonwkim.example.virtualthreads;
 
-import io.github.seonwkim.actor.EnableActorSupport;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-@EnableActorSupport
 @SpringBootApplication
 public class VirtualThreadsApplication {
 

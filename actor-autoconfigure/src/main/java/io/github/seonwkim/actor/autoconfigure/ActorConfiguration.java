@@ -18,6 +18,7 @@ import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.context.properties.bind.Bindable;
@@ -25,7 +26,6 @@ import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 import org.springframework.util.ClassUtils;
 
@@ -44,7 +44,8 @@ import org.springframework.util.ClassUtils;
  * beans, which avoids circular dependencies between actor beans and the actor system. The registry belongs
  * to this context, so several contexts in one JVM keep their actors apart.
  */
-@Configuration
+@AutoConfiguration
+@ConditionalOnActorEnabled
 @EnableConfigurationProperties(ActorProperties.class)
 public class ActorConfiguration {
 

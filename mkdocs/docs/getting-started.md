@@ -85,16 +85,16 @@ dependencies such as Jackson.
 !!! note
     Spring Boot 3.5 manages Jackson 2.18+, which satisfies Pekko. No `jackson-bom` override is needed.
 
-## 2. Enable actor support
+## 2. Start the application
 
-Add `@EnableActorSupport` to your application class. It starts one actor system for the Spring context
-and stops it when the context closes.
+The starter is a Spring Boot auto-configuration: with the dependency on the classpath, a
+`@SpringBootApplication` starts one actor system for the Spring context and stops it when the context
+closes. `spring.actor.enabled=false` keeps the starter on the classpath without starting one.
 
 === "Java"
 
     ```java
     @SpringBootApplication
-    @EnableActorSupport
     public class MyApplication {
         public static void main(String[] args) {
             SpringApplication.run(MyApplication.class, args);
@@ -106,13 +106,17 @@ and stops it when the context closes.
 
     ```kotlin
     @SpringBootApplication
-    @EnableActorSupport
     class MyApplication
 
     fun main(args: Array<String>) {
         runApplication<MyApplication>(*args)
     }
     ```
+
+!!! note "`@EnableActorSupport` is optional"
+    Applications written for 1.0.0 have `@EnableActorSupport` on the application class. It still works and
+    adds nothing in a Spring Boot application, so you can remove it. Keep it only where auto-configuration
+    is off, such as a context built without `@EnableAutoConfiguration`.
 
 ## 3. Write an actor
 

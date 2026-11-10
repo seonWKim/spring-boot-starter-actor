@@ -1,0 +1,12 @@
+io.github.seonwkim.actor.autoconfigure.ActorConfiguration
+io.github.seonwkim.actor.autoconfigure.cluster.ClusterConfiguration
+io.github.seonwkim.actor.autoconfigure.cluster.StoreConfiguration
+io.github.seonwkim.actor.autoconfigure.persistence.PersistenceConfiguration
+io.github.seonwkim.actor.autoconfigure.projection.ProjectionConfiguration
+io.github.seonwkim.actor.autoconfigure.management.PekkoManagementAutoConfiguration
+io.github.seonwkim.actor.autoconfigure.health.ActorHealthConfiguration
+io.github.seonwkim.actor.autoconfigure.metrics.ActorMetricsConfiguration
+io.github.seonwkim.actor.autoconfigure.metrics.ClusterMetricsConfiguration
+io.github.seonwkim.actor.autoconfigure.endpoint.ActorsEndpointConfiguration
+io.github.seonwkim.actor.autoconfigure.tracing.ActorTracingConfiguration
+io.github.seonwkim.actor.autoconfigure.streams.ActorStreamsConfiguration

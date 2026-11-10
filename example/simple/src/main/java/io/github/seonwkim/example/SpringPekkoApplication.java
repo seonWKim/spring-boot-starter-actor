@@ -1,11 +1,9 @@
 package io.github.seonwkim.example;
 
-import io.github.seonwkim.actor.EnableActorSupport;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-@EnableActorSupport
 public class SpringPekkoApplication {
 
     public static void main(String[] args) {

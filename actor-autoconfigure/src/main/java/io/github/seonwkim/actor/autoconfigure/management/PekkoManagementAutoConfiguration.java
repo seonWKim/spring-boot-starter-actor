@@ -1,14 +1,16 @@
 package io.github.seonwkim.actor.autoconfigure.management;
 
 import io.github.seonwkim.actor.SpringActorSystem;
+import io.github.seonwkim.actor.autoconfigure.ActorConfiguration;
+import io.github.seonwkim.actor.autoconfigure.ConditionalOnActorEnabled;
 import io.github.seonwkim.actor.internal.cluster.PekkoManagementStarter;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.context.annotation.Configuration;
 
 /**
  * Auto-configuration for Pekko Management and Cluster Bootstrap.
@@ -40,7 +42,8 @@ import org.springframework.context.annotation.Configuration;
  * implementation("org.apache.pekko:pekko-discovery-kubernetes-api_3:1.1.1")
  * </pre>
  */
-@Configuration
+@AutoConfiguration(after = ActorConfiguration.class)
+@ConditionalOnActorEnabled
 @ConditionalOnClass(
         name = {
             "io.github.seonwkim.actor.internal.cluster.PekkoManagementStarter",

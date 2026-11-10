@@ -25,8 +25,6 @@ dependencies {
 }
 ```
 
-Keep `@EnableActorSupport` on your application, as for any actor.
-
 ## Write an event-sourced actor
 
 An event-sourced actor is a `SpringActor` whose `create` returns a `SpringEventSourcedBehavior`:

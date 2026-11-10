@@ -1,16 +1,18 @@
 package io.github.seonwkim.actor.autoconfigure.metrics;
 
 import io.github.seonwkim.actor.SpringActorSystem;
+import io.github.seonwkim.actor.autoconfigure.ConditionalOnActorEnabled;
+import io.github.seonwkim.actor.autoconfigure.cluster.ClusterConfiguration;
 import io.github.seonwkim.actor.cluster.ClusterEvent;
 import io.github.seonwkim.actor.internal.cluster.ClusterStateView;
 import io.github.seonwkim.actor.internal.shard.ShardedActorRegistry;
 import io.github.seonwkim.actor.internal.shard.ShardingStats;
 import io.github.seonwkim.actor.metrics.cluster.ClusterMeters;
 import io.github.seonwkim.actor.metrics.cluster.ShardingMeters;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.context.event.EventListener;
 
 /**
@@ -18,7 +20,8 @@ import org.springframework.context.event.EventListener;
  * classpath. Spring Boot binds the {@link ClusterMeters} and {@link ShardingMeters} beans to every
  * {@code MeterRegistry}. {@code spring.actor.metrics.enabled=false} turns them off.
  */
-@Configuration(proxyBeanMethods = false)
+@AutoConfiguration(after = ClusterConfiguration.class)
+@ConditionalOnActorEnabled
 @ConditionalOnClass(
         name = {
             "io.micrometer.core.instrument.MeterRegistry",

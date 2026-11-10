@@ -1,6 +1,10 @@
 package io.github.seonwkim.actor.autoconfigure.health;
 
 import io.github.seonwkim.actor.SpringActorSystem;
+import io.github.seonwkim.actor.autoconfigure.ActorConfiguration;
+import io.github.seonwkim.actor.autoconfigure.ConditionalOnActorEnabled;
+import io.github.seonwkim.actor.autoconfigure.cluster.ClusterConfiguration;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -14,7 +18,8 @@ import org.springframework.context.annotation.Configuration;
  * <p>Each class carries all of its own conditions, and none needs an Actuator class to evaluate: a
  * component scan can find the nested class on its own, and Actuator may be absent.
  */
-@Configuration(proxyBeanMethods = false)
+@AutoConfiguration(after = {ActorConfiguration.class, ClusterConfiguration.class})
+@ConditionalOnActorEnabled
 @ConditionalOnClass(name = ActorHealthConfiguration.ACTUATOR)
 @ConditionalOnProperty(name = ActorHealthConfiguration.ENABLED, matchIfMissing = true)
 public class ActorHealthConfiguration {

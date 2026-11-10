@@ -1,6 +1,8 @@
 package io.github.seonwkim.actor.autoconfigure.cluster;
 
+import io.github.seonwkim.actor.autoconfigure.ActorConfiguration;
 import io.github.seonwkim.actor.autoconfigure.ActorProperties;
+import io.github.seonwkim.actor.autoconfigure.ConditionalOnActorEnabled;
 import io.github.seonwkim.actor.autoconfigure.SchemaScriptInitializer;
 import io.github.seonwkim.actor.jdbc.JdbcLeaseStore;
 import io.github.seonwkim.actor.jdbc.JdbcPeerRegistry;
@@ -9,6 +11,7 @@ import io.github.seonwkim.actor.redis.RedisPeerRegistry;
 import io.github.seonwkim.actor.spi.LeaseStore;
 import io.github.seonwkim.actor.spi.PeerRegistry;
 import javax.sql.DataSource;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.AnyNestedCondition;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -26,7 +29,13 @@ import org.springframework.data.redis.connection.RedisConnectionFactory;
  * type replaces the built-in one. Each store applies only when its module ({@code actor-jdbc},
  * {@code actor-redis}) and the Spring library it uses are on the classpath.
  */
-@Configuration(proxyBeanMethods = false)
+@AutoConfiguration(
+        after = ActorConfiguration.class,
+        afterName = {
+            "org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration",
+            "org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration"
+        })
+@ConditionalOnActorEnabled
 public class StoreConfiguration {
 
     private static final String DISCOVERY_METHOD = "spring.actor.cluster.discovery.method";

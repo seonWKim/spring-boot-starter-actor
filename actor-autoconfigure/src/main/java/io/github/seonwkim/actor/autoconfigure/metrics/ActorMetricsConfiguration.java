@@ -1,16 +1,18 @@
 package io.github.seonwkim.actor.autoconfigure.metrics;
 
+import io.github.seonwkim.actor.autoconfigure.ActorConfiguration;
+import io.github.seonwkim.actor.autoconfigure.ConditionalOnActorEnabled;
 import io.github.seonwkim.actor.internal.ActorInstrumentation;
 import io.github.seonwkim.actor.metrics.agent.MetricsAgent;
 import io.github.seonwkim.actor.metrics.autoconfigure.ActorMetricsProperties;
 import io.github.seonwkim.actor.metrics.internal.hooks.ActorMeters;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 
 /**
  * Actor meters ({@code actor-metrics}) without the Java agent, when Micrometer is on the classpath:
@@ -18,7 +20,8 @@ import org.springframework.context.annotation.Configuration;
  * {@code MeterRegistry} bean the hooks do nothing. {@code spring.actor.metrics.enabled=false}
  * turns them off.
  */
-@Configuration(proxyBeanMethods = false)
+@AutoConfiguration(after = ActorConfiguration.class)
+@ConditionalOnActorEnabled
 @ConditionalOnClass(
         name = {
             "io.micrometer.core.instrument.MeterRegistry",

@@ -39,7 +39,6 @@ Using several modules? Import the `io.github.seonwkim:actor-bom` BOM ([Getting s
 
 ```java
 @SpringBootApplication
-@EnableActorSupport
 public class MyApplication {
     public static void main(String[] args) {
         SpringApplication.run(MyApplication.class, args);

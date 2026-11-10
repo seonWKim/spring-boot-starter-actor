@@ -31,7 +31,7 @@ Add the module next to the starter:
     </dependency>
     ```
 
-With `@EnableActorSupport`, the application has an `ActorStreams` bean. Inject it where you need it:
+With `actor-streams` on the classpath, the application has an `ActorStreams` bean. Inject it where you need it:
 
 === "Java"
 

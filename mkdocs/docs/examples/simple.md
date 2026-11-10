@@ -47,9 +47,10 @@ spawns a new actor.
 
 ### Turn on actor support
 
+The starter is on the classpath, so `@SpringBootApplication` is enough:
+
 ```java
 @SpringBootApplication
-@EnableActorSupport
 public class SpringPekkoApplication {
     public static void main(String[] args) {
         SpringApplication.run(SpringPekkoApplication.class, args);
