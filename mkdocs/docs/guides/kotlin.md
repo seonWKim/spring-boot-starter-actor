@@ -81,7 +81,7 @@ val counter = actorSystem.sharded<CounterActor, _>().withId("counter-1").get()
 |---|---|
 | `actor<A, _>()` | `actor(A.class)` |
 | `sharded<A, _>()` | `sharded(A.class)` |
-| `awaitGetOrSpawn<A, _>(id)`, `awaitGet<A, _>(id)`, `awaitExists<A, _>(id)` | `getOrSpawn`, `get`, `exists` with `A.class` |
+| `awaitGetOrSpawn<A, _>(id)`, `awaitGet<A, _>(id)`, `awaitExists<A, _>(id)` | `getOrSpawn`, `find` (as a nullable), `exists` with `A.class` |
 | `builder.awaitSpawn()`, `builder.awaitGetOrSpawn()` | `spawn()`, `getOrSpawn()` on the spawn builder |
 | `actorBehavior<C>(actorContext)` | `SpringActorBehavior.builder(C.class, actorContext)` |
 | `unwrap<X>()` on the actor system, a ref or a behavior context | `unwrap(X.class)` |

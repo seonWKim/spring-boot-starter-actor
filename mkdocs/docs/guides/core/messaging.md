@@ -111,7 +111,7 @@ Every ask has a timeout. When no reply arrives in time, the stage fails with
 
 | Where the handle came from | Default ask timeout |
 |---|---|
-| `spawn`, `getOrSpawn`, `get`, a child builder, `ctx.getSelf()` | 3 s |
+| `spawn`, `getOrSpawn`, `find`, `exists`, a child builder, `ctx.getSelf()` | 3 s |
 
 Set your own with `withTimeout(Duration)`. Pick a timeout that fits the caller (an HTTP request's
 budget), not the actor.

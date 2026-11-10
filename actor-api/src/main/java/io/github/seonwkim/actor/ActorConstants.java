@@ -29,13 +29,20 @@ public final class ActorConstants {
     /**
      * Default timeout in milliseconds for quick queries (e.g., exists checks).
      * Quick operations should complete faster than regular operations.
+     *
+     * @deprecated No longer used: {@code exists} and {@code find} wait {@link #DEFAULT_TIMEOUT}, since a
+     *     100 ms timeout made a busy actor system report running actors as missing.
      */
+    @Deprecated(since = "1.1.0")
     public static final int DEFAULT_QUERY_TIMEOUT_MILLIS = 100;
 
     /**
      * Default timeout duration for quick query operations.
      * This is the Duration equivalent of {@link #DEFAULT_QUERY_TIMEOUT_MILLIS}.
+     *
+     * @deprecated No longer used; see {@link #DEFAULT_QUERY_TIMEOUT_MILLIS}.
      */
+    @Deprecated(since = "1.1.0")
     public static final Duration DEFAULT_QUERY_TIMEOUT = Duration.ofMillis(DEFAULT_QUERY_TIMEOUT_MILLIS);
 
     /** Default for {@code spring.actor.shutdown-timeout}: how long a graceful shutdown may take. */

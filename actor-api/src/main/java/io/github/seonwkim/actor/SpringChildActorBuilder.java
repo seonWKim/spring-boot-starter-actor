@@ -167,7 +167,10 @@ public interface SpringChildActorBuilder<P, C> {
      *
      * @return A CompletionStage that will be completed with the child actor reference, or null if not found
      * @throws IllegalStateException If neither childId nor childContext is set
+     * @deprecated Use {@code parent.child(ChildActor.class, id).get()} ({@link SpringChildActorReference#get()}),
+     *     which returns an {@link java.util.Optional} instead of null. This builder is for spawning.
      */
+    @Deprecated(since = "1.1.0")
     CompletionStage<SpringActorHandle<C>> get();
 
     /**

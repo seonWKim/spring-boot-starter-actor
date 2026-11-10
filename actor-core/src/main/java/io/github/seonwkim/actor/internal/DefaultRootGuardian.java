@@ -3,6 +3,9 @@ package io.github.seonwkim.actor.internal;
 import io.github.seonwkim.actor.SpringActorContext;
 import io.github.seonwkim.actor.topic.SpringTopicRef;
 import io.github.seonwkim.actor.topic.TopicName;
+import java.util.HashMap;
+import java.util.Map;
+import javax.annotation.Nullable;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
@@ -26,6 +29,12 @@ public class DefaultRootGuardian implements RootGuardian {
 
     /** The actor context */
     private final ActorContext<Command> ctx;
+
+    /**
+     * Proxies of the cluster singletons spawned through this guardian, by actor name. A singleton is
+     * not a child of the guardian, so {@code get} and {@code exists} look here too.
+     */
+    private final Map<String, ActorRef<?>> singletons = new HashMap<>();
 
     /**
      * Creates a new DefaultRootGuardian with the given actor context.
@@ -91,6 +100,9 @@ public class DefaultRootGuardian implements RootGuardian {
                     msg.dispatcherConfig,
                     msg.tagsConfig,
                     msg.isClusterSingleton);
+            if (msg.isClusterSingleton) {
+                singletons.put(key, ref);
+            }
             msg.replyTo.tell(new Spawned<>(ref));
         } catch (RuntimeException e) {
             // A bad request (unknown dispatcher, duplicate name, ...) must not stop the guardian:
@@ -101,28 +113,26 @@ public class DefaultRootGuardian implements RootGuardian {
     }
 
     /**
-     * Handles a GetActor command by looking up a child actor using the actor context.
-     * No caching is used - the lookup is performed directly on the actor context.
+     * Handles a GetActor command: the top-level actor with that class and id, or the cluster singleton
+     * this guardian spawned under that name.
      *
      * @param msg The GetActor command
      * @return The same behavior
      */
     public Behavior<RootGuardian.Command> handleGetActor(GetActor msg) {
-        ActorRef<?> ref = ActorSpawner.getActor(ctx, msg.actorClass, msg.actorContext.actorId());
-        msg.replyTo.tell(new GetActorResponse<>(ref));
+        msg.replyTo.tell(new GetActorResponse<>(find(msg.actorClass, msg.actorContext)));
         return Behaviors.same();
     }
 
     /**
-     * Handles a CheckExists command by checking if a child actor exists using the actor context.
-     * No caching is used - the lookup is performed directly on the actor context.
+     * Handles a CheckExists command: whether a top-level actor with that class and id runs, or this
+     * guardian spawned a cluster singleton under that name.
      *
      * @param msg The CheckExists command
      * @return The same behavior
      */
     public Behavior<RootGuardian.Command> handleCheckExists(CheckExists msg) {
-        boolean exists = ActorSpawner.actorExists(ctx, msg.actorClass, msg.actorContext.actorId());
-        msg.replyTo.tell(new ExistsResponse(exists));
+        msg.replyTo.tell(new ExistsResponse(find(msg.actorClass, msg.actorContext) != null));
         return Behaviors.same();
     }
 
@@ -254,6 +264,12 @@ public class DefaultRootGuardian implements RootGuardian {
      */
     private String buildTopicActorName(String topicName, Class<?> messageType) {
         return "topic-" + topicName + "-" + messageType.getName().replace(".", "_");
+    }
+
+    /** The running top-level actor, or the singleton this guardian spawned, with this class and id. */
+    @Nullable private ActorRef<?> find(Class<?> actorClass, SpringActorContext actorContext) {
+        ActorRef<?> child = ActorSpawner.getActor(ctx, actorClass, actorContext.actorId());
+        return child != null ? child : singletons.get(buildActorKey(actorClass, actorContext));
     }
 
     private String buildActorKey(Class<?> actorClass, SpringActorContext actorContext) {

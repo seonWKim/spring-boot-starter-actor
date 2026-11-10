@@ -245,12 +245,11 @@ The proxy stays valid for the life of the node, also when the singleton moves. K
 The other spawn settings apply to the singleton: `withSupervisionStrategy`, the dispatcher
 (`withBlockingDispatcher()`, `withDispatcherFromConfig(...)`), the mailbox and tags.
 
-!!! warning "Not with `get`, `exists` or as a child"
-    `actorSystem.get(...)` and `exists(...)` look only at the regular actors of this node, so they don't
-    find a singleton: `get` returns `null` and `exists` returns `false`. Keep the handle from `spawn()`, or
-    call `spawn()` with `asClusterSingleton()` again. `getOrSpawn()` with `asClusterSingleton()` also works,
-    because it falls back to `spawn()`. A child actor can't be a singleton: only actors spawned from
-    `SpringActorSystem` can.
+!!! warning "`find` and `exists` see only singletons this node spawned"
+    `actorSystem.find(...)` and `exists(...)` find a singleton on the nodes that called `spawn()` with
+    `asClusterSingleton()` for it. On another node they report no actor: call `spawn()` with
+    `asClusterSingleton()` there too (it is idempotent), or `getOrSpawn()`. A child actor can't be a
+    singleton: only actors spawned from `SpringActorSystem` can.
 
 In local mode (`spring.actor.provider` not `cluster`), the stage returned by `spawn()` fails with
 `IllegalStateException`: "Cluster singleton requested but cluster mode is not enabled".
