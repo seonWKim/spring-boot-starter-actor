@@ -1,0 +1,51 @@
+# Native image smoke test: builds the simple example with GraalVM and asks its actor over HTTP.
+# Weekly and on demand only, never on pull requests (a native build takes several minutes).
+name: Native image
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 3 * * 1'  # Mondays 03:00 UTC
+
+jobs:
+  simple-example:
+    name: Simple example as a native image
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: 📦 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: ☕ Set up GraalVM 21
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '21'
+          distribution: 'graalvm'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          cache: gradle
+
+      # The init script applies Native Build Tools to the example; Spring AOT runs first (processAot).
+      - name: 🏗 Build the native image
+        run: >
+          ./gradlew :example:simple:nativeCompile --no-configuration-cache
+          --init-script scripts/native/native-image.init.gradle.kts
+          -PnativeExamples=:example:simple
+
+      - name: 🧪 Start it and ask the actor
+        run: |
+          app=example/simple/build/native/nativeCompile/simple
+          "$app" > app.log 2>&1 &
+          pid=$!
+          for _ in $(seq 1 60); do
+            if body=$(curl -sf http://localhost:8080/hello); then
+              echo "GET /hello -> $body"
+              kill "$pid"
+              exit 0
+            fi
+            kill -0 "$pid" 2>/dev/null || break
+            sleep 1
+          done
+          echo "❌ No answer from GET /hello"
+          cat app.log
+          kill "$pid" 2>/dev/null || true
+          exit 1
