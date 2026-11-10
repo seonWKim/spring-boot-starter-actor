@@ -278,7 +278,7 @@ In a WebFlux application, wrap the stage with `Mono.fromCompletionStage(...)` (J
         .withId("order-42")
         .withBlockingDispatcher()                       // it calls a JPA repository
         .withMailbox(MailboxConfig.bounded(1_000))
-        .withSupervisionStrategy(SupervisionStrategy.restart().withLimit(3, 1.minutes.toJavaDuration()))
+        .withSupervisionStrategy(SupervisionStrategy.restart().withLimit(3, 1.minutes))
         .withTimeout(5.seconds)
         .awaitGetOrSpawn()
     ```
@@ -593,7 +593,7 @@ get the result back as a message instead:
                 .onMessage(Assign::class.java) { ctx, msg ->
                     ctx.pipeToSelf(
                         ctx.self
-                            .child(WorkerActor::class.java)
+                            .child<WorkerActor, _>()
                             .withId(msg.workerId)
                             .withSupervisionStrategy(SupervisionStrategy.restart())
                             .getOrSpawn(),
@@ -651,10 +651,11 @@ For lookups only, `handle.child(ChildClass, id)` returns a child reference whose
 === "Kotlin"
 
     ```kotlin
-    val worker: CompletionStage<Optional<SpringActorHandle<WorkerActor.Command>>> =
-        dispatcher.child(WorkerActor::class.java, "worker-1").get()
-    val running: CompletionStage<Boolean> =
-        dispatcher.child(WorkerActor::class.java, "worker-1").withTimeout(1.seconds.toJavaDuration()).exists()
+    // In a suspend function
+    val worker: SpringActorHandle<WorkerActor.Command>? =
+        dispatcher.child<WorkerActor, _>("worker-1").awaitGet()   // null when it doesn't run
+    val running: Boolean =
+        dispatcher.child<WorkerActor, _>("worker-1").withTimeout(1.seconds).awaitExists()
     ```
 
 These calls work from outside the parent too: any code with the parent's handle (here `dispatcher`) can

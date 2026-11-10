@@ -84,7 +84,42 @@ val counter = actorSystem.sharded<CounterActor, _>().withId("counter-1").get()
 | `awaitGetOrSpawn<A, _>(id)`, `awaitGet<A, _>(id)`, `awaitExists<A, _>(id)` | `getOrSpawn`, `find` (as a nullable), `exists` with `A.class` |
 | `builder.awaitSpawn()`, `builder.awaitGetOrSpawn()` | `spawn()`, `getOrSpawn()` on the spawn builder |
 | `actorBehavior<C>(actorContext)` | `SpringActorBehavior.builder(C.class, actorContext)` |
+| `handle.child<A, _>()`, `handle.child<A, _>(id)` | `child(A.class)`, `child(A.class, id)` |
+| `awaitSpawn()`, `awaitGetOrSpawn()`, `awaitExists()` on a child builder; `awaitGet()`, `awaitExists()` on a child reference | `spawn()`, `getOrSpawn()`, `get()`, `exists()` |
+| `withTimeout(5.seconds)`, `withLimit(10, 1.minutes)`, `startSingleTimer(key, msg, 30.seconds)`, `startTimerAtFixedRate(key, msg, 10.seconds)` | the same methods with a `java.time.Duration` |
 | `unwrap<X>()` on the actor system, a ref or a behavior context | `unwrap(X.class)` |
+
+## Child actors
+
+`handle.child<A, _>()` is the child builder and `handle.child<A, _>(id)` the lookup reference of
+[Child actors](core/actors.md#child-actors). Outside the parent, the `await*` functions suspend until the
+operation completes. A child lookup returns `null` when the child doesn't run:
+
+```kotlin
+// In a suspend function, with the parent's handle
+val worker = dispatcher.child<WorkerActor, _>()
+    .withId("worker-1")
+    .withSupervisionStrategy(SupervisionStrategy.restart().withLimit(10, 1.minutes))
+    .withTimeout(5.seconds)
+    .awaitGetOrSpawn()
+
+val found: SpringActorHandle<WorkerActor.Command>? = dispatcher.child<WorkerActor, _>("worker-1").awaitGet()
+val running: Boolean = dispatcher.child<WorkerActor, _>("worker-1").awaitExists()
+```
+
+Inside the parent's own handlers, don't wait: pass `spawn()` or `getOrSpawn()` to `pipeToSelf`, as in
+[Spawning children from inside the parent](core/actors.md#spawning-children-from-inside-the-parent).
+
+## Durations
+
+These methods also take a `kotlin.time.Duration`: `withTimeout` on the spawn, sharded, child and ask
+builders and on the child reference, `SupervisionStrategy.restart().withLimit`, and the timers on the
+behavior context:
+
+```kotlin
+ctx.startSingleTimer("idle", IdleTimeout, 30.minutes)
+ctx.startTimerAtFixedRate("flush", Flush, 10.seconds)
+```
 
 ## Asking
 

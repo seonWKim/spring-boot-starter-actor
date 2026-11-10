@@ -31,6 +31,9 @@
 - **BOM.** `io.github.seonwkim:actor-bom` lists every module at one version: import it with Gradle's
   `platform(...)` or Maven's `<scope>import</scope>` and leave the version off each module. The 0.x
   `spring-boot-starter-actor-bom` (0.0.1, Spring Boot 2.7) is not relocated to it.
+- Kotlin: suspend helpers for child actors (`parent.child<WorkerActor, _>().awaitSpawn()`, `awaitGetOrSpawn()`,
+  `awaitExists()`, and `parent.child<WorkerActor, _>("id").awaitGet()`), and `kotlin.time.Duration` overloads for the child builder and reference,
+  `SupervisionStrategy.restart().withLimit` and the behavior context's timers.
 
 ### Fixes
 

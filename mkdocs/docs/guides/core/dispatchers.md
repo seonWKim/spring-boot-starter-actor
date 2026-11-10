@@ -83,7 +83,7 @@ A child actor uses the `withDispatcher(...)` form:
 === "Kotlin"
 
     ```kotlin
-    ctx.self.child(ExportWorker::class.java)
+    ctx.self.child<ExportWorker, _>()
         .withId("export-1")
         .withDispatcher(DispatcherConfig.blocking())
         .spawn()
