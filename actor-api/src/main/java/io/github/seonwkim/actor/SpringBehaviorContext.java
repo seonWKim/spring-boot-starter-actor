@@ -40,7 +40,34 @@ public interface SpringBehaviorContext<T> {
     /** The address of the node this actor runs on; see {@link SpringActorSystem#nodeAddress()}. */
     String nodeAddress();
 
-    /** The child actor with this name, if it is running. */
+    /**
+     * This actor's id: the id it was spawned with ({@code withId(...)}, {@code getOrSpawn(..., id)} or
+     * its context's {@link SpringActorContext#actorId()}).
+     *
+     * @since 1.1.0
+     */
+    default String actorId() {
+        throw new UnsupportedOperationException(getClass().getName() + " does not implement actorId()");
+    }
+
+    /**
+     * The running child of this class with this id, the way it was spawned with
+     * {@code getSelf().child(actorClass).withId(actorId)}.
+     *
+     * @since 1.1.0
+     */
+    default <C> Optional<SpringActorRef<C>> getChild(
+            Class<? extends SpringActorWithContext<C, ?>> actorClass, String actorId) {
+        throw new UnsupportedOperationException(getClass().getName() + " does not implement getChild(Class, String)");
+    }
+
+    /**
+     * The child actor with this name, if it is running.
+     *
+     * @deprecated The name is the starter's internal {@code <class name>:<id>}; use
+     *     {@link #getChild(Class, String)}.
+     */
+    @Deprecated(since = "1.1.0")
     Optional<SpringActorRef<Void>> getChild(String name);
 
     /** The running child actors. */

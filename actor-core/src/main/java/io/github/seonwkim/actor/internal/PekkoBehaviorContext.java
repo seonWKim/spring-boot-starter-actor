@@ -2,6 +2,7 @@ package io.github.seonwkim.actor.internal;
 
 import io.github.seonwkim.actor.SpringActorHandle;
 import io.github.seonwkim.actor.SpringActorRef;
+import io.github.seonwkim.actor.SpringActorWithContext;
 import io.github.seonwkim.actor.SpringBehaviorContext;
 import io.github.seonwkim.actor.receptionist.ServiceName;
 import java.time.Duration;
@@ -10,6 +11,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.TimerScheduler;
 import org.apache.pekko.actor.typed.receptionist.Receptionist;
@@ -20,10 +22,22 @@ public final class PekkoBehaviorContext<T> implements SpringBehaviorContext<T> {
 
     private final ActorContext<T> ctx;
     private final TimerScheduler<T> timers;
+    private final String actorId;
 
-    public PekkoBehaviorContext(ActorContext<T> ctx, TimerScheduler<T> timers) {
+    public PekkoBehaviorContext(ActorContext<T> ctx, TimerScheduler<T> timers, String actorId) {
         this.timers = timers;
         this.ctx = ctx;
+        this.actorId = actorId;
+    }
+
+    /** A context whose actor id is read from the actor's name, for behaviors built without a {@code SpringActorContext}. */
+    public PekkoBehaviorContext(ActorContext<T> ctx, TimerScheduler<T> timers) {
+        this(ctx, timers, ActorSpawner.actorIdFromName(ctx.getSelf().path().name()));
+    }
+
+    @Override
+    public String actorId() {
+        return actorId;
     }
 
     @Override
@@ -47,6 +61,15 @@ public final class PekkoBehaviorContext<T> implements SpringBehaviorContext<T> {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
+    public <C> Optional<SpringActorRef<C>> getChild(
+            Class<? extends SpringActorWithContext<C, ?>> actorClass, String actorId) {
+        return ctx.getChild(ActorSpawner.buildActorName(actorClass, actorId))
+                .map(child -> new PekkoActorRef<>((ActorRef<C>) child));
+    }
+
+    @Override
+    @Deprecated
     public Optional<SpringActorRef<Void>> getChild(String name) {
         return ctx.getChild(name).map(PekkoActorRef::new);
     }

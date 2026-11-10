@@ -4,6 +4,7 @@ import io.github.seonwkim.actor.DispatcherConfig;
 import io.github.seonwkim.actor.MailboxConfig;
 import io.github.seonwkim.actor.SpringActorBehavior;
 import io.github.seonwkim.actor.SpringActorContext;
+import io.github.seonwkim.actor.SpringActorWithContext;
 import io.github.seonwkim.actor.SupervisionStrategy;
 import io.github.seonwkim.actor.TagsConfig;
 import javax.annotation.Nullable;
@@ -11,6 +12,7 @@ import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.Behavior;
 import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.apache.pekko.actor.typed.javadsl.Behaviors;
+import org.springframework.core.ResolvableType;
 
 /**
  * Utility class that provides centralized actor spawning logic.
@@ -37,6 +39,33 @@ public final class ActorSpawner {
      */
     public static String buildActorName(Class<?> actorClass, String actorId) {
         return actorClass.getName() + ":" + actorId;
+    }
+
+    /**
+     * The actor id inside a name built by {@link #buildActorName}; the whole name for an actor named
+     * otherwise (a sharded entity is named by its entity id).
+     */
+    public static String actorIdFromName(String actorName) {
+        int separator = actorName.indexOf(':');
+        return separator < 0 ? actorName : actorName.substring(separator + 1);
+    }
+
+    /**
+     * Fails when {@code actorClass} takes a custom context type, which a spawn by id alone can't build.
+     *
+     * @return null when a {@link DefaultSpringActorContext} fits, otherwise the error to report
+     */
+    @Nullable public static IllegalArgumentException defaultContextMismatch(Class<?> actorClass) {
+        Class<?> contextType = ResolvableType.forClass(actorClass)
+                .as(SpringActorWithContext.class)
+                .getGeneric(1)
+                .resolve();
+        if (contextType == null || contextType.isAssignableFrom(DefaultSpringActorContext.class)) {
+            return null;
+        }
+        return new IllegalArgumentException(actorClass.getName() + " takes a " + contextType.getName()
+                + ", which can't be built from an id alone. Spawn it with withContext(...) on the builder "
+                + "instead of withId(...) or getOrSpawn(Class, id).");
     }
 
     /**

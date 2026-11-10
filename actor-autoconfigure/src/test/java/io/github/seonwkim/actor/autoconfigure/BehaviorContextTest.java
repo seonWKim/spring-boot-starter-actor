@@ -5,6 +5,7 @@ import static org.awaitility.Awaitility.await;
 
 import io.github.seonwkim.actor.ActorTerminated;
 import io.github.seonwkim.actor.AskCommand;
+import io.github.seonwkim.actor.FrameworkCommand;
 import io.github.seonwkim.actor.SpringActor;
 import io.github.seonwkim.actor.SpringActorBehavior;
 import io.github.seonwkim.actor.SpringActorContext;
@@ -23,12 +24,12 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-/** Timers, watching another actor and message adapters, through SpringBehaviorContext. */
+/** Timers, watching another actor, message adapters, the actor id and children, through SpringBehaviorContext. */
 class BehaviorContextTest {
 
     /** Records what happened to it; each test drives it with one command and reads the log. */
     static class ProbeActor implements SpringActor<ProbeActor.Command> {
-        public interface Command {}
+        public interface Command extends FrameworkCommand {}
 
         /** Logs {@code name} when it arrives. */
         public record Mark(String name) implements Command {}
@@ -45,6 +46,18 @@ class BehaviorContextTest {
         public static class Adapter extends AskCommand<SpringActorRef<String>> implements Command {}
 
         public static class Log extends AskCommand<List<String>> implements Command {}
+
+        /** Replies with {@code ctx.actorId()}. */
+        public static class ActorId extends AskCommand<String> implements Command {}
+
+        /** Replies whether {@code ctx.getChild(ProbeActor.class, id)} finds a running child. */
+        public static class HasChild extends AskCommand<Boolean> implements Command {
+            final String id;
+
+            HasChild(String id) {
+                this.id = id;
+            }
+        }
 
         @Override
         public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
@@ -69,6 +82,14 @@ class BehaviorContextTest {
                     })
                     .onMessage(Adapter.class, (state, msg) -> {
                         msg.reply(state.ctx.messageAdapter(String.class, s -> new Mark("adapted:" + s)));
+                        return SpringActorBehavior.same();
+                    })
+                    .onMessage(ActorId.class, (state, msg) -> {
+                        msg.reply(state.ctx.actorId());
+                        return SpringActorBehavior.same();
+                    })
+                    .onMessage(HasChild.class, (state, msg) -> {
+                        msg.reply(state.ctx.getChild(ProbeActor.class, msg.id).isPresent());
                         return SpringActorBehavior.same();
                     })
                     .onMessage(Log.class, (state, msg) -> {
@@ -188,6 +209,44 @@ class BehaviorContextTest {
             adapter.tell("hello");
 
             await().atMost(Duration.ofSeconds(5)).until(() -> log(probe).contains("adapted:hello"));
+        });
+    }
+
+    private static <T> T ask(SpringActorHandle<ProbeActor.Command> probe, AskCommand<T> command) throws Exception {
+        return probe.ask(command)
+                .withTimeout(Duration.ofSeconds(5))
+                .execute()
+                .toCompletableFuture()
+                .get(5, TimeUnit.SECONDS);
+    }
+
+    @Test
+    void aHandlerReadsTheIdItsActorWasSpawnedWith() {
+        runner.run(context -> {
+            SpringActorHandle<ProbeActor.Command> parent = probe(context, "parent-1");
+            SpringActorHandle<ProbeActor.Command> child = parent.child(ProbeActor.class)
+                    .withId("child-1")
+                    .spawn()
+                    .toCompletableFuture()
+                    .get(5, TimeUnit.SECONDS);
+
+            assertThat(ask(parent, new ProbeActor.ActorId())).isEqualTo("parent-1");
+            assertThat(ask(child, new ProbeActor.ActorId())).isEqualTo("child-1");
+        });
+    }
+
+    @Test
+    void aHandlerFindsAChildByClassAndId() {
+        runner.run(context -> {
+            SpringActorHandle<ProbeActor.Command> parent = probe(context, "parent-2");
+            parent.child(ProbeActor.class)
+                    .withId("child-2")
+                    .spawn()
+                    .toCompletableFuture()
+                    .get(5, TimeUnit.SECONDS);
+
+            assertThat(ask(parent, new ProbeActor.HasChild("child-2"))).isTrue();
+            assertThat(ask(parent, new ProbeActor.HasChild("someone-else"))).isFalse();
         });
     }
 }

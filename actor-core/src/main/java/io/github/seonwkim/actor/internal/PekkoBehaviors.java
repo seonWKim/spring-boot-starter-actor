@@ -70,7 +70,10 @@ public final class PekkoBehaviors {
     private static <C, S> Behavior<C> compile(
             SpringActorBehavior.Definition<C, S> definition, UnaryOperator<Behavior<C>> instrument) {
         Behavior<C> behavior = instrument.apply(Behaviors.setup(ctx -> Behaviors.withTimers(timers -> {
-            S state = definition.stateFactory().apply(new PekkoBehaviorContext<>(ctx, timers));
+            S state = definition
+                    .stateFactory()
+                    .apply(new PekkoBehaviorContext<>(
+                            ctx, timers, definition.actorContext().actorId()));
             return receive(ctx, definition, state);
         })));
         if (definition.supervisionStrategy() != null) {
