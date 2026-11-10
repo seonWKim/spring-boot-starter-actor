@@ -1,10 +1,10 @@
 package io.github.seonwkim.actor.internal;
 
+import io.github.seonwkim.actor.AskCommand;
 import io.github.seonwkim.actor.SpringActorHandle;
 import java.time.Duration;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeoutException;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import javax.annotation.Nullable;
 import org.apache.pekko.actor.typed.ActorRef;
@@ -12,7 +12,10 @@ import org.apache.pekko.actor.typed.RecipientRef;
 import org.apache.pekko.actor.typed.Scheduler;
 import org.apache.pekko.actor.typed.javadsl.AskPattern;
 
-/** An ask through Pekko's {@link AskPattern}, to an actor or a sharded entity. */
+/**
+ * An ask through Pekko's {@link AskPattern}, to an actor or a sharded entity. It sends a copy of the
+ * command that carries the reply address, so the caller's command is never changed.
+ */
 public final class PekkoAskBuilder<REQ, RES> implements SpringActorHandle.AskBuilder<RES> {
 
     private final RecipientRef<REQ> target;
@@ -20,8 +23,9 @@ public final class PekkoAskBuilder<REQ, RES> implements SpringActorHandle.AskBui
 
     @Nullable private final MessageTracing tracing;
 
-    private final Function<ActorRef<RES>, REQ> messageFactory;
+    private final AskCommand<RES> command;
     private Duration timeout;
+    private boolean failFast;
 
     @Nullable private Supplier<RES> timeoutHandler;
 
@@ -30,12 +34,12 @@ public final class PekkoAskBuilder<REQ, RES> implements SpringActorHandle.AskBui
             Scheduler scheduler,
             @Nullable MessageTracing tracing,
             Duration defaultTimeout,
-            Function<ActorRef<RES>, REQ> messageFactory) {
+            AskCommand<RES> command) {
         this.target = target;
         this.scheduler = scheduler;
         this.tracing = tracing;
         this.timeout = defaultTimeout;
-        this.messageFactory = messageFactory;
+        this.command = command;
     }
 
     @Override
@@ -54,10 +58,15 @@ public final class PekkoAskBuilder<REQ, RES> implements SpringActorHandle.AskBui
     }
 
     @Override
+    public PekkoAskBuilder<REQ, RES> failFastOnError() {
+        this.failFast = true;
+        return this;
+    }
+
+    @Override
     public CompletionStage<RES> execute() {
-        CompletionStage<RES> result = tracing == null
-                ? AskPattern.ask(target, messageFactory::apply, timeout, scheduler)
-                : tracedAsk(tracing);
+        CompletionStage<RES> result =
+                tracing == null ? AskPattern.ask(target, this::message, timeout, scheduler) : tracedAsk(tracing);
         if (timeoutHandler == null) {
             return result;
         }
@@ -80,7 +89,7 @@ public final class PekkoAskBuilder<REQ, RES> implements SpringActorHandle.AskBui
         CompletionStage<RES> result = AskPattern.ask(
                 target,
                 replyTo -> {
-                    REQ message = messageFactory.apply(replyTo);
+                    REQ message = message(replyTo);
                     sent[0] = tracing.send(message, "ask");
                     return sent[0] == null ? message : (REQ) sent[0].message();
                 },
@@ -91,5 +100,11 @@ public final class PekkoAskBuilder<REQ, RES> implements SpringActorHandle.AskBui
             result.whenComplete((reply, error) -> send.stop(error));
         }
         return result;
+    }
+
+    /** The command to send: a copy of the caller's, with this ask's reply address. */
+    @SuppressWarnings("unchecked")
+    private REQ message(ActorRef<RES> replyTo) {
+        return (REQ) command.copyForAsk(new PekkoActorRef<>(replyTo), failFast);
     }
 }

@@ -3,7 +3,6 @@ package io.github.seonwkim.actor.internal.shard;
 import io.github.seonwkim.actor.AskCommand;
 import io.github.seonwkim.actor.SpringActorHandle;
 import io.github.seonwkim.actor.internal.MessageTracing;
-import io.github.seonwkim.actor.internal.PekkoActorRef;
 import io.github.seonwkim.actor.internal.PekkoAskBuilder;
 import io.github.seonwkim.actor.shard.ShardedEntityType;
 import io.github.seonwkim.actor.shard.SpringShardedActorHandle;
@@ -43,10 +42,8 @@ public final class PekkoShardedActorHandle<T> implements SpringShardedActorHandl
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public <RES> SpringActorHandle.AskBuilder<RES> ask(AskCommand<RES> command) {
-        return new PekkoAskBuilder<T, RES>(entityRef, scheduler, tracing, defaultTimeout, replyTo ->
-                (T) command.withReplyTo(new PekkoActorRef<>(replyTo)));
+        return new PekkoAskBuilder<T, RES>(entityRef, scheduler, tracing, defaultTimeout, command);
     }
 
     @Override

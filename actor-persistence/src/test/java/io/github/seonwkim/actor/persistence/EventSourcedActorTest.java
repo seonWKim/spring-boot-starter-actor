@@ -1,6 +1,7 @@
 package io.github.seonwkim.actor.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 
 import io.github.seonwkim.actor.AskCommand;
@@ -13,6 +14,7 @@ import io.github.seonwkim.actor.SpringActorSystem;
 import io.github.seonwkim.actor.serialization.JsonSerializable;
 import java.time.Duration;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Nested;
@@ -101,6 +103,26 @@ class EventSourcedActorTest {
         }
     }
 
+    @Test
+    void aThrowingCommandHandlerFailsAFailFastAskAtOnce() {
+        try (ConfigurableApplicationContext app =
+                start(AccountActor.class, h2(UUID.randomUUID().toString()))) {
+            SpringActorHandle<Command> account = spawn(app, AccountActor.class, "carol");
+
+            // The ask's own timeout is far longer than the wait, so only a fast failure passes.
+            assertThatThrownBy(() -> account.ask(new Overdraw())
+                            .withTimeout(Duration.ofSeconds(60))
+                            .failFastOnError()
+                            .execute()
+                            .toCompletableFuture()
+                            .get(10, TimeUnit.SECONDS))
+                    .isInstanceOf(ExecutionException.class)
+                    .cause()
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessage("insufficient funds");
+        }
+    }
+
     private static String[] h2(String database) {
         return new String[] {"spring.datasource.url=jdbc:h2:mem:" + database + ";DB_CLOSE_DELAY=-1"};
     }
@@ -151,6 +173,9 @@ class EventSourcedActorTest {
 
     static final class GetBalance extends AskCommand<Long> implements Command {}
 
+    /** Its handler always throws. */
+    static final class Overdraw extends AskCommand<Long> implements Command {}
+
     interface Event extends JsonSerializable {}
 
     record Deposited(long amount) implements Event {}
@@ -176,6 +201,9 @@ class EventSourcedActorTest {
                                     .thenReply(cmd, Account::balance))
                             .onCommand(GetBalance.class, (ctx, account, cmd) -> ctx.none()
                                     .thenReply(cmd, Account::balance))
+                            .onCommand(Overdraw.class, (ctx, account, cmd) -> {
+                                throw new IllegalStateException("insufficient funds");
+                            })
                             .onEvent(Deposited.class, (account, event) -> {
                                 eventsApplied.incrementAndGet();
                                 return account.add(event.amount());

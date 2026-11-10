@@ -142,7 +142,24 @@ public interface SpringActorHandle<T> extends SpringActorRef<T> {
         /** Completes with this value instead of failing when the ask times out. */
         AskBuilder<RES> onTimeout(Supplier<RES> defaultValueSupplier);
 
-        /** Sends the command; completes with the reply, or fails with a {@code TimeoutException}. */
+        /**
+         * Fails the ask at once with the handler's exception when the actor's handler throws on this
+         * command, instead of waiting for the timeout. The actor's supervision still applies. Off by
+         * default: without it a throwing handler leaves the ask to time out.
+         *
+         * <p>Applies to handlers of {@code SpringActorBehavior} and to the command handlers of
+         * event-sourced actors.
+         *
+         * @since 1.1.0
+         */
+        default AskBuilder<RES> failFastOnError() {
+            throw new UnsupportedOperationException(getClass().getName() + " does not support failFastOnError()");
+        }
+
+        /**
+         * Sends the command; completes with the reply, or fails with a {@code TimeoutException}, or
+         * with the handler's exception after {@link #failFastOnError()}.
+         */
         CompletionStage<RES> execute();
     }
 }

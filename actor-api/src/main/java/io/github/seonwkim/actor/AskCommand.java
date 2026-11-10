@@ -8,7 +8,9 @@ import javax.annotation.Nullable;
  * without requiring explicit lambda functions or type annotations.
  *
  * <p>The framework automatically manages the reply-to reference, so implementing
- * classes don't need to handle it manually.
+ * classes don't need to handle it manually. {@code ask} sends a shallow copy of the command that
+ * carries the reply address and leaves the command you pass unchanged, so one instance can be
+ * asked again or shared between threads.
  *
  * <p>Example usage:
  * <pre>
@@ -32,10 +34,13 @@ import javax.annotation.Nullable;
  *
  * @param <RES> The type of the expected response
  */
-public abstract class AskCommand<RES> {
+public abstract class AskCommand<RES> implements Cloneable {
 
     // Serialized by the starter's Jackson module for SpringActorRef, so a command can cross nodes.
     @Nullable private SpringActorRef<RES> replyTo;
+
+    // Set on the copy an ask sends: whether a handler failure fails the ask at once.
+    private boolean failFast;
 
     /**
      * Gets the reference that should receive the reply.
@@ -49,14 +54,48 @@ public abstract class AskCommand<RES> {
 
     /**
      * Sets the reply-to reference for this command.
-     * This method is called by the framework and should not be called by user code.
      *
      * @param replyTo The reference that should receive the reply
      * @return This command instance
+     * @deprecated The framework no longer calls it: {@code ask} sends a copy made with
+     *     {@link #copyForAsk(SpringActorRef, boolean)} and leaves this command unchanged. Setting the
+     *     reply address on a shared instance makes it unsafe to send twice.
      */
+    @Deprecated(since = "1.1.0")
     public final AskCommand<RES> withReplyTo(SpringActorRef<RES> replyTo) {
         this.replyTo = replyTo;
         return this;
+    }
+
+    /**
+     * A shallow copy of this command that replies to {@code replyTo}; this command is unchanged.
+     * Called by the framework for each ask, not by user code.
+     *
+     * @param replyTo The reference that should receive the reply
+     * @param failFast Whether a handler failure on this command fails the ask at once
+     * @return The copy to send
+     */
+    @SuppressWarnings("unchecked")
+    public final AskCommand<RES> copyForAsk(SpringActorRef<RES> replyTo, boolean failFast) {
+        AskCommand<RES> copy;
+        try {
+            copy = (AskCommand<RES>) super.clone();
+        } catch (CloneNotSupportedException e) {
+            throw new AssertionError("AskCommand is Cloneable", e);
+        }
+        copy.replyTo = replyTo;
+        copy.failFast = failFast;
+        return copy;
+    }
+
+    /**
+     * Whether the ask that sent this command asked to fail at once when a handler throws on it.
+     * Read by the framework, not by user code.
+     *
+     * @return true for a command sent by an ask with {@code failFastOnError()}
+     */
+    public final boolean failsFast() {
+        return failFast;
     }
 
     /**
