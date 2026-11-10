@@ -62,21 +62,24 @@ Choose the dispatcher when you spawn the actor:
         .awaitSpawn()
     ```
 
-| Spawn builder method | Child builder equivalent | Runs the actor on |
+Both the spawn builder and the child builder take every form (the child builder's shortcut methods and
+the spawn builder's `withDispatcher(DispatcherConfig)` since 1.1.0):
+
+| Shortcut | `DispatcherConfig` form | Runs the actor on |
 |---|---|---|
 | `withDefaultDispatcher()` (the default) | `withDispatcher(DispatcherConfig.defaultDispatcher())` | The default dispatcher |
 | `withBlockingDispatcher()` | `withDispatcher(DispatcherConfig.blocking())` | Pekko's `default-blocking-io-dispatcher` |
 | `withDispatcherFromConfig(name)` | `withDispatcher(DispatcherConfig.fromConfig(name))` | The dispatcher defined under `spring.actor.<name>` or `spring.actor.dispatchers.<name>` |
 | `withDispatcherSameAsParent()` | `withDispatcher(DispatcherConfig.sameAsParent())` | The parent's dispatcher |
 
-A child actor uses the `withDispatcher(...)` form:
+For a child actor:
 
 === "Java"
 
     ```java
     ctx.getSelf().child(ExportWorker.class)
             .withId("export-1")
-            .withDispatcher(DispatcherConfig.blocking())
+            .withBlockingDispatcher()
             .spawn();
     ```
 
@@ -85,7 +88,7 @@ A child actor uses the `withDispatcher(...)` form:
     ```kotlin
     ctx.self.child<ExportWorker, _>()
         .withId("export-1")
-        .withDispatcher(DispatcherConfig.blocking())
+        .withBlockingDispatcher()
         .spawn()
     ```
 

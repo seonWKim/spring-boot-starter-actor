@@ -90,6 +90,48 @@ public interface SpringChildActorBuilder<P, C> {
     SpringChildActorBuilder<P, C> withDispatcher(DispatcherConfig dispatcherConfig);
 
     /**
+     * Runs the child on the dispatcher for blocking work: {@code withDispatcher(DispatcherConfig.blocking())}.
+     *
+     * @return This builder for method chaining
+     * @since 1.1.0
+     */
+    default SpringChildActorBuilder<P, C> withBlockingDispatcher() {
+        return withDispatcher(DispatcherConfig.blocking());
+    }
+
+    /**
+     * Runs the child on the default dispatcher: {@code withDispatcher(DispatcherConfig.defaultDispatcher())}.
+     *
+     * @return This builder for method chaining
+     * @since 1.1.0
+     */
+    default SpringChildActorBuilder<P, C> withDefaultDispatcher() {
+        return withDispatcher(DispatcherConfig.defaultDispatcher());
+    }
+
+    /**
+     * Runs the child on the dispatcher configured at {@code dispatcherPath}:
+     * {@code withDispatcher(DispatcherConfig.fromConfig(dispatcherPath))}.
+     *
+     * @param dispatcherPath The path of the dispatcher's configuration
+     * @return This builder for method chaining
+     * @since 1.1.0
+     */
+    default SpringChildActorBuilder<P, C> withDispatcherFromConfig(String dispatcherPath) {
+        return withDispatcher(DispatcherConfig.fromConfig(dispatcherPath));
+    }
+
+    /**
+     * Runs the child on its parent's dispatcher: {@code withDispatcher(DispatcherConfig.sameAsParent())}.
+     *
+     * @return This builder for method chaining
+     * @since 1.1.0
+     */
+    default SpringChildActorBuilder<P, C> withDispatcherSameAsParent() {
+        return withDispatcher(DispatcherConfig.sameAsParent());
+    }
+
+    /**
      * Sets the tags configuration for this child actor. Tags are used for logging and categorization,
      * appearing in the MDC pekkoTags attribute.
      *
