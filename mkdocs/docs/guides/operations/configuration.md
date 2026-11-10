@@ -182,7 +182,9 @@ spring:
 Every other key under `spring.actor.*` is passed unchanged to the Pekko actor system configuration,
 with the `spring.actor` prefix removed. For example, `spring.actor.pekko.loglevel` becomes
 `pekko.loglevel`, and a dispatcher defined at `spring.actor.my-dispatcher` becomes `my-dispatcher`.
-Comma-separated string values are turned into lists. See the
+Comma-separated string values are turned into lists, and a single value for a key that Pekko reads as
+a list is a one-item list: `spring.actor.pekko.cluster.seed-nodes=pekko://orders@10.0.0.7:25521` works
+like `seed-nodes[0]`. See the
 [Pekko reference configuration](https://pekko.apache.org/docs/pekko/current/general/configuration-reference.html)
 for the available keys.
 

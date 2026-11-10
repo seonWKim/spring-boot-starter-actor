@@ -10,6 +10,8 @@ import java.util.Map;
 import org.apache.pekko.actor.typed.ActorSystem;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.boot.context.annotation.UserConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.boot.test.system.CapturedOutput;
@@ -79,6 +81,22 @@ class ActorPropertiesTest {
                             .isEqualTo(List.of("api"));
                     assertThat(output).doesNotContain("overrides spring.actor.cluster.roles");
                 });
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"spring.actor.pekko.cluster.seed-nodes", "spring.actor.pekko.cluster.seed-nodes[0]"})
+    void aRawSingleValueForAListKeyIsAOneItemList(String key) {
+        runner.withPropertyValues(key + "=pekko://orders@10.0.0.7:25521")
+                .run(context -> assertThat(pekkoConfig(context).getStringList("pekko.cluster.seed-nodes"))
+                        .containsExactly("pekko://orders@10.0.0.7:25521"));
+    }
+
+    @Test
+    void metricsSettingsStayOutOfThePekkoConfig() {
+        Map<String, Object> config =
+                new ActorProperties().toPekkoConfig(Map.of("metrics", Map.of("path-tag-limit", "3")), false);
+
+        assertThat(config).doesNotContainKey("metrics");
     }
 
     @Test

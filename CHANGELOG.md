@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Fixes
+
+- A single raw value for a Pekko list key (`spring.actor.pekko.cluster.seed-nodes=pekko://a@h:1`) works like
+  `seed-nodes[0]` instead of failing with "expecting list but got string".
+- `spring.actor.metrics.*` no longer leaks into the Pekko configuration as a raw `metrics.*` key.
+- Configuration metadata covers `management.health.actor.enabled` and the `spring.actor.dispatchers.*` sub-keys
+  (`executor`, `virtual`, `throughput`), so IDEs complete them.
+
 ## 1.0.0 (unreleased)
 
 ### Breaking changes
