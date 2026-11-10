@@ -83,15 +83,12 @@ class ChildAndTimerExtensionsTest {
             val parent = actorSystem.awaitGetOrSpawn<ParentActor, _>(newId())
 
             assertThat(parent.child<EchoActor, _>("child").awaitGet()).isNull()
-            assertThat(parent.child<EchoActor, _>().withId("child").awaitGet()).isNull()
             assertThat(parent.child<EchoActor, _>("child").awaitExists()).isFalse()
 
             parent.child<EchoActor, _>().withId("child").withTimeout(3.seconds).awaitSpawn()
 
             val viaReference = parent.child<EchoActor, _>("child").withTimeout(3.seconds).awaitGet()
-            val viaBuilder = parent.child<EchoActor, _>().withId("child").awaitGet()
             assertThat(viaReference?.awaitAsk(EchoActor.Echo("reference"))).isEqualTo("reference")
-            assertThat(viaBuilder?.awaitAsk(EchoActor.Echo("builder"))).isEqualTo("builder")
             assertThat(parent.child<EchoActor, _>("child").awaitExists()).isTrue()
             assertThat(parent.child<EchoActor, _>().withId("child").awaitExists()).isTrue()
         }

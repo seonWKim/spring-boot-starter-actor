@@ -85,7 +85,7 @@ val counter = actorSystem.sharded<CounterActor, _>().withId("counter-1").get()
 | `builder.awaitSpawn()`, `builder.awaitGetOrSpawn()` | `spawn()`, `getOrSpawn()` on the spawn builder |
 | `actorBehavior<C>(actorContext)` | `SpringActorBehavior.builder(C.class, actorContext)` |
 | `handle.child<A, _>()`, `handle.child<A, _>(id)` | `child(A.class)`, `child(A.class, id)` |
-| `awaitSpawn()`, `awaitGetOrSpawn()`, `awaitGet()`, `awaitExists()` on a child builder or reference | `spawn()`, `getOrSpawn()`, `get()`, `exists()` |
+| `awaitSpawn()`, `awaitGetOrSpawn()`, `awaitExists()` on a child builder; `awaitGet()`, `awaitExists()` on a child reference | `spawn()`, `getOrSpawn()`, `get()`, `exists()` |
 | `withTimeout(5.seconds)`, `withLimit(10, 1.minutes)`, `startSingleTimer(key, msg, 30.seconds)`, `startTimerAtFixedRate(key, msg, 10.seconds)` | the same methods with a `java.time.Duration` |
 | `unwrap<X>()` on the actor system, a ref or a behavior context | `unwrap(X.class)` |
 

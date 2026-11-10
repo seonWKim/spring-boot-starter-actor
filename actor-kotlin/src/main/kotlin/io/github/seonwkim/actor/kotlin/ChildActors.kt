@@ -30,9 +30,6 @@ suspend fun <C> SpringChildActorBuilder<*, C>.awaitSpawn(): SpringActorHandle<C>
 /** Suspends until the child runs, spawning it when none does ([SpringChildActorBuilder.getOrSpawn]). */
 suspend fun <C> SpringChildActorBuilder<*, C>.awaitGetOrSpawn(): SpringActorHandle<C> = getOrSpawn().await()
 
-/** Suspends until the lookup completes: the running child, or null when none runs ([SpringChildActorBuilder.get]). */
-suspend fun <C> SpringChildActorBuilder<*, C>.awaitGet(): SpringActorHandle<C>? = get().await()
-
 /** Suspends until the check completes: whether the child runs ([SpringChildActorBuilder.exists]). */
 suspend fun SpringChildActorBuilder<*, *>.awaitExists(): Boolean = exists().await()
 
