@@ -64,9 +64,8 @@ class OverlaysTest {
     @SuppressWarnings("unchecked")
     void configMapPodAndHeadlessServiceUseTheSamePorts(String dir, String suffix) throws Exception {
         List<Map<String, Object>> resources = render(dir);
-        Map<String, Object> actor =
-                (Map<String, Object>) get(applicationYaml(resource(resources, "ConfigMap", "spring-actor-config" + suffix)),
-                        "spring", "actor");
+        Map<String, Object> actor = (Map<String, Object>) get(
+                applicationYaml(resource(resources, "ConfigMap", "spring-actor-config" + suffix)), "spring", "actor");
         Object containerPorts = container(resources, suffix).get("ports");
         Object servicePorts = get(resource(resources, "Service", "spring-actor" + suffix), "spec", "ports");
 
@@ -86,16 +85,18 @@ class OverlaysTest {
     @SuppressWarnings("unchecked")
     void gracePeriodLeavesTimeToDrainHttpAfterPreStopAndActorShutdown(String dir, String suffix) throws Exception {
         List<Map<String, Object>> resources = render(dir);
-        Map<String, Object> actor = (Map<String, Object>)
-                get(applicationYaml(resource(resources, "ConfigMap", "spring-actor-config" + suffix)), "spring", "actor");
+        Map<String, Object> actor = (Map<String, Object>) get(
+                applicationYaml(resource(resources, "ConfigMap", "spring-actor-config" + suffix)), "spring", "actor");
         int grace = (Integer) get(
                 resource(resources, "Deployment", "spring-actor" + suffix),
                 "spec",
                 "template",
                 "spec",
                 "terminationGracePeriodSeconds");
-        List<String> preStop = (List<String>) get(container(resources, suffix), "lifecycle", "preStop", "exec", "command");
-        int preStopSeconds = Integer.parseInt(preStop.get(preStop.size() - 1).replace("sleep", "").trim());
+        List<String> preStop =
+                (List<String>) get(container(resources, suffix), "lifecycle", "preStop", "exec", "command");
+        int preStopSeconds = Integer.parseInt(
+                preStop.get(preStop.size() - 1).replace("sleep", "").trim());
         Object timeout = get(actor, "shutdown", "timeout");
         long shutdownSeconds = timeout == null
                 ? 20 // spring.actor.shutdown.timeout's default
@@ -130,11 +131,12 @@ class OverlaysTest {
     void noJvmFlagSetsARawPekkoKey(String dir, String suffix) throws Exception {
         // A -Dpekko.* flag loses to the same key under spring.actor.pekko.* in the ConfigMap, without
         // a warning. -Dspring.actor.pekko.* overrides the ConfigMap.
-        List<Map<String, Object>> env = (List<Map<String, Object>>) container(render(dir), suffix).get("env");
+        List<Map<String, Object>> env =
+                (List<Map<String, Object>>) container(render(dir), suffix).get("env");
 
         assertThat(env)
                 .filteredOn(variable -> "JAVA_OPTS".equals(variable.get("name")))
-                .allSatisfy(variable -> assertThat(String.valueOf(variable.get("value")))
-                        .doesNotContain("-Dpekko."));
+                .allSatisfy(variable ->
+                        assertThat(String.valueOf(variable.get("value"))).doesNotContain("-Dpekko."));
     }
 }
