@@ -19,6 +19,7 @@ public class OrderService {
                 .actor(OrderProcessorActor.class)
                 .withId("order-processor")
                 .withTags(TagsConfig.of("order-service", "critical", "cpu-intensive"))
+                .withBlockingDispatcher()
                 .withTimeout(Duration.ofSeconds(5))
                 .spawnAndWait();
     }

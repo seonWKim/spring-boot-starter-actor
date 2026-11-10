@@ -36,7 +36,7 @@ import org.springframework.test.context.TestPropertySource;
 @TestPropertySource(
         properties = {
             "spring.actor.pekko.loglevel=INFO",
-            "spring.actor.pekko.actor.provider=local" // Local mode - cluster singleton should fail
+            "spring.actor.provider=local" // Local mode - cluster singleton should fail
         })
 public class ClusterSingletonTest {
 

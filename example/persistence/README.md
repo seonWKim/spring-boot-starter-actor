@@ -9,8 +9,9 @@ This example demonstrates comprehensive persistence patterns for actors using Sp
    - Optimistic locking support
    - One-to-many relationships (Order → OrderItems)
 
-2. **Event Sourcing** (`EventSourcedOrderActor`)
-   - All state changes stored as events
+2. **Event Log on JPA** (`EventLogOrderActor`)
+   - All state changes stored as events in a JPA table, written by hand (for the starter's
+     event-sourced actors with a journal, see `actor-persistence` and the Event sourcing guide)
    - Complete audit trail
    - State reconstruction from event history
 
@@ -61,20 +62,20 @@ curl -X POST "http://localhost:8080/api/orders/order-1/approve"
 curl "http://localhost:8080/api/orders/order-1"
 ```
 
-### Event-Sourced Order Actor
+### Event-Log Order Actor
 
 ```bash
-# Create event-sourced order
-curl -X POST "http://localhost:8080/api/orders/eventsourced/order-2?customerId=customer-2&amount=200.00"
+# Create an order
+curl -X POST "http://localhost:8080/api/orders/eventlog/order-2?customerId=customer-2&amount=200.00"
 
 # Add items
-curl -X POST "http://localhost:8080/api/orders/eventsourced/order-2/items?productId=prod-2&quantity=3&price=66.67"
+curl -X POST "http://localhost:8080/api/orders/eventlog/order-2/items?productId=prod-2&quantity=3&price=66.67"
 
 # Approve order
-curl -X POST "http://localhost:8080/api/orders/eventsourced/order-2/approve?approvedBy=admin"
+curl -X POST "http://localhost:8080/api/orders/eventlog/order-2/approve?approvedBy=admin"
 
 # Get event history
-curl "http://localhost:8080/api/orders/eventsourced/order-2/history"
+curl "http://localhost:8080/api/orders/eventlog/order-2/history"
 ```
 
 ### Snapshot-Based Order Actor
@@ -98,8 +99,8 @@ curl -X POST "http://localhost:8080/api/orders/snapshot/order-3/save-snapshot"
 - **Order Entity**: JPA entity with optimistic locking (`@Version`)
 - **OrderItem Entity**: Related entity demonstrating one-to-many relationships
 
-### Event Sourcing Pattern
-- **EventSourcedOrderActor**: Event-sourced actor that stores all state changes as events
+### Event Log Pattern
+- **EventLogOrderActor**: Stores all state changes as events in a JPA table and replays them on startup
 - **OrderEvent**: Event store entity
 - **OrderDomainEvent**: Sealed interface for domain events
 - **Event Types**: OrderCreatedEvent, OrderApprovedEvent, OrderItemAddedEvent, OrderCancelledEvent

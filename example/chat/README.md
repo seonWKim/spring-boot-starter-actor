@@ -50,10 +50,20 @@ graph TB
 
 ## Running Locally
 
-You can run multiple instances of the application locally using the provided `cluster-start.sh` script:
+Build the frontend once (see [Building for Production](#building-for-production)); otherwise
+`http://localhost:8080` has no UI.
+
+Run one node from the repository root. `bootRun` builds the `actor-metrics` agent jar first and attaches it:
 
 ```bash
-./cluster-start.sh chat io.github.seonwkim.example.SpringPekkoApplication 8080 2551 3
+./gradlew :example:chat:bootRun
+```
+
+Or run three nodes with `cluster-start.sh`, also from the repository root (stop them with
+`sh cluster-stop.sh`):
+
+```bash
+sh cluster-start.sh chat io.github.seonwkim.example.SpringPekkoApplication 8080 2551 3
 ```
 
 This will start 3 instances of the application with the following configuration:
@@ -91,13 +101,14 @@ The development server will start on `http://localhost:5173` with automatic prox
 ### Building for Production
 
 ```bash
-# Build React app (outputs to src/main/resources/static)
+# Build React app (outputs to src/main/resources/static), from example/chat
 cd frontend
+npm install
 npm run build
 
-# Then run the Spring Boot application
-cd ..
-./gradlew bootRun
+# Then run the Spring Boot application from the repository root
+cd ../../..
+./gradlew :example:chat:bootRun
 ```
 
 The built frontend is automatically served by Spring Boot at `http://localhost:8080`

@@ -9,12 +9,12 @@ import reactor.core.publisher.Mono;
 public interface CounterService {
 
     /**
-     * Increments the counter value by 1 and returns the new value. This operation is synchronized to
-     * ensure consistency.
+     * Increments the counter value by 1. This operation is synchronized to ensure consistency.
      *
      * @param counterId The ID of the counter to increment
+     * @return A Mono that completes with the new value once the increment is applied
      */
-    void increment(String counterId);
+    Mono<Long> increment(String counterId);
 
     /**
      * Gets the current value of the counter.

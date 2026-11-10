@@ -29,14 +29,15 @@ public class DbCounterService implements CounterService {
     }
 
     /**
-     * Increments the counter value by 1 and returns the new value. Uses database pessimistic locking
-     * to ensure synchronization. The blocking logic is delegated to a boundedElastic scheduler.
+     * Increments the counter value by 1. Uses database pessimistic locking to ensure
+     * synchronization. The blocking logic is delegated to a boundedElastic scheduler.
      *
      * @param counterId The ID of the counter to increment
+     * @return A Mono with the new value, once the transaction committed
      */
     @Override
-    public void increment(String counterId) {
-        incrementInternal(counterId);
+    public Mono<Long> increment(String counterId) {
+        return Mono.fromCallable(() -> incrementInternal(counterId)).subscribeOn(Schedulers.boundedElastic());
     }
 
     /**

@@ -3,7 +3,7 @@ package io.github.seonwkim.example.persistence;
 import io.github.seonwkim.actor.SpringActorHandle;
 import io.github.seonwkim.actor.SpringActorSystem;
 import io.github.seonwkim.actor.SpringActorWithContext;
-import io.github.seonwkim.example.persistence.eventsourcing.EventSourcedOrderActor;
+import io.github.seonwkim.example.persistence.eventlog.EventLogOrderActor;
 import io.github.seonwkim.example.persistence.snapshot.SnapshotOrderActor;
 import java.time.Duration;
 import java.util.concurrent.CompletionStage;
@@ -70,45 +70,45 @@ public class OrderController {
                 .execute());
     }
 
-    // Event-sourced order endpoints
-    @PostMapping("/eventsourced/{orderId}")
-    public CompletionStage<EventSourcedOrderActor.OrderResponse> createEventSourcedOrder(
+    // Event-log order endpoints
+    @PostMapping("/eventlog/{orderId}")
+    public CompletionStage<EventLogOrderActor.OrderResponse> createEventLogOrder(
             @PathVariable String orderId, @RequestParam String customerId, @RequestParam double amount) {
 
-        return onBlockingDispatcher(EventSourcedOrderActor.class, orderId)
-                .thenCompose(ref -> ref.ask(new EventSourcedOrderActor.CreateOrder(customerId, amount))
+        return onBlockingDispatcher(EventLogOrderActor.class, orderId)
+                .thenCompose(ref -> ref.ask(new EventLogOrderActor.CreateOrder(customerId, amount))
                         .withTimeout(Duration.ofSeconds(5))
                         .execute());
     }
 
-    @PostMapping("/eventsourced/{orderId}/items")
-    public CompletionStage<EventSourcedOrderActor.OrderResponse> addItemToEventSourcedOrder(
+    @PostMapping("/eventlog/{orderId}/items")
+    public CompletionStage<EventLogOrderActor.OrderResponse> addItemToEventLogOrder(
             @PathVariable String orderId,
             @RequestParam String productId,
             @RequestParam int quantity,
             @RequestParam double price) {
 
-        return onBlockingDispatcher(EventSourcedOrderActor.class, orderId)
-                .thenCompose(ref -> ref.ask(new EventSourcedOrderActor.AddItem(productId, quantity, price))
+        return onBlockingDispatcher(EventLogOrderActor.class, orderId)
+                .thenCompose(ref -> ref.ask(new EventLogOrderActor.AddItem(productId, quantity, price))
                         .withTimeout(Duration.ofSeconds(5))
                         .execute());
     }
 
-    @PostMapping("/eventsourced/{orderId}/approve")
-    public CompletionStage<EventSourcedOrderActor.OrderResponse> approveEventSourcedOrder(
+    @PostMapping("/eventlog/{orderId}/approve")
+    public CompletionStage<EventLogOrderActor.OrderResponse> approveEventLogOrder(
             @PathVariable String orderId, @RequestParam String approvedBy) {
 
-        return onBlockingDispatcher(EventSourcedOrderActor.class, orderId)
-                .thenCompose(ref -> ref.ask(new EventSourcedOrderActor.ApproveOrder(approvedBy))
+        return onBlockingDispatcher(EventLogOrderActor.class, orderId)
+                .thenCompose(ref -> ref.ask(new EventLogOrderActor.ApproveOrder(approvedBy))
                         .withTimeout(Duration.ofSeconds(5))
                         .execute());
     }
 
-    @GetMapping("/eventsourced/{orderId}/history")
-    public CompletionStage<EventSourcedOrderActor.HistoryResponse> getOrderHistory(@PathVariable String orderId) {
+    @GetMapping("/eventlog/{orderId}/history")
+    public CompletionStage<EventLogOrderActor.HistoryResponse> getOrderHistory(@PathVariable String orderId) {
 
-        return onBlockingDispatcher(EventSourcedOrderActor.class, orderId)
-                .thenCompose(ref -> ref.ask(new EventSourcedOrderActor.GetHistory())
+        return onBlockingDispatcher(EventLogOrderActor.class, orderId)
+                .thenCompose(ref -> ref.ask(new EventLogOrderActor.GetHistory())
                         .withTimeout(Duration.ofSeconds(5))
                         .execute());
     }

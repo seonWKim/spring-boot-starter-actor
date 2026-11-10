@@ -37,19 +37,19 @@ public class RedisCounterService implements CounterService {
     }
 
     /**
-     * Increments the counter value by 1 and returns the new value. Uses Redis distributed locking to
-     * ensure synchronization.
+     * Increments the counter value by 1. Uses Redis distributed locking to ensure synchronization.
      *
      * @param counterId The ID of the counter to increment
+     * @return A Mono with the new value, once Redis applied the increment
      */
     @Override
-    public void increment(String counterId) {
+    public Mono<Long> increment(String counterId) {
         logger.debug("Incrementing counter with ID: {}", counterId);
 
         String counterKey = COUNTER_KEY_PREFIX + counterId;
         String lockKey = LOCK_KEY_PREFIX + counterId;
 
-        valueOps.setIfAbsent(lockKey, 1L, LOCK_TIMEOUT)
+        return valueOps.setIfAbsent(lockKey, 1L, LOCK_TIMEOUT)
                 .flatMap(locked -> {
                     if (!locked) {
                         logger.warn("Failed to acquire lock for counter: {}", counterId);
@@ -73,9 +73,7 @@ public class RedisCounterService implements CounterService {
                                 "Retrying lock acquisition for counter: {}, attempt: {}",
                                 counterId,
                                 retrySignal.totalRetries() + 1)))
-                .subscribe(
-                        null, // onNext is ignored since we don't need the result
-                        error -> logger.error("Error while incrementing counter: {}", counterId, error));
+                .doOnError(error -> logger.error("Error while incrementing counter: {}", counterId, error));
     }
 
     /**

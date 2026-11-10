@@ -9,13 +9,14 @@ spring:
       port: ${PEKKO_PORT:2551}
     cluster:
       seed-nodes: ${SEED_NODES:pekko://spring-pekko-example@127.0.0.1:2551,pekko://spring-pekko-example@127.0.0.1:2552,pekko://spring-pekko-example@127.0.0.1:2553}
+      downing:
+        strategy: keep-majority
     pekko:
       actor:
         allow-java-serialization: off
         warn-about-java-serializer-usage: on
       cluster:
         name: spring-pekko-example
-        downing-provider-class: org.apache.pekko.cluster.sbr.SplitBrainResolverProvider
 
 server:
   port: ${SERVER_PORT:8080}

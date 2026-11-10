@@ -1,8 +1,8 @@
 # Virtual Threads Example
 
 Actors on Java 21 virtual threads, configured with typed `spring.actor.*` keys and no Pekko HOCON. An
-endpoint spawns an actor on a virtual-thread dispatcher, and the actor logs whether its thread is
-virtual.
+endpoint sends a message to an actor on a virtual-thread dispatcher, and the actor logs whether its
+thread is virtual.
 
 - **Source:** [`example/virtual-threads`](https://github.com/seonWKim/actor-spring-boot-starter/tree/main/example/virtual-threads)
 - **Runs:** one node, no cluster; needs Java 21 or later
@@ -61,7 +61,7 @@ The default dispatcher always stays on platform threads.
 public class VirtualThreadTestActor
         implements SpringActorWithContext<VirtualThreadTestActor.Command, SpringActorContext> {
 
-    public interface Command extends FrameworkCommand {}
+    public interface Command {}
 
     public static class CheckThread implements Command {
         public final String taskName;
@@ -89,37 +89,54 @@ public class VirtualThreadTestActor
 
 ### Spawning on the virtual-thread dispatcher
 
+The controller spawns one actor, on the first request, and every request sends it a message:
+
 === "Java"
 
     ```java
-    SpringActorHandle<VirtualThreadTestActor.Command> actor = actorSystem
-            .actor(VirtualThreadTestActor.class)
-            .withId("virtual-actor-" + System.currentTimeMillis())
-            .withDispatcherFromConfig("virtual-threads-dispatcher")
-            .spawnAndWait();
+    private final Mono<SpringActorHandle<VirtualThreadTestActor.Command>> actor;
 
-    actor.tell(new VirtualThreadTestActor.CheckThread("virtual-thread-executor"));
+    public VirtualThreadTestController(SpringActorSystem actorSystem) {
+        this.actor = Mono.fromCompletionStage(() -> actorSystem
+                        .actor(VirtualThreadTestActor.class)
+                        .withId("virtual-actor")
+                        .withDispatcherFromConfig("virtual-threads-dispatcher")
+                        .spawn())
+                .cache();
+    }
+
+    @GetMapping("/virtual")
+    public Mono<Map<String, Object>> testVirtual() {
+        return actor.map(handle -> {
+            handle.tell(new VirtualThreadTestActor.CheckThread("virtual-thread-executor"));
+            return Map.of("dispatcher", "virtual-threads-dispatcher");
+        });
+    }
     ```
 
 === "Kotlin"
 
     ```kotlin
-    val actor = actorSystem.actor<VirtualThreadTestActor, _>()
-        .withId("virtual-actor-${System.currentTimeMillis()}")
-        .withDispatcherFromConfig("virtual-threads-dispatcher")
-        .spawnAndWait()
+    private val actor = Mono.fromCompletionStage {
+        actorSystem.actor<VirtualThreadTestActor, _>()
+            .withId("virtual-actor")
+            .withDispatcherFromConfig("virtual-threads-dispatcher")
+            .spawn()
+    }.cache()
 
-    actor.tell(VirtualThreadTestActor.CheckThread("virtual-thread-executor"))
+    @GetMapping("/virtual")
+    fun testVirtual(): Mono<Map<String, Any>> = actor.map { handle ->
+        handle.tell(VirtualThreadTestActor.CheckThread("virtual-thread-executor"))
+        mapOf("dispatcher" to "virtual-threads-dispatcher")
+    }
     ```
 
-`spawnAndWait()` blocks the calling thread until the actor runs. The example calls it from a WebFlux
-controller method, which runs on a request thread that should not block; in your own reactive code, use
-`spawn()` and compose the `CompletionStage` (or `awaitSpawn()` from a Kotlin `suspend` function).
+`spawn()` returns a `CompletionStage`, so the WebFlux request thread never blocks; `cache()` keeps the
+handle for later requests. `spawnAndWait()` would block the request thread until the actor runs. In a
+Kotlin `suspend` function, use `awaitSpawn()`.
 
 ## Things to keep in mind
 
-- Each request to `/api/virtual` spawns a new actor with a new id and never stops it. That keeps the
-  example short; a real app would reuse one actor or stop it when done.
 - A virtual thread that blocks inside a `synchronized` block or a native call pins its carrier thread.
   Prefer `java.util.concurrent` locks in code that blocks on virtual threads.
 - Virtual threads help actors that block (JDBC, HTTP clients). Actors that only compute gain nothing.

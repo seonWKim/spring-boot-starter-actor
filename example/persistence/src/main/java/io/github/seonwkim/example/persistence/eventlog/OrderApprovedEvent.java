@@ -1,4 +1,4 @@
-package io.github.seonwkim.example.persistence.eventsourcing;
+package io.github.seonwkim.example.persistence.eventlog;
 
 public record OrderApprovedEvent(String orderId, String approvedBy) implements OrderDomainEvent {
     @Override

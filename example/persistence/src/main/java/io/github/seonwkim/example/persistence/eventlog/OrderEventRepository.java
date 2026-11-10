@@ -1,4 +1,4 @@
-package io.github.seonwkim.example.persistence.eventsourcing;
+package io.github.seonwkim.example.persistence.eventlog;
 
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;

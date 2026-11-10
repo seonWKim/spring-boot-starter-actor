@@ -36,8 +36,8 @@ public class CounterActor implements SpringShardedActor<CounterActor.Command> {
     /** Base interface for all commands that can be sent to the counter actor. */
     public interface Command extends JsonSerializable {}
 
-    /** Command to increment the counter and get the new value. */
-    public static class Increment implements Command {
+    /** Command to increment the counter; the reply is the new value. */
+    public static class Increment extends AskCommand<Long> implements Command {
         public Increment() {}
     }
 
@@ -77,7 +77,7 @@ public class CounterActor implements SpringShardedActor<CounterActor.Command> {
         }
 
         /**
-         * Handles Increment commands by incrementing the counter and responding with the new value.
+         * Handles Increment commands by incrementing the counter and replying with the new value.
          *
          * @param msg The Increment message
          * @return The next behavior (same in this case)
@@ -86,6 +86,7 @@ public class CounterActor implements SpringShardedActor<CounterActor.Command> {
             logger.debug("Incrementing counter with ID: {}", counterId);
             value++;
             logger.debug("Counter with ID: {} incremented to: {}", counterId, value);
+            msg.reply(value);
             return SpringActorBehavior.same();
         }
 
