@@ -2,9 +2,19 @@
 
 ## Unreleased
 
-### Docs
+### Breaking changes
 
-- The AI agents guide has Kotlin tabs for each of its code samples.
+- **One failure meter.** The metrics agent no longer records `actor.errors` (tag `error.type`). Failures are
+  counted once, as `actor.message.failures` (tags `actor.class`, `dispatcher`, `system`), by the starter's
+  hooks with or without the agent; the bundled dashboard and alerts already use it. If you built your own
+  dashboards or alerts on `actor_errors_total`, query `actor_message_failures_total` instead.
+
+### Features
+
+- **GraalVM native image hints.** The modules register runtime hints in `META-INF/spring/aot.factories`:
+  Pekko's `reference.conf` files, the starter's classes Pekko creates by name, `AskCommand`'s reply address,
+  and the schema files. Your own serialized messages still need hints, and so do Pekko's own classes. See
+  [Running in Production](https://seonwkim.github.io/actor-spring-boot-starter/guides/operations/production/#native-images-graalvm).
 
 ### Fixes
 
@@ -13,23 +23,14 @@
 - `spring.actor.metrics.*` no longer leaks into the Pekko configuration as a raw `metrics.*` key.
 - Configuration metadata covers `management.health.actor.enabled` and the `spring.actor.dispatchers.*` sub-keys
   (`executor`, `virtual`, `throughput`), so IDEs complete them.
-### Breaking changes
-
-- **One failure meter.** The metrics agent no longer records `actor.errors` (tag `error.type`). Failures are
-  counted once, as `actor.message.failures` (tags `actor.class`, `dispatcher`, `system`), by the starter's
-  hooks with or without the agent; the bundled dashboard and alerts already use it. If you built your own
-  dashboards or alerts on `actor_errors_total`, query `actor_message_failures_total` instead.
-
-### Fixes
-
 - The metrics example no longer passes `-DACTOR_METRICS_DEBUG=true`, a flag no code reads.
+- **`getOrSpawn` no longer races on a new id.** It checked whether the actor existed and then spawned it,
+  so two callers asking for the same new id at once could make one fail with "Could not spawn". The root
+  guardian now does both in one step, and every caller gets the same actor (#182).
 
-### Features
+### Docs
 
-- **GraalVM native image hints.** The modules register runtime hints in `META-INF/spring/aot.factories`:
-  Pekko's `reference.conf` files, the starter's classes Pekko creates by name, `AskCommand`'s reply address,
-  and the schema files. Your own serialized messages still need hints, and so do Pekko's own classes. See
-  [Running in Production](https://seonwkim.github.io/actor-spring-boot-starter/guides/operations/production/#native-images-graalvm).
+- The AI agents guide has Kotlin tabs for each of its code samples.
 
 ## 1.0.0 (unreleased)
 

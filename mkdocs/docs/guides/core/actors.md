@@ -248,11 +248,8 @@ the first call spawns the actor, later calls return it.
 In a WebFlux application, wrap the stage with `Mono.fromCompletionStage(...)` (Java) or use a
 `suspend` controller method (Kotlin).
 
-!!! warning "getOrSpawn is check-then-spawn"
-    `getOrSpawn` first checks whether the actor exists and spawns it if not. When two callers ask for the
-    same **new** id at the same moment, both can see "doesn't exist", and the second spawn then fails
-    because the name is taken. If that can happen in your application, retry once on failure, or keep the
-    handle (see [Keeping a handle](#keeping-a-handle)).
+`getOrSpawn` checks for the running actor and spawns it in one step, so callers that ask for the same
+**new** id at the same moment all get the same actor.
 
 ### The spawn builder: custom settings
 
