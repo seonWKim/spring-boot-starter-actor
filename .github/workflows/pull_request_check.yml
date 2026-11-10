@@ -36,6 +36,18 @@ jobs:
           -PtestJavaVersion=${{ matrix.java }}
           -Porg.gradle.java.installations.fromEnv=JAVA_HOME_${{ matrix.java }}_X64
 
+      # The console shows only a failed test's exception; the reports and the XML results also hold
+      # each test's log output (e.g. the cluster log of a flaky cluster test).
+      - name: 📤 Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports-jdk${{ matrix.java }}
+          path: |
+            **/build/reports/tests/
+            **/build/test-results/
+          retention-days: 14
+
       # Maven Central rejects a deployment when a POM dependency has no version.
       - name: 📦 Check published POMs
         run: |
