@@ -394,6 +394,39 @@ A kept handle points at one actor. If that actor stops, messages sent through th
 go to dead letters). Keep handles only to actors that live as long as the service, or look the actor up
 again after it stops.
 
+### Spawning at startup
+
+A bean may spawn its actors in its constructor or in a `@PostConstruct` method, as the logging example's
+`OrderService` does. Spring may not have created the actor's bean yet at that point (beans are created in
+an order you don't control); the spawn then asks Spring for the actor bean first, so it gets created on the
+spot. Blocking with `spawnAndWait()` is fine there, since startup runs on Spring's own thread.
+
+=== "Java"
+
+    ```java
+    @Service
+    public class OrderService {
+        private final SpringActorHandle<OrderActor.Command> orders;
+
+        public OrderService(SpringActorSystem actorSystem) {
+            this.orders = actorSystem.actor(OrderActor.class).withId("orders").spawnAndWait();
+        }
+    }
+    ```
+
+=== "Kotlin"
+
+    ```kotlin
+    @Service
+    class OrderService(actorSystem: SpringActorSystem) {
+        private val orders: SpringActorHandle<OrderActor.Command> =
+            actorSystem.actor(OrderActor::class.java).withId("orders").spawnAndWait()
+    }
+    ```
+
+The actor class must be a bean of the same application context (for example annotated with
+`@Component`). If it isn't, the spawn fails with "No factory registered for class ...".
+
 ## Custom actor context
 
 `SpringActor<C>` receives a plain `SpringActorContext`, which holds the actor id. To give an actor more

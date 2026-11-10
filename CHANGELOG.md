@@ -52,6 +52,9 @@
 
 ### Fixes
 
+- A bean can spawn an actor in its constructor or `@PostConstruct` even when Spring hasn't created the
+  actor's bean yet. It used to fail with "No factory registered for class" depending on bean creation
+  order; the logging example didn't start (#214).
 - A single raw value for a Pekko list key (`spring.actor.pekko.cluster.seed-nodes=pekko://a@h:1`) works like
   `seed-nodes[0]` instead of failing with "expecting list but got string".
 - `spring.actor.metrics.*` no longer leaks into the Pekko configuration as a raw `metrics.*` key.
@@ -111,7 +114,7 @@
 - `spring.autoconfigure.exclude` now accepts the actor configurations by class name, for example
   `io.github.seonwkim.actor.autoconfigure.cluster.ClusterConfiguration`.
 
-## 1.0.0 (unreleased)
+## 1.0.0 (2026-11-10)
 
 ### Breaking changes
 
