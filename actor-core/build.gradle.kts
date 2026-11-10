@@ -27,6 +27,8 @@ dependencies {
     testFixturesImplementation("org.apache.pekko:pekko-actor-typed_3:$pekkoVersion")
     testFixturesImplementation("com.fasterxml.jackson.core:jackson-annotations")
     testFixturesImplementation("com.google.code.findbugs:jsr305:3.0.2")
+    // AotHints: the registrars in aot.factories, for the native image hint tests.
+    testFixturesImplementation("org.springframework:spring-core")
 
     testImplementation(project(":actor-autoconfigure"))
     testImplementation("org.springframework.boot:spring-boot-starter-test")
