@@ -4,7 +4,8 @@
 # Uses /counter/{method}/{counterId}/increment and /counter/{method}/{counterId}
 
 HOSTS=("localhost:8080" "localhost:8081" "localhost:8082")
-COUNTER_ID="test-counter-10"
+# A new id per run: the database and Redis keep the counters of earlier runs.
+COUNTER_ID=${COUNTER_ID:-verify-$(date +%s)}
 echo "Counter ID = $COUNTER_ID"
 NUM_REQUESTS=9000
 CONCURRENCY=10

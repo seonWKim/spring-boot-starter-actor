@@ -38,9 +38,10 @@ cd example/synchronization
 ```
 
 `verify.sh` sends 9,000 increments for one counter id, split over the three nodes with 10 concurrent
-requests each, once per method (`db`, `redis`, `actor`). Then it reads the counter from node 8080 and
-compares it with 9,000. The counter id is fixed in the script (`COUNTER_ID`), so change it, or clear the
-database and Redis, before a second run.
+requests each, once per method (`db`, `redis`, `actor`). Each increment responds only after it is
+applied, so when the requests are done it reads the counter from node 8080 and compares it with 9,000.
+Each run uses a new counter id (`verify-<timestamp>`; set `COUNTER_ID` to choose one), so it can run
+again without clearing the database and Redis.
 
 Stop the nodes with `sh cluster-stop.sh` from the repository root.
 
@@ -68,7 +69,7 @@ public class CounterActor implements SpringShardedActor<CounterActor.Command> {
 
     public interface Command extends JsonSerializable {}
 
-    public static class Increment implements Command {}
+    public static class Increment extends AskCommand<Long> implements Command {}
 
     public static class GetValue extends AskCommand<Long> implements Command {}
 
@@ -96,6 +97,7 @@ public class CounterActor implements SpringShardedActor<CounterActor.Command> {
 
         private SpringActorBehavior<Command> onIncrement(Increment msg) {
             value++;
+            msg.reply(value);
             return SpringActorBehavior.same();
         }
 
@@ -107,14 +109,17 @@ public class CounterActor implements SpringShardedActor<CounterActor.Command> {
 }
 ```
 
-`ActorCounterService` sends `Increment` with `tell` (no reply needed) and reads with `ask`:
+`ActorCounterService` sends both commands with `ask`, so an increment's HTTP response waits until the
+actor applied it:
 
 === "Java"
 
     ```java
-    public void increment(String counterId) {
+    public Mono<Long> increment(String counterId) {
         var actorRef = springActorSystem.sharded(CounterActor.class).withId(counterId).get();
-        actorRef.tell(new CounterActor.Increment());
+        return Mono.fromCompletionStage(actorRef.ask(new CounterActor.Increment())
+                .withTimeout(Duration.ofSeconds(3))
+                .execute());
     }
 
     public Mono<Long> getValue(String counterId) {
@@ -130,11 +135,15 @@ public class CounterActor implements SpringShardedActor<CounterActor.Command> {
 === "Kotlin"
 
     ```kotlin
-    fun increment(counterId: String) {
-        actorSystem.sharded<CounterActor, _>().withId(counterId).get().tell(CounterActor.Increment())
-    }
-
     // Call from a suspend function or a coroutine.
+    suspend fun increment(counterId: String): Long =
+        actorSystem.sharded<CounterActor, _>()
+            .withId(counterId)
+            .get()
+            .ask(CounterActor.Increment())
+            .withTimeout(3.seconds)
+            .await()
+
     suspend fun getValue(counterId: String): Long =
         actorSystem.sharded<CounterActor, _>()
             .withId(counterId)
@@ -168,15 +177,12 @@ Redis round trips, more under contention.
 - The actor counter lives in memory. If the node that hosts the entity stops, the count is lost. For a
   count that must survive, persist it: see [State in a database](../guides/data/state-in-a-database.md)
   or [Event sourcing](../guides/data/event-sourcing.md).
-- The increment endpoints return before the work is done (the actor `tell` and the Redis chain run in the
-  background). The read at the end of `verify.sh` can run before the last increments are applied.
 
 ## Try next
 
 - Raise `NUM_REQUESTS` and `CONCURRENCY` in `verify.sh` and compare how long each method takes.
 - Use many counter ids instead of one. The actor version spreads them over the nodes; the database
   version spreads them over rows.
-- Make `Increment` an `AskCommand<Long>` that replies with the new value, so callers wait for it.
 
 ## Related
 

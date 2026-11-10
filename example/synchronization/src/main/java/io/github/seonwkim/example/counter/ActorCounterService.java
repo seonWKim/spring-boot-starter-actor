@@ -19,8 +19,7 @@ import reactor.core.publisher.Mono;
  *
  * <p>Best practices demonstrated:
  * - Use sharded actors for distributed state management
- * - Use tell() for fire-and-forget operations (increment)
- * - Use ask() with timeout handling for request-response (getValue)
+ * - Use ask() with a timeout for request-response: increment replies once applied
  */
 @Service
 public class ActorCounterService implements CounterService {
@@ -39,21 +38,24 @@ public class ActorCounterService implements CounterService {
     }
 
     /**
-     * Increments the counter value by 1 and returns the new value. Uses actor-based locking to ensure
-     * synchronization.
+     * Increments the counter value by 1. The actor handles one message at a time, so no lock is
+     * needed.
      *
      * @param counterId The ID of the counter to increment
+     * @return A Mono with the new value, once the actor applied the increment
      */
     @Override
-    public void increment(String counterId) {
+    public Mono<Long> increment(String counterId) {
         logger.debug("Incrementing counter with ID: {}", counterId);
 
         // Get a reference to the sharded actor for this counter using the new simplified API
         var actorRef =
                 springActorSystem.sharded(CounterActor.class).withId(counterId).get();
 
-        // Send an increment message to the actor and get the response
-        actorRef.tell(new CounterActor.Increment());
+        // Ask, so the response is sent only after the actor applied the increment
+        return Mono.fromCompletionStage(actorRef.ask(new CounterActor.Increment())
+                .withTimeout(Duration.ofSeconds(3))
+                .execute());
     }
 
     /**

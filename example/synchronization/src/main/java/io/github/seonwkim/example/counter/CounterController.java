@@ -38,11 +38,11 @@ public class CounterController {
      * Endpoint to increment a counter using DB locking.
      *
      * @param counterId The ID of the counter to increment
-     * @return A Mono containing the new counter value
+     * @return A Mono with the new counter value, once the increment is applied
      */
     @GetMapping("/db/{counterId}/increment")
-    public void incrementDbCounter(@PathVariable String counterId) {
-        dbCounterService.increment(counterId);
+    public Mono<Long> incrementDbCounter(@PathVariable String counterId) {
+        return dbCounterService.increment(counterId);
     }
 
     /**
@@ -60,10 +60,11 @@ public class CounterController {
      * Endpoint to increment a counter using Redis locking.
      *
      * @param counterId The ID of the counter to increment
+     * @return A Mono with the new counter value, once the increment is applied
      */
     @GetMapping("/redis/{counterId}/increment")
-    public void incrementRedisCounter(@PathVariable String counterId) {
-        redisCounterService.increment(counterId);
+    public Mono<Long> incrementRedisCounter(@PathVariable String counterId) {
+        return redisCounterService.increment(counterId);
     }
 
     /**
@@ -81,11 +82,11 @@ public class CounterController {
      * Endpoint to increment a counter using actor-based locking.
      *
      * @param counterId The ID of the counter to increment
-     * @return A Mono containing the new counter value
+     * @return A Mono with the new counter value, once the increment is applied
      */
     @GetMapping("/actor/{counterId}/increment")
-    public void incrementActorCounter(@PathVariable String counterId) {
-        actorCounterService.increment(counterId);
+    public Mono<Long> incrementActorCounter(@PathVariable String counterId) {
+        return actorCounterService.increment(counterId);
     }
 
     /**
