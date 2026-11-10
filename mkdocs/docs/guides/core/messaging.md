@@ -72,10 +72,10 @@ answers with `msg.reply(value)`:
     ```kotlin
     class GetBalance(val accountId: String) : AskCommand<Long>(), Command
 
-    // In create():
-    .onMessage(GetBalance::class.java) { state, msg ->
-        msg.reply(state.balance())
-        SpringActorBehavior.same()
+    // In the behavior { } block, whose state object has balance():
+    onMessage<GetBalance> { msg ->
+        msg.reply(balance())
+        same()
     }
     ```
 
@@ -189,14 +189,14 @@ part of the reply:
 
     class Withdraw(val amount: Long) : AskCommand<WithdrawResult>(), Command
 
-    // In create():
-    .onMessage(Withdraw::class.java) { state, msg ->
-        if (msg.amount > state.balance()) {
+    // In the behavior { } block:
+    onMessage<Withdraw> { msg ->
+        if (msg.amount > balance()) {
             msg.reply(WithdrawResult.Rejected("insufficient funds"))
         } else {
-            msg.reply(WithdrawResult.Done(state.withdraw(msg.amount)))
+            msg.reply(WithdrawResult.Done(withdraw(msg.amount)))
         }
-        SpringActorBehavior.same()
+        same()
     }
     ```
 

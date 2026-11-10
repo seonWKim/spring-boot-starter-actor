@@ -1,8 +1,8 @@
 # Kotlin
 
-The `actor-kotlin` module adds a thin Kotlin layer over the Java API: `suspend` functions instead of
-`CompletionStage`, reified type parameters instead of `Class` arguments, and `kotlin.time.Duration`
-timeouts. Each function calls the Java API, so everything in the other guides applies unchanged.
+The `actor-kotlin` module adds a thin Kotlin layer over the Java API: a `behavior { }` DSL for actor
+behaviors, `suspend` functions instead of `CompletionStage`, reified type parameters instead of `Class`
+arguments, and `kotlin.time.Duration` timeouts. Each function calls the Java API, so everything in the other guides applies unchanged.
 
 ## Installation
 
@@ -37,7 +37,7 @@ Without the flag, Kotlin only warns, and the API's types are platform types (`St
 
 ## Defining an actor
 
-`actorBehavior<Command>(actorContext)` is `SpringActorBehavior.builder(Command::class.java, actorContext)`.
+`behavior<Command>(actorContext) { ... }` builds the behavior with `SpringActorBehavior.builder`.
 Commands are often a sealed interface:
 
 ```kotlin
@@ -47,14 +47,54 @@ class HelloActor : SpringActor<HelloActor.Command> {
 
     class SayHello : AskCommand<String>(), Command
 
+    data class LogVisit(val name: String) : Command
+
     override fun create(actorContext: SpringActorContext): SpringActorBehavior<Command> =
-        actorBehavior<Command>(actorContext)
-            .onMessage(SayHello::class.java) { ctx, msg ->
+        behavior<Command>(actorContext) {
+            onMessage<SayHello> { msg ->
                 msg.reply("Hello from actor ${actorContext.actorId()}")
-                SpringActorBehavior.same()
-            }.build()
+                same()
+            }
+            onMessage<LogVisit> { msg ->
+                log.info("{} visited", msg.name)   // the behavior context is `this`
+                same()
+            }
+        }
 }
 ```
+
+Inside the block:
+
+| DSL | Java builder |
+|---|---|
+| `onMessage<M> { msg -> next }` | `.onMessage(M.class, (ctx, msg) -> next)` |
+| `onSignal<PostStop> { signal -> next }` | `.onSignal(PostStop.class, (ctx, signal) -> next)` |
+| `withSupervisionStrategy(strategy)` | `.withSupervisionStrategy(strategy)` |
+| `withMdc { msg -> mapOf(...) }` | `.withMdc(msg -> Map.of(...))` |
+| `same()`, `stopped()`, `unhandled()` | `SpringActorBehavior.same()`, `.stopped()`, `.unhandled()` |
+
+A handler runs with the behavior context as `this`, so `self`, `log`, `pipeToSelf(...)`, `watch(...)` and
+the timers need no `ctx.` prefix. It returns the next behavior: `same()`, `stopped()`, `unhandled()`, or
+another `behavior { }` to switch behaviors.
+
+### State
+
+To keep state in an object, pass a `state` factory ([`withState`](core/behaviors.md#state-with-withstate)).
+It runs when the actor starts and again on each restart, and the handlers then run with the state object as
+`this`:
+
+```kotlin
+override fun create(actorContext: SpringActorContext): SpringActorBehavior<Command> =
+    behavior<Command, Counter>(actorContext, state = { ctx -> Counter(ctx) }) {
+        onMessage<Add> { msg -> onAdd(msg) }
+        onMessage<Get> { msg -> onGet(msg) }
+    }
+```
+
+`behavior<Command, _>` works too: Kotlin infers the state type from the factory.
+
+`actorBehavior<Command>(actorContext)` returns the Java builder itself, for code that prefers the chained
+`.onMessage(Type::class.java) { ctx, msg -> ... }.build()` style.
 
 ## Spawning and finding actors
 
@@ -83,6 +123,7 @@ val counter = actorSystem.sharded<CounterActor, _>().withId("counter-1").get()
 | `sharded<A, _>()` | `sharded(A.class)` |
 | `awaitGetOrSpawn<A, _>(id)`, `awaitGet<A, _>(id)`, `awaitExists<A, _>(id)` | `getOrSpawn`, `find` (as a nullable), `exists` with `A.class` |
 | `builder.awaitSpawn()`, `builder.awaitGetOrSpawn()` | `spawn()`, `getOrSpawn()` on the spawn builder |
+| `behavior<C>(actorContext) { }`, `behavior<C, S>(actorContext, state = { ctx -> S(ctx) }) { }` | `SpringActorBehavior.builder(C.class, actorContext)`, then `withState`, the handlers and `build()` |
 | `actorBehavior<C>(actorContext)` | `SpringActorBehavior.builder(C.class, actorContext)` |
 | `handle.child<A, _>()`, `handle.child<A, _>(id)` | `child(A.class)`, `child(A.class, id)` |
 | `awaitSpawn()`, `awaitGetOrSpawn()`, `awaitExists()` on a child builder; `awaitGet()`, `awaitExists()` on a child reference | `spawn()`, `getOrSpawn()`, `get()`, `exists()` |

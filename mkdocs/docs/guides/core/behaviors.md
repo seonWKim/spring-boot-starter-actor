@@ -1,7 +1,8 @@
 # Behaviors
 
 An actor's behavior says how it handles each message. You build it in `create` with
-`SpringActorBehavior.builder(...)` (or `actorBehavior<C>(...)` in Kotlin). This page covers what you can
+`SpringActorBehavior.builder(...)` (or `behavior<C>(...) { }` in Kotlin, see the
+[Kotlin guide](../kotlin.md#defining-an-actor)). This page covers what you can
 do inside a behavior: keep state, choose the next behavior, react to lifecycle signals, schedule
 messages with timers, watch other actors, and turn futures into messages.
 
@@ -86,11 +87,11 @@ handler methods in that object:
         class Get : AskCommand<Long>(), Command
 
         override fun create(actorContext: SpringActorContext): SpringActorBehavior<Command> =
-            actorBehavior<Command>(actorContext)
-                .withState { ctx -> Counter(ctx, actorContext.actorId()) }
-                .onMessage(Add::class.java) { counter, msg -> counter.onAdd(msg) }
-                .onMessage(Get::class.java) { counter, msg -> counter.onGet(msg) }
-                .build()
+            behavior<Command, Counter>(actorContext, state = { ctx -> Counter(ctx, actorContext.actorId()) }) {
+                // The handlers run with the Counter as `this`.
+                onMessage<Add> { msg -> onAdd(msg) }
+                onMessage<Get> { msg -> onGet(msg) }
+            }
 
         private class Counter(private val ctx: SpringBehaviorContext<Command>, private val id: String) {
             private var value = 0L   // only this actor's thread touches it
@@ -187,22 +188,22 @@ locked. Each built behavior has its own handlers and its own state:
             unlocked(actorContext)
 
         private fun unlocked(actorContext: SpringActorContext): SpringActorBehavior<Command> =
-            actorBehavior<Command>(actorContext)
-                .onMessage(Lock::class.java) { _, _ -> locked(actorContext) }
-                .onMessage(IsLocked::class.java) { _, msg ->
+            behavior<Command>(actorContext) {
+                onMessage<Lock> { locked(actorContext) }
+                onMessage<IsLocked> { msg ->
                     msg.reply(false)
-                    SpringActorBehavior.same()
+                    same()
                 }
-                .build()
+            }
 
         private fun locked(actorContext: SpringActorContext): SpringActorBehavior<Command> =
-            actorBehavior<Command>(actorContext)
-                .onMessage(Unlock::class.java) { _, _ -> unlocked(actorContext) }
-                .onMessage(IsLocked::class.java) { _, msg ->
+            behavior<Command>(actorContext) {
+                onMessage<Unlock> { unlocked(actorContext) }
+                onMessage<IsLocked> { msg ->
                     msg.reply(true)
-                    SpringActorBehavior.same()
+                    same()
                 }
-                .build()
+            }
     }
     ```
 
@@ -282,22 +283,21 @@ already active replaces it.
         private data object Flush : Command
 
         override fun create(actorContext: SpringActorContext): SpringActorBehavior<Command> =
-            actorBehavior<Command>(actorContext)
-                .withState { ctx ->
-                    ctx.startTimerAtFixedRate("flush", Flush, 10.seconds)
-                    ctx.startSingleTimer("idle", IdleTimeout, IDLE)
-                    ctx
+            behavior<Command, _>(actorContext, state = { ctx ->
+                ctx.startTimerAtFixedRate("flush", Flush, 10.seconds)
+                ctx.startSingleTimer("idle", IdleTimeout, IDLE)
+                ctx
+            }) {
+                onMessage<Touch> {
+                    startSingleTimer("idle", IdleTimeout, IDLE)   // restart the idle clock
+                    same()
                 }
-                .onMessage(Touch::class.java) { ctx, _ ->
-                    ctx.startSingleTimer("idle", IdleTimeout, IDLE)   // restart the idle clock
-                    SpringActorBehavior.same()
+                onMessage<Flush> {
+                    log.debug("Flushing")
+                    same()
                 }
-                .onMessage(Flush::class.java) { ctx, _ ->
-                    ctx.log.debug("Flushing")
-                    SpringActorBehavior.same()
-                }
-                .onMessage(IdleTimeout::class.java) { _, _ -> SpringActorBehavior.stopped() }
-                .build()
+                onMessage<IdleTimeout> { stopped() }
+            }
 
         private companion object {
             val IDLE = 30.minutes
@@ -329,13 +329,13 @@ go through the mailbox like any other message, so they run one at a time with th
 === "Kotlin"
 
     ```kotlin
-    .onMessage(Track::class.java) { ctx, msg ->
-        ctx.watch(msg.worker)
-        SpringActorBehavior.same()
+    onMessage<Track> { msg ->
+        watch(msg.worker)
+        same()
     }
-    .onSignal(ActorTerminated::class.java) { ctx, signal ->
-        ctx.log.info("{} stopped", signal.ref.path())
-        SpringActorBehavior.same()
+    onSignal<ActorTerminated> { signal ->
+        log.info("{} stopped", signal.ref.path())
+        same()
     }
     ```
 
@@ -368,13 +368,13 @@ completes, the function builds a message, and the actor handles it like any othe
 === "Kotlin"
 
     ```kotlin
-    .onMessage(Load::class.java) { state, msg ->
-        state.ctx.pipeToSelf(profileClient.fetch(msg.userId)) { profile, error ->   // CompletionStage<Profile>
+    onMessage<Load> { msg ->
+        ctx.pipeToSelf(profileClient.fetch(msg.userId)) { profile, error ->   // CompletionStage<Profile>
             Loaded(profile, error)
         }
-        SpringActorBehavior.same()
+        same()
     }
-    .onMessage(Loaded::class.java) { state, msg -> state.onLoaded(msg) }   // update state here
+    onMessage<Loaded> { msg -> onLoaded(msg) }   // update state here
     ```
 
 Exactly one of `value` and `error` is non-null. More examples, including asking another actor, are in
@@ -383,7 +383,8 @@ Exactly one of `value` and `error` is non-null. More examples, including asking 
 ## The behavior context
 
 The context (`SpringBehaviorContext<C>`) is what an actor can do from its handlers. You get it in the
-`withState` factory, and as the first handler argument when there is no `withState`.
+`withState` factory, and as the first handler argument when there is no `withState` (in the Kotlin
+`behavior { }` DSL, as the handler's `this`).
 
 | Method | What it does |
 |---|---|
