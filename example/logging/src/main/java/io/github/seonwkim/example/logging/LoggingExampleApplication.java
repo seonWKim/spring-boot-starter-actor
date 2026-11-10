@@ -1,6 +1,5 @@
 package io.github.seonwkim.example.logging;
 
-import io.github.seonwkim.actor.EnableActorSupport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
@@ -14,7 +13,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * - Async and JSON logging
  */
 @SpringBootApplication
-@EnableActorSupport
 public class LoggingExampleApplication {
 
     private static final Logger log = LoggerFactory.getLogger(LoggingExampleApplication.class);

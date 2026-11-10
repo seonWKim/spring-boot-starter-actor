@@ -1,6 +1,5 @@
 package io.github.seonwkim.example;
 
-import io.github.seonwkim.actor.EnableActorSupport;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
@@ -17,7 +16,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * Without the agent, the application starts normally but no actor metrics are collected.
  */
 @SpringBootApplication
-@EnableActorSupport
 public class SpringPekkoApplication {
 
     public static void main(String[] args) {

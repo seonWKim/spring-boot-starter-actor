@@ -1,7 +1,6 @@
 package io.github.seonwkim.example;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.github.seonwkim.actor.EnableActorSupport;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
@@ -11,7 +10,6 @@ import org.springframework.context.annotation.Bean;
  * Boot application.
  */
 @SpringBootApplication
-@EnableActorSupport
 public class SpringPekkoApplication {
 
     /**
