@@ -31,8 +31,5 @@ tasks.named<Test>("test") {
 tasks.named<BootRun>("bootRun") {
     dependsOn(":actor-metrics:agentJar")
     val agentJar = project(":actor-metrics").tasks.named<Jar>("agentJar").get()
-    jvmArgs = listOf(
-        "-javaagent:${agentJar.archiveFile.get().asFile.absolutePath}",
-        "-DACTOR_METRICS_DEBUG=true"
-    )
+    jvmArgs = listOf("-javaagent:${agentJar.archiveFile.get().asFile.absolutePath}")
 }

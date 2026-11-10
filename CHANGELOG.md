@@ -9,6 +9,16 @@
 - `spring.actor.metrics.*` no longer leaks into the Pekko configuration as a raw `metrics.*` key.
 - Configuration metadata covers `management.health.actor.enabled` and the `spring.actor.dispatchers.*` sub-keys
   (`executor`, `virtual`, `throughput`), so IDEs complete them.
+### Breaking changes
+
+- **One failure meter.** The metrics agent no longer records `actor.errors` (tag `error.type`). Failures are
+  counted once, as `actor.message.failures` (tags `actor.class`, `dispatcher`, `system`), by the starter's
+  hooks with or without the agent; the bundled dashboard and alerts already use it. If you built your own
+  dashboards or alerts on `actor_errors_total`, query `actor_message_failures_total` instead.
+
+### Fixes
+
+- The metrics example no longer passes `-DACTOR_METRICS_DEBUG=true`, a flag no code reads.
 
 ## 1.0.0 (unreleased)
 
