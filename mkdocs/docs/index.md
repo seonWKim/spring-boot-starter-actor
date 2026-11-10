@@ -49,6 +49,8 @@ Start with `actor-spring-boot-starter`, and add the others when you need them. A
 | `actor-kotlin` | Kotlin coroutines and reified helpers |
 | `actor-test` | `@ActorTest`, cluster test helpers and store contract tests (test scope) |
 
+Using several? Import `actor-bom` to set the version once (see [Getting started](getting-started.md#several-modules-import-the-bom)).
+
 ## Next steps
 
 - [Getting started](getting-started.md): an actor answering HTTP requests in a few minutes

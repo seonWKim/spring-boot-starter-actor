@@ -35,6 +35,53 @@ Writing Kotlin? Add `io.github.seonwkim:actor-kotlin:1.0.0` too, for `suspend` f
 helpers (see the [Kotlin guide](guides/kotlin.md)). Every code sample in these docs has a Java and a
 Kotlin tab; your choice applies to the whole site.
 
+### Several modules: import the BOM
+
+From 1.1.0, `io.github.seonwkim:actor-bom` lists every module at one version. Import it and leave the
+version off each module. It manages only this project's modules; Spring Boot keeps managing Pekko's
+dependencies such as Jackson.
+
+=== "Gradle"
+
+    ```groovy
+    implementation platform('io.github.seonwkim:actor-bom:1.1.0')
+    implementation 'io.github.seonwkim:actor-spring-boot-starter'
+    implementation 'io.github.seonwkim:actor-metrics'
+    testImplementation 'io.github.seonwkim:actor-test'
+    ```
+
+=== "Maven"
+
+    ```xml
+    <dependencyManagement>
+      <dependencies>
+        <dependency>
+          <groupId>io.github.seonwkim</groupId>
+          <artifactId>actor-bom</artifactId>
+          <version>1.1.0</version>
+          <type>pom</type>
+          <scope>import</scope>
+        </dependency>
+      </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+      <dependency>
+        <groupId>io.github.seonwkim</groupId>
+        <artifactId>actor-spring-boot-starter</artifactId>
+      </dependency>
+      <dependency>
+        <groupId>io.github.seonwkim</groupId>
+        <artifactId>actor-metrics</artifactId>
+      </dependency>
+      <dependency>
+        <groupId>io.github.seonwkim</groupId>
+        <artifactId>actor-test</artifactId>
+        <scope>test</scope>
+      </dependency>
+    </dependencies>
+    ```
+
 !!! note
     Spring Boot 3.5 manages Jackson 2.18+, which satisfies Pekko. No `jackson-bom` override is needed.
 

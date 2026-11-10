@@ -35,6 +35,8 @@ Java 21+ and Spring Boot 3.5+.
 implementation 'io.github.seonwkim:actor-spring-boot-starter:1.0.0'
 ```
 
+Using several modules? Import the `io.github.seonwkim:actor-bom` BOM ([Getting started](https://seonwkim.github.io/actor-spring-boot-starter/getting-started/#several-modules-import-the-bom)).
+
 ```java
 @SpringBootApplication
 @EnableActorSupport

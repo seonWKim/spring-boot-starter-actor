@@ -65,16 +65,12 @@ fun MavenPom.commonPom(project: Project) {
     }
 }
 
-configure(subprojects.filter { it.path.startsWith(":relocation:") }) {
+// Projects that publish a POM and no code: the BOM (actor-bom) and the relocation POMs.
+fun Project.isPlatform() = path == ":actor-bom" || path.startsWith(":relocation")
+
+configure(subprojects.filter { it.isPlatform() && it.path != ":relocation" }) {
     apply(plugin = "java-platform")
     apply(plugin = "com.vanniktech.maven.publish")
-
-    // Maven follows <relocation>; Gradle does not, and prefers Gradle module metadata over the POM.
-    // So publish the POM only, and let it also depend on the new artifact: Gradle builds that
-    // still name the old coordinates get the new artifact transitively.
-    extensions.configure<JavaPlatformExtension> { allowDependencies() }
-    dependencies { "api"(project(":${relocationTargets.getValue(project.name)}")) }
-    tasks.withType<GenerateModuleMetadata>().configureEach { enabled = false }
 
     extensions.configure<MavenPublishBaseExtension> {
         coordinates(
@@ -85,14 +81,6 @@ configure(subprojects.filter { it.path.startsWith(":relocation:") }) {
         pom {
             packaging = "pom"
             commonPom(project)
-            distributionManagement {
-                relocation {
-                    groupId.set(project.findProperty("group") as String)
-                    artifactId.set(relocationTargets.getValue(project.name))
-                    version.set(project.findProperty("version") as String)
-                    message.set("Renamed in 1.0: see https://github.com/seonWKim/actor-spring-boot-starter/blob/main/CHANGELOG.md")
-                }
-            }
         }
         publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
         // Release builds pass the key (publish.yml); publishToMavenLocal works without one.
@@ -102,7 +90,29 @@ configure(subprojects.filter { it.path.startsWith(":relocation:") }) {
     }
 }
 
-configure(subprojects.filter { !it.path.startsWith(":relocation") }) {
+configure(subprojects.filter { it.path.startsWith(":relocation:") }) {
+    // Maven follows <relocation>; Gradle does not, and prefers Gradle module metadata over the POM.
+    // So publish the POM only, and let it also depend on the new artifact: Gradle builds that
+    // still name the old coordinates get the new artifact transitively.
+    extensions.configure<JavaPlatformExtension> { allowDependencies() }
+    dependencies { "api"(project(":${relocationTargets.getValue(project.name)}")) }
+    tasks.withType<GenerateModuleMetadata>().configureEach { enabled = false }
+
+    extensions.configure<MavenPublishBaseExtension> {
+        pom {
+            distributionManagement {
+                relocation {
+                    groupId.set(project.findProperty("group") as String)
+                    artifactId.set(relocationTargets.getValue(project.name))
+                    version.set(project.findProperty("version") as String)
+                    message.set("Renamed in 1.0: see https://github.com/seonWKim/actor-spring-boot-starter/blob/main/CHANGELOG.md")
+                }
+            }
+        }
+    }
+}
+
+configure(subprojects.filter { !it.isPlatform() }) {
     apply(plugin = "java")
     apply(plugin = "java-library")
     apply(plugin = "com.diffplug.spotless")
@@ -237,7 +247,7 @@ spotless {
     }
 }
 
-configure(subprojects.filter { !it.path.startsWith(":relocation") }) {
+configure(subprojects.filter { !it.isPlatform() }) {
     tasks.test {
         useJUnitPlatform()
 
@@ -303,7 +313,7 @@ configure(subprojects.filter { !it.path.startsWith(":relocation") }) {
 
 // Every module with code runs the ARCHITECTURE.md rules on its own main classes.
 configure(subprojects.filter {
-    !it.path.startsWith(":relocation") && it.path != ":architecture-rules" && it.path != ":example:kubernetes"
+    !it.isPlatform() && it.path != ":architecture-rules" && it.path != ":example:kubernetes"
 }) {
     dependencies {
         "testImplementation"(project(":architecture-rules"))

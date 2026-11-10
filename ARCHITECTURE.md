@@ -98,6 +98,7 @@ flowchart TB
 | `actor-test` | Test slice, multi-node helpers, SPI contract suites and in-memory fakes | none |
 | `actor-autoconfigure` | Auto-configuration for every module, optional parts behind `@ConditionalOnClass` | `implementation` |
 | `actor-spring-boot-starter*` | Empty POMs that pick a set of modules | n/a |
+| `actor-bom` | BOM (`java-platform`) listing every published module at the project version; `scripts/release/check-poms.py` fails when one is missing | n/a |
 
 ## Migration status
 
