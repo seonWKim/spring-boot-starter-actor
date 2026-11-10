@@ -1,4 +1,4 @@
-package io.github.seonwkim.example.persistence.eventsourcing;
+package io.github.seonwkim.example.persistence.eventlog;
 
 import jakarta.persistence.*;
 import java.time.Instant;

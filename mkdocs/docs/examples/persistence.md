@@ -15,7 +15,7 @@ store every change as an event, or save snapshots now and then. Each is one acto
 ## What it shows
 
 - `OrderActor`: loads its order when it starts and saves it on every change (JPA entity with `@Version`)
-- `EventSourcedOrderActor`: appends each change to an `order_events` table and rebuilds its state by
+- `EventLogOrderActor`: appends each change to an `order_events` table and rebuilds its state by
   replaying the events when it starts
 - `SnapshotOrderActor`: saves the state as JSON every 10 changes or 60 seconds, and starts from the latest
   snapshot
@@ -39,13 +39,13 @@ curl -X POST "http://localhost:8080/api/orders/order-1/approve"
 curl "http://localhost:8080/api/orders/order-1"
 ```
 
-### Event sourced (`/api/orders/eventsourced`)
+### Event log (`/api/orders/eventlog`)
 
 ```bash
-curl -X POST "http://localhost:8080/api/orders/eventsourced/order-2?customerId=customer-2&amount=200.00"
-curl -X POST "http://localhost:8080/api/orders/eventsourced/order-2/items?productId=prod-2&quantity=3&price=66.67"
-curl -X POST "http://localhost:8080/api/orders/eventsourced/order-2/approve?approvedBy=admin"
-curl "http://localhost:8080/api/orders/eventsourced/order-2/history"
+curl -X POST "http://localhost:8080/api/orders/eventlog/order-2?customerId=customer-2&amount=200.00"
+curl -X POST "http://localhost:8080/api/orders/eventlog/order-2/items?productId=prod-2&quantity=3&price=66.67"
+curl -X POST "http://localhost:8080/api/orders/eventlog/order-2/approve?approvedBy=admin"
+curl "http://localhost:8080/api/orders/eventlog/order-2/history"
 ```
 
 ### Snapshots (`/api/orders/snapshot`)
@@ -115,7 +115,7 @@ public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
 Because one actor handles all writes for an order, writes for the same order never race. `@Version` on
 `Order` still catches a write from outside the actor (`OptimisticLockingFailureException`).
 
-### Event sourcing: `EventSourcedOrderActor`
+### Event log: `EventLogOrderActor`
 
 Each command appends a domain event (`OrderCreatedEvent`, `OrderItemAddedEvent`, `OrderApprovedEvent`,
 `OrderCancelledEvent`) as JSON with a sequence number. On start, the actor replays them:

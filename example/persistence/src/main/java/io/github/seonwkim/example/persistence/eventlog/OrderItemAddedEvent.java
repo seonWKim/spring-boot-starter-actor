@@ -1,4 +1,4 @@
-package io.github.seonwkim.example.persistence.eventsourcing;
+package io.github.seonwkim.example.persistence.eventlog;
 
 public record OrderItemAddedEvent(String orderId, String productId, int quantity, double price)
         implements OrderDomainEvent {

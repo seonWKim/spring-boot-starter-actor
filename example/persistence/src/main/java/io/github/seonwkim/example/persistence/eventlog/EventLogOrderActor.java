@@ -1,4 +1,4 @@
-package io.github.seonwkim.example.persistence.eventsourcing;
+package io.github.seonwkim.example.persistence.eventlog;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.seonwkim.actor.*;
@@ -9,16 +9,17 @@ import java.util.List;
 import org.springframework.stereotype.Component;
 
 /**
- * Example of event-sourced actor that persists all changes as events.
- * State is rebuilt from event history on actor startup.
+ * An actor that appends every change to an event table through Spring Data JPA and rebuilds its
+ * state from that table on startup. The event log is hand-written; for the starter's event-sourced
+ * actors with a journal, see the actor-persistence module.
  */
 @Component
-public class EventSourcedOrderActor implements SpringActor<EventSourcedOrderActor.Command> {
+public class EventLogOrderActor implements SpringActor<EventLogOrderActor.Command> {
 
     private final OrderEventRepository eventRepository;
     private final ObjectMapper objectMapper;
 
-    public EventSourcedOrderActor(OrderEventRepository eventRepository, ObjectMapper objectMapper) {
+    public EventLogOrderActor(OrderEventRepository eventRepository, ObjectMapper objectMapper) {
         this.eventRepository = eventRepository;
         this.objectMapper = objectMapper;
     }
@@ -94,13 +95,13 @@ public class EventSourcedOrderActor implements SpringActor<EventSourcedOrderActo
                 .withState(ctx -> {
                     // Rebuild state from events
                     OrderState state = rebuildState(actorContext.actorId());
-                    return new EventSourcedBehavior(ctx, actorContext, eventRepository, objectMapper, state);
+                    return new EventLogBehavior(ctx, actorContext, eventRepository, objectMapper, state);
                 })
-                .onMessage(CreateOrder.class, EventSourcedBehavior::handleCreateOrder)
-                .onMessage(AddItem.class, EventSourcedBehavior::handleAddItem)
-                .onMessage(ApproveOrder.class, EventSourcedBehavior::handleApproveOrder)
-                .onMessage(GetOrder.class, EventSourcedBehavior::handleGetOrder)
-                .onMessage(GetHistory.class, EventSourcedBehavior::handleGetHistory)
+                .onMessage(CreateOrder.class, EventLogBehavior::handleCreateOrder)
+                .onMessage(AddItem.class, EventLogBehavior::handleAddItem)
+                .onMessage(ApproveOrder.class, EventLogBehavior::handleApproveOrder)
+                .onMessage(GetOrder.class, EventLogBehavior::handleGetOrder)
+                .onMessage(GetHistory.class, EventLogBehavior::handleGetHistory)
                 .build();
     }
 
@@ -186,14 +187,14 @@ public class EventSourcedOrderActor implements SpringActor<EventSourcedOrderActo
     public record OrderItem(String productId, int quantity, double price) {}
 
     // Behavior class
-    private static class EventSourcedBehavior {
+    private static class EventLogBehavior {
         private final SpringBehaviorContext<Command> ctx;
         private final SpringActorContext actorContext;
         private final OrderEventRepository eventRepository;
         private final ObjectMapper objectMapper;
         private final OrderState state;
 
-        EventSourcedBehavior(
+        EventLogBehavior(
                 SpringBehaviorContext<Command> ctx,
                 SpringActorContext actorContext,
                 OrderEventRepository eventRepository,
