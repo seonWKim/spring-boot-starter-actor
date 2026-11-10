@@ -201,10 +201,9 @@ The example includes production-ready logback configuration:
 
 ### Actor Configuration (`application.yml`)
 
-Custom dispatchers for different workload types:
-
-- **blocking-io-dispatcher** - For I/O-bound operations (payment, notification)
-- **cpu-dispatcher** - For CPU-intensive operations (order processing)
+`spring.actor.name` names the actor system (`LoggingExampleSystem`, visible in `pekkoSource`). The three
+actors simulate slow work with `Thread.sleep`, so each service spawns its actor with
+`withBlockingDispatcher()`, which keeps that work off the default dispatcher.
 
 ## Key Concepts Demonstrated
 

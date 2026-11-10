@@ -93,8 +93,8 @@ The services spawn one actor each in their constructor:
         .spawnAndWait()
     ```
 
-All three actors simulate work with `Thread.sleep`. The payment and notification actors run on the
-blocking dispatcher; the order actor stays on the default one.
+All three actors simulate work with `Thread.sleep`, so all three are spawned with
+`withBlockingDispatcher()`: blocking on the default dispatcher would hold up every other actor.
 
 ### Per-message MDC
 
