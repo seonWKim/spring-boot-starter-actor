@@ -20,11 +20,24 @@ public final class PekkoActorHandle<T> extends PekkoActorRef<T> implements Sprin
 
     @Nullable private final MessageTracing tracing;
 
+    /** Whether {@code ref} is this node's proxy to a cluster singleton. */
+    private final boolean singletonProxy;
+
     public PekkoActorHandle(ActorSystem<?> system, ActorRef<T> actorRef) {
         this(system, actorRef, ActorConstants.DEFAULT_TIMEOUT);
     }
 
     public PekkoActorHandle(ActorSystem<?> system, ActorRef<T> actorRef, Duration defaultTimeout) {
+        this(system, actorRef, defaultTimeout, false);
+    }
+
+    /** A handle to a cluster singleton through this node's proxy ({@code proxy}). */
+    public static <T> PekkoActorHandle<T> singleton(ActorSystem<?> system, ActorRef<T> proxy, Duration defaultTimeout) {
+        return new PekkoActorHandle<>(system, proxy, defaultTimeout, true);
+    }
+
+    private PekkoActorHandle(
+            ActorSystem<?> system, ActorRef<T> actorRef, Duration defaultTimeout, boolean singletonProxy) {
         super(actorRef);
         if (system == null) {
             throw new IllegalArgumentException("system must not be null");
@@ -35,6 +48,7 @@ public final class PekkoActorHandle<T> extends PekkoActorRef<T> implements Sprin
         this.system = system;
         this.defaultTimeout = defaultTimeout;
         this.tracing = MessageTracingSetup.of(system);
+        this.singletonProxy = singletonProxy;
     }
 
     /** Tells the actor, with the current trace when tracing is on. */
@@ -54,6 +68,13 @@ public final class PekkoActorHandle<T> extends PekkoActorRef<T> implements Sprin
     @Override
     @SuppressWarnings("unchecked")
     public void stop() {
+        if (singletonProxy) {
+            // A PoisonPill would stop this node's proxy, not the singleton, and Pekko hands the same
+            // stopped proxy to every later spawn on this node: its messages would be lost.
+            throw new UnsupportedOperationException("stop() is not supported on a cluster singleton's handle: the "
+                    + "handle is this node's proxy, and stopping it would cut this node off from the singleton, "
+                    + "which keeps running on its host.");
+        }
         ref.tell((T) PoisonPill.getInstance());
     }
 

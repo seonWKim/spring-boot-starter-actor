@@ -1,6 +1,7 @@
 package io.github.seonwkim.actor;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 
 import java.time.Duration;
@@ -176,6 +177,39 @@ public class ClusterSingletonClusterModeTest extends AbstractClusterTest {
 
         // Query should show 2 increments (same instance)
         awaitCount(singleton1, 2);
+    }
+
+    /**
+     * stop() on a singleton handle fails instead of stopping this node's proxy: Pekko gives every later
+     * spawn on the node that same proxy, so a stopped one would lose all of the node's messages.
+     */
+    @Test
+    public void stopOnASingletonHandleFailsAndKeepsTheSingletonReachable() throws Exception {
+        waitUntilClusterInitialized();
+        // The host, node 1 (the oldest), must spawn it too: a singleton runs only on nodes that spawn it.
+        context1.getBean(SpringActorSystem.class)
+                .actor(ClusterSingletonTest.SingletonTestActor.class)
+                .withId("stopped-singleton")
+                .asClusterSingleton()
+                .spawnAndWait();
+        SpringActorSystem system2 = context2.getBean(SpringActorSystem.class);
+        SpringActorHandle<ClusterSingletonTest.SingletonTestActor.Command> singleton = system2.actor(
+                        ClusterSingletonTest.SingletonTestActor.class)
+                .withId("stopped-singleton")
+                .asClusterSingleton()
+                .spawnAndWait();
+
+        assertThatThrownBy(singleton::stop)
+                .isInstanceOf(UnsupportedOperationException.class)
+                .hasMessageContaining("cluster singleton");
+
+        SpringActorHandle<ClusterSingletonTest.SingletonTestActor.Command> again = system2.actor(
+                        ClusterSingletonTest.SingletonTestActor.class)
+                .withId("stopped-singleton")
+                .asClusterSingleton()
+                .spawnAndWait();
+        again.tell(new ClusterSingletonTest.SingletonTestActor.Increment());
+        awaitCount(again, 1);
     }
 
     /**

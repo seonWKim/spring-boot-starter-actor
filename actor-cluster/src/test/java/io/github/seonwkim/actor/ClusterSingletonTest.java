@@ -110,7 +110,10 @@ public class ClusterSingletonTest {
             // Then: Should fail with IllegalStateException
             assertThatThrownBy(() -> result.toCompletableFuture().join())
                     .hasCauseInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("Cluster singleton requested but cluster mode is not enabled");
+                    .hasMessageContaining("Cluster singleton requested but cluster mode is not enabled")
+                    // It says how to turn cluster mode on.
+                    .hasMessageContaining("spring.actor.provider=cluster")
+                    .hasMessageContaining("actor-spring-boot-starter-cluster");
         }
 
         /**
