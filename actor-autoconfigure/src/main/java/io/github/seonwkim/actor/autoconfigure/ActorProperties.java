@@ -44,6 +44,12 @@ public class ActorProperties {
         CLUSTER
     }
 
+    /**
+     * Whether the starter starts an actor system. False turns off every actor auto-configuration
+     * while the starter stays on the classpath.
+     */
+    private boolean enabled = true;
+
     /** Name of the actor system (Pekko's pekko.name). Nodes of one cluster must use the same name. */
     @Nullable private String name;
 
@@ -67,6 +73,14 @@ public class ActorProperties {
      * withDispatcherFromConfig("<name>").
      */
     private final Map<String, Dispatcher> dispatchers = new LinkedHashMap<>();
+
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
 
     @Nullable public String getName() {
         return name;
@@ -593,6 +607,7 @@ public class ActorProperties {
 
     /** The keys under {@code spring.actor} that are typed settings rather than Pekko configuration. */
     static final List<String> TYPED_ROOTS = List.of(
+            "enabled",
             "name",
             "provider",
             "remote",

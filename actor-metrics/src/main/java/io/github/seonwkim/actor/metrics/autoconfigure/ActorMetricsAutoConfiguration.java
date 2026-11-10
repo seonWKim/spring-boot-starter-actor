@@ -4,14 +4,13 @@ import io.github.seonwkim.actor.metrics.core.MetricsRegistry;
 import io.github.seonwkim.actor.metrics.micrometer.MicrometerMetricsRegistryBuilder;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.boot.actuate.autoconfigure.metrics.CompositeMeterRegistryAutoConfiguration;
-import org.springframework.boot.autoconfigure.AutoConfigureAfter;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 
 /**
  * Spring Boot auto-configuration for actor metrics.
@@ -37,8 +36,8 @@ import org.springframework.context.annotation.Configuration;
  * <p>Requires the metrics agent at JVM startup:
  * <pre>java -javaagent:actor-metrics-{version}-agent.jar -jar app.jar</pre>
  */
-@Configuration
-@AutoConfigureAfter(CompositeMeterRegistryAutoConfiguration.class)
+@AutoConfiguration(after = CompositeMeterRegistryAutoConfiguration.class)
+@ConditionalOnProperty(name = "spring.actor.enabled", matchIfMissing = true)
 @ConditionalOnClass(MeterRegistry.class)
 @ConditionalOnProperty(name = "spring.actor.metrics.enabled", havingValue = "true", matchIfMissing = true)
 @EnableConfigurationProperties(ActorMetricsProperties.class)

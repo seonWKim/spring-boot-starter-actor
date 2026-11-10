@@ -1,12 +1,14 @@
 package io.github.seonwkim.actor.autoconfigure.endpoint;
 
 import io.github.seonwkim.actor.SpringActorSystem;
+import io.github.seonwkim.actor.autoconfigure.ConditionalOnActorEnabled;
+import io.github.seonwkim.actor.autoconfigure.cluster.ClusterConfiguration;
 import io.github.seonwkim.actor.internal.shard.ShardedActorRegistry;
 import io.github.seonwkim.actor.internal.shard.ShardingStats;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 
 /**
  * The {@code actors} Actuator endpoint, in cluster mode when Actuator is on the classpath. Spring
@@ -15,7 +17,8 @@ import org.springframework.context.annotation.Configuration;
  *
  * <p>The conditions need no Actuator class to evaluate, so Actuator may be absent.
  */
-@Configuration(proxyBeanMethods = false)
+@AutoConfiguration(after = ClusterConfiguration.class)
+@ConditionalOnActorEnabled
 @ConditionalOnClass(
         name = {
             "org.springframework.boot.actuate.endpoint.annotation.Endpoint",

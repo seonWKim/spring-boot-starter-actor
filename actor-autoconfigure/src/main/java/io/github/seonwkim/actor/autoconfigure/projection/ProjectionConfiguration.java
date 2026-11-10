@@ -1,20 +1,23 @@
 package io.github.seonwkim.actor.autoconfigure.projection;
 
 import io.github.seonwkim.actor.SpringActorSystem;
+import io.github.seonwkim.actor.autoconfigure.ActorConfiguration;
 import io.github.seonwkim.actor.autoconfigure.ActorProperties;
+import io.github.seonwkim.actor.autoconfigure.ConditionalOnActorEnabled;
 import io.github.seonwkim.actor.autoconfigure.SchemaScriptInitializer;
+import io.github.seonwkim.actor.autoconfigure.persistence.PersistenceConfiguration;
 import io.github.seonwkim.actor.projection.SpringProjection;
 import io.github.seonwkim.actor.projection.internal.PekkoProjections;
 import io.github.seonwkim.actor.projection.internal.ProjectionModuleSupport;
 import java.util.List;
 import javax.sql.DataSource;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.sql.init.DatabaseInitializationMode;
 import org.springframework.context.SmartLifecycle;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.support.JdbcTransactionManager;
 import org.springframework.transaction.PlatformTransactionManager;
 
@@ -23,7 +26,13 @@ import org.springframework.transaction.PlatformTransactionManager;
  * {@code DataSource} per {@code spring.actor.persistence.initialize-schema}, and starts every
  * {@link SpringProjection} bean when the context starts.
  */
-@Configuration(proxyBeanMethods = false)
+@AutoConfiguration(
+        after = {ActorConfiguration.class, PersistenceConfiguration.class},
+        afterName = {
+            "org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration",
+            "org.springframework.boot.autoconfigure.transaction.TransactionAutoConfiguration"
+        })
+@ConditionalOnActorEnabled
 @ConditionalOnClass(
         name = {
             "io.github.seonwkim.actor.projection.internal.PekkoProjections",
