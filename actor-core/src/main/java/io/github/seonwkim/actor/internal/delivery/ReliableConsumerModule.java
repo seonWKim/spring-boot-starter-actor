@@ -58,9 +58,10 @@ public final class ReliableConsumerModule implements ModuleSupport {
 
     /**
      * The same behavior, with every message handler setting {@code outcome.handled} when it returns.
-     * Rebuilt through the public builder, field by field of {@link SpringActorBehavior.Definition}.
+     * Rebuilt through the public builder, field by field of {@link SpringActorBehavior.Definition};
+     * {@code ReliableConsumerRebuildTest} fails when the definition gains a field this doesn't copy.
      */
-    private static <C, S> SpringActorBehavior<C> marking(
+    static <C, S> SpringActorBehavior<C> marking(
             SpringActorBehavior.Definition<C, S> definition, HandlerOutcome outcome) {
         SpringActorBehavior.Builder<C, S> builder = SpringActorBehavior.builder(
                         definition.commandClass(), definition.actorContext())
@@ -97,7 +98,7 @@ public final class ReliableConsumerModule implements ModuleSupport {
     }
 
     /** Whether a message handler returned for the message being delivered. Only the actor touches it. */
-    private static final class HandlerOutcome {
+    static final class HandlerOutcome {
         boolean handled;
     }
 
