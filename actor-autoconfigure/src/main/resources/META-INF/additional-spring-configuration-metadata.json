@@ -18,6 +18,28 @@
     {
       "name": "spring.actor.shutdown.timeout",
       "defaultValue": "20s"
+    },
+    {
+      "name": "management.health.actor.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Whether to report the actor system and, in cluster mode, this node's cluster membership as Actuator health components (actorSystem, actorCluster).",
+      "defaultValue": true
+    },
+    {
+      "name": "spring.actor.dispatchers.*.executor",
+      "type": "java.lang.String",
+      "description": "Name of the Executor bean (for example a ThreadPoolTaskExecutor) the actors of this dispatcher run on. Replace * with the dispatcher name."
+    },
+    {
+      "name": "spring.actor.dispatchers.*.virtual",
+      "type": "java.lang.Boolean",
+      "description": "Runs the actors of this dispatcher on virtual threads, one per task, instead of an Executor bean. Replace * with the dispatcher name.",
+      "defaultValue": false
+    },
+    {
+      "name": "spring.actor.dispatchers.*.throughput",
+      "type": "java.lang.Integer",
+      "description": "Messages an actor of this dispatcher processes before its thread goes to the next actor. Pekko's default is 5. Replace * with the dispatcher name."
     }
   ],
   "hints": []

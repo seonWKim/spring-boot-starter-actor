@@ -14,6 +14,8 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -63,6 +65,18 @@ class ConfigurationMetadataTest {
                     .as("description of " + key)
                     .isNotBlank();
         }
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+            strings = {
+                "management.health.actor.enabled",
+                "spring.actor.dispatchers.*.executor",
+                "spring.actor.dispatchers.*.virtual",
+                "spring.actor.dispatchers.*.throughput"
+            })
+    void keysReadOutsideConfigurationPropertiesAreListed(String key) {
+        assertThat(property(key)).as("metadata entry for " + key).isNotNull();
     }
 
     @Test
