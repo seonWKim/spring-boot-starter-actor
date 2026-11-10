@@ -44,6 +44,26 @@ public class ClusterSingletonClusterModeTest extends AbstractClusterTest {
         assertThat(singleton).isNotNull();
     }
 
+    /** A singleton is not a child of the root guardian, but find and exists on the node that spawned it see it. */
+    @Test
+    public void findAndExistsSeeASingletonThisNodeSpawned() throws Exception {
+        waitUntilClusterInitialized();
+        SpringActorSystem system1 = context1.getBean(SpringActorSystem.class);
+        Class<ClusterSingletonTest.SingletonTestActor> type = ClusterSingletonTest.SingletonTestActor.class;
+
+        system1.actor(type)
+                .withId("found-singleton")
+                .asClusterSingleton()
+                .spawn()
+                .toCompletableFuture()
+                .get();
+
+        assertThat(system1.find(type, "found-singleton").toCompletableFuture().get())
+                .isPresent();
+        assertThat(system1.exists(type, "found-singleton").toCompletableFuture().get())
+                .isTrue();
+    }
+
     /**
      * Tests that messages from all nodes are handled by the same singleton instance.
      * This verifies that only ONE instance exists across the cluster.
