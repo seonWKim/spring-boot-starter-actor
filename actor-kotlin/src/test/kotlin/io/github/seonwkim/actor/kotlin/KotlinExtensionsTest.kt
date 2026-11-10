@@ -33,12 +33,16 @@ class EchoActor : SpringActor<EchoActor.Command> {
     /** Never answered: the asker times out. */
     class Ignored : AskCommand<String>(), Command
 
+    /** Its handler throws. */
+    class Fail : AskCommand<String>(), Command
+
     override fun create(actorContext: SpringActorContext): SpringActorBehavior<Command> =
         actorBehavior<Command>(actorContext)
             .onMessage(Echo::class.java) { _, msg ->
                 msg.reply(msg.text)
                 SpringActorBehavior.same()
             }.onMessage(Ignored::class.java) { _, _ -> SpringActorBehavior.same() }
+            .onMessage(Fail::class.java) { _, _ -> throw IllegalStateException("boom") }
             .build()
 }
 
@@ -70,6 +74,20 @@ class KotlinExtensionsTest {
 
             // The given timeout applies, not the handle's 3-second default.
             assertThat(waited).isLessThan(2.seconds)
+        }
+
+    @Test
+    fun awaitAskWithFailFastThrowsTheHandlersExceptionBeforeTheTimeout() =
+        runBlocking<Unit> {
+            val echo = actorSystem.awaitGetOrSpawn<EchoActor, _>(newId())
+
+            val waited =
+                measureTime {
+                    val error = assertThrows<IllegalStateException> { echo.awaitAsk(EchoActor.Fail(), 30.seconds, failFast = true) }
+                    assertThat(error).hasMessage("boom")
+                }
+
+            assertThat(waited).isLessThan(5.seconds)
         }
 
     @Test
