@@ -80,11 +80,11 @@ spring:
         - pekko://spring-pekko-example@127.0.0.1:2551
         - pekko://spring-pekko-example@127.0.0.1:2552
         - pekko://spring-pekko-example@127.0.0.1:2553
+      downing:
+        strategy: keep-majority
     pekko:
       actor:
         allow-java-serialization: off
-      cluster:
-        downing-provider-class: org.apache.pekko.cluster.sbr.SplitBrainResolverProvider
 ```
 
 Every node uses the same file; the start script overrides `server.port` and `spring.actor.remote.port`.

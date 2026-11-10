@@ -119,21 +119,26 @@ entity.tell(new MyCommand());
 Key settings in `application.yml`:
 
 ```yaml
-spring.actor.pekko:
-  actor.provider: cluster
-  remote.artery.canonical:
-    hostname: 127.0.0.1
-    port: 2551
-  cluster.seed-nodes:
-    - pekko://spring-pekko-example@127.0.0.1:2551
-    - pekko://spring-pekko-example@127.0.0.1:2552
-    - pekko://spring-pekko-example@127.0.0.1:2553
+spring:
+  actor:
+    name: spring-pekko-example
+    provider: cluster
+    remote:
+      hostname: 127.0.0.1
+      port: 2551
+    cluster:
+      seed-nodes:
+        - pekko://spring-pekko-example@127.0.0.1:2551
+        - pekko://spring-pekko-example@127.0.0.1:2552
+        - pekko://spring-pekko-example@127.0.0.1:2553
+      downing:
+        strategy: keep-majority
 ```
 
 ## Troubleshooting
 
 - **Cluster not forming?** Wait 10-20s, check seed nodes match, verify same actor system name
-- **Singleton not starting?** Ensure `actor.provider=cluster` and cluster formed
+- **Singleton not starting?** Ensure `spring.actor.provider=cluster` and cluster formed
 - **Timeouts?** Verify messages implement `JsonSerializable`, check Jackson annotations
 
 ## Resources
