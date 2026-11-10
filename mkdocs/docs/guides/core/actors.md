@@ -469,9 +469,10 @@ instead:
         .awaitGetOrSpawn()
     ```
 
-Always spawn such an actor through the builder with `withContext(...)`. The shortcut
-`actorSystem.getOrSpawn(ReportActor.class, id)` builds a plain context, which `create` can't accept, so
-that spawn fails. `get` and `exists` work as usual: they only need the id.
+Always spawn such an actor through the builder with `withContext(...)`. A spawn by id alone
+(`actorSystem.getOrSpawn(ReportActor.class, id)`, or `withId(...)` without `withContext`) can't build a
+`ReportContext`, so its stage fails with an `IllegalArgumentException` that names the context type and
+says to use `withContext(...)`. `find` and `exists` work as usual: they only need the id.
 
 ## Stopping actors
 
@@ -629,8 +630,8 @@ The child builder (`handle.child(ChildClass)`) has the same shape as the spawn b
 | `withTimeout(duration)` | Default 3 s |
 | `withDispatcher(DispatcherConfig)` | `DispatcherConfig.blocking()`, `.sameAsParent()`, `.fromConfig(name)`, `.defaultDispatcher()` |
 | `withMailbox(MailboxConfig)`, `withTags(TagsConfig)`, `withMdc(MdcConfig)` | As for top-level actors |
-| `spawn()` | Spawns the child. If a child with that class and id already runs, returns it. |
-| `getOrSpawn()` | Returns the running child, or spawns it |
+| `spawn()` | Spawns the child. If a child with that class and id already runs, returns it and logs a deprecation warning: use `getOrSpawn()` for that. In 2.0 it fails, like a top-level `spawn()`. |
+| `getOrSpawn()` | Returns the running child, or spawns it (in one step, so concurrent calls get the same child) |
 | `spawnAndWait()` | Blocks until the child runs. Never call it inside the parent. |
 | `get()` | Deprecated: use `handle.child(ChildClass, id).get()`, which returns an `Optional` |
 | `exists()` | Whether the child runs |
@@ -661,7 +662,9 @@ spawn, find or check its children.
 
 Differences from top-level actors:
 
-- `spawn()` on a child returns the running child when the id is taken; a top-level `spawn()` fails.
+- One rule for a taken id: `spawn()` is for a new actor and `getOrSpawn()` reuses a running one. A
+  top-level `spawn()` fails when the id is taken. A child `spawn()` still returns the running child, with a
+  deprecation warning, until 2.0.
 - A child can't be a cluster singleton.
 - Dispatchers are set with `withDispatcher(DispatcherConfig...)` instead of the `with...Dispatcher()`
   shortcuts.

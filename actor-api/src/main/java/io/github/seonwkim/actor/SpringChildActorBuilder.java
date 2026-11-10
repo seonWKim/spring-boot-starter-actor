@@ -136,7 +136,10 @@ public interface SpringChildActorBuilder<P, C> {
 
     /**
      * Spawns the child actor and returns a CompletionStage with the child actor reference.
-     * If the child already exists, the existing reference is returned.
+     *
+     * <p>If a child with this class and id already runs, it is returned and a warning is logged. That is
+     * deprecated: use {@link #getOrSpawn()} to reuse a running child. In 2.0, {@code spawn()} fails when
+     * the id is taken, like {@link SpringActorSpawnBuilder#spawn()}.
      *
      * @return A CompletionStage that will be completed with the child actor reference
      * @throws IllegalStateException If neither childId nor childContext is set
@@ -153,8 +156,8 @@ public interface SpringChildActorBuilder<P, C> {
     SpringActorHandle<C> spawnAndWait();
 
     /**
-     * Gets a reference to the child actor if it exists, or spawns it if it doesn't.
-     * This is a convenience method that combines exists checking and spawning.
+     * Gets a reference to the child actor if it exists, or spawns it if it doesn't. The parent checks and
+     * spawns in one step, so concurrent calls for the same id get the same child.
      *
      * @return A CompletionStage that will be completed with the child actor reference
      * @throws IllegalStateException If neither childId nor childContext is set

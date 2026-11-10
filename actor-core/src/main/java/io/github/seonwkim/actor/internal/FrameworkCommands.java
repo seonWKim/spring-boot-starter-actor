@@ -138,8 +138,15 @@ public final class FrameworkCommands {
         }
 
         public static <C> SpawnChildResponse<C> alreadyExists(ActorRef<C> existingRef) {
-            return new SpawnChildResponse<>(existingRef, false, "Child already exists");
+            return new SpawnChildResponse<>(existingRef, false, ALREADY_EXISTS);
         }
+
+        /** Whether the spawn found a running child with that class and id; {@link #childRef} is that child. */
+        public boolean alreadyExists() {
+            return !success && ALREADY_EXISTS.equals(message);
+        }
+
+        private static final String ALREADY_EXISTS = "Child already exists";
     }
 
     /**

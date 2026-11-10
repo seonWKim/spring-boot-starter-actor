@@ -389,8 +389,9 @@ The context (`SpringBehaviorContext<C>`) is what an actor can do from its handle
 |---|---|
 | `getSelf()` | A handle to this actor: pass it as a reply address, or use it for [child operations](actors.md#child-actors) |
 | `getLog()` | The actor's logger; its lines carry the actor's path and MDC (see [Logging](logging.md)) |
+| `actorId()` | The id the actor was spawned with, so handlers don't have to capture it in `create` |
 | `path()`, `nodeAddress()` | The actor's path and the address of the node it runs on |
-| `getChildren()`, `getChild(name)` | The running children (`getChild` takes the internal name `<ClassName>:<id>`; prefer `getSelf().child(Class, id)`) |
+| `getChild(ChildClass.class, id)`, `getChildren()` | The running child with that class and id (an `Optional`), and all running children. `getChild(name)`, which took the internal name `<ClassName>:<id>`, is deprecated |
 | `stop(child)` | Stops one of this actor's children |
 | `startSingleTimer`, `startTimerAtFixedRate`, `cancelTimer` | [Timers](#timers) |
 | `watch(ref)` | [Watching](#watching-other-actors) |

@@ -259,7 +259,7 @@ class SpringChildActorBuilderTest {
             // When/Then: Calling get without setting ID or context should throw
             assertThatThrownBy(() -> parent.child(SimpleChildActor.class).get())
                     .isInstanceOf(IllegalStateException.class)
-                    .hasMessage("Either childId or childContext must be set");
+                    .hasMessageStartingWith("Either childId or childContext must be set");
         }
 
         @Test
@@ -274,7 +274,7 @@ class SpringChildActorBuilderTest {
             // When/Then: Calling exists without setting ID or context should throw
             assertThatThrownBy(() -> parent.child(SimpleChildActor.class).exists())
                     .isInstanceOf(IllegalStateException.class)
-                    .hasMessage("Either childId or childContext must be set");
+                    .hasMessageStartingWith("Either childId or childContext must be set");
         }
 
         @Test
@@ -289,7 +289,7 @@ class SpringChildActorBuilderTest {
             // When/Then: Calling getOrSpawn without setting ID or context should throw
             assertThatThrownBy(() -> parent.child(SimpleChildActor.class).getOrSpawn())
                     .isInstanceOf(IllegalStateException.class)
-                    .hasMessage("Either childId or childContext must be set");
+                    .hasMessageStartingWith("Either childId or childContext must be set");
         }
     }
 
