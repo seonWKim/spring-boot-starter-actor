@@ -14,7 +14,10 @@ data:
         provider: cluster
         remote:
           hostname: ${POD_IP}
-          port: 2551
+          port: 25520
+        # Leaving the cluster; fits in the Deployment's 45s grace period (see deployment.yaml).
+        shutdown:
+          timeout: 25s
         pekko:
           actor:
             allow-java-serialization: off
@@ -24,7 +27,7 @@ data:
             artery:
               bind:
                 hostname: 0.0.0.0
-                port: 2551
+                port: 25520
 
           cluster:
             downing-provider-class: org.apache.pekko.cluster.sbr.SplitBrainResolverProvider
@@ -44,23 +47,23 @@ data:
               actor-system-terminate:
                 timeout: 10s
 
-            bootstrap:
-              contact-point-discovery:
-                discovery-method: kubernetes-api
-                service-name: spring-actor
-                required-contact-point-nr: 2
-                stable-margin: 5s
-                interval: 1s
-                exponential-backoff-random-factor: 0.1
-                exponential-backoff-max: 15s
-                contact-with-all-contact-points: true
-
           management:
             http:
               hostname: ${POD_IP}
-              port: 8558
+              port: 7626
               bind-hostname: 0.0.0.0
-              bind-port: 8558
+              bind-port: 7626
+            cluster:
+              bootstrap:
+                contact-point-discovery:
+                  discovery-method: kubernetes-api
+                  service-name: spring-actor
+                  required-contact-point-nr: 2
+                  stable-margin: 5s
+                  interval: 1s
+                  exponential-backoff-random-factor: 0.1
+                  exponential-backoff-max: 15s
+                  contact-with-all-contact-points: true
 
           discovery:
             method: kubernetes-api

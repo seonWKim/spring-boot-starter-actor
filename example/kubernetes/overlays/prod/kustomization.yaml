@@ -6,6 +6,9 @@ namespace: spring-actor
 bases:
 - ../../base
 
+resources:
+- hpa.yaml
+
 nameSuffix: -prod
 
 commonLabels:
@@ -24,7 +27,6 @@ replicas:
 # Patches for production
 patchesStrategicMerge:
 - deployment-patch.yaml
-- hpa.yaml
 
 configMapGenerator:
 - name: spring-actor-config

@@ -19,9 +19,9 @@ spec:
           app: spring-actor
     ports:
     - protocol: TCP
-      port: 2551  # Remoting
+      port: 25520  # Pekko remoting
     - protocol: TCP
-      port: 8558  # Management
+      port: 7626   # Pekko management (Cluster Bootstrap)
 
   # Allow HTTP traffic from anywhere (or restrict to ingress controller)
   - from: []
@@ -46,9 +46,9 @@ spec:
           app: spring-actor
     ports:
     - protocol: TCP
-      port: 2551
+      port: 25520
     - protocol: TCP
-      port: 8558
+      port: 7626
 
   # Allow DNS
   - to:

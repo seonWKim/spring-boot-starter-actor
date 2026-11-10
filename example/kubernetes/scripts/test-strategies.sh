@@ -22,7 +22,7 @@ image() {
 
 members_up() {
     pod=$(kubectl -n "$NS" get pods -l "$1" -o jsonpath='{.items[0].metadata.name}')
-    kubectl -n "$NS" exec "$pod" -- curl -s localhost:8558/cluster/members \
+    kubectl -n "$NS" exec "$pod" -- curl -s localhost:7626/cluster/members \
         | jq -r '[.members[] | select(.status == "Up")] | length'
 }
 

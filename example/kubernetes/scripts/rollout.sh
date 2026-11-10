@@ -65,8 +65,8 @@ for i in {1..30}; do
     POD_NAME=$(kubectl get pods -n $NAMESPACE -l app=spring-actor --field-selector=status.phase=Running -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
 
     if [ -n "$POD_NAME" ]; then
-        CLUSTER_STATUS=$(kubectl exec -n $NAMESPACE $POD_NAME -- curl -s localhost:8558/cluster/members 2>/dev/null | jq -r '.members | length' 2>/dev/null || echo "N/A")
-        UNREACHABLE=$(kubectl exec -n $NAMESPACE $POD_NAME -- curl -s localhost:8558/cluster/members 2>/dev/null | jq -r '.unreachable | length' 2>/dev/null || echo "N/A")
+        CLUSTER_STATUS=$(kubectl exec -n $NAMESPACE $POD_NAME -- curl -s localhost:7626/cluster/members 2>/dev/null | jq -r '.members | length' 2>/dev/null || echo "N/A")
+        UNREACHABLE=$(kubectl exec -n $NAMESPACE $POD_NAME -- curl -s localhost:7626/cluster/members 2>/dev/null | jq -r '.unreachable | length' 2>/dev/null || echo "N/A")
         echo "[$(date +%H:%M:%S)] Cluster members: $CLUSTER_STATUS | Unreachable: $UNREACHABLE"
     else
         echo "[$(date +%H:%M:%S)] Waiting for pods..."
@@ -91,7 +91,7 @@ kubectl get pods -n $NAMESPACE -l app=spring-actor
 echo
 echo -e "${YELLOW}Final cluster status:${NC}"
 POD_NAME=$(kubectl get pods -n $NAMESPACE -l app=spring-actor --field-selector=status.phase=Running -o jsonpath='{.items[0].metadata.name}')
-kubectl exec -n $NAMESPACE $POD_NAME -- curl -s localhost:8558/cluster/members | jq
+kubectl exec -n $NAMESPACE $POD_NAME -- curl -s localhost:7626/cluster/members | jq
 
 echo
 echo -e "${GREEN}=== Rolling Update Complete ===${NC}"
