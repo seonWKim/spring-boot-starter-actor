@@ -353,14 +353,14 @@ registered twice.
 | `actor.mailbox.overflow` | Counter | none | Bounded mailbox drops |
 | `actor.message.processed` | Counter | `actor.class`, `message.type` | Messages processed |
 | `actor.message.processing.time` | Timer | `actor.class`, `message.type` | Processing duration |
-| `actor.errors` | Counter | `actor.class`, `error.type` | Messages whose processing threw, by exception class |
 | `actor.stash.size` | Gauge | `actor.class` | Stashed messages |
 | `system.dead-letters` | Counter | none | Undeliverable messages |
 | `system.unhandled-messages` | Counter | none | Unhandled messages |
 | `scheduler.tasks.scheduled` | Counter | none | Tasks via `scheduleOnce` |
 
-Typed actors use `actor.class=TypedActor`; use `message.type` to tell behaviors apart. The dashboard and
-alerts use `actor.message.failures`, which the hooks record with or without the agent, not `actor.errors`.
+Typed actors use `actor.class=TypedActor`; use `message.type` to tell behaviors apart. The agent records
+no failure meter of its own: failures are `actor.message.failures`, which the hooks record with or without
+the agent.
 
 ### Agent settings
 

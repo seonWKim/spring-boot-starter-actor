@@ -21,9 +21,10 @@ import org.slf4j.LoggerFactory;
  * Tracks:
  * - actor.message.processing.time (timer)
  * - actor.message.processed (counter)
- * - actor.errors (counter) - when message processing throws
  *
- * Tags: actor.class, message.type, error.type (low cardinality)
+ * Tags: actor.class, message.type (low cardinality)
+ *
+ * <p>Failures are counted by the starter's hooks as actor.message.failures, with or without the agent.
  */
 public class MessageProcessingModule implements InstrumentationModule {
 
@@ -34,7 +35,6 @@ public class MessageProcessingModule implements InstrumentationModule {
     // Metric names
     private static final String METRIC_MESSAGE_PROCESSING_TIME = "actor.message.processing.time";
     private static final String METRIC_MESSAGE_PROCESSED = "actor.message.processed";
-    private static final String METRIC_MESSAGE_ERRORS = "actor.errors";
 
     @Override
     public String moduleId() {
@@ -54,9 +54,6 @@ public class MessageProcessingModule implements InstrumentationModule {
     /**
      * Apply instrumentation to AgentBuilder.
      * This is called by the MetricsAgent during bytecode transformation.
-     *
-     * <p>Note: actor.errors are recorded via handleInvokeFailure() because Pekko catches exceptions
-     * inside invoke() and never rethrows - so OnMethodExit Thrown is always null for invoke().
      */
     @Override
     public AgentBuilder instrument(AgentBuilder builder) {
@@ -65,11 +62,7 @@ public class MessageProcessingModule implements InstrumentationModule {
                 .transform((builderParam, typeDescription, classLoader, module, protectionDomain) -> builderParam
                         // Instrument invoke(Envelope) for message processing (time, processed count)
                         .visit(Advice.to(InvokeAdvice.class)
-                                .on(ElementMatchers.named("invoke").and(ElementMatchers.takesArguments(1))))
-                        // Instrument handleInvokeFailure() for errors (Pekko catches in invoke, never throws)
-                        .visit(Advice.to(HandleInvokeFailureAdvice.class)
-                                .on(ElementMatchers.named("handleInvokeFailure")
-                                        .and(ElementMatchers.takesArguments(2)))));
+                        .on(ElementMatchers.named("invoke").and(ElementMatchers.takesArguments(1)))));
     }
 
     /**
@@ -158,28 +151,6 @@ public class MessageProcessingModule implements InstrumentationModule {
                 reg.getBackend().counter(METRIC_MESSAGE_PROCESSED, tags).increment();
             } catch (Exception e) {
                 errorLog.error(logger, "Error recording message processing metrics", e);
-            }
-        }
-    }
-
-    /**
-     * Records actor.errors when Pekko catches an exception during message processing.
-     * Pekko never rethrows from invoke(), so we instrument handleInvokeFailure() instead.
-     */
-    public static class HandleInvokeFailureAdvice {
-        @Advice.OnMethodEnter(suppress = Throwable.class)
-        public static void onEnter(@Advice.This Object actorCell, @Advice.Argument(1) Throwable cause) {
-            try {
-                MetricsRegistry reg = MetricsAgent.getRegistry();
-                if (reg == null || cause == null) return;
-                ActorContext context = ActorCells.contextOf(actorCell);
-                if (!reg.shouldInstrument(context)) return;
-
-                String errorType = cause.getClass().getSimpleName();
-                Tags tags = context.toTags().and("error.type", errorType).and(reg.getGlobalTags());
-                reg.getBackend().counter(METRIC_MESSAGE_ERRORS, tags).increment();
-            } catch (Exception e) {
-                errorLog.error(logger, "Error recording actor error metric", e);
             }
         }
     }

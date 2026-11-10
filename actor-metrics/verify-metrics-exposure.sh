@@ -28,7 +28,7 @@ EXPECTED=(
   "actor.mailbox.time"
   "actor.message.processed"
   "actor.message.processing.time"
-  "actor.errors"
+  "actor.message.failures"
   "system.dead-letters"
   "system.unhandled-messages"
 )
