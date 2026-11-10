@@ -11,6 +11,7 @@ import io.github.seonwkim.actor.SpringActorWithContext;
 import io.github.seonwkim.actor.SupervisionStrategy;
 import io.github.seonwkim.actor.TagsConfig;
 import java.time.Duration;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import javax.annotation.Nullable;
 import org.springframework.util.ObjectUtils;
@@ -160,7 +161,12 @@ public final class PekkoActorSpawnBuilder<A extends SpringActorWithContext<C, ?>
 
     private CompletionStage<SpringActorHandle<C>> spawn(boolean returnExisting) {
         if (actorContext == null) {
-            actorContext = new DefaultSpringActorContext(requireId());
+            String id = requireId();
+            IllegalArgumentException mismatch = ActorSpawner.defaultContextMismatch(actorClass);
+            if (mismatch != null) {
+                return CompletableFuture.failedFuture(mismatch);
+            }
+            actorContext = new DefaultSpringActorContext(id);
         }
 
         // Apply MDC configuration to the context
