@@ -12,6 +12,9 @@ on:
           - hotfix
           - minor
           - major
+          # Publish the current version again, from main's head, with no bump. Only for a version
+          # that never reached Maven Central (its deployment failed validation); moves its tag.
+          - republish
 
 jobs:
   bump-version:
@@ -56,6 +59,14 @@ jobs:
             hotfix)
               PATCH=$((PATCH + 1))
               ;;
+            republish)
+              code=$(curl -s -o /dev/null -w '%{http_code}' \
+                "https://repo1.maven.org/maven2/io/github/seonwkim/actor-api/$current/actor-api-$current.pom")
+              if [ "$code" = 200 ]; then
+                echo "❌ $current is already on Maven Central; a published version can't be replaced."
+                exit 1
+              fi
+              ;;
           esac
 
           NEW_VERSION="$MAJOR.$MINOR.$PATCH"
@@ -63,10 +74,12 @@ jobs:
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
 
       - name: 🌱 Create release branch
+        if: github.event.inputs.bumpType != 'republish'
         run: |
           git checkout -b release/${{ steps.bump.outputs.new_version }}
 
       - name: 📝 Update version in gradle.properties
+        if: github.event.inputs.bumpType != 'republish'
         run: |
           echo "✏️ Updating gradle.properties..."
           sed -i.bak -E "s/^version=[0-9]+\.[0-9]+\.[0-9]+/version=${{ steps.bump.outputs.new_version }}/" gradle.properties
@@ -74,6 +87,7 @@ jobs:
           git diff gradle.properties
 
       - name: ✅ Commit version bump
+        if: github.event.inputs.bumpType != 'republish'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -87,10 +101,12 @@ jobs:
           git commit -m "chore: bump version to ${{ steps.bump.outputs.new_version }}"
 
       - name: 🚀 Push release branch
+        if: github.event.inputs.bumpType != 'republish'
         run: |
           git push origin release/${{ steps.bump.outputs.new_version }}
 
       - name: 🔀 Merge into main
+        if: github.event.inputs.bumpType != 'republish'
         env:
           GH_TOKEN: ${{ secrets.DEPLOY_GITHUB_TOKEN }}
         run: |
@@ -105,11 +121,18 @@ jobs:
       - name: 🔖 Create Git tag v<version>
         run: |
           TAG_NAME="v${{ steps.bump.outputs.new_version }}"
-          echo "🏷 Creating tag $TAG_NAME"
-          git tag $TAG_NAME
-          git push origin $TAG_NAME
+          if [ "${{ github.event.inputs.bumpType }}" = republish ]; then
+            echo "🏷 Moving tag $TAG_NAME to main's head"
+            git tag -f $TAG_NAME
+            git push -f origin $TAG_NAME
+          else
+            echo "🏷 Creating tag $TAG_NAME"
+            git tag $TAG_NAME
+            git push origin $TAG_NAME
+          fi
 
       - name: 🧹 Delete release branch
+        if: github.event.inputs.bumpType != 'republish'
         run: |
           git push origin --delete release/${{ steps.bump.outputs.new_version }}
 
