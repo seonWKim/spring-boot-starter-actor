@@ -144,13 +144,14 @@ public class ActorProperties {
         /**
          * How long a receiver remembers the idempotency key of a message it handled; a message with a
          * remembered key is acknowledged again without running the handler. A receiver can override it.
+         * Default 10m.
          */
-        private Duration idempotencyTtl = Duration.ofMinutes(10);
+        @Nullable private Duration idempotencyTtl;
 
-        /** The most keys one receiver remembers; past it, the oldest are forgotten first. */
-        private int maxRememberedKeys = 10_000;
+        /** The most keys one receiver remembers; past it, the oldest are forgotten first. Default 10000. */
+        @Nullable private Integer maxRememberedKeys;
 
-        public Duration getIdempotencyTtl() {
+        @Nullable public Duration getIdempotencyTtl() {
             return idempotencyTtl;
         }
 
@@ -162,7 +163,7 @@ public class ActorProperties {
             this.idempotencyTtl = idempotencyTtl;
         }
 
-        public int getMaxRememberedKeys() {
+        @Nullable public Integer getMaxRememberedKeys() {
             return maxRememberedKeys;
         }
 
@@ -773,10 +774,16 @@ public class ActorProperties {
             keys.addAll(discoveryKeys());
         }
         keys.addAll(downingAndLeaseKeys());
-        keys.add(new TypedKey(
-                "delivery.idempotency-ttl", ReliableConsumerModule.TTL_KEY, delivery.idempotencyTtl.toMillis() + "ms"));
-        keys.add(new TypedKey(
-                "delivery.max-remembered-keys", ReliableConsumerModule.MAX_KEYS_KEY, delivery.maxRememberedKeys));
+        if (delivery.idempotencyTtl != null) {
+            keys.add(new TypedKey(
+                    "delivery.idempotency-ttl",
+                    ReliableConsumerModule.TTL_KEY,
+                    delivery.idempotencyTtl.toMillis() + "ms"));
+        }
+        if (delivery.maxRememberedKeys != null) {
+            keys.add(new TypedKey(
+                    "delivery.max-remembered-keys", ReliableConsumerModule.MAX_KEYS_KEY, delivery.maxRememberedKeys));
+        }
         if (!cluster.roles.isEmpty()) {
             keys.add(new TypedKey("cluster.roles", "pekko.cluster.roles", cluster.roles));
         }
