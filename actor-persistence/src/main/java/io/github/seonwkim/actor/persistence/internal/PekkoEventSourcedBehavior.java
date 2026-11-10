@@ -1,6 +1,7 @@
 package io.github.seonwkim.actor.persistence.internal;
 
 import io.github.seonwkim.actor.SpringBehaviorContext;
+import io.github.seonwkim.actor.internal.AskReplies;
 import io.github.seonwkim.actor.internal.PekkoBehaviorContext;
 import io.github.seonwkim.actor.persistence.Effect;
 import io.github.seonwkim.actor.persistence.EventSourcedContext;
@@ -43,9 +44,16 @@ final class PekkoEventSourcedBehavior<C, E, S> extends EventSourcedBehavior<C, E
 
     @Override
     public CommandHandler<C, E, S> commandHandler() {
-        return newCommandHandlerBuilder()
-                .forAnyState()
-                .onAnyCommand((state, command) -> toPekko(definition.handleCommand(context, state, command)));
+        return newCommandHandlerBuilder().forAnyState().onAnyCommand((state, command) -> {
+            Effect<E, S> effect;
+            try {
+                effect = definition.handleCommand(context, state, command);
+            } catch (RuntimeException e) {
+                AskReplies.failFast(command, e);
+                throw e;
+            }
+            return toPekko(effect);
+        });
     }
 
     @Override

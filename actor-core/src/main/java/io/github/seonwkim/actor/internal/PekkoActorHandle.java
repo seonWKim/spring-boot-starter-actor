@@ -59,10 +59,8 @@ public final class PekkoActorHandle<T> extends PekkoActorRef<T> implements Sprin
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public <RES> AskBuilder<RES> ask(AskCommand<RES> command) {
-        return new PekkoAskBuilder<T, RES>(ref, system.scheduler(), tracing, defaultTimeout, replyTo ->
-                (T) command.withReplyTo(new PekkoActorRef<>(replyTo)));
+        return new PekkoAskBuilder<T, RES>(ref, system.scheduler(), tracing, defaultTimeout, command);
     }
 
     @Override

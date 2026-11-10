@@ -1,6 +1,7 @@
 package io.github.seonwkim.actor;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.seonwkim.actor.autoconfigure.ActorConfiguration;
 import io.github.seonwkim.actor.internal.PekkoActorSystem;
@@ -18,7 +19,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.test.annotation.DirtiesContext;
 
-/** An ask's reply address survives the serializers that carry commands between nodes. */
+/**
+ * An ask's reply address and its fail-fast flag survive the serializers that carry commands between
+ * nodes.
+ */
 @SpringBootTest(classes = {ActorConfiguration.class, AskCommandSerializationTest.TestConfig.class})
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class AskCommandSerializationTest {
@@ -27,23 +31,22 @@ class AskCommandSerializationTest {
     private SpringActorSystem actorSystem;
 
     @Test
-    void replyToSurvivesJson() {
-        assertReplyToSurvives(new JsonAsk("hello"), "json");
+    void replyToAndFailFastSurviveJson() {
+        assertAskFieldsSurvive(new JsonAsk("hello"), "json");
     }
 
     @Test
-    void replyToSurvivesCbor() {
-        assertReplyToSurvives(new CborAsk("hello"), "cbor");
+    void replyToAndFailFastSurviveCbor() {
+        assertAskFieldsSurvive(new CborAsk("hello"), "cbor");
     }
 
-    private void assertReplyToSurvives(AskCommand<String> command, String id) {
+    private void assertAskFieldsSurvive(AskCommand<String> command, String id) {
         SpringActorHandle<String> replyTo =
                 actorSystem.actor(SinkActor.class).withId(id).spawnAndWait();
-        command.withReplyTo(replyTo);
-
-        AskCommand<?> back = roundTrip(command);
+        AskCommand<?> back = roundTrip(command.copyForAsk(replyTo, true));
 
         assertEquals(replyTo, back.getReplyTo());
+        assertTrue(back.failsFast(), "an entity on another node must still fail the ask fast");
     }
 
     private AskCommand<?> roundTrip(AskCommand<?> command) {

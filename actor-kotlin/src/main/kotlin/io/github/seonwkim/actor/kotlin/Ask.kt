@@ -22,25 +22,48 @@ fun <RES> SpringActorHandle.AskBuilder<RES>.withTimeout(timeout: Duration): Spri
 
 /**
  * Asks the actor and suspends until the reply arrives: `handle.ask(command).withTimeout(timeout).await()`.
- * Without [timeout], the handle's default timeout applies.
+ * Without [timeout], the handle's default timeout applies. With [failFast], a handler that throws on
+ * the command fails the call at once with that exception
+ * ([SpringActorHandle.AskBuilder.failFastOnError]).
  *
  * @throws java.util.concurrent.TimeoutException when no reply arrives in time
  */
 suspend fun <RES> SpringActorHandle<*>.awaitAsk(
     command: AskCommand<RES>,
     timeout: Duration? = null,
-): RES = ask(command).withOptionalTimeout(timeout).await()
+    failFast: Boolean = false,
+): RES = ask(command).withOptions(timeout, failFast).await()
 
 /**
  * Asks the sharded entity and suspends until the reply arrives. Without [timeout], the handle's
- * default timeout applies.
+ * default timeout applies. With [failFast], a handler that throws on the command fails the call at
+ * once with that exception ([SpringActorHandle.AskBuilder.failFastOnError]).
  *
  * @throws java.util.concurrent.TimeoutException when no reply arrives in time
  */
 suspend fun <RES> SpringShardedActorHandle<*>.awaitAsk(
     command: AskCommand<RES>,
     timeout: Duration? = null,
-): RES = ask(command).withOptionalTimeout(timeout).await()
+    failFast: Boolean = false,
+): RES = ask(command).withOptions(timeout, failFast).await()
 
-private fun <RES> SpringActorHandle.AskBuilder<RES>.withOptionalTimeout(timeout: Duration?): SpringActorHandle.AskBuilder<RES> =
-    if (timeout == null) this else withTimeout(timeout)
+// The 1.0 signatures, kept for binary compatibility with code compiled against them.
+@Deprecated("Kept for binary compatibility", level = DeprecationLevel.HIDDEN)
+suspend fun <RES> SpringActorHandle<*>.awaitAsk(
+    command: AskCommand<RES>,
+    timeout: Duration? = null,
+): RES = awaitAsk(command, timeout, false)
+
+@Deprecated("Kept for binary compatibility", level = DeprecationLevel.HIDDEN)
+suspend fun <RES> SpringShardedActorHandle<*>.awaitAsk(
+    command: AskCommand<RES>,
+    timeout: Duration? = null,
+): RES = awaitAsk(command, timeout, false)
+
+private fun <RES> SpringActorHandle.AskBuilder<RES>.withOptions(
+    timeout: Duration?,
+    failFast: Boolean,
+): SpringActorHandle.AskBuilder<RES> {
+    val withTimeout = if (timeout == null) this else withTimeout(timeout)
+    return if (failFast) withTimeout.failFastOnError() else withTimeout
+}

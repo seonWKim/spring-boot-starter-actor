@@ -96,7 +96,13 @@ public final class PekkoBehaviors {
                     }
                     if (definition.commandClass().isInstance(msg)) {
                         for (SpringActorBehavior.MessageHandler<C, S, ?> handler : definition.messageHandlers()) {
-                            SpringActorBehavior<C> next = handler.tryHandle(state, msg);
+                            SpringActorBehavior<C> next;
+                            try {
+                                next = handler.tryHandle(state, msg);
+                            } catch (Exception e) {
+                                AskReplies.failFast(msg, e);
+                                throw e;
+                            }
                             if (next != null) {
                                 return (Behavior<Object>) (Behavior<?>) toPekko(next);
                             }
