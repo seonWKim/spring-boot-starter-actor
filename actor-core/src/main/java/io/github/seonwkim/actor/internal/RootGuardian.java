@@ -42,6 +42,8 @@ public interface RootGuardian {
         public final Boolean isClusterSingleton;
         /** The supervisor strategy to use for this actor */
         @Nullable public final SupervisionStrategy supervisorStrategy;
+        /** Whether a running actor with the same name is returned instead of failing the spawn */
+        public final boolean returnExisting;
 
         /**
          * Creates a new SpawnActor command.
@@ -63,6 +65,33 @@ public interface RootGuardian {
                 TagsConfig tagsConfig,
                 Boolean isClusterSingleton,
                 @Nullable SupervisionStrategy supervisorStrategy) {
+            this(
+                    actorClass,
+                    actorContext,
+                    replyTo,
+                    mailboxConfig,
+                    dispatcherConfig,
+                    tagsConfig,
+                    isClusterSingleton,
+                    supervisorStrategy,
+                    false);
+        }
+
+        /**
+         * Creates a new SpawnActor command that, when {@code returnExisting} is true, replies with the
+         * running actor of the same class and id instead of failing. The check and the spawn happen in
+         * one message, so concurrent requests for the same id all get the same actor.
+         */
+        public SpawnActor(
+                Class<?> actorClass,
+                SpringActorContext actorContext,
+                ActorRef<Spawned<?>> replyTo,
+                MailboxConfig mailboxConfig,
+                DispatcherConfig dispatcherConfig,
+                TagsConfig tagsConfig,
+                Boolean isClusterSingleton,
+                @Nullable SupervisionStrategy supervisorStrategy,
+                boolean returnExisting) {
             this.actorClass = actorClass;
             this.actorContext = actorContext;
             this.replyTo = replyTo;
@@ -71,6 +100,7 @@ public interface RootGuardian {
             this.tagsConfig = tagsConfig;
             this.isClusterSingleton = isClusterSingleton;
             this.supervisorStrategy = supervisorStrategy;
+            this.returnExisting = returnExisting;
         }
     }
 

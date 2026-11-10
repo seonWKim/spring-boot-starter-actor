@@ -171,6 +171,7 @@ public final class PekkoActorSystem implements SpringActorSystem, DisposableBean
             TagsConfig tagsConfig,
             boolean isClusterSingleton,
             @Nullable SupervisionStrategy supervisorStrategy,
+            boolean returnExisting,
             Duration timeout) {
 
         // If cluster singleton is requested, validate cluster mode
@@ -190,7 +191,8 @@ public final class PekkoActorSystem implements SpringActorSystem, DisposableBean
                                 dispatcherConfig,
                                 tagsConfig,
                                 isClusterSingleton,
-                                supervisorStrategy),
+                                supervisorStrategy,
+                                returnExisting),
                         timeout,
                         actorSystem.scheduler())
                 .thenCompose(spawned -> {
