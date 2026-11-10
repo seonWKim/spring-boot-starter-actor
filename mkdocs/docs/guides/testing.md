@@ -3,7 +3,7 @@
 The `actor-test` module has three tools for tests:
 
 - **`@ActorTest`**: a test slice that starts the actor system and your actor beans, and nothing else.
-- **`ActorCluster`**: several nodes of your application in one JVM, on free ports, for cluster tests.
+- **`ActorCluster`**: several nodes of your application in one JVM, each on a port it binds itself, for cluster tests.
 - **Contract suites**: the tests every `PeerRegistry` and `LeaseStore` must pass, to run against your own store,
   plus in-memory fakes of both.
 
@@ -105,10 +105,11 @@ actor auto-configurations, so `spring.actor.*` properties from `application.yml`
 
 ## Cluster tests with `ActorCluster`
 
-`ActorCluster` starts several Spring contexts of your application in one JVM. Each node gets free ports,
-node 1 is the only seed node (it forms the cluster at once, the others join it), and `start()` returns when
-every node sees every node up. With Pekko Management on the classpath, each node's management port is free
-too.
+`ActorCluster` starts several Spring contexts of your application in one JVM. Each node binds port 0, so
+the operating system gives it a free port as it binds and no other test or process can take that port in
+between. Node 1 joins itself (`spring.actor.cluster.join-self`) and forms the cluster at once; the others
+join it at the address it bound. `start()` returns when every node sees every node up. With Pekko
+Management on the classpath, each node's management server binds port 0 too.
 
 With JUnit 5, register `ActorClusterExtension`. On an instance field it starts a cluster for each test; on a
 static field (in Kotlin, a `@JvmField` in a `companion object`), one for the whole class.

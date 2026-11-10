@@ -8,8 +8,6 @@ import static org.awaitility.Awaitility.await;
 import io.github.seonwkim.actor.cluster.ClusterEvent;
 import io.github.seonwkim.actor.cluster.MemberStatus;
 import io.github.seonwkim.actor.internal.PekkoActorSystem;
-import java.io.IOException;
-import java.net.ServerSocket;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import org.apache.pekko.cluster.typed.Cluster;
@@ -31,7 +29,9 @@ import org.springframework.context.event.EventListener;
  * down; if that last gossip is lost, the others remove it only after failure detection and the
  * split brain resolver's {@code stable-after} (20 s), as Down. Random ports made node 2 the leader in
  * about half of the CI runs (Linux picks ephemeral ports at random), which is the suspected cause of
- * #163 and #201.
+ * #163 and #201. So the test closes whichever node is not the leader.
+ *
+ * <p>Both nodes bind port 0, so no other process can take a port between picking and binding (#224).
  */
 class GracefulShutdownClusterTest {
 
@@ -68,25 +68,26 @@ class GracefulShutdownClusterTest {
 
     @Test
     void closingANodeContextMakesItLeaveGracefully() {
-        // Node 1 gets the lower port, so it is and stays the leader (see the class comment).
-        int portA = freePort();
-        int portB = freePort();
-        int port1 = Math.min(portA, portB);
-        int port2 = Math.max(portA, portB);
-        String seeds = String.format(
-                "pekko://graceful-shutdown@127.0.0.1:%d,pekko://graceful-shutdown@127.0.0.1:%d", port1, port2);
-        node1 = startNode(port1, seeds);
-        node2 = startNode(port2, seeds);
+        node1 = startNode("spring.actor.cluster.join-self=true");
+        node2 = startNode(
+                "spring.actor.pekko.cluster.seed-nodes[0]=" + context(node1).nodeAddress());
 
-        Cluster cluster1 = context(node1).unwrap(Cluster.class);
-        Cluster cluster2 = context(node2).unwrap(Cluster.class);
-        assertThat(cluster1).isNotNull();
+        Cluster clusterA = context(node1).unwrap(Cluster.class);
+        Cluster clusterB = context(node2).unwrap(Cluster.class);
         // Both nodes must see both members Up: node 1 can see node 2 Up before node 2 has caught up, and
         // a node that leaves before it knows the membership never tells node 1, which then sees it
         // unreachable instead of Leaving (#201).
         await().atMost(20, SECONDS)
                 .pollInterval(200, MILLISECONDS)
-                .until(() -> upMembers(cluster1) == 2 && upMembers(cluster2) == 2);
+                .until(() -> upMembers(clusterA) == 2 && upMembers(clusterB) == 2);
+        // The leader (the lower address) stays; the other node leaves (see the class comment).
+        if (!clusterA.selfMember().address().equals(clusterA.state().getLeader())) {
+            ConfigurableApplicationContext leader = node2;
+            node2 = node1;
+            node1 = leader;
+        }
+        Cluster cluster1 = context(node1).unwrap(Cluster.class);
+        Cluster cluster2 = context(node2).unwrap(Cluster.class);
         assertThat(cluster1.state().getLeader())
                 .as("leader")
                 .isEqualTo(cluster1.selfMember().address());
@@ -137,25 +138,17 @@ class GracefulShutdownClusterTest {
         return ctx.getBean(SpringActorSystem.class);
     }
 
-    private static ConfigurableApplicationContext startNode(int arteryPort, String seeds) {
+    private static ConfigurableApplicationContext startNode(String join) {
         return new SpringApplicationBuilder(ClusterApp.class)
                 .web(WebApplicationType.NONE)
                 .properties(
                         "spring.actor.pekko.name=graceful-shutdown",
                         "spring.actor.pekko.actor.provider=cluster",
                         "spring.actor.pekko.remote.artery.canonical.hostname=127.0.0.1",
-                        "spring.actor.pekko.remote.artery.canonical.port=" + arteryPort,
-                        "spring.actor.pekko.cluster.seed-nodes=" + seeds,
+                        "spring.actor.pekko.remote.artery.canonical.port=0",
+                        join,
                         "spring.actor.pekko.cluster.downing-provider-class=org.apache.pekko.cluster.sbr.SplitBrainResolverProvider",
                         "spring.actor.pekko.actor.allow-java-serialization=off")
                 .run();
-    }
-
-    private static int freePort() {
-        try (ServerSocket socket = new ServerSocket(0)) {
-            return socket.getLocalPort();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
     }
 }
