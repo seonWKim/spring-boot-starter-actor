@@ -76,8 +76,12 @@ public class PekkoManagementAutoConfiguration {
             log.info("Pekko Management HTTP server started");
 
             // Start Cluster Bootstrap for dynamic cluster formation
-            PekkoManagementStarter.startBootstrap(actorSystem);
-            log.info("Pekko Cluster Bootstrap started - cluster will form dynamically");
+            if (PekkoManagementStarter.startBootstrap(actorSystem)) {
+                log.info("Pekko Cluster Bootstrap started - cluster will form dynamically");
+            } else {
+                log.info(
+                        "Pekko Cluster Bootstrap not started - the node joins itself (spring.actor.cluster.join-self)");
+            }
 
         } catch (Exception e) {
             log.error("Failed to start Pekko Management or Cluster Bootstrap", e);
