@@ -2,12 +2,13 @@ package io.github.seonwkim.actor.autoconfigure.metrics;
 
 import io.github.seonwkim.actor.internal.ActorInstrumentation;
 import io.github.seonwkim.actor.metrics.agent.MetricsAgent;
+import io.github.seonwkim.actor.metrics.autoconfigure.ActorMetricsProperties;
 import io.github.seonwkim.actor.metrics.internal.hooks.ActorMeters;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -24,16 +25,16 @@ import org.springframework.context.annotation.Configuration;
             "io.github.seonwkim.actor.metrics.internal.hooks.ActorMeters"
         })
 @ConditionalOnProperty(name = "spring.actor.metrics.enabled", matchIfMissing = true)
+@EnableConfigurationProperties(ActorMetricsProperties.class)
 public class ActorMetricsConfiguration {
 
     @Bean
     public ActorInstrumentation actorMeters(
-            ObjectProvider<MeterRegistry> meterRegistry,
-            @Value("${spring.actor.metrics.path-tag-limit:0}") int pathTagLimit) {
+            ObjectProvider<MeterRegistry> meterRegistry, ActorMetricsProperties properties) {
         MeterRegistry registry = meterRegistry.getIfAvailable();
         if (registry == null) {
             return new ActorInstrumentation() {};
         }
-        return new ActorMeters(registry, MetricsAgent.isAgentLoaded(), pathTagLimit);
+        return new ActorMeters(registry, MetricsAgent.isAgentLoaded(), properties.getPathTagLimit());
     }
 }
