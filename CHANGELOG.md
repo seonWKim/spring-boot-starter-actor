@@ -29,6 +29,8 @@
 - **One rule for a taken id:** `spawn()` is for a new actor, `getOrSpawn()` reuses a running one. A child
   `spawn()` on a taken id still returns the running child but logs a deprecation warning; in 2.0 it fails
   like a top-level `spawn()`. A child `getOrSpawn()` now checks and spawns in one step (#188).
+- **Reliable delivery (draft API).** Opt-in at-least-once delivery to actors and sharded entities. See the
+  Reliable Delivery guide.
 - **GraalVM native image hints.** The modules register runtime hints in `META-INF/spring/aot.factories`:
   Pekko's `reference.conf` files, the starter's classes Pekko creates by name, `AskCommand`'s reply address,
   and the schema files. Your own serialized messages still need hints, and so do Pekko's own classes. See
