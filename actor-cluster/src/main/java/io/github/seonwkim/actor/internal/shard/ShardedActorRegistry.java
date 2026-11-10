@@ -6,6 +6,7 @@ import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import javax.annotation.Nullable;
+import org.springframework.util.ClassUtils;
 
 /**
  * The sharded actor beans of one Spring context, by entity type and by class. Each context has its
@@ -19,7 +20,8 @@ public final class ShardedActorRegistry {
 
     public <T> void register(SpringShardedActor<T> actor) {
         registry.put(actor.entityType(), actor);
-        classIndex.put(actor.getClass(), actor);
+        // Under the declared class, not a proxy's generated class (a @Transactional bean is proxied).
+        classIndex.put(ClassUtils.getUserClass(actor), actor);
     }
 
     @Nullable @SuppressWarnings("unchecked")

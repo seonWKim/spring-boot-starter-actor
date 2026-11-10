@@ -27,6 +27,7 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
+import org.springframework.util.ClassUtils;
 
 /**
  * Auto-configuration for the Spring Boot Actor System.
@@ -81,13 +82,15 @@ public class ActorConfiguration {
             }
 
             private void registerActor(SpringActorWithContext actor) {
-                actorTypeRegistry.registerInternal(actor.getClass(), actorContext -> {
+                // A proxied bean (for example one with @Transactional) is registered under the class
+                // the user declared, not the generated proxy class, so spawning by that class works.
+                actorTypeRegistry.registerInternal(ClassUtils.getUserClass(actor), actorContext -> {
                     try {
                         return actor.create(actorContext);
                     } catch (Exception e) {
                         throw new RuntimeException(
                                 "Failed to create actor behavior for "
-                                        + actor.getClass().getName(),
+                                        + ClassUtils.getUserClass(actor).getName(),
                                 e);
                     }
                 });
