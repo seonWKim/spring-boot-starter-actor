@@ -19,6 +19,7 @@ import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.PayloadApplicationEvent;
+import org.springframework.core.io.DefaultResourceLoader;
 
 /**
  * A cluster of Spring application contexts in this JVM, one per node, on free ports. Node 1 is the
@@ -156,6 +157,7 @@ public final class ActorCluster implements AutoCloseable {
         private Duration timeout = Duration.ofSeconds(30);
         private final List<String> properties = new ArrayList<>();
         private final Map<Integer, List<String>> nodeProperties = new HashMap<>();
+        private final Map<Integer, ClassLoader> classLoaders = new HashMap<>();
 
         private Builder(Class<?>[] sources) {
             if (sources.length == 0) {
@@ -205,6 +207,16 @@ public final class ActorCluster implements AutoCloseable {
             return this;
         }
 
+        /**
+         * Runs one node, numbered from 1, with its own class loader: its Spring context and actor system
+         * load the application's classes through it. A loader that defines some classes itself, such
+         * as the next version of a message class, runs two versions of the application in one JVM.
+         */
+        public Builder classLoader(int node, ClassLoader classLoader) {
+            classLoaders.put(node, classLoader);
+            return this;
+        }
+
         /** Starts the nodes in order and waits until every node sees all of them up. */
         public ActorCluster start() {
             int[] ports = new int[nodes];
@@ -247,12 +259,25 @@ public final class ActorCluster implements AutoCloseable {
             args.addAll(properties);
             args.addAll(nodeProperties.getOrDefault(number, List.of()));
             Members members = new Members();
-            ConfigurableApplicationContext context = new SpringApplicationBuilder(sources)
+            SpringApplicationBuilder application = new SpringApplicationBuilder(sources)
                     .web(WebApplicationType.NONE)
-                    .listeners(members)
-                    // Command-line arguments: they override the application's own property files.
-                    .run(args.stream().map(arg -> "--" + arg).toArray(String[]::new));
-            return new Node(context, members);
+                    .listeners(members);
+            ClassLoader classLoader = classLoaders.get(number);
+            Thread thread = Thread.currentThread();
+            ClassLoader previous = thread.getContextClassLoader();
+            if (classLoader != null) {
+                application.resourceLoader(new DefaultResourceLoader(classLoader));
+                // The actor system takes the context class loader of the thread that creates it.
+                thread.setContextClassLoader(classLoader);
+            }
+            try {
+                // Command-line arguments: they override the application's own property files.
+                ConfigurableApplicationContext context =
+                        application.run(args.stream().map(arg -> "--" + arg).toArray(String[]::new));
+                return new Node(context, members);
+            } finally {
+                thread.setContextClassLoader(previous);
+            }
         }
 
         private static int freePort() {
