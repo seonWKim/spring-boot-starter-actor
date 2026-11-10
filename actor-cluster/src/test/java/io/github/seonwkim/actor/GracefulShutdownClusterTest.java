@@ -79,20 +79,20 @@ class GracefulShutdownClusterTest {
         node2 = startNode(port2, seeds);
 
         Cluster cluster1 = context(node1).unwrap(Cluster.class);
+        Cluster cluster2 = context(node2).unwrap(Cluster.class);
         assertThat(cluster1).isNotNull();
+        // Both nodes must see both members Up: node 1 can see node 2 Up before node 2 has caught up, and
+        // a node that leaves before it knows the membership never tells node 1, which then sees it
+        // unreachable instead of Leaving (#201).
         await().atMost(20, SECONDS)
                 .pollInterval(200, MILLISECONDS)
-                .until(() -> cluster1.state()
-                                .members()
-                                .filter(m -> m.status() == org.apache.pekko.cluster.MemberStatus.up())
-                                .size()
-                        == 2);
+                .until(() -> upMembers(cluster1) == 2 && upMembers(cluster2) == 2);
         assertThat(cluster1.state().getLeader())
                 .as("leader")
                 .isEqualTo(cluster1.selfMember().address());
 
         SpringActorSystem system2 = context(node2);
-        String address2 = system2.unwrap(Cluster.class).selfMember().address().toString();
+        String address2 = cluster2.selfMember().address().toString();
         MembershipEvents events1 = node1.getBean(MembershipEvents.class);
 
         node2.close();
@@ -124,6 +124,13 @@ class GracefulShutdownClusterTest {
                                 .address()
                                 .equals(address2));
         assertThat(cluster1.state().getUnreachable()).isEmpty();
+    }
+
+    private static int upMembers(Cluster cluster) {
+        return cluster.state()
+                .members()
+                .filter(m -> m.status() == org.apache.pekko.cluster.MemberStatus.up())
+                .size();
     }
 
     private static SpringActorSystem context(ConfigurableApplicationContext ctx) {
