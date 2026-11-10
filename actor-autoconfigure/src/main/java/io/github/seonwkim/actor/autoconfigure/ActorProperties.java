@@ -256,7 +256,7 @@ public class ActorProperties {
 
         private final Lease lease = new Lease();
 
-        private final LeaseUser singleton = new LeaseUser();
+        private final Singleton singleton = new Singleton();
 
         private final LeaseUser sharding = new LeaseUser();
 
@@ -269,7 +269,7 @@ public class ActorProperties {
         }
 
         /** Cluster singletons. */
-        public LeaseUser getSingleton() {
+        public Singleton getSingleton() {
             return singleton;
         }
 
@@ -293,7 +293,10 @@ public class ActorProperties {
         /** Nodes to join at startup, as pekko://<name>@<host>:<port> (pekko.cluster.seed-nodes). */
         private List<String> seedNodes = new ArrayList<>();
 
-        /** Roles of this node; sharded actors and singletons can be limited to a role (pekko.cluster.roles). */
+        /**
+         * Roles of this node; sharded actors and singletons (singleton.role) can be limited to a role
+         * (pekko.cluster.roles).
+         */
         private List<String> roles = new ArrayList<>();
 
         /**
@@ -469,6 +472,24 @@ public class ActorProperties {
 
         public void setUseLease(boolean useLease) {
             this.useLease = useLease;
+        }
+    }
+
+    /** Cluster singletons: where they run, and whether they hold a lease. */
+    public static class Singleton extends LeaseUser {
+
+        /**
+         * Run singletons only on nodes with this role (one of their spring.actor.cluster.roles);
+         * every node still gets a proxy. Set the same value on every node. Default: any node.
+         */
+        @Nullable private String role;
+
+        @Nullable public String getRole() {
+            return role;
+        }
+
+        public void setRole(@Nullable String role) {
+            this.role = role;
         }
     }
 
@@ -710,6 +731,9 @@ public class ActorProperties {
         if (!cluster.roles.isEmpty()) {
             keys.add(new TypedKey("cluster.roles", "pekko.cluster.roles", cluster.roles));
         }
+        if (cluster.singleton.role != null && !cluster.singleton.role.isBlank()) {
+            keys.add(new TypedKey("cluster.singleton.role", "pekko.cluster.singleton.role", cluster.singleton.role));
+        }
         dispatchers.forEach((dispatcherName, dispatcher) -> {
             String prefix = "dispatchers." + dispatcherName + ".";
             if (!dispatcherName.matches("[A-Za-z0-9][A-Za-z0-9_-]*")
@@ -787,7 +811,7 @@ public class ActorProperties {
                     "pekko.cluster.split-brain-resolver.lease-majority.lease-implementation",
                     LEASE_PATH));
         }
-        if (cluster.singleton.useLease) {
+        if (cluster.singleton.isUseLease()) {
             leaseUsers.add("singleton.use-lease");
             keys.add(new TypedKey("cluster.singleton.use-lease", "pekko.cluster.singleton.use-lease", LEASE_PATH));
         }

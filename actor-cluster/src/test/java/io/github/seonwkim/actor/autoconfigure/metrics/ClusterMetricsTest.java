@@ -3,19 +3,25 @@ package io.github.seonwkim.actor.autoconfigure.metrics;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+import io.github.seonwkim.actor.AskCommand;
 import io.github.seonwkim.actor.EnableActorSupport;
+import io.github.seonwkim.actor.SpringActor;
+import io.github.seonwkim.actor.SpringActorBehavior;
+import io.github.seonwkim.actor.SpringActorContext;
 import io.github.seonwkim.actor.SpringActorSystem;
 import io.github.seonwkim.actor.cluster.ClusterEvent;
 import io.github.seonwkim.actor.fixture.TestShardedActor;
 import io.github.seonwkim.actor.internal.shard.ShardedActorRegistry;
 import io.github.seonwkim.actor.internal.shard.ShardingStats;
 import io.github.seonwkim.actor.metrics.cluster.ClusterMeters;
+import io.github.seonwkim.actor.serialization.JsonSerializable;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.search.RequiredSearch;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import org.apache.pekko.actor.typed.javadsl.ActorContext;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -30,8 +36,8 @@ class ClusterMetricsTest {
     static class TestApp {}
 
     private static ConfigurableApplicationContext start(String... properties) {
-        // The sharded actor is a source, not a @Bean of TestApp: other tests' component scans find TestApp.
-        return new SpringApplicationBuilder(TestApp.class, TestShardedActor.class)
+        // The actors are sources, not @Beans of TestApp: other tests' component scans find TestApp.
+        return new SpringApplicationBuilder(TestApp.class, TestShardedActor.class, NodeOfSingleton.class)
                 .web(WebApplicationType.NONE)
                 .properties(
                         "spring.actor.provider=cluster",
@@ -99,6 +105,65 @@ class ClusterMetricsTest {
                 assertThat(gauge(first, "actor.cluster.singleton.host")).isEqualTo(1);
                 assertThat(gauge(second, "actor.cluster.singleton.host")).isZero();
             }
+        }
+    }
+
+    @Test
+    void withASingletonRoleTheHostIsTheOldestNodeWithThatRole() throws Exception {
+        String backend = "spring.actor.cluster.singleton.role=backend";
+        try (ConfigurableApplicationContext first = start(backend)) {
+            await().atMost(Duration.ofSeconds(20)).until(() -> gauge(first, "actor.cluster.leader") == 1);
+            String seed = first.getBean(SpringActorSystem.class).nodeAddress();
+
+            try (ConfigurableApplicationContext second = start(
+                    backend,
+                    "spring.actor.cluster.roles=backend",
+                    "spring.actor.cluster.join-self=false",
+                    "spring.actor.cluster.seed-nodes=" + seed)) {
+                await().atMost(Duration.ofSeconds(20)).until(() -> gauge(second, "actor.cluster.singleton.host") == 1);
+                // The first node is older but lacks the role.
+                assertThat(gauge(first, "actor.cluster.singleton.host")).isZero();
+                // And the singleton does run where the gauge says. Every node spawns it, as in an
+                // application: it runs only on nodes that do.
+                second.getBean(SpringActorSystem.class)
+                        .actor(NodeOfSingleton.class)
+                        .withId("where")
+                        .asClusterSingleton()
+                        .spawnAndWait();
+                String host = first.getBean(SpringActorSystem.class)
+                        .actor(NodeOfSingleton.class)
+                        .withId("where")
+                        .asClusterSingleton()
+                        .spawnAndWait()
+                        .ask(new NodeOfSingleton.Where())
+                        .withTimeout(Duration.ofSeconds(10))
+                        .execute()
+                        .toCompletableFuture()
+                        .get(15, TimeUnit.SECONDS);
+                assertThat(host)
+                        .isEqualTo(second.getBean(SpringActorSystem.class).nodeAddress());
+            }
+        }
+    }
+
+    /** Answers with the address of the node it runs on. */
+    public static class NodeOfSingleton implements SpringActor<NodeOfSingleton.Command> {
+
+        public interface Command extends JsonSerializable {}
+
+        public static class Where extends AskCommand<String> implements Command {}
+
+        @Override
+        public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
+            return SpringActorBehavior.builder(Command.class, actorContext)
+                    .onMessage(Where.class, (ctx, msg) -> {
+                        msg.reply(ctx.unwrap(ActorContext.class)
+                                .getSystem()
+                                .address()
+                                .toString());
+                        return SpringActorBehavior.same();
+                    })
+                    .build();
         }
     }
 
