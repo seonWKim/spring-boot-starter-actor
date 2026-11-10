@@ -58,10 +58,14 @@ Inject `SpringTopicManager` and call `topic(name)`, then one of:
 |---|---|
 | `getOrCreate()` | Returns the topic, creating it on this node if it doesn't exist yet. Safe to call any number of times. |
 | `create()` | Creates the topic; throws `TopicAlreadyExistsException` if it already exists on this node |
-| `withTimeout(duration)` | How long `create`/`getOrCreate` may wait (default 5 s). On timeout they throw `TopicCreationTimeoutException`. |
+| `getOrCreateAsync()`, `createAsync()` | The same without blocking: a `CompletionStage` that completes with the topic or fails with the same exception |
+| `withTimeout(duration)` | How long they may wait (default 5 s). On timeout they fail with `TopicCreationTimeoutException`. |
 
-Both calls **block the calling thread** until the topic is ready (usually much less than a millisecond).
-Call them once and keep the `SpringTopicRef`, for example in a service field or in an actor's state:
+`getOrCreate()` and `create()` **block the calling thread** until the topic is ready (usually much less
+than a millisecond). That is fine in a service, but not on an actor's thread: there, use the async form and
+receive the topic as a message with `pipeToSelf`, as the [chat example](../../examples/chat.md)'s room
+actor does. Call them once and keep the `SpringTopicRef`, for example in a service field or in an actor's
+state:
 
 === "Java"
 
@@ -200,8 +204,10 @@ from its `ChatRoomActor`:
     }
     ```
 
-The example's real room actor is a [sharded actor](../cluster/sharded-actors.md), so each room lives on
-one node of the cluster while its users can be on any node.
+This simplified version blocks the actor's thread in `create()` until the topic exists. The example's
+real room actor is a [sharded actor](../cluster/sharded-actors.md), so each room lives on one node of the
+cluster while its users can be on any node, and it gets the topic with `getOrCreateAsync()` and
+`pipeToSelf` instead of blocking.
 
 ## Delivery guarantees
 
@@ -216,6 +222,7 @@ one node of the cluster while its users can be on any node.
 - **Topic type and subscriber type differ.** `subscribe` takes a `SpringActorRef<T>` of the topic's
   type, so the compiler stops a mismatch. Make published events part of the subscribers' command type.
 - **Creating topics on every call.** `getOrCreate()` blocks the caller briefly. Keep the ref.
+- **Blocking an actor's thread.** Inside an actor, use `getOrCreateAsync()` with `pipeToSelf`.
 - **Using `create()` where `getOrCreate()` is meant.** `create()` throws if the topic already exists.
 - **Expecting delivery.** For messages that must arrive, send them directly and confirm with ask, or
   store them first.

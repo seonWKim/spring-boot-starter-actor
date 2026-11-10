@@ -89,6 +89,15 @@ class SpringChildActorBuilderTest {
         }
     }
 
+    /** Not a bean, so spawning it as a child fails. */
+    static class NotABeanActor implements SpringActorWithContext<SimpleChildActor.Command, SpringActorContext> {
+        @Override
+        public SpringActorBehavior<SimpleChildActor.Command> create(SpringActorContext actorContext) {
+            return SpringActorBehavior.builder(SimpleChildActor.Command.class, actorContext)
+                    .build();
+        }
+    }
+
     @SpringBootApplication(scanBasePackages = "io.github.seonwkim.actor")
     static class TestApp {}
 
@@ -369,6 +378,48 @@ class SpringChildActorBuilderTest {
             assertThat(child1).isNotNull();
             assertThat(child2).isNotNull();
             assertThat(child1).isEqualTo(child2);
+        }
+
+        @Test
+        void aFailedSpawnNamesTheContextsId(ApplicationContext springContext) {
+            SpringActorHandle<ParentActor.Command> parent = springContext
+                    .getBean(SpringActorSystem.class)
+                    .actor(ParentActor.class)
+                    .withId("parent-failed-spawn")
+                    .spawnAndWait();
+
+            // Spawned with a context, so the builder has no id of its own: the error must use the context's.
+            assertThatThrownBy(() -> parent.child(NotABeanActor.class)
+                            .withContext(new DefaultSpringActorContext("ctx-child-7"))
+                            .spawn()
+                            .toCompletableFuture()
+                            .get(5, TimeUnit.SECONDS))
+                    .cause()
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining(NotABeanActor.class.getName())
+                    .hasMessageContaining("'ctx-child-7'");
+        }
+
+        @Test
+        void aChildRunsOnTheBlockingDispatcher(ApplicationContext springContext) throws Exception {
+            SpringActorHandle<ParentActor.Command> parent = springContext
+                    .getBean(SpringActorSystem.class)
+                    .actor(ParentActor.class)
+                    .withId("parent-blocking-child")
+                    .spawnAndWait();
+
+            SpringActorHandle<SpringActorSystemTest.DispatcherTestActor.Command> child = parent.child(
+                            SpringActorSystemTest.DispatcherTestActor.class)
+                    .withId("blocking-child")
+                    .withBlockingDispatcher()
+                    .spawnAndWait();
+
+            String dispatcher = child.ask(new SpringActorSystemTest.DispatcherTestActor.GetDispatcherName())
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
+                    .toCompletableFuture()
+                    .get(5, TimeUnit.SECONDS);
+            assertThat(dispatcher).contains("pekko.actor.default-blocking-io-dispatcher");
         }
     }
 

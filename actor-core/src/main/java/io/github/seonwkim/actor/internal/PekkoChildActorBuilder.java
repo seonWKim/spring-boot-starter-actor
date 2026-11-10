@@ -10,6 +10,7 @@ import io.github.seonwkim.actor.SpringChildActorBuilder;
 import io.github.seonwkim.actor.SupervisionStrategy;
 import io.github.seonwkim.actor.TagsConfig;
 import java.time.Duration;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import javax.annotation.Nullable;
@@ -194,11 +195,10 @@ public final class PekkoChildActorBuilder<P, C> implements SpringChildActorBuild
                                         childActorClass, context, strategy, mailbox, dispatcher, tags, replyTo),
                         timeout,
                         system.scheduler())
-                .thenApply(response -> {
-                    if (response.success && response.childRef != null) {
-                        return new PekkoActorHandle<>(system, response.childRef, defaultTimeout);
-                    }
-                    if (response.alreadyExists() && response.childRef != null) {
+                .thenApply(response -> switch (response.status) {
+                    case SPAWNED -> new PekkoActorHandle<>(
+                            system, Objects.requireNonNull(response.childRef), defaultTimeout);
+                    case ALREADY_EXISTS -> {
                         if (!returnExisting) {
                             log.warn(
                                     "spawn() found child {} with id '{}' already running and returned it. This is "
@@ -207,9 +207,9 @@ public final class PekkoChildActorBuilder<P, C> implements SpringChildActorBuild
                                     childActorClass.getName(),
                                     context.actorId());
                         }
-                        return new PekkoActorHandle<>(system, response.childRef, defaultTimeout);
+                        yield new PekkoActorHandle<>(system, Objects.requireNonNull(response.childRef), defaultTimeout);
                     }
-                    throw new RuntimeException("Failed to spawn child actor "
+                    case FAILED -> throw new IllegalStateException("Failed to spawn child actor "
                             + childActorClass.getName()
                             + " with id '"
                             + context.actorId()
@@ -240,7 +240,8 @@ public final class PekkoChildActorBuilder<P, C> implements SpringChildActorBuild
                         system.scheduler())
                 .thenApply(response -> {
                     if (response.found && response.childRef != null) {
-                        return new PekkoActorHandle<>(system, response.childRef, defaultTimeout);
+                        return new PekkoActorHandle<>(
+                                system, Objects.requireNonNull(response.childRef), defaultTimeout);
                     } else {
                         return null;
                     }

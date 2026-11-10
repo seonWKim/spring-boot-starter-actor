@@ -99,6 +99,25 @@ public interface SpringActorSpawnBuilder<A extends SpringActorWithContext<C, ?>,
     SpringActorSpawnBuilder<A, C> withDispatcherSameAsParent();
 
     /**
+     * Sets the dispatcher from a {@link DispatcherConfig}, the form the child builder also takes.
+     *
+     * @param dispatcherConfig The dispatcher, e.g. {@code DispatcherConfig.blocking()}
+     * @return This builder
+     * @since 1.1.0
+     */
+    default SpringActorSpawnBuilder<A, C> withDispatcher(DispatcherConfig dispatcherConfig) {
+        if (dispatcherConfig == null) {
+            throw new IllegalArgumentException("dispatcherConfig must not be null");
+        }
+        return switch (dispatcherConfig) {
+            case DispatcherConfig.Default ignored -> withDefaultDispatcher();
+            case DispatcherConfig.Blocking ignored -> withBlockingDispatcher();
+            case DispatcherConfig.SameAsParent ignored -> withDispatcherSameAsParent();
+            case DispatcherConfig.FromConfig fromConfig -> withDispatcherFromConfig(fromConfig.path());
+        };
+    }
+
+    /**
      * Sets the tags configuration for this actor. Tags are used for logging and categorization,
      * appearing in the MDC pekkoTags attribute.
      *

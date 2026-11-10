@@ -451,6 +451,25 @@ class SpringActorSystemTest {
         }
 
         @Test
+        void spawnActorWithDispatcherConfig(ApplicationContext context) throws Exception {
+            SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
+
+            final SpringActorHandle<DispatcherTestActor.Command> actorRef = actorSystem
+                    .actor(DispatcherTestActor.class)
+                    .withId("dispatcher-config-actor")
+                    .withDispatcher(DispatcherConfig.fromConfig("my-custom-dispatcher"))
+                    .spawnAndWait();
+
+            String dispatcherName = actorRef.ask(new DispatcherTestActor.GetDispatcherName())
+                    .withTimeout(Duration.ofSeconds(5))
+                    .execute()
+                    .toCompletableFuture()
+                    .get();
+
+            assertThat(dispatcherName).contains("my-custom-dispatcher");
+        }
+
+        @Test
         void spawnActorWithCustomDispatcherFromConfig(ApplicationContext context) throws Exception {
             SpringActorSystem actorSystem = context.getBean(SpringActorSystem.class);
 

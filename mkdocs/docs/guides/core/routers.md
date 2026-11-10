@@ -137,6 +137,9 @@ Spawn and use the router like any other actor:
 | `withPoolSize(n)` | no | 5 | Must be positive |
 | `withSupervisionStrategy(strategy)` | no | stop | Applies to each worker. See [Worker failures](#worker-failures). |
 
+Each worker's `create(actorContext)` gets its own id, `worker-<uuid>` (`actorContext.actorId()`), which it
+keeps across restarts. Use it to tell workers apart in logs.
+
 ## Routing strategies
 
 | Strategy | Who gets a message | Use it for |
