@@ -174,6 +174,19 @@ configure(subprojects.filter { !it.path.startsWith(":relocation") }) {
                 signAllPublications()
             }
         }
+
+        // Dependencies declared without a version get theirs from the Spring Boot platform at build
+        // time. Write the resolved versions into the POM: Maven Central rejects a dependency without
+        // one (the 1.0.0 deployment failed on actor-test and actor-redis), and Maven users don't
+        // inherit the platform. scripts/release/check-poms.py guards it in CI.
+        extensions.configure<PublishingExtension> {
+            publications.withType<MavenPublication>().configureEach {
+                versionMapping {
+                    usage("java-api") { fromResolutionOf("runtimeClasspath") }
+                    usage("java-runtime") { fromResolutionResult() }
+                }
+            }
+        }
     }
 
     val pekkoVersion: String by project

@@ -161,6 +161,8 @@ jobs:
       - name: 🚀 Publish to Maven Central (all modules)
         run: |
           ./gradlew build
+          ./gradlew generatePomFileForMavenPublication --no-configuration-cache
+          python3 scripts/release/check-poms.py
           ./gradlew publishAndReleaseToMavenCentral --no-configuration-cache
 
         env:
