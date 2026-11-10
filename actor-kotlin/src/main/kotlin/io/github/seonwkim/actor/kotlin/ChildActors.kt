@@ -18,7 +18,8 @@ inline fun <reified A : SpringActorWithContext<C, *>, C> SpringActorHandle<*>.ch
     child(A::class.java, childId)
 
 /** [SpringChildActorBuilder.withTimeout] with a Kotlin [Duration]. */
-fun <P, C> SpringChildActorBuilder<P, C>.withTimeout(timeout: Duration): SpringChildActorBuilder<P, C> = withTimeout(timeout.toJavaDuration())
+fun <P, C> SpringChildActorBuilder<P, C>.withTimeout(timeout: Duration): SpringChildActorBuilder<P, C> =
+    withTimeout(timeout.toJavaDuration())
 
 /**
  * Spawns the child and suspends until it runs ([SpringChildActorBuilder.spawn]). Call it from outside the
