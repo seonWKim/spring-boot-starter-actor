@@ -16,10 +16,14 @@ import javax.annotation.Nullable;
 import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.ActorSystem;
 import org.apache.pekko.actor.typed.javadsl.AskPattern;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.util.ObjectUtils;
 
 /** Pekko-backed {@link SpringChildActorBuilder}. */
 public final class PekkoChildActorBuilder<P, C> implements SpringChildActorBuilder<P, C> {
+    private static final Logger log = LoggerFactory.getLogger(PekkoChildActorBuilder.class);
+
     private final ActorRef<P> parentRef;
     private final ActorSystem<?> system;
     private final Class<? extends SpringActorWithContext<C, ?>> childActorClass;
@@ -139,14 +143,34 @@ public final class PekkoChildActorBuilder<P, C> implements SpringChildActorBuild
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public CompletionStage<SpringActorHandle<C>> spawn() {
+        return spawn(false);
+    }
+
+    @Override
+    public SpringActorHandle<C> spawnAndWait() {
+        return spawn().toCompletableFuture().join();
+    }
+
+    @Override
+    public CompletionStage<SpringActorHandle<C>> getOrSpawn() {
+        // The parent checks for a running child and spawns in one message, so concurrent callers
+        // get the same child.
+        return spawn(true);
+    }
+
+    @SuppressWarnings("unchecked")
+    private CompletionStage<SpringActorHandle<C>> spawn(boolean returnExisting) {
         if (childContext == null) {
             if (childId == null) {
                 throw new IllegalStateException("Either childId or childContext must be set before spawning. "
                         + "Call withId(\"your-child-id\") or withContext(context) on the builder. "
                         + "Child actor class: "
                         + childActorClass.getName());
+            }
+            IllegalArgumentException mismatch = ActorSpawner.defaultContextMismatch(childActorClass);
+            if (mismatch != null) {
+                return CompletableFuture.failedFuture(mismatch);
             }
             childContext = new DefaultSpringActorContext(childId);
         }
@@ -171,55 +195,26 @@ public final class PekkoChildActorBuilder<P, C> implements SpringChildActorBuild
                         timeout,
                         system.scheduler())
                 .thenApply(response -> {
-                    if ((response.success || "Child already exists".equals(response.message))
-                            && response.childRef != null) {
+                    if (response.success && response.childRef != null) {
                         return new PekkoActorHandle<>(system, response.childRef, defaultTimeout);
-                    } else {
-                        throw new RuntimeException("Failed to spawn child actor "
-                                + childActorClass.getName()
-                                + " with id '"
-                                + childId
-                                + "': "
-                                + response.message);
                     }
-                });
-    }
-
-    @Override
-    public SpringActorHandle<C> spawnAndWait() {
-        return spawn().toCompletableFuture().join();
-    }
-
-    @Override
-    @SuppressWarnings("unchecked")
-    public CompletionStage<SpringActorHandle<C>> getOrSpawn() {
-        if (childContext == null) {
-            if (childId == null) {
-                throw new IllegalStateException("Either childId or childContext must be set");
-            }
-            childContext = new DefaultSpringActorContext(childId);
-        }
-
-        final SpringActorContext context = childContext;
-
-        // Try to get existing child first
-        ActorRef<Object> parentAsObject = (ActorRef<Object>) parentRef;
-
-        return AskPattern.ask(
-                        parentAsObject,
-                        (ActorRef<FrameworkCommands.GetChildResponse<C>> replyTo) ->
-                                new FrameworkCommands.GetChild<>(childActorClass, context.actorId(), replyTo),
-                        timeout,
-                        system.scheduler())
-                .thenCompose(response -> {
-                    if (response.found && response.childRef != null) {
-                        // Child exists, return it
-                        return CompletableFuture.completedFuture(
-                                new PekkoActorHandle<>(system, response.childRef, defaultTimeout));
-                    } else {
-                        // Child doesn't exist, spawn it
-                        return spawn();
+                    if (response.alreadyExists() && response.childRef != null) {
+                        if (!returnExisting) {
+                            log.warn(
+                                    "spawn() found child {} with id '{}' already running and returned it. This is "
+                                            + "deprecated: use getOrSpawn() to reuse a running child. In 2.0, spawn() "
+                                            + "fails when the id is taken, like a top-level spawn().",
+                                    childActorClass.getName(),
+                                    context.actorId());
+                        }
+                        return new PekkoActorHandle<>(system, response.childRef, defaultTimeout);
                     }
+                    throw new RuntimeException("Failed to spawn child actor "
+                            + childActorClass.getName()
+                            + " with id '"
+                            + context.actorId()
+                            + "': "
+                            + response.message);
                 });
     }
 
