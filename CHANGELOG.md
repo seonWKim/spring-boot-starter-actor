@@ -60,6 +60,10 @@
   renders again (#195).
 - Javadoc: the `FrameworkCommand` example declares `SpringActor<ParentActor.Command>` (one type parameter),
   and `ShardingStrategy.Hashed` gives the exact shard function (#197).
+- Examples: logging, cluster, chat and synchronization use the typed `spring.actor.*` keys; the logging
+  order actor runs on the blocking dispatcher; virtual-threads spawns one actor without blocking WebFlux;
+  chat's `bootRun` builds the metrics agent; synchronization increments respond once applied; the
+  persistence example's `EventSourcedOrderActor` is now `EventLogOrderActor` (`/api/orders/eventlog`) (#196).
 
 ## 1.0.0 (unreleased)
 
