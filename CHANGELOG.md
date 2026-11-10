@@ -58,6 +58,8 @@
   `pekko.management.cluster.bootstrap` (they were ignored under `coordinated-shutdown`), pods get a 45s grace
   period, every overlay uses Pekko's default ports (remoting 25520, management 7626), and the `prod` overlay
   renders again (#195).
+- Javadoc: the `FrameworkCommand` example declares `SpringActor<ParentActor.Command>` (one type parameter),
+  and `ShardingStrategy.Hashed` gives the exact shard function (#197).
 
 ## 1.0.0 (unreleased)
 
