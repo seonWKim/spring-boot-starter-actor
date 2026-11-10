@@ -48,9 +48,11 @@ jobs:
             **/build/test-results/
           retention-days: 14
 
-      # Maven Central rejects a deployment when a POM dependency has no version.
+      # Maven Central rejects a deployment when a POM dependency has no version; actor-bom must
+      # list every published module.
       - name: 📦 Check published POMs
         run: |
+          python3 -B -m unittest discover -s scripts/release
           ./gradlew generatePomFileForMavenPublication --no-configuration-cache
           python3 scripts/release/check-poms.py
 
