@@ -148,6 +148,17 @@ public final class PekkoActorSpawnBuilder<A extends SpringActorWithContext<C, ?>
 
     @Override
     public CompletionStage<SpringActorHandle<C>> spawn() {
+        return spawn(false);
+    }
+
+    @Override
+    public CompletionStage<SpringActorHandle<C>> getOrSpawn() {
+        // The root guardian checks for a running actor and spawns in one step, so concurrent
+        // callers asking for the same new id all get the same actor.
+        return spawn(true);
+    }
+
+    private CompletionStage<SpringActorHandle<C>> spawn(boolean returnExisting) {
         if (actorContext == null) {
             actorContext = new DefaultSpringActorContext(requireId());
         }
@@ -163,15 +174,8 @@ public final class PekkoActorSpawnBuilder<A extends SpringActorWithContext<C, ?>
                 tagsConfig,
                 isClusterSingleton,
                 supervisorStrategy,
+                returnExisting,
                 timeout);
-    }
-
-    @Override
-    public CompletionStage<SpringActorHandle<C>> getOrSpawn() {
-        String id = actorContext != null ? actorContext.actorId() : requireId();
-        return actorSystem
-                .exists(actorClass, id, timeout)
-                .thenCompose(exists -> exists ? actorSystem.get(actorClass, id, timeout) : spawn());
     }
 
     private String requireId() {

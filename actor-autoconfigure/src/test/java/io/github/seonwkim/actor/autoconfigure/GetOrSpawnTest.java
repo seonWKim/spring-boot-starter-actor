@@ -10,7 +10,13 @@ import io.github.seonwkim.actor.SpringActorContext;
 import io.github.seonwkim.actor.SpringActorHandle;
 import io.github.seonwkim.actor.SpringActorSystem;
 import java.time.Duration;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.context.annotation.UserConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -103,6 +109,43 @@ class GetOrSpawnTest {
             // A second actor would start at 0 and never see the Hit.
             SpringActorHandle<CounterActor.Command> again = blockingCounter(context);
             await().atMost(Duration.ofSeconds(5)).until(() -> count(again) == 1);
+        });
+    }
+
+    @Test
+    void concurrentCallsForOneNewIdAllGetTheSameActor() {
+        runner.run(context -> {
+            SpringActorSystem system = context.getBean(SpringActorSystem.class);
+            int callers = 32;
+            CountDownLatch start = new CountDownLatch(1);
+            ExecutorService pool = Executors.newFixedThreadPool(callers);
+            try {
+                List<CompletableFuture<SpringActorHandle<CounterActor.Command>>> calls = IntStream.range(0, callers)
+                        .mapToObj(i -> CompletableFuture.supplyAsync(
+                                        () -> {
+                                            try {
+                                                start.await();
+                                            } catch (InterruptedException e) {
+                                                throw new IllegalStateException(e);
+                                            }
+                                            return system.getOrSpawn(CounterActor.class, "contended");
+                                        },
+                                        pool)
+                                .thenCompose(stage -> stage))
+                        .toList();
+                start.countDown();
+
+                // Every call succeeds (none fails with "Could not spawn") ...
+                List<SpringActorHandle<CounterActor.Command>> actors = calls.stream()
+                        .map(call -> call.orTimeout(5, TimeUnit.SECONDS).join())
+                        .toList();
+
+                // ... and they all reach one actor: it sees every caller's Hit.
+                actors.forEach(actor -> actor.tell(new CounterActor.Hit()));
+                await().atMost(Duration.ofSeconds(5)).until(() -> count(actors.get(0)) == callers);
+            } finally {
+                pool.shutdownNow();
+            }
         });
     }
 }

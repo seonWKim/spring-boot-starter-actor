@@ -57,8 +57,10 @@ public class DefaultRootGuardian implements RootGuardian {
      * Handles a SpawnActor command by creating a new actor. Each spawn request creates a new actor
      * instance. Users should implement their own caching if they want to reuse actor references.
      *
-     * <p>If an actor with the same name already exists, Pekko will throw an InvalidActorNameException.
-     * Users should either use unique IDs or implement caching to reuse actor references.
+     * <p>If an actor with the same name already exists, the spawn fails, unless the command asks for
+     * the running actor ({@link SpawnActor#returnExisting}, used by {@code getOrSpawn}): then it
+     * replies with that actor. Checking and spawning in this one message keeps concurrent
+     * {@code getOrSpawn} calls for the same id from racing.
      *
      * <p>If isClusterSingleton is true, spawns the actor as a cluster singleton using Pekko's
      * ClusterSingleton API. The returned reference is a proxy that routes messages to whichever
@@ -69,6 +71,14 @@ public class DefaultRootGuardian implements RootGuardian {
      */
     public Behavior<RootGuardian.Command> handleSpawnActor(SpawnActor msg) {
         String key = buildActorKey(msg.actorClass, msg.actorContext);
+
+        if (msg.returnExisting && !msg.isClusterSingleton) {
+            ActorRef<?> existing = ctx.getChild(key).orElse(null);
+            if (existing != null) {
+                msg.replyTo.tell(new Spawned<>(existing));
+                return Behaviors.same();
+            }
+        }
 
         try {
             ActorRef<?> ref = ActorSpawner.spawnActor(
