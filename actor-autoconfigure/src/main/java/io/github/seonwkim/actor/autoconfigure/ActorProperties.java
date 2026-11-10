@@ -1,5 +1,10 @@
 package io.github.seonwkim.actor.autoconfigure;
 
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigException;
+import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigUtil;
+import com.typesafe.config.ConfigValueType;
 import io.github.seonwkim.actor.ActorConstants;
 import io.github.seonwkim.actor.internal.SpringExecutorConfigurator;
 import java.time.Duration;
@@ -596,7 +601,8 @@ public class ActorProperties {
             "dispatchers",
             "virtual-threads",
             "jdbc",
-            "persistence");
+            "persistence",
+            "metrics");
 
     /**
      * The Pekko configuration. Every key under {@code spring.actor} except the typed settings is
@@ -613,13 +619,9 @@ public class ActorProperties {
     public Map<String, Object> toPekkoConfig(Map<String, Object> springActor, boolean springThreadsVirtual) {
         Map<String, Object> config = normalizeCommaSeparatedLists(springActor);
         TYPED_ROOTS.forEach(config::remove);
+        wrapSingleValuesOfListKeys(config, ConfigFactory.defaultReference(), List.of());
         for (TypedKey typed : typedKeys(springThreadsVirtual)) {
             Object rawValue = lookup(config, typed.configPath());
-            if (rawValue instanceof String single && typed.value() instanceof List) {
-                // Pekko reads this key as a list: a raw single value means a one-item list.
-                rawValue = List.of(single);
-                put(config, typed.configPath(), rawValue);
-            }
             if (rawValue == null) {
                 put(config, typed.configPath(), typed.value());
             } else if (!String.valueOf(rawValue).equals(String.valueOf(typed.value()))) {
@@ -864,6 +866,34 @@ public class ActorProperties {
             current = (Map<String, Object>) next;
         }
         current.put(parts[parts.length - 1], value);
+    }
+
+    /**
+     * A raw single value for a key that Pekko's reference configuration holds as a list (such as
+     * {@code spring.actor.pekko.cluster.seed-nodes=pekko://a@h:1}) becomes a one-item list, as
+     * {@code seed-nodes[0]} would.
+     */
+    @SuppressWarnings("unchecked")
+    private static void wrapSingleValuesOfListKeys(Map<String, Object> node, Config reference, List<String> parents) {
+        for (Map.Entry<String, Object> entry : node.entrySet()) {
+            List<String> path = new ArrayList<>(parents);
+            path.add(entry.getKey());
+            if (entry.getValue() instanceof Map) {
+                wrapSingleValuesOfListKeys((Map<String, Object>) entry.getValue(), reference, path);
+            } else if (entry.getValue() instanceof String single
+                    && !(single.startsWith("[") && single.endsWith("]"))
+                    && isListInReference(reference, ConfigUtil.joinPath(path))) {
+                entry.setValue(List.of(single));
+            }
+        }
+    }
+
+    private static boolean isListInReference(Config reference, String path) {
+        try {
+            return reference.hasPath(path) && reference.getValue(path).valueType() == ConfigValueType.LIST;
+        } catch (ConfigException e) {
+            return false;
+        }
     }
 
     /** Copies the map; a string with commas (not a HOCON list literal) becomes a list. */
