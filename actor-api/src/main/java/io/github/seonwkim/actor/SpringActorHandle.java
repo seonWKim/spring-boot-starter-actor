@@ -43,7 +43,12 @@ public interface SpringActorHandle<T> extends SpringActorRef<T> {
      */
     <RES> AskBuilder<RES> ask(AskCommand<RES> command);
 
-    /** Stops the actor once it has handled the messages already in its mailbox. */
+    /**
+     * Stops the actor once it has handled the messages already in its mailbox.
+     *
+     * @throws UnsupportedOperationException on the handle of a cluster singleton, which is this node's
+     *     proxy to it: the singleton runs as long as the cluster does
+     */
     void stop();
 
     /**

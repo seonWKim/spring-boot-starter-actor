@@ -3,11 +3,13 @@ package io.github.seonwkim.actor.internal.cluster;
 import io.github.seonwkim.actor.SpringActorSystem;
 import io.github.seonwkim.actor.cluster.MemberStatus;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
+import org.apache.pekko.actor.typed.ActorSystem;
 import org.apache.pekko.cluster.ClusterEvent.CurrentClusterState;
 import org.apache.pekko.cluster.Member;
 import org.apache.pekko.cluster.typed.Cluster;
@@ -22,6 +24,7 @@ import org.apache.pekko.cluster.typed.Cluster;
  * @param unreachable how many of them are unreachable
  * @param leader whether this node is the cluster leader
  * @param singletonHost whether this node runs the cluster singletons: it is the oldest member that is up
+ *     and has the singleton role (pekko.cluster.singleton.role), if one is set
  * @param nodes each member this node sees, oldest first
  */
 public record ClusterStateView(
@@ -53,8 +56,10 @@ public record ClusterStateView(
                 .toList();
         boolean joined =
                 members.stream().anyMatch(member -> member.uniqueAddress().equals(self.uniqueAddress()));
+        Optional<String> singletonRole = singletonRole(system);
         Member oldestUp = members.stream()
                 .filter(member -> member.status() == org.apache.pekko.cluster.MemberStatus.up())
+                .filter(member -> singletonRole.isEmpty() || member.hasRole(singletonRole.get()))
                 .findFirst()
                 .orElse(null);
         return new ClusterStateView(
@@ -74,5 +79,11 @@ public record ClusterStateView(
                                         .collect(Collectors.toCollection(TreeSet::new)),
                                 !state.getUnreachable().contains(member)))
                         .toList());
+    }
+
+    /** Pekko's singleton role, which the typed spring.actor.cluster.singleton.role sets; empty means none. */
+    private static Optional<String> singletonRole(SpringActorSystem system) {
+        String role = system.unwrap(ActorSystem.class).settings().config().getString("pekko.cluster.singleton.role");
+        return role.isEmpty() ? Optional.empty() : Optional.of(role);
     }
 }

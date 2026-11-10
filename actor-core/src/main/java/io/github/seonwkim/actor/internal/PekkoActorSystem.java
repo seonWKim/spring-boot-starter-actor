@@ -191,7 +191,8 @@ public final class PekkoActorSystem implements SpringActorSystem, DisposableBean
         if (isClusterSingleton && cluster == null) {
             return CompletableFuture.failedFuture(
                     new IllegalStateException("Cluster singleton requested but cluster mode is not enabled. "
-                            + "Ensure your application is running in cluster mode."));
+                            + "Set spring.actor.provider=cluster and depend on "
+                            + "io.github.seonwkim:actor-spring-boot-starter-cluster."));
         }
 
         return AskPattern.ask(
@@ -218,7 +219,9 @@ public final class PekkoActorSystem implements SpringActorSystem, DisposableBean
                     @SuppressWarnings("unchecked")
                     ActorRef<C> typedRef = (ActorRef<C>) spawned.ref;
                     return CompletableFuture.completedFuture(
-                            new PekkoActorHandle<>(actorSystem, typedRef, defaultActorRefTimeout));
+                            isClusterSingleton
+                                    ? PekkoActorHandle.singleton(actorSystem, typedRef, defaultActorRefTimeout)
+                                    : new PekkoActorHandle<>(actorSystem, typedRef, defaultActorRefTimeout));
                 });
     }
 

@@ -117,7 +117,7 @@ With `spring.actor.provider=cluster`, these meters are added too.
 | `actor.cluster.members` | Gauge | none | Members this node sees |
 | `actor.cluster.unreachable` | Gauge | none | Of them, how many are unreachable |
 | `actor.cluster.leader` | Gauge | none | `1` while this node is the leader, else `0` |
-| `actor.cluster.singleton.host` | Gauge | none | `1` while this node runs the cluster singletons (it is the oldest member that is up), else `0` |
+| `actor.cluster.singleton.host` | Gauge | none | `1` while this node runs the cluster singletons (it is the oldest member that is up and has `spring.actor.cluster.singleton.role`, if set), else `0` |
 | `actor.cluster.events` | Counter | `event` | Cluster events this node received after the application started: `MemberUp`, `MemberRemoved`, `UnreachableMember` and the other cluster event types. Every type has a series from the start, so a dashboard sees `0`, not a gap |
 | `actor.sharding.regions` | Gauge | `type` | Shard regions that host the entity type in the cluster |
 | `actor.sharding.shards` | Gauge | `type` | The entity type's shards on this node |

@@ -252,7 +252,15 @@ The other spawn settings apply to the singleton: `withSupervisionStrategy`, the 
     singleton: only actors spawned from `SpringActorSystem` can.
 
 In local mode (`spring.actor.provider` not `cluster`), the stage returned by `spawn()` fails with
-`IllegalStateException`: "Cluster singleton requested but cluster mode is not enabled".
+`IllegalStateException`: "Cluster singleton requested but cluster mode is not enabled. Set
+spring.actor.provider=cluster and depend on io.github.seonwkim:actor-spring-boot-starter-cluster."
+
+### Stopping
+
+`stop()` on a singleton's handle throws `UnsupportedOperationException`, and the singleton and the handle
+keep working. The handle is this node's proxy: stopping it would not stop the singleton, only cut this
+node off from it, and every later `spawn()` on the node would get the same stopped proxy back. A singleton
+runs as long as the cluster does.
 
 ## Where it runs
 
@@ -284,22 +292,40 @@ totals start again from zero. If the singleton must keep its state, store it:
 ### Limit it to some nodes
 
 To run singletons only on some nodes, give those nodes a role with `spring.actor.cluster.roles` and set
-Pekko's singleton role through the raw key:
+`spring.actor.cluster.singleton.role` on **every** node:
 
 ```yaml
+# Nodes that may run singletons
 spring:
   actor:
     cluster:
       roles: [backend]
-    pekko:
-      cluster:
-        singleton:
-          role: backend
+      singleton:
+        role: backend
 ```
 
-The singleton then runs on the oldest `Up` node with that role. Every node still gets a proxy. Set the same
-`singleton.role` on every node, also on those without the role, so all proxies look for the same host.
-This setting is Pekko's own and applies to every singleton of the application.
+```yaml
+# Other nodes: no role, same singleton.role
+spring:
+  actor:
+    cluster:
+      singleton:
+        role: backend
+```
+
+The singleton then runs on the oldest `Up` node with that role. Every node still gets a proxy, and the
+nodes without the role still spawn it, as in [Spawn it](#spawn-it). Set the same `singleton.role` on every
+node, so all proxies look for the same host. The role applies to every singleton of the application,
+including the ones the starter starts for [projections](../data/projections.md).
+
+| Key | Default | Meaning |
+|---|---|---|
+| `spring.actor.cluster.singleton.role` | none | Singletons run only on nodes with this role. Sets Pekko's `pekko.cluster.singleton.role`. |
+
+A sharded actor picks its role in code (`role()` on the actor, see
+[Sharded Actors](sharded-actors.md#run-entities-on-some-nodes-only)). A singleton's role is one setting for
+the node instead, because Pekko places all singletons of a node by the same role and the
+`actor.cluster.singleton.host` gauge reports one host for all of them.
 
 ## Leases: never two at once
 
@@ -348,8 +374,9 @@ node that runs the singletons, `0` on the others. Summed over the nodes it shoul
 rules in [`monitoring/`](https://github.com/seonWKim/actor-spring-boot-starter/tree/main/monitoring) alert
 with `ActorClusterSingletonMissing` when the sum stays below `1` for 5 minutes.
 
-The gauge means "this node is the oldest `Up` member". It does not look at a singleton role or a lease, so
-with `singleton.role` set it can point at a node without the role.
+The gauge means "this node is the oldest `Up` member with the singleton role" (any member when
+`singleton.role` is not set). It does not look at the lease: with `use-lease`, the host it names may still
+be waiting for its lease.
 
 The `actors` Actuator endpoint (`/actuator/actors`, when exposed) shows the same flag in this node's view of
 the cluster.
