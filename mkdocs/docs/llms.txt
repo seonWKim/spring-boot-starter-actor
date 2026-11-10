@@ -1,13 +1,13 @@
 # Actor Spring Boot Starter
 
-> A Spring Boot starter that runs Pekko typed actors as Spring beans. Add `@EnableActorSupport`, implement `SpringActor` (or `SpringShardedActor` for cluster sharding), and use `SpringActorSystem` to spawn, look up and message actors. The public API has no Pekko types: use the starter's types, not raw Pekko or Akka APIs. It ships as `io.github.seonwkim:actor-spring-boot-starter` (add `actor-spring-boot-starter-cluster` for cluster mode), needs Java 21+ and Spring Boot 3.5+, and is configured with typed `spring.actor.*` properties.
+> A Spring Boot starter that runs Pekko typed actors as Spring beans. Add the starter (it auto-configures; `@EnableActorSupport` is optional), implement `SpringActor` (or `SpringShardedActor` for cluster sharding), and use `SpringActorSystem` to spawn, look up and message actors. The public API has no Pekko types: use the starter's types, not raw Pekko or Akka APIs. It ships as `io.github.seonwkim:actor-spring-boot-starter` (add `actor-spring-boot-starter-cluster` for cluster mode), needs Java 21+ and Spring Boot 3.5+, and is configured with typed `spring.actor.*` properties.
 
 The full text of the Getting Started page and every guide, with code inlined, is in [llms-full.txt](https://seonwkim.github.io/actor-spring-boot-starter/llms-full.txt): read it when the links below are not enough.
 
 ## Getting started
 
 - [Introduction](https://seonwkim.github.io/actor-spring-boot-starter/): what the starter is for, the modules, and how actors fit into a Spring Boot application
-- [Getting Started](https://seonwkim.github.io/actor-spring-boot-starter/getting-started/): dependency, `@EnableActorSupport`, a first actor and an HTTP endpoint that asks it, in Java and Kotlin
+- [Getting Started](https://seonwkim.github.io/actor-spring-boot-starter/getting-started/): dependency, a first actor and an HTTP endpoint that asks it, in Java and Kotlin
 - [Migrating from 0.x](https://seonwkim.github.io/actor-spring-boot-starter/migrating-from-0x/): new coordinates, packages and APIs in 1.0, step by step
 
 ## Guides

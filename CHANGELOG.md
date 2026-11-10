@@ -68,6 +68,25 @@
   chat's `bootRun` builds the metrics agent; synchronization increments respond once applied; the
   persistence example's `EventSourcedOrderActor` is now `EventLogOrderActor` (`/api/orders/eventlog`) (#196).
 
+### New
+
+- **The starter auto-configures; `@EnableActorSupport` is optional.** Every actor configuration is registered
+  in `AutoConfiguration.imports`, so a `@SpringBootApplication` with the starter on the classpath starts the
+  actor system. Your own `SpringActorSystem`, builder, root guardian, topic manager, receptionist and
+  store beans replace the starter's. The cluster configuration applies only in cluster mode.
+- `spring.actor.enabled=false` keeps the starter on the classpath without starting an actor system or any
+  actor auto-configuration (metrics, health, management, streams, persistence, projections).
+
+### Upgrading from 1.0.0
+
+- An application that has the starter on the classpath but no `@EnableActorSupport` now starts an actor
+  system. If it should not, set `spring.actor.enabled=false`.
+- `@EnableActorSupport` keeps working and can be removed from a Spring Boot application. It is still
+  needed where auto-configuration is off (a context without `@EnableAutoConfiguration`); `@ActorTest`
+  includes it.
+- `spring.autoconfigure.exclude` now accepts the actor configurations by class name, for example
+  `io.github.seonwkim.actor.autoconfigure.cluster.ClusterConfiguration`.
+
 ## 1.0.0 (unreleased)
 
 ### Breaking changes

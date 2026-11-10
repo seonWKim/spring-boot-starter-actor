@@ -100,8 +100,8 @@ in the test. Name actors to start only those, and add properties:
 An actor that needs another bean gets it with `@Import(MyService.class)` or `@MockitoBean`. `includeFilters`,
 `excludeFilters` and `excludeAutoConfiguration` work as on Spring Boot's own slices.
 
-The actor system is the one `@EnableActorSupport` configures: the slice imports it the same way your
-application does, so `spring.actor.*` properties from `application.yml` apply.
+The actor system is the one your application's auto-configuration starts: the slice imports the same
+actor auto-configurations, so `spring.actor.*` properties from `application.yml` apply.
 
 ## Cluster tests with `ActorCluster`
 

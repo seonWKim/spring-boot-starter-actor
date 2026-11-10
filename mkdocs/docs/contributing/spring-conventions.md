@@ -36,8 +36,8 @@ Issue links are in each row below.
 
 | Row | Convention | Verdict |
 |---|---|---|
-| 1 | Auto-configuration registration (Boot 2 and 3) | Change |
-| 2 | `@Enable*` annotations | Change |
+| 1 | Auto-configuration registration (Boot 2 and 3) | Change, done (#184) |
+| 2 | `@Enable*` annotations | Change, done (#184) |
 | 3 | `@ConditionalOn*` back-off | Change |
 | 4 | `*Customizer` beans | Change |
 | 5 | `@ConfigurationProperties` and metadata | Tracked (#97) |
@@ -79,7 +79,9 @@ Issue links are in each row below.
   `spring.factories` entry only, so Boot 3 never loads `ActorMetricsAutoConfiguration` on its own.
   The core tests pass without `@EnableActorSupport` only because the test application sits in the
   `io.github.seonwkim.actor` package, and component scanning picks `ActorConfiguration` up.
-- **Verdict**: Change.
+- **Verdict**: Change. Done in [#184](https://github.com/seonWKim/actor-spring-boot-starter/issues/184):
+  every actor configuration is an `@AutoConfiguration` listed in `actor-autoconfigure`'s
+  `AutoConfiguration.imports`, ordered with `@AutoConfiguration(after = ...)`.
 - **Source**: [Spring Boot: Creating your own auto-configuration](https://docs.spring.io/spring-boot/reference/features/developing-auto-configuration.html),
   [Spring Boot 2.7 release notes](https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-2.7-Release-Notes),
   [Spring Boot 3.0 migration guide](https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-3.0-Migration-Guide).
@@ -94,7 +96,10 @@ Issue links are in each row below.
 - **This starter today**: `@EnableActorSupport` is required. It is the only way to import
   `ActorConfiguration` and `PekkoManagementAutoConfiguration`.
 - **Verdict**: Change. The annotation stays and is
-  not deprecated; it becomes optional in a Boot app.
+  not deprecated; it becomes optional in a Boot app. Done in
+  [#184](https://github.com/seonWKim/actor-spring-boot-starter/issues/184): it is an
+  `@ImportAutoConfiguration` of the same list, so it adds nothing next to `@EnableAutoConfiguration`
+  and still starts the actor system where auto-configuration is off.
 - **Source**: [Spring for Apache Kafka: `@KafkaListener` annotation](https://docs.spring.io/spring-kafka/reference/kafka/receiving-messages/listener-annotation.html),
   [Spring Boot: Apache Kafka support](https://docs.spring.io/spring-boot/reference/messaging/kafka.html),
   [Spring Data JPA: Creating repository instances](https://docs.spring.io/spring-data/jpa/reference/repositories/create-instances.html).

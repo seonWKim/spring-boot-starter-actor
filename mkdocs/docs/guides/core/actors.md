@@ -15,7 +15,7 @@ stopping them, and child actors. Sending messages is in [Messaging](messaging.md
 
 ## Setup
 
-Add `actor-spring-boot-starter` and put `@EnableActorSupport` on your application class, as shown in
+Add `actor-spring-boot-starter` to your Spring Boot application, as shown in
 [Getting Started](../../getting-started.md). That starts one actor system for the Spring context and
 gives you a `SpringActorSystem` bean to inject. Nothing else is needed for the features on this page.
 
