@@ -31,6 +31,7 @@ dependencies {
     implementation("com.zaxxer:HikariCP")
 
     testImplementation(project(":actor-autoconfigure"))
+    testImplementation(testFixtures(project(":actor-core")))
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.boot:spring-boot-starter-jdbc")
     testImplementation("com.h2database:h2")

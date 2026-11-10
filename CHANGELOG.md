@@ -20,6 +20,13 @@
 
 - The metrics example no longer passes `-DACTOR_METRICS_DEBUG=true`, a flag no code reads.
 
+### Features
+
+- **GraalVM native image hints.** The modules register runtime hints in `META-INF/spring/aot.factories`:
+  Pekko's `reference.conf` files, the starter's classes Pekko creates by name, `AskCommand`'s reply address,
+  and the schema files. Your own serialized messages still need hints, and so do Pekko's own classes. See
+  [Running in Production](https://seonwkim.github.io/actor-spring-boot-starter/guides/operations/production/#native-images-graalvm).
+
 ## 1.0.0 (unreleased)
 
 ### Breaking changes

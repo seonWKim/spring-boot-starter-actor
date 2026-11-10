@@ -45,7 +45,7 @@ The full text of the Getting Started page and every guide, with code inlined, is
 
 ### Operations
 
-- [Running in Production](https://seonwkim.github.io/actor-spring-boot-starter/guides/operations/production/): graceful shutdown, health checks, Kubernetes probes, a production checklist
+- [Running in Production](https://seonwkim.github.io/actor-spring-boot-starter/guides/operations/production/): graceful shutdown, health checks, Kubernetes probes, a production checklist, GraalVM native images
 - [Monitoring](https://seonwkim.github.io/actor-spring-boot-starter/guides/operations/monitoring/): actor, mailbox, dispatcher, cluster and sharding meters, the actors endpoint, tracing, Grafana dashboard and alerts
 - [Deployments](https://seonwkim.github.io/actor-spring-boot-starter/guides/operations/deployments/): rolling, canary and blue-green deployments, and message compatibility across versions
 - [Configuration Reference](https://seonwkim.github.io/actor-spring-boot-starter/guides/operations/configuration/): every `spring.actor.*` key with its default

@@ -53,6 +53,7 @@ dependencies {
     testImplementation("io.micrometer:micrometer-tracing-bridge-otel")
     testImplementation("io.opentelemetry:opentelemetry-sdk-testing")
     testImplementation(project(":actor-metrics"))
+    testImplementation(testFixtures(project(":actor-core")))
     testImplementation("org.awaitility:awaitility")
     // spring.actor.cluster.join=discovery checks that Cluster Bootstrap is present.
     testRuntimeOnly("org.apache.pekko:pekko-management-cluster-bootstrap_3:${pekkoManagementVersion}")

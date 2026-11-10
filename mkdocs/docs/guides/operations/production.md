@@ -2,7 +2,7 @@
 
 This guide covers what matters when you run an actor application in production, for example on
 Kubernetes: how it shuts down without losing work, how health checks report the actor system and the
-cluster, and a checklist to go through before the first release.
+cluster, a checklist to go through before the first release, and GraalVM native images.
 
 For metrics, tracing and alerts, see [Monitoring](monitoring.md). For rolling, canary and blue-green
 releases, see [Deployments](deployments.md).
@@ -192,6 +192,64 @@ Go through this list before the first release of a clustered application.
 
 - [ ] Actors that call blocking I/O (JDBC, blocking HTTP clients) run on `withBlockingDispatcher()` or a
       dispatcher of their own ([Dispatchers](../core/dispatchers.md)).
+
+## Native images (GraalVM)
+
+!!! warning "Experimental"
+    No native image of an actor application has been built and run in this project yet. The `Native image`
+    workflow (`.github/workflows/native-image.yml`) builds the `simple` example every week. Until it
+    passes, treat native images as experimental.
+
+Spring AOT reads `META-INF/spring/aot.factories` during a native build. The starter's modules use it to
+register these runtime hints:
+
+- Pekko's configuration files: every `reference.conf`, plus the `version.conf` and `pekko-http-version.conf`
+  they include, and your `application.conf` if you have one.
+- The starter's classes that Pekko creates by name from configuration: the executor of a bean-backed
+  dispatcher, the cluster discovery and lease adapters, the serializer for traced messages, and the
+  persistence database provider. Also the Pekko Jackson serializers the starter configures.
+- `AskCommand`'s reply address, which Jackson writes into every ask that crosses nodes.
+- The schema files of `actor-jdbc`, `actor-persistence` and `actor-projection`.
+
+### Your message classes
+
+Jackson reads and writes your messages by reflection whenever Pekko serializes them. That covers messages
+that cross nodes (sharded commands, replies, topic messages) and the events and state of event-sourced
+actors. Pekko writes each message's class name into the serialized form and loads the class by that name
+when it reads the message, so register every concrete message class, not only the `JsonSerializable`
+interface. `@RegisterReflectionForBinding` on a configuration class registers each class with its
+constructors, fields and property types:
+
+=== "Java"
+
+    ```java
+    @Configuration
+    @RegisterReflectionForBinding({HelloActor.SayHello.class, OrderPlaced.class})
+    public class NativeHintsConfiguration {}
+    ```
+
+=== "Kotlin"
+
+    ```kotlin
+    @Configuration
+    @RegisterReflectionForBinding(HelloActor.SayHello::class, OrderPlaced::class)
+    class NativeHintsConfiguration
+    ```
+
+Messages between actors in one JVM aren't serialized (Pekko's `serialize-messages` is `off` by default),
+so they need no hints. To register classes you can't list in an annotation, write a
+`RuntimeHintsRegistrar` and import it with `@ImportRuntimeHints`.
+
+### Pekko's own classes
+
+Pekko 1.1 ships no native image metadata. It creates its extensions, mailboxes, serializers, loggers and
+actor ref providers by reflection, from the class names in its `reference.conf`, and the starter's hints
+don't cover them. One way to collect them is the GraalVM tracing agent. Run the application and its tests
+on the JVM with `-agentlib:native-image-agent=config-output-dir=src/main/resources/META-INF/native-image/<group>/<artifact>`,
+use the features you need (cluster, sharding, persistence), and check in the generated files.
+
+The `actor-metrics` Java agent (`-javaagent:actor-metrics-<version>-agent.jar`) can't attach to a native
+image.
 
 ## Related
 
