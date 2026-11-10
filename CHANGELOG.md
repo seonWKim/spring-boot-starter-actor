@@ -15,13 +15,19 @@
 
 ### Features
 
+- **`SpringActorSystem.find(Class, id)`** returns `CompletionStage<Optional<SpringActorHandle<C>>>`.
+  `get(Class, id)`, which completed with `null`, is deprecated. `SpringChildActorBuilder.get()` is
+  deprecated too: `handle.child(ChildClass, id).get()` already returns an `Optional` (#188).
+- **`SpringBehaviorContext.actorId()` and `getChild(ChildClass.class, id)`.** Handlers read their actor's
+  id without capturing it in `create`, and find a child by class and id. `getChild(String)`, which took
+  the internal `<ClassName>:<id>` name, is deprecated (#188).
+- **One rule for a taken id:** `spawn()` is for a new actor, `getOrSpawn()` reuses a running one. A child
+  `spawn()` on a taken id still returns the running child but logs a deprecation warning; in 2.0 it fails
+  like a top-level `spawn()`. A child `getOrSpawn()` now checks and spawns in one step (#188).
 - **GraalVM native image hints.** The modules register runtime hints in `META-INF/spring/aot.factories`:
   Pekko's `reference.conf` files, the starter's classes Pekko creates by name, `AskCommand`'s reply address,
   and the schema files. Your own serialized messages still need hints, and so do Pekko's own classes. See
   [Running in Production](https://seonwkim.github.io/actor-spring-boot-starter/guides/operations/production/#native-images-graalvm).
-- **`SpringActorSystem.find(Class, id)`** returns `CompletionStage<Optional<SpringActorHandle<C>>>`.
-  `get(Class, id)`, which completed with `null`, is deprecated. `SpringChildActorBuilder.get()` is
-  deprecated too: `handle.child(ChildClass, id).get()` already returns an `Optional` (#188).
 
 ### Fixes
 
@@ -31,6 +37,10 @@
 - Configuration metadata covers `management.health.actor.enabled` and the `spring.actor.dispatchers.*` sub-keys
   (`executor`, `virtual`, `throughput`), so IDEs complete them.
 - The metrics example no longer passes `-DACTOR_METRICS_DEBUG=true`, a flag no code reads.
+- **Spawning by id an actor that needs a custom context fails clearly.** `getOrSpawn(Class, id)` and
+  `withId(...)` without `withContext(...)` failed with a `ClassCastException` from inside the actor
+  system. They now fail with an `IllegalArgumentException` naming the context type and `withContext(...)`
+  (#188).
 - **`find` and `exists` see cluster singletons** that this node spawned. They used to look only at the
   root guardian's children (#188).
 - **`getOrSpawn` no longer races on a new id.** It checked whether the actor existed and then spawned it,
