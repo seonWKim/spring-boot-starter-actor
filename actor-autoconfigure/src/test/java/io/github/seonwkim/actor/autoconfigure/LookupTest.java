@@ -59,22 +59,22 @@ class LookupTest {
         @Bean
         @Primary
         RootGuardianSupplierWrapper slowRootGuardian() {
-            return new RootGuardianSupplierWrapper(() -> Behaviors.setup(ctx -> Behaviors.receive(
-                            RootGuardian.Command.class)
-                    .onMessage(RootGuardian.GetActor.class, msg -> {
-                        ctx.scheduleOnce(DELAY, msg.replyTo, new RootGuardian.GetActorResponse<>(null));
-                        return Behaviors.same();
-                    })
-                    .onMessage(RootGuardian.CheckExists.class, msg -> {
-                        ctx.scheduleOnce(DELAY, msg.replyTo, new RootGuardian.ExistsResponse(false));
-                        return Behaviors.same();
-                    })
-                    .build()));
+            return new RootGuardianSupplierWrapper(
+                    () -> Behaviors.setup(ctx -> Behaviors.receive(RootGuardian.Command.class)
+                            .onMessage(RootGuardian.GetActor.class, msg -> {
+                                ctx.scheduleOnce(DELAY, msg.replyTo, new RootGuardian.GetActorResponse<>(null));
+                                return Behaviors.same();
+                            })
+                            .onMessage(RootGuardian.CheckExists.class, msg -> {
+                                ctx.scheduleOnce(DELAY, msg.replyTo, new RootGuardian.ExistsResponse(false));
+                                return Behaviors.same();
+                            })
+                            .build()));
         }
     }
 
-    private final ApplicationContextRunner runner =
-            new ApplicationContextRunner().withConfiguration(UserConfigurations.of(ActorConfiguration.class, Beans.class));
+    private final ApplicationContextRunner runner = new ApplicationContextRunner()
+            .withConfiguration(UserConfigurations.of(ActorConfiguration.class, Beans.class));
 
     private static <T> T await(CompletionStage<T> stage) throws Exception {
         return stage.toCompletableFuture().get(10, TimeUnit.SECONDS);
