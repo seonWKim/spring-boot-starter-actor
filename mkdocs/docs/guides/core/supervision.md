@@ -75,11 +75,10 @@ There are four places. Set it in one of them per actor.
 
     // 2. In the actor's own behavior: applies however the actor is spawned
     override fun create(actorContext: SpringActorContext): SpringActorBehavior<Command> =
-        actorBehavior<Command>(actorContext)
-            .withSupervisionStrategy(SupervisionStrategy.restart().withLimit(10, 1.minutes))
-            .withState { ctx -> OrderState(ctx) }
-            .onMessage(Pay::class.java) { state, msg -> state.onPay(msg) }
-            .build()
+        behavior<Command, OrderState>(actorContext, state = { ctx -> OrderState(ctx) }) {
+            withSupervisionStrategy(SupervisionStrategy.restart().withLimit(10, 1.minutes))
+            onMessage<Pay> { msg -> onPay(msg) }
+        }
 
     // 3. When a parent spawns a child
     ctx.self.child<WorkerActor, _>()
@@ -167,19 +166,18 @@ Two signals tell an actor about its own lifecycle. Register them with `onSignal`
 === "Kotlin"
 
     ```kotlin
-    actorBehavior<Command>(actorContext)
-        .withSupervisionStrategy(SupervisionStrategy.restart())
-        .withState { ctx -> WorkerState(ctx) }
-        .onMessage(DoTask::class.java) { state, msg -> state.onDoTask(msg) }
-        .onSignal(PreRestart::class.java) { state, _ ->
-            state.ctx.log.warn("Restarting; {} completed tasks are lost", state.completed)
-            SpringActorBehavior.same()
+    behavior<Command, WorkerState>(actorContext, state = { ctx -> WorkerState(ctx) }) {
+        withSupervisionStrategy(SupervisionStrategy.restart())
+        onMessage<DoTask> { msg -> onDoTask(msg) }
+        onSignal<PreRestart> {
+            ctx.log.warn("Restarting; {} completed tasks are lost", completed)
+            same()
         }
-        .onSignal(PostStop::class.java) { state, _ ->
-            state.ctx.log.info("Stopped after {} tasks", state.completed)
-            SpringActorBehavior.same()
+        onSignal<PostStop> {
+            ctx.log.info("Stopped after {} tasks", completed)
+            same()
         }
-        .build()
+    }
     ```
 
 Keep signal handlers short and don't throw from them. More on signals in
@@ -208,13 +206,13 @@ example to spawn a replacement or to tell a caller:
 === "Kotlin"
 
     ```kotlin
-    .onMessage(WorkerReady::class.java) { ctx, msg ->
-        ctx.watch(msg.worker)                  // ActorTerminated arrives when the worker stops
-        SpringActorBehavior.same()
+    onMessage<WorkerReady> { msg ->
+        watch(msg.worker)                      // ActorTerminated arrives when the worker stops
+        same()
     }
-    .onSignal(ActorTerminated::class.java) { ctx, signal ->
-        ctx.log.warn("Worker {} stopped", signal.ref.path())
-        SpringActorBehavior.same()
+    onSignal<ActorTerminated> { signal ->
+        log.warn("Worker {} stopped", signal.ref.path())
+        same()
     }
     ```
 

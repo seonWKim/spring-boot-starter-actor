@@ -78,16 +78,16 @@ handler runs for which message.
         class Greet(val name: String) : AskCommand<String>(), Command
 
         override fun create(actorContext: SpringActorContext): SpringActorBehavior<Command> =
-            actorBehavior<Command>(actorContext)
-                .onMessage(LogVisit::class.java) { ctx, msg ->
-                    ctx.log.info("{} visited", msg.name)
-                    SpringActorBehavior.same()
+            behavior<Command>(actorContext) {
+                onMessage<LogVisit> { msg ->
+                    log.info("{} visited", msg.name)
+                    same()
                 }
-                .onMessage(Greet::class.java) { ctx, msg ->
+                onMessage<Greet> { msg ->
                     msg.reply("Hello, ${msg.name}!")
-                    SpringActorBehavior.same()
+                    same()
                 }
-                .build()
+            }
     }
     ```
 
@@ -106,8 +106,10 @@ What each part does:
   handling messages this way". See [Behaviors](behaviors.md) for the other return values and for keeping
   state in the actor.
 
-In Kotlin, `actorBehavior<Command>(actorContext)` comes from the `actor-kotlin` module and is the same as
-`SpringActorBehavior.builder(Command::class.java, actorContext)`. See the [Kotlin guide](../kotlin.md).
+In Kotlin, `behavior<Command>(actorContext) { ... }` comes from the `actor-kotlin` module and builds the
+same behavior with `SpringActorBehavior.builder`: `onMessage<Greet> { msg -> ... }` is
+`.onMessage(Greet.class, (ctx, msg) -> ...)`, and the handler runs with the behavior context as `this`,
+so `log` is `ctx.getLog()`. See the [Kotlin guide](../kotlin.md#defining-an-actor).
 
 ## Spring dependency injection
 
@@ -153,12 +155,12 @@ injection style):
         data class MarkPaid(val orderId: Long) : Command
 
         override fun create(actorContext: SpringActorContext): SpringActorBehavior<Command> =
-            actorBehavior<Command>(actorContext)
-                .onMessage(MarkPaid::class.java) { _, msg ->
+            behavior<Command>(actorContext) {
+                onMessage<MarkPaid> { msg ->
                     orderRepository.markPaid(msg.orderId)
-                    SpringActorBehavior.same()
+                    same()
                 }
-                .build()
+            }
     }
     ```
 
@@ -455,12 +457,12 @@ instead:
         class Build : Command
 
         override fun create(actorContext: ReportContext): SpringActorBehavior<Command> =
-            actorBehavior<Command>(actorContext)
-                .onMessage(Build::class.java) { ctx, _ ->
-                    ctx.log.info("Building {} for {}", actorContext.actorId(), actorContext.ownerEmail)
-                    SpringActorBehavior.same()
+            behavior<Command>(actorContext) {
+                onMessage<Build> {
+                    log.info("Building {} for {}", actorContext.actorId(), actorContext.ownerEmail)
+                    same()
                 }
-                .build()
+            }
     }
 
     // Spawning it, in a suspend function
@@ -589,27 +591,26 @@ get the result back as a message instead:
         ) : Command
 
         override fun create(actorContext: SpringActorContext): SpringActorBehavior<Command> =
-            actorBehavior<Command>(actorContext)
-                .onMessage(Assign::class.java) { ctx, msg ->
-                    ctx.pipeToSelf(
-                        ctx.self
-                            .child<WorkerActor, _>()
+            behavior<Command>(actorContext) {
+                onMessage<Assign> { msg ->
+                    pipeToSelf(
+                        self.child<WorkerActor, _>()
                             .withId(msg.workerId)
                             .withSupervisionStrategy(SupervisionStrategy.restart())
                             .getOrSpawn(),
                     ) { worker, error -> WorkerReady(msg, worker, error) }
-                    SpringActorBehavior.same()
+                    same()
                 }
-                .onMessage(WorkerReady::class.java) { ctx, msg ->
+                onMessage<WorkerReady> { msg ->
                     val worker = msg.worker
                     if (msg.error != null || worker == null) {
-                        ctx.log.error("Could not start worker {}", msg.assign.workerId, msg.error)
+                        log.error("Could not start worker {}", msg.assign.workerId, msg.error)
                     } else {
                         worker.tell(WorkerActor.DoTask(msg.assign.task))
                     }
-                    SpringActorBehavior.same()
+                    same()
                 }
-                .build()
+            }
     }
     ```
 

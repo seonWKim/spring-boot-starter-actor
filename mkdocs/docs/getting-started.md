@@ -162,12 +162,12 @@ accepts. A message that expects an answer extends `AskCommand<Reply>` and answer
         class Greet(val name: String) : AskCommand<String>(), Command
 
         override fun create(actorContext: SpringActorContext): SpringActorBehavior<Command> =
-            actorBehavior<Command>(actorContext)
-                .onMessage(Greet::class.java) { _, msg ->
+            behavior<Command>(actorContext) {
+                onMessage<Greet> { msg ->
                     msg.reply("Hello, ${msg.name}!")
-                    SpringActorBehavior.same()
+                    same()
                 }
-                .build()
+            }
     }
     ```
 
