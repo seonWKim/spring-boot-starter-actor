@@ -224,6 +224,7 @@ public final class PekkoChildActorBuilder<P, C> implements SpringChildActorBuild
     }
 
     @Override
+    @Deprecated
     @SuppressWarnings("unchecked")
     public CompletionStage<SpringActorHandle<C>> get() {
         if (childContext == null) {
