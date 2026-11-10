@@ -28,6 +28,9 @@
   Pekko's `reference.conf` files, the starter's classes Pekko creates by name, `AskCommand`'s reply address,
   and the schema files. Your own serialized messages still need hints, and so do Pekko's own classes. See
   [Running in Production](https://seonwkim.github.io/actor-spring-boot-starter/guides/operations/production/#native-images-graalvm).
+- **BOM.** `io.github.seonwkim:actor-bom` lists every module at one version: import it with Gradle's
+  `platform(...)` or Maven's `<scope>import</scope>` and leave the version off each module. The 0.x
+  `spring-boot-starter-actor-bom` (0.0.1, Spring Boot 2.7) is not relocated to it.
 
 ### Fixes
 
