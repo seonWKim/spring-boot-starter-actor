@@ -3,12 +3,14 @@ package io.github.seonwkim.actor.autoconfigure;
 import io.github.seonwkim.actor.SpringActorSystem;
 import io.github.seonwkim.actor.SpringActorSystemBuilder;
 import io.github.seonwkim.actor.SpringActorWithContext;
+import io.github.seonwkim.actor.delivery.SpringReliableDelivery;
 import io.github.seonwkim.actor.internal.ActorTypeRegistry;
 import io.github.seonwkim.actor.internal.DefaultSpringActorSystemBuilder;
 import io.github.seonwkim.actor.internal.PekkoReceptionist;
 import io.github.seonwkim.actor.internal.PekkoTopicManager;
 import io.github.seonwkim.actor.internal.RootGuardian;
 import io.github.seonwkim.actor.internal.RootGuardianSupplierWrapper;
+import io.github.seonwkim.actor.internal.delivery.PekkoReliableDelivery;
 import io.github.seonwkim.actor.receptionist.SpringReceptionist;
 import io.github.seonwkim.actor.topic.SpringTopicManager;
 import java.util.Map;
@@ -199,5 +201,12 @@ public class ActorConfiguration {
     @ConditionalOnMissingBean(SpringReceptionist.class)
     public SpringReceptionist springReceptionist(SpringActorSystem actorSystem) {
         return new PekkoReceptionist(actorSystem);
+    }
+
+    /** Starts senders that deliver at least once (reliable delivery). */
+    @Bean
+    @ConditionalOnMissingBean(SpringReliableDelivery.class)
+    public SpringReliableDelivery springReliableDelivery(SpringActorSystem actorSystem) {
+        return new PekkoReliableDelivery(actorSystem);
     }
 }
