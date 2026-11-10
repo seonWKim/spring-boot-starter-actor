@@ -40,7 +40,7 @@ Check the cluster:
 kubectl get pods -n spring-actor
 
 POD=$(kubectl get pods -n spring-actor -o jsonpath='{.items[0].metadata.name}')
-kubectl exec -n spring-actor $POD -- curl -s localhost:8558/cluster/members | jq   # three members, "Up"
+kubectl exec -n spring-actor $POD -- curl -s localhost:7626/cluster/members | jq   # three members, "Up"
 
 kubectl logs -f -n spring-actor -l app=spring-actor
 ```
@@ -69,10 +69,17 @@ example/kubernetes/
 ### Cluster formation through the Kubernetes API
 
 The chat app's `kubernetes` profile clears the seed-node list
-(`application-kubernetes.yml`), and the ConfigMap in `base/` sets Cluster Bootstrap with
-`discovery-method: kubernetes-api`. Each pod lists the pods with the label `app=spring-actor` (the RBAC
-Role in `base/rbac.yaml` allows that), contacts them on the management port 8558, and joins the existing
-cluster or forms a new one.
+(`application-kubernetes.yml`), and the ConfigMap in `base/` sets Cluster Bootstrap under
+`spring.actor.pekko.management.cluster.bootstrap` with `discovery-method: kubernetes-api`. Each pod lists
+the pods with the label `app=spring-actor` (the RBAC Role in `base/rbac.yaml` allows that), contacts them
+on the management port 7626, and joins the existing cluster or forms a new one. All overlays use Pekko's
+default ports: remoting 25520, management 7626.
+
+### Graceful shutdown
+
+Pods get `terminationGracePeriodSeconds: 45`: a 10-second `preStop` sleep so the Services stop sending
+new requests, Spring Boot's graceful drain of the requests in flight, then up to 25 seconds
+(`spring.actor.shutdown.timeout`) for the actor system to leave the cluster.
 
 ### Without RBAC: JDBC or Redis discovery
 
@@ -85,13 +92,13 @@ kubectl apply -k overlays/discovery-redis   # Redis at redis:6379
 ```
 
 Each pod writes its own entry to the store, renews it every 5 seconds and deletes it on graceful
-shutdown. The `components/discovery` component removes the RBAC objects, uses Pekko's default ports
-(remoting 25520, management 7626), sets readiness on Actuator health, and gives pods 45 seconds to leave
-the cluster on shutdown. The chat image does not contain `actor-jdbc` or `actor-redis`, so these overlays
+shutdown. The `components/discovery` component removes the RBAC objects and the service account token,
+and sets readiness on Actuator health. The chat image does not contain `actor-jdbc` or `actor-redis`, so these overlays
 need your own image (`images:` in the overlay).
 
-`./gradlew :example:kubernetes:test` renders both overlays (it needs `kubectl`, and skips otherwise) and
-checks that they contain no RBAC and open only the expected ports.
+`./gradlew :example:kubernetes:test` renders every overlay (it needs `kubectl`, and skips otherwise) and
+checks that the ConfigMap, Deployment and Services agree on the ports, that the grace period covers the
+shutdown, and that the discovery overlays contain no RBAC and open only the expected ports.
 
 ### Rollouts
 

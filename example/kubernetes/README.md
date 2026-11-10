@@ -24,7 +24,7 @@ This example demonstrates how to deploy a Spring Boot Starter Actor application 
 │  │  │ Chat Actor   │◄─┼─►Chat Actor  │◄─┼─►Chat Actor  │  │ │
 │  │  │ :8080        │  │ :8080        │  │ :8080        │  │ │
 │  │  │ Remoting     │  │ Remoting     │  │ Remoting     │  │ │
-│  │  │ :2551        │  │ :2551        │  │ :2551        │  │ │
+│  │  │ :25520       │  │ :25520       │  │ :25520       │  │ │
 │  │  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘  │ │
 │  │         │                  │                  │          │ │
 │  │         └──────────────────┴──────────────────┘          │ │
@@ -89,7 +89,7 @@ kubectl get pods -n spring-actor
 
 # Check cluster members
 POD=$(kubectl get pods -n spring-actor -o jsonpath='{.items[0].metadata.name}')
-kubectl exec -n spring-actor $POD -- curl -s localhost:8558/cluster/members | jq
+kubectl exec -n spring-actor $POD -- curl -s localhost:7626/cluster/members | jq
 ```
 
 You should see 3 cluster members with status "Up".
@@ -141,11 +141,11 @@ T+40s   All pods ready                  ✓ Cluster fully formed!
    }
    ```
 
-3. **Pod contacts peers** on management port (8558):
+3. **Pod contacts peers** on management port (7626):
    ```
-   HTTP GET http://10.244.0.5:8558/bootstrap/seed-nodes
-   HTTP GET http://10.244.0.6:8558/bootstrap/seed-nodes
-   HTTP GET http://10.244.0.7:8558/bootstrap/seed-nodes
+   HTTP GET http://10.244.0.5:7626/bootstrap/seed-nodes
+   HTTP GET http://10.244.0.6:7626/bootstrap/seed-nodes
+   HTTP GET http://10.244.0.7:7626/bootstrap/seed-nodes
    ```
 
 4. **Cluster Bootstrap logic:**
@@ -154,13 +154,23 @@ T+40s   All pods ready                  ✓ Cluster fully formed!
 
 No hardcoded seed nodes needed! 🎉
 
+### Graceful shutdown
+
+When Kubernetes stops a pod (a rollout, a scale-down, a node drain), the pod has
+`terminationGracePeriodSeconds: 45` before it is killed:
+
+1. The `preStop` hook sleeps 10s, so the Services stop sending it new requests.
+2. Spring Boot finishes the HTTP requests in flight (`server.shutdown: graceful`).
+3. The actor system leaves the cluster and hands its shards to the other pods, within
+   `spring.actor.shutdown.timeout` (25s in the ConfigMap).
+
 ## Without RBAC: discovery through JDBC or Redis
 
 The default setup finds pods through the Kubernetes API, so the pods' service account needs a Role
 that can list pods. When the platform team won't grant that, the overlays `discovery-jdbc` and
 `discovery-redis` form the cluster through a store the application already uses
 (`spring.actor.cluster.join: discovery`, see the
-[Cluster Formation guide](https://seonwkim.github.io/actor-spring-boot-starter/guides/cluster-formation/)).
+[Cluster Formation guide](https://seonwkim.github.io/actor-spring-boot-starter/guides/cluster/cluster-formation/)).
 Each pod writes its own entry (its IP and management port) to the `actor_peer` table or a Redis key,
 renews it every 5 seconds, and deletes it when it shuts down gracefully. Cluster Bootstrap reads the
 live entries and joins or forms the cluster.
@@ -173,12 +183,11 @@ kubectl apply -k overlays/discovery-redis   # Redis at redis:6379
 Both overlays use the component `components/discovery`, which:
 
 - removes the pod-reader `Role` and `RoleBinding`, and mounts no service account token;
-- uses Pekko's default ports: remoting `25520`, management `7626`;
 - replaces `application.yaml` with `join: discovery` (the store comes from each overlay's environment);
 - probes Spring Boot's Actuator health (readiness includes `actorCluster`, so a pod gets traffic only
   while it is an `Up` member);
-- sets `terminationGracePeriodSeconds: 45`: the 10s `preStop` sleep, then up to 25s
-  (`spring.actor.shutdown.timeout`) to leave the cluster and delete the pod's entry.
+- deletes the pod's entry on shutdown, within the base Deployment's 45s grace period (see
+  [Graceful shutdown](#graceful-shutdown)).
 
 The application image needs the store module and its client next to the Pekko Management libraries
 the chat example already has. The chat image does not include them; use your own application's image
@@ -208,7 +217,8 @@ No access to the Kubernetes API is needed. The overlays ship these rules as two 
 policy's selector, or use an `ipBlock`, to match where your database or Redis runs.
 
 `kubectl kustomize overlays/discovery-jdbc` renders an overlay without a cluster;
-`./gradlew :example:kubernetes:test` checks that both render, contain no RBAC, and open only these ports.
+`./gradlew :example:kubernetes:test` checks that every overlay renders with matching ports and a grace
+period that covers the shutdown, and that the discovery overlays contain no RBAC and open only these ports.
 
 ## Rolling Updates Example
 
@@ -226,13 +236,11 @@ kubectl get pods -n spring-actor
 
 ### 2. Modify the Application
 
-Edit `example/chat/src/main/java/io/github/seonwkim/example/HelloController.java`:
+Edit the reply in `example/chat/src/main/java/io/github/seonwkim/example/HelloActor.java`, which
+`GET /hello` returns:
 
 ```java
-@GetMapping("/api/hello")
-public String hello() {
-    return "Hello from v2!";  // Changed from v1
-}
+final String message = "v2: received from entity [" + entityId + "] on node [" + nodeAddress + "]";
 ```
 
 ### 3. Build New Version
@@ -242,7 +250,7 @@ cd example/chat
 ../../gradlew clean build -x test
 
 # Build new Docker image
-docker build -t spring-actor-chat:v2 .
+docker build -f Dockerfile.kubernetes -t spring-actor-chat:v2 .
 
 # Load into kind
 kind load docker-image spring-actor-chat:v2 --name spring-actor-demo
@@ -304,8 +312,8 @@ strategy:
 kubectl port-forward -n spring-actor svc/spring-actor-http 8080:80
 
 # In another terminal
-curl http://localhost:8080/api/hello
-# Output: Hello from v2!
+curl "http://localhost:8080/hello?message=hi&entityId=1"
+# Output: v2: received from entity [1] on node [...]
 ```
 
 ## Canary and Blue-Green
@@ -465,7 +473,7 @@ kubectl logs <pod-name> -n spring-actor
 kubectl auth can-i list pods --as=system:serviceaccount:spring-actor:spring-actor-sa -n spring-actor
 
 # Check service discovery
-kubectl exec -n spring-actor <pod-name> -- curl localhost:8558/bootstrap/seed-nodes
+kubectl exec -n spring-actor <pod-name> -- curl localhost:7626/bootstrap/seed-nodes
 ```
 
 **Common issues:**
@@ -496,7 +504,7 @@ To deploy to a real Kubernetes cluster:
 ./gradlew clean build
 
 # Build and push Docker image
-docker build -t your-registry.com/spring-actor-chat:v1.0.0 -f example/chat/Dockerfile .
+docker build -t your-registry.com/spring-actor-chat:v1.0.0 -f example/chat/Dockerfile.kubernetes example/chat
 docker push your-registry.com/spring-actor-chat:v1.0.0
 ```
 
@@ -521,7 +529,9 @@ images:
 ./scripts/deploy.sh prod v1.0.0
 ```
 
-See [KUBERNETES_PREPARE.md](../../KUBERNETES_PREPARE.md) for comprehensive production deployment guide.
+See the [Production guide](https://seonwkim.github.io/actor-spring-boot-starter/guides/operations/production/)
+and the [Deployments guide](https://seonwkim.github.io/actor-spring-boot-starter/guides/operations/deployments/)
+before deploying to production.
 
 ## What You Learned
 
@@ -537,7 +547,7 @@ See [KUBERNETES_PREPARE.md](../../KUBERNETES_PREPARE.md) for comprehensive produ
 2. **Try rolling updates** - Follow the guide above
 3. **Add monitoring** - Run `./scripts/monitoring.sh` (see [Monitoring](#monitoring))
 4. **Production deployment** - Use `overlays/prod` configuration
-5. **Read the deep dive** - Check [KUBERNETES_PREPARE.md](../../KUBERNETES_PREPARE.md)
+5. **Read the deep dive** - Check the [Production guide](https://seonwkim.github.io/actor-spring-boot-starter/guides/operations/production/)
 
 ## Useful Commands Reference
 
@@ -555,10 +565,10 @@ kubectl logs -f <pod-name> -n spring-actor
 kubectl logs -f -l app=spring-actor -n spring-actor
 
 # Check cluster members
-kubectl exec -n spring-actor <pod-name> -- curl -s localhost:8558/cluster/members | jq
+kubectl exec -n spring-actor <pod-name> -- curl -s localhost:7626/cluster/members | jq
 
 # Check cluster shards
-kubectl exec -n spring-actor <pod-name> -- curl -s localhost:8558/cluster/shards | jq
+kubectl exec -n spring-actor <pod-name> -- curl -s localhost:7626/cluster/shards | jq
 
 # Port forward to pod
 kubectl port-forward -n spring-actor <pod-name> 8080:8080
@@ -588,7 +598,7 @@ kubectl rollout restart deployment/spring-actor -n spring-actor
 ## Support
 
 - **Issues**: Report bugs or ask questions in GitHub Issues
-- **Documentation**: See [KUBERNETES_PREPARE.md](../../KUBERNETES_PREPARE.md) for detailed guide
+- **Documentation**: See the [Kubernetes example page](https://seonwkim.github.io/actor-spring-boot-starter/examples/kubernetes/)
 - **Community**: Join discussions in GitHub Discussions
 
 ---
