@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.typesafe.config.Config;
 import io.github.seonwkim.actor.SpringActorSystem;
+import io.github.seonwkim.actor.internal.delivery.ReliableConsumerModule;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -52,6 +53,19 @@ class ActorPropertiesTest {
                     assertThat(config.getStringList("pekko.cluster.seed-nodes"))
                             .containsExactly("pekko://orders@10.0.0.7:25521", "pekko://orders@10.0.0.8:25521");
                     assertThat(config.getStringList("pekko.cluster.roles")).containsExactly("api", "worker");
+                });
+    }
+
+    @Test
+    void deliverySettingsReachTheReliableConsumers() {
+        runner.withPropertyValues(
+                        "spring.actor.delivery.idempotency-ttl=90s", "spring.actor.delivery.max-remembered-keys=500")
+                .run(context -> {
+                    Config config = pekkoConfig(context);
+                    assertThat(config.getDuration(ReliableConsumerModule.TTL_KEY))
+                            .isEqualTo(Duration.ofSeconds(90));
+                    assertThat(config.getInt(ReliableConsumerModule.MAX_KEYS_KEY))
+                            .isEqualTo(500);
                 });
     }
 

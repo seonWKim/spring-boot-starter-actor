@@ -47,6 +47,7 @@ nav:
     - Core:
       - Actors: guides/core/actors.md
       - Messaging: guides/core/messaging.md
+      - Reliable Delivery: guides/core/reliable-delivery.md
       - Supervision: guides/core/supervision.md
       - Behaviors, Timers and Watching: guides/core/behaviors.md
       - Routers: guides/core/routers.md

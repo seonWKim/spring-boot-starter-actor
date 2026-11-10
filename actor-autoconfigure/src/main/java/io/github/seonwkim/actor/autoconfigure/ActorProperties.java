@@ -7,6 +7,7 @@ import com.typesafe.config.ConfigUtil;
 import com.typesafe.config.ConfigValueType;
 import io.github.seonwkim.actor.ActorConstants;
 import io.github.seonwkim.actor.internal.SpringExecutorConfigurator;
+import io.github.seonwkim.actor.internal.delivery.ReliableConsumerModule;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -68,6 +69,8 @@ public class ActorProperties {
 
     private final VirtualThreads virtualThreads = new VirtualThreads();
 
+    private final Delivery delivery = new Delivery();
+
     /**
      * Dispatchers that run on Spring Executor beans, by dispatcher name. An actor uses one with
      * withDispatcherFromConfig("<name>").
@@ -123,12 +126,54 @@ public class ActorProperties {
         return persistence;
     }
 
+    public Delivery getDelivery() {
+        return delivery;
+    }
+
     public Map<String, Dispatcher> getDispatchers() {
         return dispatchers;
     }
 
     public VirtualThreads getVirtualThreads() {
         return virtualThreads;
+    }
+
+    /** Receivers of reliable delivery (ReliableDelivery.consumer). */
+    public static class Delivery {
+
+        /**
+         * How long a receiver remembers the idempotency key of a message it handled; a message with a
+         * remembered key is acknowledged again without running the handler. A receiver can override it.
+         * Default 10m.
+         */
+        @Nullable private Duration idempotencyTtl;
+
+        /** The most keys one receiver remembers; past it, the oldest are forgotten first. Default 10000. */
+        @Nullable private Integer maxRememberedKeys;
+
+        @Nullable public Duration getIdempotencyTtl() {
+            return idempotencyTtl;
+        }
+
+        public void setIdempotencyTtl(Duration idempotencyTtl) {
+            if (idempotencyTtl.isNegative() || idempotencyTtl.isZero()) {
+                throw new IllegalArgumentException(
+                        "spring.actor.delivery.idempotency-ttl must be positive, got " + idempotencyTtl);
+            }
+            this.idempotencyTtl = idempotencyTtl;
+        }
+
+        @Nullable public Integer getMaxRememberedKeys() {
+            return maxRememberedKeys;
+        }
+
+        public void setMaxRememberedKeys(int maxRememberedKeys) {
+            if (maxRememberedKeys < 1) {
+                throw new IllegalArgumentException(
+                        "spring.actor.delivery.max-remembered-keys must be at least 1, got " + maxRememberedKeys);
+            }
+            this.maxRememberedKeys = maxRememberedKeys;
+        }
     }
 
     /** Running blocking work on virtual threads. */
@@ -638,7 +683,8 @@ public class ActorProperties {
             "virtual-threads",
             "jdbc",
             "persistence",
-            "metrics");
+            "metrics",
+            "delivery");
 
     /**
      * The Pekko configuration. Every key under {@code spring.actor} except the typed settings is
@@ -728,6 +774,16 @@ public class ActorProperties {
             keys.addAll(discoveryKeys());
         }
         keys.addAll(downingAndLeaseKeys());
+        if (delivery.idempotencyTtl != null) {
+            keys.add(new TypedKey(
+                    "delivery.idempotency-ttl",
+                    ReliableConsumerModule.TTL_KEY,
+                    delivery.idempotencyTtl.toMillis() + "ms"));
+        }
+        if (delivery.maxRememberedKeys != null) {
+            keys.add(new TypedKey(
+                    "delivery.max-remembered-keys", ReliableConsumerModule.MAX_KEYS_KEY, delivery.maxRememberedKeys));
+        }
         if (!cluster.roles.isEmpty()) {
             keys.add(new TypedKey("cluster.roles", "pekko.cluster.roles", cluster.roles));
         }

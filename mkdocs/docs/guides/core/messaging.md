@@ -14,8 +14,8 @@ other without ask, and how to design messages. Defining and spawning actors is i
 - **One message at a time.** An actor handles its messages one after another, in the order they arrive
   in its mailbox. Messages from one sender to one actor arrive in the order they were sent.
 - **At most once.** A message is delivered once or not at all. Messages to an actor that has stopped are
-  dropped (they go to "dead letters"). If a message must not be lost, have the receiver confirm it (ask)
-  and retry, or store it first (see [Event sourcing](../data/event-sourcing.md)).
+  dropped (they go to "dead letters"). If a message must not be lost, send it with
+  [reliable delivery](reliable-delivery.md), or store it first (see [Event sourcing](../data/event-sourcing.md)).
 - **Immutable messages.** The sender and the actor may run on different threads. Use records,
   `final` fields or Kotlin `val`s, and immutable collections (`List.copyOf`).
 - **Serializable in a cluster.** A message that can cross nodes must implement `JsonSerializable` or
