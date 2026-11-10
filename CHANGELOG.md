@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Docs
+
+- The AI agents guide has Kotlin tabs for each of its code samples.
+
 ### Fixes
 
 - A single raw value for a Pekko list key (`spring.actor.pekko.cluster.seed-nodes=pekko://a@h:1`) works like
