@@ -36,6 +36,12 @@ jobs:
           -PtestJavaVersion=${{ matrix.java }}
           -Porg.gradle.java.installations.fromEnv=JAVA_HOME_${{ matrix.java }}_X64
 
+      # Maven Central rejects a deployment when a POM dependency has no version.
+      - name: 📦 Check published POMs
+        run: |
+          ./gradlew generatePomFileForMavenPublication --no-configuration-cache
+          python3 scripts/release/check-poms.py
+
   docs:
     name: Docs (llms.txt links, llms-full.txt, mkdocs build)
     runs-on: ubuntu-latest
