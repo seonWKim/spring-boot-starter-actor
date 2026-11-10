@@ -217,9 +217,73 @@ a command that was being handled when the application stopped is lost, so let th
 
 Run at most one actor per persistence id at a time: two actors that store events under the same id
 conflict on their sequence numbers. On one node, a regular actor with a given id runs once. On several
-nodes, each node could spawn its own copy, so make sure only one node spawns a given id, for example by
-routing all requests for an id to one place, or by using a [cluster singleton](../cluster/singletons.md)
-for a single global actor.
+nodes, each node could spawn its own copy of a regular actor, so don't spawn event-sourced actors per id
+with `actorSystem.actor(...)` in a cluster.
+
+**Make it a sharded entity.** Sharding runs each entity id on one node of the cluster at a time, so there is
+one writer per persistence id. Return a `SpringEventSourcedBehavior` from a
+[`SpringShardedActor`](../cluster/sharded-actors.md), with the entity id in the persistence id:
+
+=== "Java"
+
+    ```java
+    @Component
+    public class AccountEntity implements SpringShardedActor<AccountEntity.Command> {
+
+        // Commands cross nodes in a cluster: make them serializable too.
+        public interface Command extends JsonSerializable {}
+
+        public static final ShardedEntityType<Command> TYPE = ShardedEntityType.of(Command.class, "Account");
+
+        @Override
+        public ShardedEntityType<Command> entityType() {
+            return TYPE;
+        }
+
+        @Override
+        public SpringActorBehavior<Command> create(SpringShardedActorContext<Command> ctx) {
+            return SpringEventSourcedBehavior.builder(
+                            Command.class, Event.class, PersistenceId.of("Account", ctx.getEntityId()), new Account(0))
+                    .onCommand(Deposit.class, (es, account, cmd) -> es.persist(new Deposited(cmd.amount))
+                            .thenReply(cmd, Account::balance))
+                    .onEvent(Deposited.class, (account, event) -> account.add(event.amount()))
+                    .build();
+        }
+    }
+    ```
+
+=== "Kotlin"
+
+    ```kotlin
+    @Component
+    class AccountEntity : SpringShardedActor<AccountEntity.Command> {
+
+        // Commands cross nodes in a cluster: make them serializable too.
+        interface Command : JsonSerializable
+
+        override fun entityType(): ShardedEntityType<Command> = TYPE
+
+        override fun create(ctx: SpringShardedActorContext<Command>): SpringActorBehavior<Command> =
+            SpringEventSourcedBehavior.builder(
+                Command::class.java, Event::class.java, PersistenceId.of("Account", ctx.entityId), Account(0))
+                .onCommand(Deposit::class.java) { es, _, cmd ->
+                    es.persist(Deposited(cmd.amount)).thenReply(cmd, Account::balance)
+                }
+                .onEvent(Deposited::class.java) { account, event -> account.add(event.amount) }
+                .build()
+
+        companion object {
+            val TYPE: ShardedEntityType<Command> = ShardedEntityType.of(Command::class.java, "Account")
+        }
+    }
+    ```
+
+When the entity's node leaves the cluster, the entity starts on another node and rebuilds its state from
+the journal. All nodes must use the same database. The starter's build tests this (`ShardedEventSourcedActorTest`
+in `actor-persistence`): three nodes send commands to one entity, the node that runs it leaves, and the entity
+answers from another node with the state from all the events stored before.
+
+For a single global event-sourced actor, use a [cluster singleton](../cluster/singletons.md).
 
 ## Not supported yet
 

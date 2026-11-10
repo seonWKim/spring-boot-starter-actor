@@ -32,6 +32,9 @@ dependencies {
 
     testImplementation(project(":actor-autoconfigure"))
     testImplementation(testFixtures(project(":actor-core")))
+    // An event-sourced actor as a sharded entity, on a cluster of nodes in this JVM.
+    testImplementation(project(":actor-cluster"))
+    testImplementation(project(":actor-test"))
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.boot:spring-boot-starter-jdbc")
     testImplementation("com.h2database:h2")

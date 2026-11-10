@@ -15,6 +15,11 @@
 
 ### Features
 
+- `ActorCluster.Builder.classLoader(node, loader)` in `actor-test`: run one node with its own class loader, for
+  example on the next version of a message class, to test a rolling update in one JVM.
+- Tests: an event-sourced actor as a sharded entity recovers its state on another node when its node leaves,
+  and nodes on two versions of a message (one adds a field) read each other's messages. The Event-Sourced
+  Actors and Deployments guides now say so.
 - **`SpringActorSystem.find(Class, id)`** returns `CompletionStage<Optional<SpringActorHandle<C>>>`.
   `get(Class, id)`, which completed with `null`, is deprecated. `SpringChildActorBuilder.get()` is
   deprecated too: `handle.child(ChildClass, id).get()` already returns an `Optional` (#188).
@@ -45,14 +50,14 @@
 - A single raw value for a Pekko list key (`spring.actor.pekko.cluster.seed-nodes=pekko://a@h:1`) works like
   `seed-nodes[0]` instead of failing with "expecting list but got string".
 - `spring.actor.metrics.*` no longer leaks into the Pekko configuration as a raw `metrics.*` key.
+- Configuration metadata covers `management.health.actor.enabled` and the `spring.actor.dispatchers.*` sub-keys
+  (`executor`, `virtual`, `throughput`), so IDEs complete them.
 - The `actor.cluster.singleton.host` gauge honours the singleton role: it is `1` on the oldest `Up` member
   with that role, not on the oldest member overall.
 - `stop()` on a cluster singleton's handle throws `UnsupportedOperationException` instead of stopping this
   node's proxy, which left the node unable to reach the singleton.
 - Spawning a cluster singleton in local mode fails with a message that names `spring.actor.provider=cluster`
   and the cluster starter.
-- Configuration metadata covers `management.health.actor.enabled` and the `spring.actor.dispatchers.*` sub-keys
-  (`executor`, `virtual`, `throughput`), so IDEs complete them.
 - The metrics example no longer passes `-DACTOR_METRICS_DEBUG=true`, a flag no code reads.
 - **Spawning by id an actor that needs a custom context fails clearly.** `getOrSpawn(Class, id)` and
   `withId(...)` without `withContext(...)` failed with a `ClassCastException` from inside the actor

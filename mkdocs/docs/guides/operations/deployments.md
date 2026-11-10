@@ -167,7 +167,15 @@ For example, a second release adds an optional field to a command:
     class SayHello(val message: String, val language: String? = null) : AskCommand<String>(), Command
     ```
 
-This was measured on kind with a canary of the chat app: adding a field to `SayHello` lost no requests
+The starter's build checks this on every change: `MixedVersionMessageTest` runs two nodes in one JVM,
+one with a message class and one with the same class plus a field, and sends a message each way between
+sharded entities. The old node reads the new message and ignores the field it doesn't know; the new node
+reads the old message with the missing field as `null`. The test covers `JsonSerializable` messages with
+the starter's default Jackson settings. It does not cover a
+renamed or removed field, a renamed class, or stored events and snapshots. To run the same check on your own
+messages, see [Two versions of a message in one cluster](../testing.md#two-versions-of-a-message-in-one-cluster).
+
+On Kubernetes, this was also measured on kind with a canary of the chat app: adding a field to `SayHello` lost no requests
 (28,842 of 28,842), while renaming the class lost 104 of 7,105, which timed out because the old nodes could
 not read the new type.
 
