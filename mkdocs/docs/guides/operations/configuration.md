@@ -83,6 +83,7 @@ Used with `join: discovery`.
 | `spring.actor.cluster.lease.ttl` | `120s` | `spring-actor.lease.heartbeat-timeout` | How long a lease stays held after its last renewal before another node may take it. |
 | `spring.actor.cluster.lease.renew-interval` | `12s` | `spring-actor.lease.heartbeat-interval` | How often the holder renews a lease. |
 | `spring.actor.cluster.lease.expiry-margin` | `10s` | `spring-actor.lease.expiry-margin` | The holder treats its lease as lost this long before the ttl ends, so it stops before another node can take the lease. Must be less than `ttl`. |
+| `spring.actor.cluster.singleton.role` | none | `pekko.cluster.singleton.role` | Cluster singletons run only on nodes with this role. Set the same value on every node. |
 | `spring.actor.cluster.singleton.use-lease` | `false` | `pekko.cluster.singleton.use-lease` | A cluster singleton runs only while it holds a lease, so two nodes never run it at once, even during a split. |
 | `spring.actor.cluster.sharding.use-lease` | `false` | `pekko.cluster.sharding.use-lease` | Each shard runs only while it holds a lease. |
 

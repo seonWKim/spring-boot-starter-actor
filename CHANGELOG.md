@@ -37,12 +37,20 @@
 - Kotlin: suspend helpers for child actors (`parent.child<WorkerActor, _>().awaitSpawn()`, `awaitGetOrSpawn()`,
   `awaitExists()`, and `parent.child<WorkerActor, _>("id").awaitGet()`), and `kotlin.time.Duration` overloads for the child builder and reference,
   `SupervisionStrategy.restart().withLimit` and the behavior context's timers.
+- `spring.actor.cluster.singleton.role`: run cluster singletons only on nodes with this role, without the raw
+  `spring.actor.pekko.cluster.singleton.role` key.
 
 ### Fixes
 
 - A single raw value for a Pekko list key (`spring.actor.pekko.cluster.seed-nodes=pekko://a@h:1`) works like
   `seed-nodes[0]` instead of failing with "expecting list but got string".
 - `spring.actor.metrics.*` no longer leaks into the Pekko configuration as a raw `metrics.*` key.
+- The `actor.cluster.singleton.host` gauge honours the singleton role: it is `1` on the oldest `Up` member
+  with that role, not on the oldest member overall.
+- `stop()` on a cluster singleton's handle throws `UnsupportedOperationException` instead of stopping this
+  node's proxy, which left the node unable to reach the singleton.
+- Spawning a cluster singleton in local mode fails with a message that names `spring.actor.provider=cluster`
+  and the cluster starter.
 - Configuration metadata covers `management.health.actor.enabled` and the `spring.actor.dispatchers.*` sub-keys
   (`executor`, `virtual`, `throughput`), so IDEs complete them.
 - The metrics example no longer passes `-DACTOR_METRICS_DEBUG=true`, a flag no code reads.
