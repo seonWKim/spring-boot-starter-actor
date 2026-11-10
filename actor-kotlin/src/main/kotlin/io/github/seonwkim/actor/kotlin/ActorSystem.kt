@@ -23,9 +23,9 @@ inline fun <reified A : SpringShardedActor<T>, T> SpringActorSystem.sharded(): S
 suspend inline fun <reified A : SpringActorWithContext<C, *>, C> SpringActorSystem.awaitGetOrSpawn(actorId: String): SpringActorHandle<C> =
     getOrSpawn(A::class.java, actorId).await()
 
-/** Suspends until the lookup completes: the running actor with this id, or null when none runs ([SpringActorSystem.get]). */
+/** Suspends until the lookup completes: the running actor with this id, or null when none runs ([SpringActorSystem.find]). */
 suspend inline fun <reified A : SpringActorWithContext<C, *>, C> SpringActorSystem.awaitGet(actorId: String): SpringActorHandle<C>? =
-    get(A::class.java, actorId).await()
+    find(A::class.java, actorId).await().orElse(null)
 
 /** Suspends until the check completes: whether an actor with this id runs ([SpringActorSystem.exists]). */
 suspend inline fun <reified A : SpringActorWithContext<C, *>, C> SpringActorSystem.awaitExists(actorId: String): Boolean =

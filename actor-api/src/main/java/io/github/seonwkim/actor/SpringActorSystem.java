@@ -3,6 +3,7 @@ package io.github.seonwkim.actor;
 import io.github.seonwkim.actor.shard.SpringShardedActor;
 import io.github.seonwkim.actor.shard.SpringShardedActorBuilder;
 import java.time.Duration;
+import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 
 /**
@@ -67,13 +68,15 @@ public interface SpringActorSystem {
     <A extends SpringActorWithContext<C, ?>, C> SpringActorSpawnBuilder<A, C> actor(Class<A> actorClass);
 
     /**
-     * Checks if an actor with the given class and ID exists in the actor system.
+     * Checks if an actor with the given class and ID runs on this node: a top-level actor, or a cluster
+     * singleton that this node spawned. Waits at most {@link ActorConstants#DEFAULT_TIMEOUT}.
      *
      * @param actorClass The class of the actor
      * @param actorId The ID of the actor
      * @param <A> The type of the actor
      * @param <C> The type of commands that the actor can handle
-     * @return A CompletionStage that completes with true if the actor exists, false otherwise
+     * @return A CompletionStage that completes with true if the actor exists, false otherwise; it fails
+     *     with a {@link java.util.concurrent.TimeoutException} when the actor system doesn't answer in time
      */
     <A extends SpringActorWithContext<C, ?>, C> CompletionStage<Boolean> exists(Class<A> actorClass, String actorId);
 
@@ -85,10 +88,47 @@ public interface SpringActorSystem {
      * @param timeout The maximum time to wait for the response
      * @param <A> The type of the actor
      * @param <C> The type of commands that the actor can handle
-     * @return A CompletionStage that completes with true if the actor exists, false otherwise
+     * @return A CompletionStage that completes with true if the actor exists, false otherwise; it fails
+     *     with a {@link java.util.concurrent.TimeoutException} when the actor system doesn't answer in time
      */
     <A extends SpringActorWithContext<C, ?>, C> CompletionStage<Boolean> exists(
             Class<A> actorClass, String actorId, Duration timeout);
+
+    /**
+     * The running actor with the given class and ID on this node: a top-level actor, or a cluster
+     * singleton that this node spawned. Waits at most {@link ActorConstants#DEFAULT_TIMEOUT}.
+     *
+     * @param actorClass The class of the actor
+     * @param actorId The ID of the actor
+     * @param <A> The type of the actor
+     * @param <C> The type of commands that the actor can handle
+     * @return A CompletionStage that completes with the actor's handle, or an empty Optional when none
+     *     runs; it fails with a {@link java.util.concurrent.TimeoutException} when the actor system
+     *     doesn't answer in time
+     * @since 1.1.0
+     */
+    default <A extends SpringActorWithContext<C, ?>, C> CompletionStage<Optional<SpringActorHandle<C>>> find(
+            Class<A> actorClass, String actorId) {
+        return find(actorClass, actorId, ActorConstants.DEFAULT_TIMEOUT);
+    }
+
+    /**
+     * {@link #find(Class, String)} with a custom timeout.
+     *
+     * @param actorClass The class of the actor
+     * @param actorId The ID of the actor
+     * @param timeout The maximum time to wait for the response
+     * @param <A> The type of the actor
+     * @param <C> The type of commands that the actor can handle
+     * @return A CompletionStage that completes with the actor's handle, or an empty Optional when none
+     *     runs; it fails with a {@link java.util.concurrent.TimeoutException} on timeout
+     * @since 1.1.0
+     */
+    @SuppressWarnings("deprecation")
+    default <A extends SpringActorWithContext<C, ?>, C> CompletionStage<Optional<SpringActorHandle<C>>> find(
+            Class<A> actorClass, String actorId, Duration timeout) {
+        return get(actorClass, actorId, timeout).thenApply(Optional::ofNullable);
+    }
 
     /**
      * Gets a reference to an existing actor with the given class and ID.
@@ -98,7 +138,9 @@ public interface SpringActorSystem {
      * @param <A> The type of the actor
      * @param <C> The type of commands that the actor can handle
      * @return A CompletionStage that completes with a SpringActorHandle if found, or null if not found
+     * @deprecated Use {@link #find(Class, String)}, which returns an {@link Optional} instead of null.
      */
+    @Deprecated(since = "1.1.0")
     <A extends SpringActorWithContext<C, ?>, C> CompletionStage<SpringActorHandle<C>> get(
             Class<A> actorClass, String actorId);
 
@@ -110,8 +152,11 @@ public interface SpringActorSystem {
      * @param timeout The maximum time to wait for the response
      * @param <A> The type of the actor
      * @param <C> The type of commands that the actor can handle
-     * @return A CompletionStage that completes with a SpringActorHandle if found, or null if not found
+     * @return A CompletionStage that completes with a SpringActorHandle if found, or null if not found;
+     *     it fails with a {@link java.util.concurrent.TimeoutException} on timeout
+     * @deprecated Use {@link #find(Class, String, Duration)}, which returns an {@link Optional} instead of null.
      */
+    @Deprecated(since = "1.1.0")
     <A extends SpringActorWithContext<C, ?>, C> CompletionStage<SpringActorHandle<C>> get(
             Class<A> actorClass, String actorId, Duration timeout);
 

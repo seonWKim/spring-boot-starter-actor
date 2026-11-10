@@ -14,6 +14,7 @@ import io.github.seonwkim.actor.internal.RootGuardian.Spawned;
 import io.github.seonwkim.actor.shard.SpringShardedActor;
 import io.github.seonwkim.actor.shard.SpringShardedActorBuilder;
 import java.time.Duration;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
@@ -48,8 +49,6 @@ public final class PekkoActorSystem implements SpringActorSystem, DisposableBean
     private final ActorSystem<RootGuardian.Command> actorSystem;
 
     @Nullable private final ClusterSupport.ClusterRuntime cluster;
-
-    private final Duration defaultQueryTimeout = Duration.ofMillis(100);
 
     private final Duration defaultActorRefTimeout = Duration.ofSeconds(3);
 
@@ -104,7 +103,7 @@ public final class PekkoActorSystem implements SpringActorSystem, DisposableBean
     @Override
     public <A extends SpringActorWithContext<C, ?>, C> CompletionStage<Boolean> exists(
             Class<A> actorClass, String actorId) {
-        return exists(actorClass, actorId, defaultQueryTimeout);
+        return exists(actorClass, actorId, ActorConstants.DEFAULT_TIMEOUT);
     }
 
     @Override
@@ -112,43 +111,57 @@ public final class PekkoActorSystem implements SpringActorSystem, DisposableBean
             Class<A> actorClass, String actorId, Duration timeout) {
         SpringActorContext actorContext = new DefaultSpringActorContext(actorId);
 
+        // A timeout fails the stage: a busy system must not report a running actor as missing.
         return AskPattern.ask(
                         actorSystem,
                         (ActorRef<RootGuardian.ExistsResponse> replyTo) ->
                                 new RootGuardian.CheckExists(actorClass, actorContext, replyTo),
                         timeout,
                         actorSystem.scheduler())
-                .thenApply(response -> response.exists)
-                .exceptionally(throwable -> false);
+                .thenApply(response -> response.exists);
     }
 
     @Override
-    public <A extends SpringActorWithContext<C, ?>, C> CompletionStage<SpringActorHandle<C>> get(
+    public <A extends SpringActorWithContext<C, ?>, C> CompletionStage<Optional<SpringActorHandle<C>>> find(
             Class<A> actorClass, String actorId) {
-        return get(actorClass, actorId, defaultQueryTimeout);
+        return find(actorClass, actorId, ActorConstants.DEFAULT_TIMEOUT);
     }
 
     @Override
-    public <A extends SpringActorWithContext<C, ?>, C> CompletionStage<SpringActorHandle<C>> get(
+    public <A extends SpringActorWithContext<C, ?>, C> CompletionStage<Optional<SpringActorHandle<C>>> find(
             Class<A> actorClass, String actorId, Duration timeout) {
         SpringActorContext actorContext = new DefaultSpringActorContext(actorId);
 
+        // A timeout fails the stage: a busy system must not report a running actor as missing.
         return AskPattern.ask(
                         actorSystem,
                         (ActorRef<RootGuardian.GetActorResponse<?>> replyTo) ->
                                 new RootGuardian.GetActor(actorClass, actorContext, replyTo),
                         timeout,
                         actorSystem.scheduler())
-                .<SpringActorHandle<C>>thenApply(response -> {
+                .thenApply(response -> {
                     if (response.ref == null) {
-                        return null;
+                        return Optional.empty();
                     }
 
                     @SuppressWarnings("unchecked")
                     ActorRef<C> typedRef = (ActorRef<C>) response.ref;
-                    return new PekkoActorHandle<>(actorSystem, typedRef, defaultActorRefTimeout);
-                })
-                .exceptionally(throwable -> null);
+                    return Optional.of(new PekkoActorHandle<>(actorSystem, typedRef, defaultActorRefTimeout));
+                });
+    }
+
+    @Override
+    @Deprecated
+    public <A extends SpringActorWithContext<C, ?>, C> CompletionStage<SpringActorHandle<C>> get(
+            Class<A> actorClass, String actorId) {
+        return get(actorClass, actorId, ActorConstants.DEFAULT_TIMEOUT);
+    }
+
+    @Override
+    @Deprecated
+    public <A extends SpringActorWithContext<C, ?>, C> CompletionStage<SpringActorHandle<C>> get(
+            Class<A> actorClass, String actorId, Duration timeout) {
+        return find(actorClass, actorId, timeout).thenApply(found -> found.orElse(null));
     }
 
     @Override
