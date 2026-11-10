@@ -1,6 +1,5 @@
 package io.github.seonwkim.example.virtualthreads;
 
-import io.github.seonwkim.actor.FrameworkCommand;
 import io.github.seonwkim.actor.SpringActorBehavior;
 import io.github.seonwkim.actor.SpringActorContext;
 import io.github.seonwkim.actor.SpringActorWithContext;
@@ -12,7 +11,7 @@ public class VirtualThreadTestActor
         implements SpringActorWithContext<VirtualThreadTestActor.Command, SpringActorContext> {
 
     // Commands
-    public interface Command extends FrameworkCommand {}
+    public interface Command {}
 
     public static class CheckThread implements Command {
         public final String taskName;

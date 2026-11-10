@@ -7,16 +7,24 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Mono;
 
 @RestController
 @RequestMapping("/api")
 public class VirtualThreadTestController {
 
     private static final Logger log = LoggerFactory.getLogger(VirtualThreadTestController.class);
-    private final SpringActorSystem actorSystem;
+
+    /** One actor for all requests, spawned on the first one without blocking the request thread. */
+    private final Mono<SpringActorHandle<VirtualThreadTestActor.Command>> actor;
 
     public VirtualThreadTestController(SpringActorSystem actorSystem) {
-        this.actorSystem = actorSystem;
+        this.actor = Mono.fromCompletionStage(() -> actorSystem
+                        .actor(VirtualThreadTestActor.class)
+                        .withId("virtual-actor")
+                        .withDispatcherFromConfig("virtual-threads-dispatcher")
+                        .spawn())
+                .cache();
     }
 
     /**
@@ -24,22 +32,18 @@ public class VirtualThreadTestController {
      * GET /api/virtual
      */
     @GetMapping("/virtual")
-    public Map<String, Object> testVirtual() {
+    public Mono<Map<String, Object>> testVirtual() {
         log.info("Testing virtual-thread-executor dispatcher");
 
-        SpringActorHandle<VirtualThreadTestActor.Command> actor = actorSystem
-                .actor(VirtualThreadTestActor.class)
-                .withId("virtual-actor-" + System.currentTimeMillis())
-                .withDispatcherFromConfig("virtual-threads-dispatcher")
-                .spawnAndWait();
+        return actor.map(handle -> {
+            handle.tell(new VirtualThreadTestActor.CheckThread("virtual-thread-executor"));
 
-        actor.tell(new VirtualThreadTestActor.CheckThread("virtual-thread-executor"));
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("dispatcher", "virtual-threads-dispatcher");
-        response.put("executor", "virtual-thread-executor");
-        response.put("description", "Uses custom dispatcher with virtual-thread-executor");
-        response.put("message", "Check logs to see if thread is virtual");
-        return response;
+            Map<String, Object> response = new HashMap<>();
+            response.put("dispatcher", "virtual-threads-dispatcher");
+            response.put("executor", "virtual-thread-executor");
+            response.put("description", "Uses custom dispatcher with virtual-thread-executor");
+            response.put("message", "Check logs to see if thread is virtual");
+            return response;
+        });
     }
 }
