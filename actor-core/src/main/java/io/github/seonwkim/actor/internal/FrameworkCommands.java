@@ -118,35 +118,38 @@ public final class FrameworkCommands {
      * @param <C> The command type of the spawned child actor
      */
     public static final class SpawnChildResponse<C> {
+        /** What the parent did with the spawn. */
+        public enum Status {
+            /** A new child runs; {@link #childRef} is it. */
+            SPAWNED,
+            /** A child with that class and id already ran; {@link #childRef} is that child. */
+            ALREADY_EXISTS,
+            /** The spawn failed; {@link #message} says why. */
+            FAILED
+        }
+
         @Nullable public final ActorRef<C> childRef;
 
-        public final boolean success;
+        public final Status status;
         public final String message;
 
-        private SpawnChildResponse(@Nullable ActorRef<C> childRef, boolean success, String message) {
+        private SpawnChildResponse(@Nullable ActorRef<C> childRef, Status status, String message) {
             this.childRef = childRef;
-            this.success = success;
+            this.status = status;
             this.message = message;
         }
 
         public static <C> SpawnChildResponse<C> success(ActorRef<C> childRef) {
-            return new SpawnChildResponse<>(childRef, true, "Child spawned successfully");
+            return new SpawnChildResponse<>(childRef, Status.SPAWNED, "Child spawned successfully");
         }
 
         public static <C> SpawnChildResponse<C> failure(String message) {
-            return new SpawnChildResponse<>(null, false, message);
+            return new SpawnChildResponse<>(null, Status.FAILED, message);
         }
 
         public static <C> SpawnChildResponse<C> alreadyExists(ActorRef<C> existingRef) {
-            return new SpawnChildResponse<>(existingRef, false, ALREADY_EXISTS);
+            return new SpawnChildResponse<>(existingRef, Status.ALREADY_EXISTS, "Child already exists");
         }
-
-        /** Whether the spawn found a running child with that class and id; {@link #childRef} is that child. */
-        public boolean alreadyExists() {
-            return !success && ALREADY_EXISTS.equals(message);
-        }
-
-        private static final String ALREADY_EXISTS = "Child already exists";
     }
 
     /**
