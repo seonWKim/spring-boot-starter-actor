@@ -14,7 +14,7 @@ package io.github.seonwkim.actor;
  * <pre>
  * {@code
  * @Component
- * public class ParentActor implements SpringActor<ParentActor, ParentActor.Command> {
+ * public class ParentActor implements SpringActor<ParentActor.Command> {
  *
  *     // Opt-in to framework commands by extending FrameworkCommand
  *     // Framework command handling is automatically enabled when Command extends FrameworkCommand

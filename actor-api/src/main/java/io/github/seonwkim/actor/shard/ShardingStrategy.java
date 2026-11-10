@@ -18,8 +18,9 @@ public sealed interface ShardingStrategy {
     }
 
     /**
-     * Hashes the entity id with CRC32 into one of {@code numberOfShards} shards. Use roughly ten
-     * times the maximum number of nodes.
+     * Puts an entity in shard {@code crc32(entityId) % numberOfShards}: the CRC32 checksum of the
+     * id's bytes in the default charset (UTF-8 unless the JVM runs with
+     * {@code -Dfile.encoding=COMPAT}). Use roughly ten times the maximum number of nodes.
      */
     record Hashed(int numberOfShards) implements ShardingStrategy {
         public Hashed {
