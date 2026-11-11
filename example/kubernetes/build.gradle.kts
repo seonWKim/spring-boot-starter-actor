@@ -1,4 +1,5 @@
-// Manifests only. The test renders the kustomize overlays (skipped without kubectl).
+// Manifests only. The tests render the kustomize overlays and run the rollout scripts' jq filters
+// on them (skipped without kubectl or jq).
 val springBootVersion: String by project
 
 dependencies {
@@ -14,4 +15,5 @@ tasks.test {
     inputs.dir("base").withPropertyName("base")
     inputs.dir("components").withPropertyName("components")
     inputs.dir("overlays").withPropertyName("overlays")
+    inputs.dir("scripts").withPropertyName("scripts")
 }
