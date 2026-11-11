@@ -55,6 +55,10 @@ Each needs `spring.actor.cluster.lease.store`:
 | `redis` | Keys with a TTL on the application's `RedisConnectionFactory` | `actor-redis` |
 | `custom` | Your `LeaseStore` bean | none |
 
+Whoever can write the lease store can take a lease, so the store is part of the cluster's trust boundary. See
+[Securing the discovery store](cluster-formation.md#securing-the-discovery-store) for the Redis ACL and the
+database grants.
+
 ```yaml
 spring:
   actor:

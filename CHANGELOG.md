@@ -115,6 +115,11 @@
 
 ### Docs
 
+- **The discovery and lease stores are a trust boundary (#236).** Cluster Formation has a "Securing the
+  discovery store" section: whoever can write `actor_peer`, `actor_lease` or the `actor:peer:` and
+  `actor:lease:` keys decides which hosts new nodes join and who holds a lease. It gives a Redis ACL user and
+  database grants limited to the starter's keys and tables. Linked from the leases section and the production
+  checklist.
 - The AI agents guide has Kotlin tabs for each of its code samples.
 - Kubernetes example: the base ConfigMap's Cluster Bootstrap settings now reach
   `pekko.management.cluster.bootstrap` (they were ignored under `coordinated-shutdown`), pods get a 45s grace
