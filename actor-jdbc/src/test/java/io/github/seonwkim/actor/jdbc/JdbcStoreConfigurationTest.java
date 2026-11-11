@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.github.seonwkim.actor.autoconfigure.ActorProperties;
 import io.github.seonwkim.actor.autoconfigure.cluster.StoreConfiguration;
+import io.github.seonwkim.actor.generation.ActivationResult;
+import io.github.seonwkim.actor.spi.GenerationStore;
 import io.github.seonwkim.actor.spi.LeaseStore;
 import io.github.seonwkim.actor.spi.Peer;
 import io.github.seonwkim.actor.spi.PeerRegistry;
@@ -16,7 +18,7 @@ import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.boot.context.annotation.UserConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
-/** discovery.method=jdbc and lease.store=jdbc wire the actor-jdbc tables, unless the application has its own store. */
+/** discovery.method, lease.store and generation.store set to jdbc wire the actor-jdbc tables, unless the application has its own store. */
 class JdbcStoreConfigurationTest {
 
     private final ApplicationContextRunner runner = new ApplicationContextRunner()
@@ -57,5 +59,23 @@ class JdbcStoreConfigurationTest {
         runner.withBean(PeerRegistry.class, InMemoryPeerRegistry::new)
                 .run(context ->
                         assertThat(context.getBean(PeerRegistry.class)).isInstanceOf(InMemoryPeerRegistry.class));
+    }
+
+    @Test
+    void generationStoreJdbcAloneCreatesTheActorGenerationTableAndUsesIt() {
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(DataSourceAutoConfiguration.class))
+                .withConfiguration(UserConfigurations.of(StoreConfiguration.class))
+                .withBean(ActorProperties.class)
+                .withPropertyValues(
+                        "spring.actor.generation.store=jdbc",
+                        "spring.datasource.url=jdbc:h2:mem:" + UUID.randomUUID() + ";DB_CLOSE_DELAY=-1")
+                .run(context -> {
+                    GenerationStore store = context.getBean(GenerationStore.class);
+
+                    assertThat(store).isInstanceOf(JdbcGenerationStore.class);
+                    assertThat(store.activate("orders", "blue", 0, "deploy-1").outcome())
+                            .isEqualTo(ActivationResult.Outcome.ACTIVATED);
+                });
     }
 }
