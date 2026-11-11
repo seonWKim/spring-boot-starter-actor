@@ -21,11 +21,11 @@ jobs:
         java: [21, 25]
     steps:
       - name: 📦 Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # Gradle runs on JDK 21 (the compile toolchain, --release 21); the tests run on the matrix JDK.
       - name: ☕ Set up JDK ${{ matrix.java }} and 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           distribution: 'temurin'
           java-version: |
@@ -43,7 +43,7 @@ jobs:
       # each test's log output (e.g. the cluster log of a flaky cluster test).
       - name: 📤 Upload test reports
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-reports-jdk${{ matrix.java }}
           path: |
@@ -64,9 +64,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 📦 Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.x'
 
