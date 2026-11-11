@@ -1,5 +1,7 @@
 # The only traffic the cluster needs: pod to pod on remoting (25520) and management (7626),
-# HTTP in, and DNS out. Each overlay adds a policy for app -> store.
+# HTTP in, Actuator (8081) in from the monitoring namespace, and DNS out. Each overlay adds a policy
+# for app -> store. The kubelet's probes come from the node, which most network plugins let through
+# whatever the policy says; if yours doesn't, add an ipBlock for the node addresses on 8081.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -23,7 +25,14 @@ spec:
       port: 7626   # Pekko management (Cluster Bootstrap)
   - ports:
     - protocol: TCP
-      port: 8080   # HTTP and Actuator
+      port: 8080   # HTTP, from anywhere
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: monitoring
+    ports:
+    - protocol: TCP
+      port: 8081   # Actuator: Prometheus only
   egress:
   - to:
     - podSelector:

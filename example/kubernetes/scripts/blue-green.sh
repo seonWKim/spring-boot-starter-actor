@@ -41,7 +41,7 @@ select_pods() {
 generation() {
     pod=$1; shift
     kubectl -n "$NS" exec "$pod" -- sh -c \
-        'curl -s -u "$SPRING_SECURITY_USER_NAME:$SPRING_SECURITY_USER_PASSWORD" "$@" localhost:8080/actuator/generation' \
+        'curl -s -u "$SPRING_SECURITY_USER_NAME:$SPRING_SECURITY_USER_PASSWORD" "$@" localhost:8081/actuator/generation' \
         sh "$@"
 }
 
@@ -96,7 +96,7 @@ green_warm() {
     pods=$(running_pods "$GREEN")
     [ "$(wc -w <<< "$pods")" -eq "$want" ] || return 1
     for pod in $pods; do
-        kubectl -n "$NS" exec "$pod" -- curl -sf localhost:8080/actuator/health/warmup > /dev/null \
+        kubectl -n "$NS" exec "$pod" -- curl -sf localhost:8081/actuator/health/warmup > /dev/null \
             2>&1 || return 1
     done
 }

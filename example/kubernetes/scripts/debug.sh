@@ -42,7 +42,7 @@ for POD in $PODS; do
 
     # Check readiness probe
     echo -e "${YELLOW}Readiness probe:${NC}"
-    kubectl exec -n $NAMESPACE $POD -- curl -s http://localhost:8080/actuator/health/readiness | jq 2>/dev/null || echo "Not ready"
+    kubectl exec -n $NAMESPACE $POD -- curl -s http://localhost:8081/actuator/health/readiness | jq 2>/dev/null || echo "Not ready"
 
     # Check cluster membership
     echo -e "${YELLOW}Cluster membership:${NC}"

@@ -210,15 +210,24 @@ implementation("org.springframework.boot:spring-boot-starter-data-redis")
 | app pods | app pods | TCP 7626 | Pekko Management: Cluster Bootstrap contacts peers here |
 | app pods | the database or Redis | TCP 5432 (PostgreSQL) or 6379 (Redis) | Peer entries |
 | app pods | cluster DNS | UDP and TCP 53 | Resolving the store's host name |
-| clients, ingress, Prometheus | app pods | TCP 8080 | HTTP, Actuator health and metrics |
+| clients, ingress | app pods | TCP 8080 | HTTP |
+| Prometheus (the `monitoring` namespace), kubelet | app pods | TCP 8081 | Actuator: probes, health, metrics |
+
+Actuator runs on its own port (`management.server.port: 8081`), so reading metrics or info needs more than
+reaching the app. The probes, the ServiceMonitor, the PodMonitor and the `prometheus.io/port` annotation use
+it. The kubelet's probes come from the node, which most network plugins let through whatever the policy says;
+if yours doesn't, add an `ipBlock` for the node addresses on 8081. If Prometheus runs in a namespace other
+than `monitoring`, change the policy's namespace selector.
 
 No access to the Kubernetes API is needed. The overlays ship these rules as two NetworkPolicies:
-`spring-actor` (pod to pod, DNS, HTTP in) and `spring-actor-store` (app to store). Change the store
+`spring-actor` (pod to pod, DNS, HTTP in, Actuator in from monitoring) and `spring-actor-store` (app to store). Change the store
 policy's selector, or use an `ipBlock`, to match where your database or Redis runs.
 
 `kubectl kustomize overlays/discovery-jdbc` renders an overlay without a cluster;
 `./gradlew :example:kubernetes:test` checks that every overlay renders with matching ports and a grace
-period that covers the shutdown, and that the discovery overlays contain no RBAC and open only these ports.
+period that covers the shutdown, that the probes and monitors use the Actuator port, and that the discovery
+overlays contain no RBAC and open only these ports (8081 only to the monitoring namespace, also for the
+blue-green and canary pods).
 
 ## Rolling Updates Example
 

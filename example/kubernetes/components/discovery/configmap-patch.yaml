@@ -49,6 +49,10 @@ data:
       port: 8080
       shutdown: graceful
     management:
+      # Actuator (health, metrics, info, prometheus) on its own port: the NetworkPolicy opens 8080 to
+      # every client but 8081 only to the monitoring namespace (and the kubelet's probes).
+      server:
+        port: 8081
       endpoints:
         web:
           exposure:

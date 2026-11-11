@@ -29,14 +29,15 @@ spec:
     - protocol: TCP
       port: 8080  # HTTP
 
-  # Allow Prometheus scraping
+  # Actuator (management.server.port) only for Prometheus. The kubelet's probes come from the node,
+  # which most network plugins let through; if yours doesn't, add an ipBlock for the node addresses.
   - from:
     - namespaceSelector:
         matchLabels:
-          name: monitoring
+          kubernetes.io/metadata.name: monitoring
     ports:
     - protocol: TCP
-      port: 8080  # Metrics endpoint
+      port: 8081  # Actuator: health, metrics, prometheus
 
   egress:
   # Allow inter-pod communication
