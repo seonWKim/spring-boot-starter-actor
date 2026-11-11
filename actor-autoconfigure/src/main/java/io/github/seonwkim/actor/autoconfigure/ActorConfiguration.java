@@ -85,6 +85,17 @@ public class ActorConfiguration {
         };
     }
 
+    /**
+     * Checks each actor bean for mutable fields and for Spring AOP proxies as it is created, as
+     * {@code spring.actor.validation.actor-beans} says: warn (default), fail or off.
+     */
+    @Bean
+    public static BeanPostProcessor actorBeanValidator(Environment environment) {
+        return new ActorBeanValidator(Binder.get(environment)
+                .bindOrCreate("spring.actor.validation", ActorProperties.Validation.class)
+                .getActorBeans());
+    }
+
     // ==================================================================================
     // PHASE 2: Actor System Construction
     // ==================================================================================

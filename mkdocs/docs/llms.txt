@@ -2,6 +2,8 @@
 
 > A Spring Boot starter that runs Pekko typed actors as Spring beans. Add the starter (it auto-configures; `@EnableActorSupport` is optional), implement `SpringActor` (or `SpringShardedActor` for cluster sharding), and use `SpringActorSystem` to spawn, look up and message actors. The public API has no Pekko types: use the starter's types, not raw Pekko or Akka APIs. It ships as `io.github.seonwkim:actor-spring-boot-starter` (add `actor-spring-boot-starter-cluster` for cluster mode), needs Java 21+ and Spring Boot 3.5+, and is configured with typed `spring.actor.*` properties.
 
+Rules for actor beans: Spring creates one bean per actor class and every actor of the class shares it, so keep per-actor state in the behavior (`withState`), never in a mutable bean field; keep injected services in `final` fields. Run blocking calls (JPA, blocking HTTP clients) on the blocking dispatcher (`withBlockingDispatcher()`) or turn futures into messages with `pipeToSelf`. Don't put `@Transactional`, `@Async` or `@Cacheable` on an actor bean: the handlers don't run through the proxy; put them on a service the handler calls. The starter warns about mutable fields and proxied actor beans at startup (`spring.actor.validation.actor-beans`: `warn`, `fail` or `off`).
+
 The full text of the Getting Started page and every guide, with code inlined, is in [llms-full.txt](https://seonwkim.github.io/actor-spring-boot-starter/llms-full.txt): read it when the links below are not enough.
 
 ## Getting started
@@ -14,7 +16,7 @@ The full text of the Getting Started page and every guide, with code inlined, is
 
 ### Core
 
-- [Actors](https://seonwkim.github.io/actor-spring-boot-starter/guides/core/actors/): define actors as beans, actor ids, spawn/get/getOrSpawn/exists/stop, custom contexts, child actors
+- [Actors](https://seonwkim.github.io/actor-spring-boot-starter/guides/core/actors/): define actors as beans, what not to do in an actor bean (state in fields, blocking, proxies), actor ids, spawn/get/getOrSpawn/exists/stop, custom contexts, child actors
 - [Messaging](https://seonwkim.github.io/actor-spring-boot-starter/guides/core/messaging/): tell, ask with timeouts and `onTimeout`, replying, asking from inside an actor, message adapters
 - [Reliable Delivery](https://seonwkim.github.io/actor-spring-boot-starter/guides/core/reliable-delivery/): opt-in at-least-once delivery to actors and sharded entities: sender retries with backoff, receiver dedupes by idempotency key for a TTL; retryable vs permanent outcomes (stale generation, timeout, unavailable, payload conflict) and their HTTP mapping; cost and limits
 - [Supervision](https://seonwkim.github.io/actor-spring-boot-starter/guides/core/supervision/): stop/restart/resume strategies (default stop), limits, what a restart keeps, supervising children
