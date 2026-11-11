@@ -3,7 +3,7 @@
 # Needs the example deployed by ../setup-local.sh (cluster spring-actor-demo, image spring-actor-chat:local).
 #   1. rolling update        main Deployment -> v2
 #   2. canary, then promote  one v3 pod joins the cluster, then main -> v3
-#   3. blue-green            a separate green cluster on v4, the Service switches to it
+#   3. blue-green            a separate green cluster on v4: deploy and warm up, activate, verify, retire
 # The new versions are retags of the local image: this checks the rollout mechanics, not a code change.
 set -euo pipefail
 
@@ -49,18 +49,23 @@ canary() {
     ./canary.sh promote > /dev/null
 }
 
+# The staged pipeline: deploy and warm up, activate, verify, and (after the load) retire.
+# Prints how long the Service took to serve only green, and the failed requests from activation on.
 blue_green() {
     ./blue-green.sh deploy "$(image v4)" > /dev/null
+    echo "  green warmed up, members Up: $(members_up app=spring-actor-green)"
+    activated=$(date +%s)
+    ./blue-green.sh activate > /dev/null
+    ./blue-green.sh verify
+    echo "  endpoints only green after $(( $(date +%s) - activated ))s"
     sleep 20
-    echo "  green members Up: $(members_up app=spring-actor-green)"
-    ./blue-green.sh switch > /dev/null
-    sleep 20
+    echo "  failed from activation on: $(awk -v t="$activated" '$1 >= t && $2 != "ok"' "$LOGS/blue-green.log" | wc -l)"
 }
 
 under_load rolling 120 rolling
 under_load canary 180 canary
 under_load blue-green 90 blue_green
-./blue-green.sh finish > /dev/null   # green now serves; run ../setup-local.sh again to start over
+./blue-green.sh retire > /dev/null   # green now serves; run ../setup-local.sh again to start over
 
 echo "logs: $LOGS"
 exit $failed

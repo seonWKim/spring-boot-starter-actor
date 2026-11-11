@@ -111,17 +111,19 @@ period. If you must keep `terminationGracePeriodSeconds: 30` with a 10s `preStop
 
 ## Health checks
 
-With Spring Boot Actuator on the classpath, `/actuator/health` gets two components:
+With Spring Boot Actuator on the classpath, `/actuator/health` gets these components:
 
 | Component | When | Status |
 |---|---|---|
 | `actorSystem` | always | `UP` while the actor system runs, `DOWN` once it has terminated. Details: the system's `name`. |
 | `actorCluster` | `spring.actor.provider=cluster` | `UP` when this node is an `Up` member; `OUT_OF_SERVICE` while it has not joined yet, is joining, weakly up, leaving or shutting down; `DOWN` when it was downed or removed, or other members report it unreachable |
+| `actorWarmup` | `spring.actor.provider=cluster` | `UP` when this node is an `Up` member, the cluster has at least `management.health.actor.warmup.min-members` (default 1) `Up` members, and the discovery store answers (with `jdbc` or `redis` discovery); `OUT_OF_SERVICE` otherwise |
 
 `actorCluster` details hold this node's status (`selfStatus`, `NOT_JOINED` before it joins), whether it is
 unreachable (`selfUnreachable`), the member count (`members`) and the unreachable count (`unreachable`),
 never addresses. An unreachable peer shows only in the count: one partitioned peer does not make every node
-unhealthy. `management.health.actor.enabled=false` turns both components off.
+unhealthy. `actorWarmup` details hold `selfUp`, `upMembers`, `minMembers` and `discovery` (`REACHABLE`,
+`UNREACHABLE` or `NOT_USED`). `management.health.actor.enabled=false` turns all of them off.
 
 Neither is in the Kubernetes probe groups by default. Add `actorCluster` to readiness, so a pod gets traffic
 only once it is a cluster member and stops getting it as soon as it leaves:
@@ -140,6 +142,33 @@ management:
 Keep it out of liveness: a node that is still joining is not broken, and restarting it would only delay the
 join. Cluster Bootstrap reaches pods through Pekko Management, not through the readiness-gated Service, so a
 cluster still forms while no pod is ready yet.
+
+### Warm-up
+
+In cluster mode the starter adds a third health group beside Spring Boot's `liveness` and `readiness`:
+`warmup` (`/actuator/health/warmup`), with the `actorWarmup` component. It answers "can this node be
+activated?", which a delivery pipeline asks before it switches traffic to a new deployment
+([Blue-green](deployments.md#blue-green)):
+
+| Group | Question | Who asks | Depends on traffic |
+|---|---|---|---|
+| `liveness` | Restart this pod? | kubelet | no |
+| `readiness` | Send this pod traffic? | the Service | yes |
+| `warmup` | Is this pod ready to be activated? | the delivery pipeline | no |
+
+Set `min-members` to the number of members a new deployment must have before it takes traffic:
+
+```yaml
+management:
+  health:
+    actor:
+      warmup:
+        min-members: 2
+```
+
+Like `actorCluster`, keep `actorWarmup` out of liveness. A group named `warmup` in
+`management.endpoint.health.group` replaces the starter's. The group shows components and details as the
+main health endpoint does (`management.endpoint.health.show-details`).
 
 ## Production checklist
 

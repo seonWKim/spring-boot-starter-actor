@@ -332,12 +332,17 @@ scripts/canary.sh start spring-actor-chat:v3
 scripts/canary.sh promote        # roll the main pods to v3 and remove the canary
 # scripts/canary.sh abort        # or remove the canary and keep v2
 
-# Blue-green: green is its own cluster on v4; blue keeps serving until the switch
-scripts/blue-green.sh deploy spring-actor-chat:v4
-scripts/blue-green.sh switch     # the HTTP Service now selects the green pods
+# Blue-green: green is its own cluster on v4; blue keeps serving until activation
+scripts/blue-green.sh deploy spring-actor-chat:v4   # 1. start green, wait for /actuator/health/warmup
+scripts/blue-green.sh activate   # 2. the HTTP Service now selects the green pods
+scripts/blue-green.sh verify     # 3. wait until the Service's endpoints are only green pods
 # scripts/blue-green.sh rollback # switch back to blue
-scripts/blue-green.sh finish     # delete blue
+scripts/blue-green.sh retire     # 4. delete blue
 ```
+
+`deploy` waits for the warm-up health group, not for `kubectl rollout status`: warm-up says the pod joined
+its cluster, and it does not depend on which color gets traffic. See
+[Deployments](../../mkdocs/docs/guides/operations/deployments.md#blue-green) for the stages.
 
 `scripts/test-strategies.sh` runs all three under load on the kind cluster from `setup-local.sh` and fails if any request failed:
 
@@ -354,7 +359,7 @@ The new versions there are retags of the same image, so it checks the rollout me
 
 - **Rolling update and canary mix versions in one cluster.** Old and new pods exchange messages, and a sharded entity can move from an old pod to a new one. Keep every message and every piece of entity state that crosses nodes readable by both versions: add fields as optional, don't rename or remove fields or types in the same release, and keep each type on the same serializer (`JsonSerializable` or `CborSerializable`). Make an incompatible change in two releases: first one that reads both formats, then one that writes the new format. Checked on kind with a canary of the chat app: adding a field to `SayHello` lost no requests (28,842 of 28,842), while renaming the class lost 104 of 7,105, which timed out because the old nodes could not read the new type.
 - **Blue-green never mixes versions.** Green finds its peers with its own label (`app=spring-actor-green`), so the two clusters never exchange messages and the message format can change freely. In-memory state does not move: entities, singletons and topics start empty on green. Keep state that must survive the switch in a database or event journal both clusters read.
-- **Rollback.** A canary is removed with `canary.sh abort`; until `blue-green.sh finish`, `blue-green.sh rollback` sends traffic back to blue, which still has its state.
+- **Rollback.** A canary is removed with `canary.sh abort`; until `blue-green.sh retire`, `blue-green.sh rollback` sends traffic back to blue, which still has its state.
 
 ## Testing Cluster Resilience
 
@@ -446,7 +451,7 @@ example/kubernetes/
     ├── load.sh                 # Requests under load; counts failures
     ├── monitoring.sh           # Installs the monitoring/ kustomization
     ├── canary.sh               # Canary: start, promote, abort
-    ├── blue-green.sh           # Blue-green: deploy, switch, rollback, finish
+    ├── blue-green.sh           # Blue-green: deploy, activate, verify, retire, rollback
     └── test-strategies.sh      # Runs all three strategies under load on kind
 ```
 

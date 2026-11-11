@@ -87,18 +87,65 @@ the same restrictions as blue, and remoting (25520) and management (7626) open o
 color: blue and green cannot reach each other's cluster ports. A canary keeps `app=spring-actor`, so blue's
 policies cover it.
 
+### The release pipeline
+
+A blue-green release runs in four stages. Each one waits for a signal before the next starts:
+
+| Stage | Command | Waits for |
+|---|---|---|
+| 1. Warm up | `blue-green.sh deploy <image>` | every green pod answers `UP` on `/actuator/health/warmup` |
+| 2. Activate | `blue-green.sh activate` | nothing: the HTTP Service's selector now picks the green pods |
+| 3. Verify | `blue-green.sh verify` | the Service's ready endpoints are exactly the green pods |
+| 4. Retire | `blue-green.sh retire` | run it once green has served for a while; it deletes blue |
+
 ```bash
 cd example/kubernetes
-scripts/blue-green.sh deploy spring-actor-chat:v4   # start green beside blue; blue keeps serving
-scripts/blue-green.sh switch                        # the HTTP Service now selects the green pods
-# scripts/blue-green.sh rollback                    # point the Service back at blue
-scripts/blue-green.sh finish                        # delete blue
+scripts/blue-green.sh deploy spring-actor-chat:v4   # start green beside blue and wait until it is warm
+scripts/blue-green.sh activate                      # the HTTP Service now selects the green pods
+scripts/blue-green.sh verify                        # wait until only green pods serve
+# scripts/blue-green.sh rollback                    # point the Service back at blue and wait for it
+scripts/blue-green.sh retire                        # delete blue
 ```
+
+The first stage gates on **warm-up**, not on `kubectl rollout status` or the Deployment's `Available`
+condition. Those follow traffic readiness, and a pipeline where the standby color refuses traffic until it
+is activated would wait for them forever. The warm-up group says only that the pod is ready to be
+activated:
+
+- the pod is an `Up` member of its cluster,
+- the cluster has at least `management.health.actor.warmup.min-members` `Up` members (the example sets 2),
+- and the discovery store answers, when the cluster forms through `jdbc` or `redis` discovery.
+
+It never depends on which color is active. The three probes stay apart: liveness says whether to restart the
+pod, readiness whether to send it traffic, and warm-up whether it can be activated (see
+[Health checks](production.md#health-checks)).
 
 In-memory state does not move: entities, singletons and topics start empty on green. Keep state that must
 survive the switch in a database or event journal both clusters read
 ([State in a Database](../data/state-in-a-database.md), [Event-Sourced Actors](../data/event-sourcing.md)).
-Until `finish`, `rollback` sends traffic back to blue, which still has its state.
+Until `retire`, `rollback` sends traffic back to blue, which still has its state.
+
+### Requests at the cutover
+
+Activation changes the Service's selector. The endpoint controller then rewrites the Service's
+EndpointSlices, and each node's kube-proxy reprograms its rules; until it has, a node still sends new
+connections to blue. Blue keeps running and serving until `retire`, so those requests succeed: the selector
+switch itself loses nothing, and `verify` waits until the propagation is done.
+
+Errors come from a switch that removes the old pods while connections still reach them: deleting blue right
+after `activate`, or activating by flipping readiness (green turns ready, blue turns unready) instead of the
+selector. Then each node keeps routing to the old pods until its kube-proxy catches up, which takes the
+readiness probe's `periodSeconds` times its `failureThreshold`, plus the endpoint and kube-proxy updates.
+**Shorter probe intervals shorten that window but don't close it**: a request that a node routes during the
+window still fails. What closes it is draining:
+
+- keep the old pods running until `verify` shows the Service no longer selects them (`retire` comes last);
+- the `preStop` sleep (10 seconds in the example) keeps a terminating pod serving while the endpoint removal
+  propagates;
+- `server.shutdown: graceful` finishes the requests the pod has already accepted.
+
+`scripts/test-strategies.sh` prints, for the blue-green step, how long the Service took to serve only green
+and how many requests failed from activation on.
 
 ## Testing the strategies under load
 
@@ -115,7 +162,7 @@ scripts/test-strategies.sh
 ```
 
 It runs, in order: a rolling update to `v2` (120 seconds of load), a canary of `v3` that is then promoted
-(180 seconds), and a blue-green switch to `v4` (90 seconds). Each step's load runs four workers that ask
+(180 seconds), and a blue-green release of `v4` through the four stages above (90 seconds, then `retire`). Each step's load runs four workers that ask
 sharded entities (`/hello?message=hi&entityId=e<0-49>`).
 
 What it checks and what it does not:
@@ -196,7 +243,7 @@ readable by the new version (see [Event-Sourced Actors](../data/event-sourcing.m
 |---|---|
 | Rolling update | `kubectl rollout undo deployment/spring-actor -n spring-actor`: a rolling update in the other direction, so the same compatibility rules apply |
 | Canary | `scripts/canary.sh abort` removes the canary pods; the main pods were never changed |
-| Blue-green | `scripts/blue-green.sh rollback` until `finish`; blue still has its in-memory state |
+| Blue-green | `scripts/blue-green.sh rollback` until `retire`; blue still has its in-memory state |
 
 ## Related
 
