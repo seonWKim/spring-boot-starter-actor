@@ -114,6 +114,14 @@ See [Dispatchers](../core/dispatchers.md).
 A dispatcher name is letters, digits, `-` and `_`, and must not be `pekko` or the name of a typed key
 (`name`, `cluster`, `dispatchers`, ...).
 
+## Startup checks
+
+See [What not to do in an actor bean](../core/actors.md#what-not-to-do-in-an-actor-bean).
+
+| Key | Default | Description |
+|---|---|---|
+| `spring.actor.validation.actor-beans` | `warn` | What happens when an actor bean has a mutable instance field (neither `static`, `final` nor injected) or is a Spring AOP proxy: `warn` logs each problem, `fail` stops startup, `off` skips the checks. |
+
 ## Shutdown
 
 See [Graceful shutdown](production.md#graceful-shutdown).

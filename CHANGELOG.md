@@ -15,6 +15,11 @@
 
 ### Features
 
+- **Startup checks for actor beans (#249).** The starter warns when an actor bean has a mutable instance
+  field, which every actor of its class shares across threads, or is a Spring AOP proxy, whose advice
+  (`@Transactional`, `@Async`) never reaches the handlers. Injected fields don't count.
+  `spring.actor.validation.actor-beans=fail` stops startup instead, `off` turns the checks off. The actors
+  guide has a new "What not to do in an actor bean" section.
 - **Blue-green activation with an epoch (#232).** With `spring.actor.generation.color` and
   `spring.actor.generation.store` (`jdbc` or `redis`), the active color is a record in the shared store with
   an epoch that only grows. `POST /actuator/generation` activates a color with a compare-and-set on the

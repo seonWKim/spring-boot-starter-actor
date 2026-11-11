@@ -164,19 +164,124 @@ injection style):
     }
     ```
 
-Things to know:
+Spring creates one `OrderActor` bean, and every actor spawned from that class calls `create` on that same
+bean. Keep injected services in `final` fields, and per-actor state in the behavior, as the next section
+shows.
 
-- **One bean, many actors.** Spring creates one `OrderActor` bean. Every actor spawned from that class
-  calls `create` on the same bean. Keep the injected services in the bean's fields, and keep per-actor
-  state in the state object of [`withState`](behaviors.md#state-with-withstate), never in a field of the
-  bean: a bean field is shared by all actors of the class and by all their threads.
-- **Blocking calls.** A JPA repository or a blocking HTTP client blocks the thread. Run such actors on
-  the blocking dispatcher (`withBlockingDispatcher()`, see [Dispatchers](dispatchers.md)), or the default
-  dispatcher's threads can run out.
-- **Proxies don't reach the handlers.** A bean that Spring wraps in a class proxy (for example with
-  `@Transactional` on the actor class) is registered under the class you declared, so you spawn it as
-  usual. But the handlers run inside the behavior that `create` returns, not through the proxy, so such
-  annotations have no effect on them. Put them on the services the actor calls instead.
+## What not to do in an actor bean
+
+!!! danger "Don't"
+    - **Don't keep state in bean fields.** A field of the bean is shared by every actor of the class and
+      changed from many threads at once, which breaks the "one message at a time, no locks" guarantee.
+      Keep per-actor state in the behavior: the state object of
+      [`withState`](behaviors.md#state-with-withstate).
+    - **Don't block the default dispatcher.** A JPA repository or a blocking HTTP client holds the thread
+      while it waits, and the default dispatcher's few threads run out. Spawn such actors with
+      `withBlockingDispatcher()` (see [Dispatchers](dispatchers.md)), or call a non-blocking client and turn
+      its `CompletionStage` into a message with [`pipeToSelf`](behaviors.md#futures-pipetoself).
+    - **Don't put proxy annotations on an actor bean.** `@Transactional`, `@Async` or `@Cacheable` make
+      Spring wrap the bean in a proxy, but the handlers run in the behavior that `create` returns, not
+      through the proxy, so the advice never applies to them, and a transaction can't span messages
+      anyway. Put `@Transactional` on a separate service the handler calls.
+
+=== "Java"
+
+    ```java
+    @Service
+    public class PaymentService {
+
+        @Transactional   // on the service, not on the actor
+        public void markPaid(long orderId) {
+            // update the order and the ledger in one transaction
+        }
+    }
+
+    @Component
+    public class OrderActor implements SpringActor<OrderActor.Command> {
+
+        private final PaymentService payments;   // wiring: injected and final
+        // private int paidCount;                // don't: shared by every OrderActor
+
+        public OrderActor(PaymentService payments) {
+            this.payments = payments;
+        }
+
+        public interface Command {}
+
+        public record MarkPaid(long orderId) implements Command {}
+
+        @Override
+        public SpringActorBehavior<Command> create(SpringActorContext actorContext) {
+            return SpringActorBehavior.builder(Command.class, actorContext)
+                    .withState(ctx -> new Paid())   // one per actor
+                    .onMessage(MarkPaid.class, (paid, msg) -> {
+                        payments.markPaid(msg.orderId());   // blocks: see the spawn below
+                        paid.count++;
+                        return SpringActorBehavior.same();
+                    })
+                    .build();
+        }
+
+        private static class Paid {
+            int count;   // only this actor's thread touches it
+        }
+    }
+
+    // The handler waits on the database, so the actor runs on the blocking dispatcher.
+    actorSystem.actor(OrderActor.class).withId("order-42").withBlockingDispatcher().getOrSpawn();
+    ```
+
+=== "Kotlin"
+
+    ```kotlin
+    @Service
+    class PaymentService {
+
+        @Transactional   // on the service, not on the actor
+        fun markPaid(orderId: Long) {
+            // update the order and the ledger in one transaction
+        }
+    }
+
+    @Component
+    class OrderActor(private val payments: PaymentService) : SpringActor<OrderActor.Command> {
+        // private var paidCount = 0   // don't: shared by every OrderActor
+
+        sealed interface Command
+
+        data class MarkPaid(val orderId: Long) : Command
+
+        override fun create(actorContext: SpringActorContext): SpringActorBehavior<Command> =
+            behavior<Command, Paid>(actorContext, state = { Paid() }) {   // one per actor
+                onMessage<MarkPaid> { msg ->
+                    payments.markPaid(msg.orderId)   // blocks: see the spawn below
+                    count++
+                    same()
+                }
+            }
+
+        private class Paid {
+            var count = 0   // only this actor's thread touches it
+        }
+    }
+
+    // The handler waits on the database, so the actor runs on the blocking dispatcher.
+    actorSystem.actor<OrderActor, OrderActor.Command>().withId("order-42").withBlockingDispatcher().getOrSpawn()
+    ```
+
+The starter checks the first and the last rule when it starts. For each actor bean (`SpringActor`,
+`SpringShardedActor`) it logs a warning for every instance field that is neither `static` nor `final`,
+superclasses included, and for a bean that is a Spring AOP proxy. Fields Spring injects are wiring, not
+state, and don't count: those annotated with `@Autowired`, `@Value`, `@Inject` or `@Resource`, those set
+through a setter with one of these annotations, and properties set on the bean definition. A `final`
+field that holds a mutable object (a `HashMap`, an `AtomicInteger`) is shared just the same, but the check
+can't tell it apart from a service, so it doesn't report it.
+
+| `spring.actor.validation.actor-beans` | Effect |
+|---|---|
+| `warn` (default) | Logs one warning per problem, naming the bean, its class and the field |
+| `fail` | Stops startup with an error that lists the problems |
+| `off` | Doesn't check |
 
 ## Actor ids
 
@@ -709,7 +814,8 @@ one (see [Behaviors](behaviors.md#the-behavior-context)).
 
 ## Pitfalls
 
-- **State in bean fields.** All actors of a class share the bean. Keep per-actor state in `withState`.
+- **State in bean fields.** All actors of a class share the bean. Keep per-actor state in `withState`. See
+  [What not to do in an actor bean](#what-not-to-do-in-an-actor-bean).
 - **Blocking inside an actor.** Waiting on a future, `spawnAndWait()`, `Thread.sleep` or blocking I/O on
   the default dispatcher holds a shared thread. Use `pipeToSelf`, or the blocking dispatcher for blocking I/O.
 - **Child operations time out.** The parent's command type doesn't extend `FrameworkCommand`, or the
