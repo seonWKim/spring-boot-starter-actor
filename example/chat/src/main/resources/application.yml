@@ -26,6 +26,10 @@ logging:
     org.apache.pekko: DEBUG
 
 management:
+  health:
+    # Redis is used only for blue-green activation (example/kubernetes), not by every run.
+    redis:
+      enabled: false
   metrics:
     tags:
       application: spring-pekko-example

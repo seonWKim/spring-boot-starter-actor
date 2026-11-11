@@ -3,10 +3,17 @@
 # switches to it in one step. The stages of a release, in order:
 #   blue-green.sh deploy <image>   1. start green beside blue (blue keeps serving) and wait until
 #                                     every green pod is warmed up (/actuator/health/warmup) and ready
-#   blue-green.sh activate         2. point the HTTP Service at green
-#   blue-green.sh verify           3. wait until the Service's endpoints are exactly the green pods
+#   blue-green.sh activate         2. make green the active generation (POST /actuator/generation: a
+#                                     compare-and-set on the epoch), then point the HTTP Service at green
+#   blue-green.sh verify           3. wait until the record says green and the Service's endpoints are
+#                                     exactly the green pods
 #   blue-green.sh retire           4. delete blue once green has served for a while
-#   blue-green.sh rollback         point the HTTP Service back at blue (until retire)
+#   blue-green.sh rollback         activate blue again (a new, higher epoch) and point the Service at it
+# activate and rollback take the epoch they expect and an operation ID from EXPECTED_EPOCH and
+# OPERATION_ID. Without them they read the active epoch and use <color>-<image>-from-<epoch>. A
+# pipeline that retries an activation passes the same two values again: the retry then returns the
+# first result instead of failing on the epoch the first attempt already moved. A competing deploy
+# fails with 409.
 # deploy gates on warm-up, not on `rollout status`: warm-up says that a pod joined its cluster,
 # which is what activation needs, and it does not depend on which color gets traffic. It then also
 # waits for readiness, because here the Service selector, not readiness, switches the colors.
@@ -29,6 +36,47 @@ select_pods() {
         -p "[{\"op\":\"replace\",\"path\":\"/spec/selector\",\"value\":$1}]"
 }
 
+# Runs curl inside pod $1 against its /actuator/generation, with the deployer credentials the pod
+# has in its environment (from the spring-actor-deployer Secret): they never leave the pod.
+generation() {
+    pod=$1; shift
+    kubectl -n "$NS" exec "$pod" -- sh -c \
+        'curl -s -u "$SPRING_SECURITY_USER_NAME:$SPRING_SECURITY_USER_PASSWORD" "$@" localhost:8080/actuator/generation' \
+        sh "$@"
+}
+
+# The running pods with app=$1, without the ones shutting down.
+running_pods() {
+    kubectl -n "$NS" get pods -l app="$1" -o json | jq -r \
+        '.items[] | select(.status.phase == "Running" and .metadata.deletionTimestamp == null) | .metadata.name'
+}
+
+# A running pod of Deployment $1.
+any_pod() {
+    running_pods "$1" | head -n 1
+}
+
+# Makes color $1 (Deployment $2) the active generation, or fails with the endpoint's answer.
+activate_color() {
+    color=$1; pod=$(any_pod "$2")
+    epoch=${EXPECTED_EPOCH:-$(generation "$pod" | jq '.active.epoch // 0')}
+    image=$(kubectl -n "$NS" get deploy "$2" -o jsonpath='{.spec.template.spec.containers[0].image}')
+    operation=${OPERATION_ID:-$color-$image-from-$epoch}
+    reply=$(generation "$pod" -X POST -H 'Content-Type: application/json' -w '\n%{http_code}' \
+        -d "{\"color\":\"$color\",\"expectedEpoch\":$epoch,\"operationId\":\"$operation\"}")
+    if [ "$(tail -n 1 <<< "$reply")" != 200 ]; then
+        echo "activating $color (expected epoch $epoch, operation $operation) was rejected:" >&2
+        sed '$d' <<< "$reply" >&2
+        return 1
+    fi
+    sed '$d' <<< "$reply"
+}
+
+# The generation record says color $1 is active.
+record_says() {
+    [ "$(generation "$(any_pod "$2")" | jq -r '.active.color')" = "$1" ]
+}
+
 # Retries "$@" every 2 seconds until it succeeds or $TIMEOUT seconds have passed.
 until_ok() {
     what=$1; shift
@@ -45,8 +93,7 @@ until_ok() {
 # Every pod of the green Deployment's replicas answers UP on /actuator/health/warmup.
 green_warm() {
     want=$(kubectl -n "$NS" get deploy "$GREEN" -o jsonpath='{.spec.replicas}')
-    pods=$(kubectl -n "$NS" get pods -l app="$GREEN" -o json | jq -r \
-        '.items[] | select(.status.phase == "Running" and .metadata.deletionTimestamp == null) | .metadata.name')
+    pods=$(running_pods "$GREEN")
     [ "$(wc -w <<< "$pods")" -eq "$want" ] || return 1
     for pod in $pods; do
         kubectl -n "$NS" exec "$pod" -- curl -sf localhost:8080/actuator/health/warmup > /dev/null \
@@ -80,12 +127,15 @@ deploy)
     kubectl -n "$NS" wait --for=condition=ready pod -l app="$GREEN" --timeout="${TIMEOUT}s" > /dev/null
     ;;
 activate)
+    activate_color green "$GREEN"
     select_pods "{\"app\":\"$GREEN\"}"
     ;;
 verify)
+    until_ok "the generation record to say green" record_says green "$GREEN"
     until_ok "the Service to serve only green" serves_only "$GREEN"
     ;;
 rollback)
+    activate_color blue "$BLUE"
     select_pods '{"app":"spring-actor","managed-by":"kustomize"}'
     until_ok "the Service to serve only blue" serves_only "$BLUE"
     ;;

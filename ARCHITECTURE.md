@@ -136,7 +136,7 @@ flowchart LR
 - **Choosing a backend:** a property (e.g. `discovery.method`) picks the built-in implementation, and a user-supplied bean replaces it (`@ConditionalOnMissingBean`).
 - **Contract tests:** every SPI ships with a contract test suite that each implementation, built-in or custom, runs.
 - **Reaching Spring beans:** Pekko creates some plugins by reflection. Those adapters reach Spring beans through an ActorSystem extension that the starter registers when it creates the system, never through a static holder.
-- The same pattern applies to `LeaseStore` (split-brain resolver, singleton and sharding leases) and to persistence journals.
+- The same pattern applies to `LeaseStore` (split-brain resolver, singleton and sharding leases), to `GenerationStore` (the active blue-green generation, used without Pekko by `actor-autoconfigure`) and to persistence journals.
 
 ## Pekko modules and what users see
 

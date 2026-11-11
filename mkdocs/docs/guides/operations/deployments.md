@@ -94,16 +94,16 @@ A blue-green release runs in four stages. Each one waits for a signal before the
 | Stage | Command | Waits for |
 |---|---|---|
 | 1. Warm up | `blue-green.sh deploy <image>` | every green pod answers `UP` on `/actuator/health/warmup`, then is ready |
-| 2. Activate | `blue-green.sh activate` | nothing: the HTTP Service's selector now picks the green pods |
-| 3. Verify | `blue-green.sh verify` | the Service's ready endpoints are exactly the green pods |
+| 2. Activate | `blue-green.sh activate` | the [generation endpoint](#the-active-generation) accepts green; then the HTTP Service's selector picks the green pods |
+| 3. Verify | `blue-green.sh verify` | the generation record says green, and the Service's ready endpoints are exactly the green pods |
 | 4. Retire | `blue-green.sh retire` | run it once green has served for a while; it deletes blue |
 
 ```bash
 cd example/kubernetes
 scripts/blue-green.sh deploy spring-actor-chat:v4   # start green beside blue and wait until it is warm
-scripts/blue-green.sh activate                      # the HTTP Service now selects the green pods
+scripts/blue-green.sh activate                      # green becomes the active generation; the Service selects it
 scripts/blue-green.sh verify                        # wait until only green pods serve
-# scripts/blue-green.sh rollback                    # point the Service back at blue and wait for it
+# scripts/blue-green.sh rollback                    # activate blue again (a new epoch) and select it
 scripts/blue-green.sh retire                        # delete blue
 ```
 
@@ -123,6 +123,134 @@ In-memory state does not move: entities, singletons and topics start empty on gr
 survive the switch in a database or event journal both clusters read
 ([State in a Database](../data/state-in-a-database.md), [Event-Sourced Actors](../data/event-sourcing.md)).
 Until `retire`, `rollback` sends traffic back to blue, which still has its state.
+
+### The active generation
+
+Which color is active is a record in the store the cluster already uses (Redis or the database), not only a
+Service selector. Each record is a **generation**: a color, an **epoch** that grows by one with every
+activation, the deployment operation ID that activated it, and when. The application can read it, and the
+pipeline changes it only through a compare-and-set:
+
+- **Competing deploys fail loudly.** An activation names the epoch it expects to be active. If another deploy
+  activated in between, it is rejected (`EPOCH_MISMATCH`, HTTP 409) and nothing changes. Of several
+  activations that expect the same epoch, exactly one wins.
+- **Retries are idempotent.** An activation carries an operation ID. Retrying it with the same color and
+  expected epoch returns the generation it activated the first time (`ALREADY_ACTIVATED`, HTTP 200), even
+  after the epoch has moved on. The same operation ID with another color or epoch is `OPERATION_CONFLICT`
+  (409). A pipeline keeps the expected epoch and the operation ID it used, and sends both again when it
+  retries.
+- **Old work stays fenced.** Blue, then green, then blue again gives epochs 1, 2 and 3. Work that blue stamped
+  in its first turn carries epoch 1 and is refused in its second (epoch 3), because the epoch never goes back.
+
+Turn it on in each color with its color and a store:
+
+```yaml
+spring:
+  actor:
+    generation:
+      color: blue          # green in the other deployment
+      store: redis         # jdbc: the actor_generation table; custom: your GenerationStore bean
+      # name: orders       # the record both colors share; default: spring.actor.name
+      # refresh: 1s        # how long a node reuses a read of the record
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,generation
+  endpoint:
+    generation:
+      access: unrestricted   # activation is a write: read-only by default
+```
+
+**The `generation` endpoint.** `GET /actuator/generation` returns this node's color and the active
+generation. `POST /actuator/generation` with `color`, `expectedEpoch` (0 before the first activation) and
+`operationId` activates a color:
+
+```bash
+curl -u deployer:$PASSWORD -X POST localhost:8080/actuator/generation \
+  -H 'Content-Type: application/json' \
+  -d '{"color":"green","expectedEpoch":1,"operationId":"release-2026-11-11-1"}'
+# {"outcome":"ACTIVATED","generation":{"color":"green","epoch":2,"operationId":"release-2026-11-11-1",...}}
+```
+
+Activation needs an authenticated user: a request without one is answered `401` (`UNAUTHENTICATED`). Secure
+the endpoint with Spring Security like any other write endpoint, for example with a role:
+
+=== "Java"
+
+    ```java
+    @Bean
+    SecurityFilterChain actuator(HttpSecurity http) throws Exception {
+        return http.securityMatcher(EndpointRequest.to("generation"))
+                .authorizeHttpRequests(requests -> requests
+                        .requestMatchers(HttpMethod.POST).hasRole("DEPLOYER")
+                        .anyRequest().permitAll())
+                .httpBasic(Customizer.withDefaults())
+                .csrf(csrf -> csrf.disable()) // called by a pipeline, not a browser session
+                .build();
+    }
+    ```
+
+=== "Kotlin"
+
+    ```kotlin
+    @Bean
+    fun actuator(http: HttpSecurity): SecurityFilterChain =
+        http.securityMatcher(EndpointRequest.to("generation"))
+            .authorizeHttpRequests {
+                it.requestMatchers(HttpMethod.POST).hasRole("DEPLOYER")
+                    .anyRequest().permitAll()
+            }
+            .httpBasic(Customizer.withDefaults())
+            .csrf { it.disable() } // called by a pipeline, not a browser session
+            .build()
+    ```
+
+**Audit.** Every attempt that reaches the endpoint, or `DeploymentGeneration.activate` in your code, publishes
+an `ActivationEvent` (an `ApplicationEvent`) with the requested color, expected epoch, operation ID, the
+user's name and the result. The starter also logs it (`INFO` when accepted, `WARN` when rejected) and counts
+it in `actor.generation.activations`, tagged with `outcome`. A request that Spring Security turns away never
+reaches the endpoint, so it shows in Spring Security's events instead.
+
+**Fencing in your code.** Inject `DeploymentGeneration`. Stamp work with `stamp()` where it starts (it
+fails when this node's color is not active), and `check(epoch)` it where it runs. A stale epoch throws
+`StaleGenerationException`, the retryable outcome of [reliable delivery](../core/reliable-delivery.md#stale-generation-not-the-owner-yet-or-anymore):
+
+=== "Java"
+
+    ```java
+    long epoch = generation.stamp();                       // where the work starts
+    sender.send(new ChargeOrder(orderId, epoch), key);
+
+    .onMessage(ChargeOrder.class, (ctx, msg) -> {
+        generation.check(msg.epoch());                     // StaleGenerationException if it is old
+        payments.charge(msg.orderId());
+        return SpringActorBehavior.same();
+    })
+    ```
+
+=== "Kotlin"
+
+    ```kotlin
+    val epoch = generation.stamp()                         // where the work starts
+    sender.send(ChargeOrder(orderId, epoch), key)
+
+    .onMessage(ChargeOrder::class.java) { _, msg ->
+        generation.check(msg.epoch)                        // StaleGenerationException if it is old
+        payments.charge(msg.orderId)
+        SpringActorBehavior.same()
+    }
+    ```
+
+A node reuses a read of the record for `spring.actor.generation.refresh` (1 second), so for up to that long
+after an activation elsewhere it still accepts the old epoch. Where that matters, keep the epoch with the
+data and compare it in the write itself (`UPDATE ... WHERE epoch <= ?`).
+
+**Stores.** `jdbc` keeps one row per activation in `actor_generation` (created with the other actor-jdbc
+tables): the primary key on deployment and epoch is the compare-and-set. `redis` keeps the record and the
+operation IDs in two hashes and changes them in one Lua script. Redis replicates asynchronously, so a failover
+can lose an activation it had just accepted; use `jdbc` where that is not acceptable. Your own
+`GenerationStore` bean replaces both, and must pass `GenerationStoreContract` from `actor-test`.
 
 ### Requests at the cutover
 

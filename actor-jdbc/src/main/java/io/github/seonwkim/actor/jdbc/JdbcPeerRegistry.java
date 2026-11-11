@@ -16,14 +16,14 @@ import javax.sql.DataSource;
  * A {@link PeerRegistry} in the {@code actor_peer} table of the application's {@link DataSource}.
  * Times come from the database's clock ({@code CURRENT_TIMESTAMP}), so the nodes' clocks need not
  * agree. The statements are plain SQL that H2, PostgreSQL and MySQL all run; the table is created
- * from {@link #SCHEMA_LOCATION}, which also creates the {@code actor_lease} table of {@link JdbcLeaseStore}.
+ * from {@link #SCHEMA_LOCATION}, which also creates the {@code actor_lease} table of {@link JdbcLeaseStore} and the {@code actor_generation} table of {@link JdbcGenerationStore}.
  *
  * <p>A node that crashes leaves its row behind. {@link #peers} ignores it once it is older than the
  * ttl; a node that leaves gracefully deletes its row.
  */
 public final class JdbcPeerRegistry implements PeerRegistry {
 
-    /** The module's schema files (actor_peer and actor_lease), one per database ({@code h2}, {@code postgresql}, {@code mysql}, {@code mariadb}). */
+    /** The module's schema files (actor_peer, actor_lease and actor_generation), one per database ({@code h2}, {@code postgresql}, {@code mysql}, {@code mariadb}). */
     public static final String SCHEMA_LOCATION = "classpath:io/github/seonwkim/actor/jdbc/schema-@@platform@@.sql";
 
     private static final String UPDATE = "UPDATE actor_peer SET host = ?, port = ?, last_seen = CURRENT_TIMESTAMP"

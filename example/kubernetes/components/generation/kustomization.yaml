@@ -1,0 +1,18 @@
+# Blue-green activation through the starter's generation endpoint (spring.actor.generation.*):
+# the active color and its epoch live in Redis, and scripts/blue-green.sh changes them with a
+# compare-and-set before it switches the Service. The deployer's credentials come from a Secret.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+resources:
+- redis.yaml
+
+# A local demo credential. In a real cluster, create the Secret from your secret store instead.
+secretGenerator:
+- name: spring-actor-deployer
+  literals:
+  - username=deployer
+  - password=local-demo-only
+
+patches:
+- path: deployment-patch.yaml

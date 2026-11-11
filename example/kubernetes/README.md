@@ -334,7 +334,7 @@ scripts/canary.sh promote        # roll the main pods to v3 and remove the canar
 
 # Blue-green: green is its own cluster on v4; blue keeps serving until activation
 scripts/blue-green.sh deploy spring-actor-chat:v4   # 1. start green, wait for /actuator/health/warmup, then ready
-scripts/blue-green.sh activate   # 2. the HTTP Service now selects the green pods
+scripts/blue-green.sh activate   # 2. green becomes the active generation, then the Service selects it
 scripts/blue-green.sh verify     # 3. wait until the Service's endpoints are only green pods
 # scripts/blue-green.sh rollback # switch back to blue
 scripts/blue-green.sh retire     # 4. delete blue
@@ -342,7 +342,11 @@ scripts/blue-green.sh retire     # 4. delete blue
 
 `deploy` gates on the warm-up health group, not on `kubectl rollout status`: warm-up says the pod joined
 its cluster, and it does not depend on which color gets traffic. Then it waits for the green pods to be
-ready, because here the Service selector switches the colors. See
+ready, because here the Service selector switches the colors. `activate` and `rollback` first change the
+active generation through the starter's `generation` endpoint, a compare-and-set on its epoch in Redis
+(`components/generation`, part of the `local` overlay: a Redis Deployment, the deployer Secret and the
+`spring.actor.generation.*` settings). A competing or stale activation fails with 409 and leaves the
+Service alone. See
 [Deployments](../../mkdocs/docs/guides/operations/deployments.md#blue-green) for the stages.
 
 `scripts/test-strategies.sh` runs all three under load on the kind cluster from `setup-local.sh` and fails if any request failed:
@@ -444,6 +448,7 @@ example/kubernetes/
 │   └── discovery-redis/        # No RBAC: peers through Redis
 │
 ├── components/discovery/       # Shared by the discovery overlays: no RBAC, NetworkPolicy, ports
+├── components/generation/      # Blue-green activation: Redis, the deployer Secret, spring.actor.generation.*
 │
 └── scripts/                    # Advanced deployment scripts
     ├── deploy.sh

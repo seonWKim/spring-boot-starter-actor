@@ -123,7 +123,10 @@ ready.
     }
     ```
 
-`ownership` stands for your own check, such as a lease or an epoch in your database. For a plain `tell`,
+`ownership` stands for your own check, such as a lease or an epoch in your database. For blue-green
+deployments, `DeploymentGeneration.check(epoch)` is that check: it throws `StaleGenerationException` for work
+stamped by a generation that is no longer active
+([The active generation](../operations/deployments.md#the-active-generation)). For a plain `tell`,
 the exception is an ordinary failure for the actor's supervision.
 
 ## Sending to an actor

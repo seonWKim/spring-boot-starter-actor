@@ -13,3 +13,13 @@ CREATE TABLE IF NOT EXISTS actor_lease (
     expires_at TIMESTAMP(3) NOT NULL,
     PRIMARY KEY (lease_name)
 );
+
+CREATE TABLE IF NOT EXISTS actor_generation (
+    deployment VARCHAR(200) NOT NULL,
+    epoch BIGINT NOT NULL,
+    color VARCHAR(200) NOT NULL,
+    operation_id VARCHAR(200) NOT NULL,
+    activated_at BIGINT NOT NULL,
+    PRIMARY KEY (deployment, epoch),
+    CONSTRAINT actor_generation_operation UNIQUE (deployment, operation_id)
+);

@@ -106,7 +106,7 @@ shutdown, and that the discovery overlays contain no RBAC and open only the expe
 |---|---|---|
 | Rolling update | `kubectl set image deployment/spring-actor spring-actor=spring-actor-chat:v2 -n spring-actor` | New pods join the cluster one at a time; old pods leave |
 | Canary | `scripts/canary.sh start <image>`, then `promote` or `abort` | A few new pods join the running cluster and get a share of traffic |
-| Blue-green | `scripts/blue-green.sh deploy <image>` (waits for warm-up), `activate`, `verify`, `retire`, `rollback` | A second, separate cluster; the HTTP Service switches in one step |
+| Blue-green | `scripts/blue-green.sh deploy <image>` (waits for warm-up), `activate` (through the generation endpoint), `verify`, `retire`, `rollback` | A second, separate cluster; the HTTP Service switches in one step |
 
 `scripts/test-strategies.sh` runs all three under load on the kind cluster and fails if any request
 failed. `scripts/load.sh` counts a request as ok only when the actor replied.
