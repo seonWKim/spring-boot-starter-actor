@@ -7,6 +7,8 @@
 # other's messages and sharded entity state (see "Changing versions" in ../README.md).
 set -euo pipefail
 
+DIR=$(dirname "$0")
+
 NS=${NAMESPACE:-spring-actor}
 MAIN=spring-actor
 CANARY=spring-actor-canary
@@ -16,16 +18,10 @@ start)
     IMAGE=${2:?usage: canary.sh start <image> [replicas]}
     REPLICAS=${3:-1}
     # Copy the live main Deployment, so the canary gets the same config, probes and labels.
-    # The Services select app=spring-actor, so they pick up the canary pods too.
-    kubectl -n "$NS" get deploy "$MAIN" -o json | jq \
-        --arg name "$CANARY" --arg image "$IMAGE" --argjson replicas "$REPLICAS" '
-        {apiVersion, kind,
-         metadata: {name: $name, namespace: .metadata.namespace, labels: (.metadata.labels + {track: "canary"})},
-         spec: (.spec
-            | .replicas = $replicas
-            | .selector.matchLabels += {track: "canary"}
-            | .template.metadata.labels += {track: "canary"}
-            | .template.spec.containers[0].image = $image)}' \
+    # The Services and NetworkPolicies select app=spring-actor, so they cover the canary pods too.
+    kubectl -n "$NS" get deploy "$MAIN" -o json \
+        | jq --arg name "$CANARY" --arg image "$IMAGE" --argjson replicas "$REPLICAS" \
+            -f "$DIR/canary-deployment.jq" \
         | kubectl apply -f -
     kubectl -n "$NS" rollout status deploy/"$CANARY" --timeout=300s
     ;;

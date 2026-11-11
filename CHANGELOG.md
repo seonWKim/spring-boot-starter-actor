@@ -66,6 +66,10 @@
 
 ### Fixes
 
+- **Blue-green pods stay inside the NetworkPolicy (#235).** In the Kubernetes example, `blue-green.sh deploy`
+  labelled the green pods `app=spring-actor-green`, which no NetworkPolicy selected, so green's remoting and
+  management ports were open to any pod and its egress was unrestricted. `deploy` now copies blue's
+  NetworkPolicies for green first, so each color's cluster ports open only to pods of that color.
 - `spring.actor.pekko.management.http.port=0` works with Cluster Bootstrap: with `jdbc` or `redis` discovery
   a node registers the port its Pekko Management server bound, not the configured one, and Bootstrap takes
   the bound port as the node's own contact point. The JDBC and Redis discovery tests bind it at 0 (#229).
