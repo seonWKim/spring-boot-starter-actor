@@ -80,6 +80,13 @@ its Kubernetes API discovery at that label
 (`--spring.actor.pekko.discovery.kubernetes-api.pod-label-selector=app=spring-actor-green`). So green forms
 its own cluster and never exchanges messages with blue.
 
+Before green starts, `deploy` also copies each NetworkPolicy that selects `app=spring-actor` (for example
+`spring-actor-green` from `spring-actor`, and `spring-actor-green-store` from `spring-actor-store` in the
+discovery overlays), with every `app=spring-actor` selector changed to `app=spring-actor-green`. Green gets
+the same restrictions as blue, and remoting (25520) and management (7626) open only between pods of the same
+color: blue and green cannot reach each other's cluster ports. A canary keeps `app=spring-actor`, so blue's
+policies cover it.
+
 ```bash
 cd example/kubernetes
 scripts/blue-green.sh deploy spring-actor-chat:v4   # start green beside blue; blue keeps serving
