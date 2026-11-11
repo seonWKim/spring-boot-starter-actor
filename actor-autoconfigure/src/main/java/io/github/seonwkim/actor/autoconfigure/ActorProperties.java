@@ -74,6 +74,8 @@ public class ActorProperties {
 
     private final Generation generation = new Generation();
 
+    private final Validation validation = new Validation();
+
     /**
      * Dispatchers that run on Spring Executor beans, by dispatcher name. An actor uses one with
      * withDispatcherFromConfig("<name>").
@@ -137,12 +139,47 @@ public class ActorProperties {
         return generation;
     }
 
+    public Validation getValidation() {
+        return validation;
+    }
+
     public Map<String, Dispatcher> getDispatchers() {
         return dispatchers;
     }
 
     public VirtualThreads getVirtualThreads() {
         return virtualThreads;
+    }
+
+    /** Checks the starter runs on actor beans at startup. */
+    public static class Validation {
+
+        /** What a startup check does when it finds a problem. */
+        public enum Mode {
+            /** Log a warning for each problem and start. */
+            WARN,
+            /** Stop startup with an error that lists the problems. */
+            FAIL,
+            /** Don't check. */
+            OFF
+        }
+
+        /**
+         * What happens when an actor bean (SpringActor, SpringShardedActor) has a mutable instance
+         * field, which every actor of its class shares across threads, or is a Spring AOP proxy, whose
+         * advice (@Transactional, @Async, ...) never reaches the message handlers: warn logs each
+         * problem, fail stops startup, off skips the checks. Injected fields (@Autowired, @Value,
+         * @Inject, @Resource, or set through an injected setter) don't count.
+         */
+        private Mode actorBeans = Mode.WARN;
+
+        public Mode getActorBeans() {
+            return actorBeans;
+        }
+
+        public void setActorBeans(Mode actorBeans) {
+            this.actorBeans = actorBeans;
+        }
     }
 
     /**
@@ -850,7 +887,8 @@ public class ActorProperties {
             "jdbc",
             "persistence",
             "metrics",
-            "delivery");
+            "delivery",
+            "validation");
 
     /**
      * The Pekko configuration. Every key under {@code spring.actor} except the typed settings is
