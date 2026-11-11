@@ -143,6 +143,25 @@ Keep it out of liveness: a node that is still joining is not broken, and restart
 join. Cluster Bootstrap reaches pods through Pekko Management, not through the readiness-gated Service, so a
 cluster still forms while no pod is ready yet.
 
+### Actuator on its own port
+
+Actuator's endpoints (`/actuator/health`, `/actuator/metrics`, `/actuator/prometheus`, `/actuator/info`)
+tell anyone who can call them about the application. Serve them on a separate port, so the network can
+open the application port to clients and the Actuator port only to monitoring and the kubelet:
+
+```yaml
+server:
+  port: 8080          # application traffic
+management:
+  server:
+    port: 8081        # Actuator: probes and Prometheus
+```
+
+Point the probes, the ServiceMonitor or PodMonitor and any `prometheus.io/port` annotation at `8081`, and
+let a NetworkPolicy admit `8081` only from the monitoring namespace. The kubelet's probes come from the node,
+which most network plugins let through whatever the policy says; if yours doesn't, add an `ipBlock` for the
+node addresses on `8081`. The [Kubernetes example](../../examples/kubernetes.md) does all of this.
+
 ### Warm-up
 
 In cluster mode the starter adds a third health group beside Spring Boot's `liveness` and `readiness`:
@@ -208,6 +227,8 @@ Go through this list before the first release of a clustered application.
 **Health and monitoring**
 
 - [ ] The readiness group includes `actorCluster`; liveness does not.
+- [ ] Actuator runs on its own port (`management.server.port`), open only to monitoring and the kubelet
+      ([above](#actuator-on-its-own-port)).
 - [ ] `actor-metrics` is on the classpath and Prometheus scrapes `/actuator/prometheus`.
 - [ ] The dashboard and alert rules from `monitoring/` are installed ([Monitoring](monitoring.md#dashboard-and-alerts)).
 - [ ] `spring.actor.metrics.path-tag-limit` stays `0`, or is small, so the series count does not grow with

@@ -83,6 +83,11 @@
 
 ### Fixes
 
+- **The Kubernetes example serves Actuator on its own port (#246).** Actuator (health, metrics, info,
+  prometheus) was on the application port 8080, which the NetworkPolicy opens to every source. It now runs on
+  `management.server.port: 8081`: the probes, the ServiceMonitor, the PodMonitor, the scrape annotation and
+  `blue-green.sh` use it, and the NetworkPolicy opens 8081 only to the `monitoring` namespace. The production
+  guide recommends the same. If you copied the manifests, move your probes and monitors to the new port.
 - **`ClusterMetricsTest` no longer flakes on the leader (#242).** It asserted that the node that joins later
   is not the leader before both nodes saw each other Up. Pekko's leader is the member with the lowest address,
   so once the cluster settled the later node led whenever the OS gave it the lower port. The test now waits
