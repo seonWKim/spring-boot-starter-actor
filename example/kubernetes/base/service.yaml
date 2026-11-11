@@ -18,6 +18,11 @@ spec:
     port: 25520
     targetPort: 25520
     protocol: TCP
+  # Actuator, for the ServiceMonitor. Not on spring-actor-http: clients never reach it.
+  - name: actuator
+    port: 8081
+    targetPort: actuator
+    protocol: TCP
   selector:
     app: spring-actor
 
@@ -29,10 +34,6 @@ metadata:
   name: spring-actor-http
   labels:
     app: spring-actor
-  annotations:
-    prometheus.io/scrape: "true"
-    prometheus.io/port: "8080"
-    prometheus.io/path: "/actuator/prometheus"
 spec:
   type: LoadBalancer
   ports:

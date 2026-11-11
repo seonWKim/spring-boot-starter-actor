@@ -9,17 +9,17 @@ spec:
       automountServiceAccountToken: false
       containers:
       - name: spring-actor
-        # Probes on Spring Boot's management health (Actuator): the readiness group includes
+        # Probes on Spring Boot's management health (Actuator, on its own port): the readiness group includes
         # actorCluster, so a pod gets traffic only while it is an Up cluster member.
         livenessProbe:
           httpGet:
             path: /actuator/health/liveness
-            port: http
+            port: actuator
         readinessProbe:
           httpGet:
             path: /actuator/health/readiness
-            port: http
+            port: actuator
         startupProbe:
           httpGet:
             path: /actuator/health/liveness
-            port: http
+            port: actuator
