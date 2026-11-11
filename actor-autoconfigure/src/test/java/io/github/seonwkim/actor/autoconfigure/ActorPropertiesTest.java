@@ -86,7 +86,8 @@ class ActorPropertiesTest {
                         "spring.actor.delivery.retry.initial-backoff=10ms")
                 .run(context -> {
                     // Never acks, so each attempt times out.
-                    ActorSystem<?> system = context.getBean(SpringActorSystem.class).unwrap(ActorSystem.class);
+                    ActorSystem<?> system =
+                            context.getBean(SpringActorSystem.class).unwrap(ActorSystem.class);
                     ActorRef<Object> silent = system.systemActorOf(Behaviors.ignore(), "never-acks", Props.empty());
                     CompletableFuture<Void> send = context.getBean(SpringReliableDelivery.class)
                             .to(new PekkoActorRef<>(silent))
