@@ -29,6 +29,7 @@ class ClusterRuntimeHintsTest {
         List<String> created = new ArrayList<>(actorConfig("serializers").values());
         created.add(reference.getString("pekko.discovery.spring-actor-peer-registry.class"));
         created.add(reference.getString("spring-actor.lease.lease-class"));
+        created.add(PekkoClusterSupport.BOUND_PORT_BOOTSTRAP_ROUTES);
 
         assertThat(created).isNotEmpty().allSatisfy(className -> assertThat(RuntimeHintsPredicates.reflection()
                         .onType(TypeReference.of(className))

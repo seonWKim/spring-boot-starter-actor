@@ -17,6 +17,7 @@ import org.apache.pekko.discovery.ServiceDiscovery;
 import org.apache.pekko.dispatch.Dispatchers;
 import org.apache.pekko.management.PekkoManagementSettings;
 import org.apache.pekko.management.cluster.bootstrap.ClusterBootstrap;
+import org.apache.pekko.management.javadsl.PekkoManagement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.Option;
@@ -30,7 +31,8 @@ import scala.jdk.javaapi.FutureConverters;
  * Pekko discovery on a {@link PeerRegistry} bean ({@code spring.actor.cluster.join=discovery}).
  * Cluster Bootstrap asks it for contact points; it answers with the peers the registry lists.
  *
- * <p>It also keeps this node's own entry: it registers the node (its management host and port)
+ * <p>It also keeps this node's own entry: it registers the node (its management host and the port
+ * the management server bound, so a configured port of 0 works)
  * when Pekko creates it, renews the entry every {@code heartbeat-interval}, and removes it in the
  * first phase of coordinated shutdown, so a node that leaves gracefully is no longer offered as a
  * contact point. Registry calls may block, so they run on the blocking dispatcher.
@@ -66,7 +68,7 @@ public final class PeerRegistryServiceDiscovery extends ServiceDiscovery {
                 ClusterBootstrap.get(system).settings().contactPointDiscovery().effectiveName(system),
                 system.provider().getDefaultAddress().toString(),
                 management.getHttpHostname(),
-                management.getHttpPort());
+                boundManagementPort(system));
         this.blocking = system.dispatchers().lookup(Dispatchers.DefaultBlockingDispatcherId());
 
         registry.register(self);
@@ -84,6 +86,14 @@ public final class PeerRegistryServiceDiscovery extends ServiceDiscovery {
                             },
                             blocking);
                 });
+    }
+
+    /**
+     * The port the management HTTP server bound, which differs from the configured one when that
+     * is 0. Management is already started by then: {@code start()} returns its URI once bound.
+     */
+    private static int boundManagementPort(ExtendedActorSystem system) {
+        return PekkoManagement.get(system).start().toCompletableFuture().join().port();
     }
 
     private void beat() {

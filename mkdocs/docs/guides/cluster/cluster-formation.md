@@ -15,7 +15,8 @@ setup: only the store the application already uses, and network access between t
 
 What each node does:
 
-1. At startup it registers itself (its management host and port) and starts Cluster Bootstrap.
+1. At startup it registers itself (its management host and the port its management server bound) and starts
+   Cluster Bootstrap.
 2. Every `heartbeat-interval` (default `5s`) it renews its entry.
 3. Bootstrap lists the entries renewed within `ttl` (default `30s`), contacts those nodes on their management
    port, and either joins the cluster they are in or, if there is none yet, the node with the lowest address
@@ -176,7 +177,8 @@ your store to check it behaves like the built-in ones (see [Testing](../testing.
 
 - **Management port** (Pekko's default `7626`, `spring.actor.pekko.management.http.port`): Bootstrap contacts
   peers there. `spring.actor.pekko.management.http.hostname` must be an address other nodes can reach (the
-  default is the machine's address).
+  default is the machine's address). With `jdbc` or `redis` discovery the port may be `0`: the node registers
+  the port it bound.
 - **Remoting port** (`spring.actor.remote.port`, default `25520`) between all nodes.
 - **The store** (database or Redis) from every node.
 - The nodes of one cluster use the same `spring.actor.name`: it is the service name their entries are stored
