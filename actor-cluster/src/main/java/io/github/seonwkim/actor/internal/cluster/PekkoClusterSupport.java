@@ -8,6 +8,7 @@ import io.github.seonwkim.actor.internal.shard.PekkoSharding;
 import io.github.seonwkim.actor.internal.shard.ShardedActorRegistry;
 import io.github.seonwkim.actor.shard.SpringShardedActor;
 import io.github.seonwkim.actor.shard.SpringShardedActorBuilder;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -28,6 +29,7 @@ import org.apache.pekko.cluster.typed.SingletonActor;
 import org.apache.pekko.cluster.typed.Subscribe;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.util.ClassUtils;
 
 /** {@link ClusterSupport} on Pekko Cluster, Cluster Sharding and Cluster Singleton. */
 public final class PekkoClusterSupport implements ClusterSupport {
@@ -40,9 +42,33 @@ public final class PekkoClusterSupport implements ClusterSupport {
         return config.hasPath(JOIN_SELF_KEY) && config.getBoolean(JOIN_SELF_KEY);
     }
 
+    /** The management route provider name Cluster Bootstrap registers its routes under. */
+    private static final String BOOTSTRAP_ROUTES = "cluster-bootstrap";
+
+    /** {@link BoundPortBootstrapRoutes}, by name: Pekko Management is an optional dependency. */
+    static final String BOUND_PORT_BOOTSTRAP_ROUTES =
+            "io.github.seonwkim.actor.internal.cluster.BoundPortBootstrapRoutes";
+
     @Override
     public Map<String, Object> withDefaults(Map<String, Object> config) {
-        return PekkoJackson.withSerializers(config);
+        Map<String, Object> result = PekkoJackson.withSerializers(config);
+        if (ClassUtils.isPresent(
+                "org.apache.pekko.management.cluster.bootstrap.ClusterBootstrap",
+                PekkoClusterSupport.class.getClassLoader())) {
+            // A management port of 0 works: Bootstrap's self contact point gets the bound port (#229).
+            Map<String, Object> routes = nested(result, "pekko", "management", "http", "routes");
+            routes.putIfAbsent(BOOTSTRAP_ROUTES, BOUND_PORT_BOOTSTRAP_ROUTES);
+        }
+        return result;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> nested(Map<String, Object> map, String... path) {
+        Map<String, Object> current = map;
+        for (String key : path) {
+            current = (Map<String, Object>) current.computeIfAbsent(key, k -> new HashMap<>());
+        }
+        return current;
     }
 
     @Override

@@ -13,14 +13,16 @@ import org.springframework.aot.hint.TypeReference;
 
 /**
  * GraalVM native image hints for the cluster module: the classes its configuration names (this
- * module's {@code reference.conf} and {@code PekkoJackson}), which Pekko creates by name, and {@link
- * AskCommand}, whose reply address Jackson writes into every ask that crosses nodes.
+ * module's {@code reference.conf}, {@code PekkoJackson} and {@code PekkoClusterSupport}), which
+ * Pekko creates by name, and {@link AskCommand}, whose reply address Jackson writes into every ask
+ * that crosses nodes.
  */
 public final class ClusterRuntimeHints implements RuntimeHintsRegistrar {
 
     static final List<String> CREATED_BY_NAME = List.of(
             "io.github.seonwkim.actor.internal.cluster.discovery.PeerRegistryServiceDiscovery",
             "io.github.seonwkim.actor.internal.cluster.lease.LeaseStoreLease",
+            PekkoClusterSupport.BOUND_PORT_BOOTSTRAP_ROUTES,
             "io.github.seonwkim.actor.internal.cluster.TracedMessageSerializer",
             "io.github.seonwkim.actor.internal.cluster.ReliableEnvelopeSerializer",
             "org.apache.pekko.serialization.jackson.JacksonJsonSerializer",
