@@ -19,7 +19,7 @@
   `UP` once this node is an `Up` member, the cluster has `management.health.actor.warmup.min-members` `Up`
   members (default 1) and the `jdbc` or `redis` discovery store answers. It does not depend on traffic
   readiness, so a blue-green pipeline gates on it before activation. The Kubernetes example's
-  `blue-green.sh` runs the stages `deploy` (warm-up), `activate`, `verify` and `retire`; `switch` and
+  `blue-green.sh` runs the stages `deploy` (warm-up, then ready), `activate`, `verify` and `retire`; `switch` and
   `finish` are renamed to `activate` and `retire`.
 - **Retryable vs permanent delivery outcomes (#233).** A failed reliable send's `ReliableDeliveryException`
   has a `reason()`: `STALE_GENERATION`, `TIMEOUT` and `UNAVAILABLE` are retryable, `PAYLOAD_CONFLICT` (the

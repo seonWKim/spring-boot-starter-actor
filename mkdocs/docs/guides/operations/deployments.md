@@ -93,7 +93,7 @@ A blue-green release runs in four stages. Each one waits for a signal before the
 
 | Stage | Command | Waits for |
 |---|---|---|
-| 1. Warm up | `blue-green.sh deploy <image>` | every green pod answers `UP` on `/actuator/health/warmup` |
+| 1. Warm up | `blue-green.sh deploy <image>` | every green pod answers `UP` on `/actuator/health/warmup`, then is ready |
 | 2. Activate | `blue-green.sh activate` | nothing: the HTTP Service's selector now picks the green pods |
 | 3. Verify | `blue-green.sh verify` | the Service's ready endpoints are exactly the green pods |
 | 4. Retire | `blue-green.sh retire` | run it once green has served for a while; it deletes blue |
@@ -108,9 +108,8 @@ scripts/blue-green.sh retire                        # delete blue
 ```
 
 The first stage gates on **warm-up**, not on `kubectl rollout status` or the Deployment's `Available`
-condition. Those follow traffic readiness, and a pipeline where the standby color refuses traffic until it
-is activated would wait for them forever. The warm-up group says only that the pod is ready to be
-activated:
+condition. Those follow traffic readiness, and in a pipeline where the standby color refuses traffic until it
+is activated they never come. The warm-up group says only that the pod can be activated:
 
 - the pod is an `Up` member of its cluster,
 - the cluster has at least `management.health.actor.warmup.min-members` `Up` members (the example sets 2),
@@ -118,7 +117,7 @@ activated:
 
 It never depends on which color is active. The three probes stay apart: liveness says whether to restart the
 pod, readiness whether to send it traffic, and warm-up whether it can be activated (see
-[Health checks](production.md#health-checks)).
+[Health checks](production.md#warm-up)).
 
 In-memory state does not move: entities, singletons and topics start empty on green. Keep state that must
 survive the switch in a database or event journal both clusters read
@@ -127,19 +126,29 @@ Until `retire`, `rollback` sends traffic back to blue, which still has its state
 
 ### Requests at the cutover
 
-Activation changes the Service's selector. The endpoint controller then rewrites the Service's
-EndpointSlices, and each node's kube-proxy reprograms its rules; until it has, a node still sends new
-connections to blue. Blue keeps running and serving until `retire`, so those requests succeed: the selector
-switch itself loses nothing, and `verify` waits until the propagation is done.
+In the example the Service selector switches the colors, and readiness does not depend on the color. So
+`deploy` waits for warm-up **and** then for the green pods to be ready. Warm-up alone is not enough there:
+a pod can be warm before its readiness probe first passes (the example's probe starts after 30 seconds),
+and a Service that selects only pods that are not ready yet has no endpoints. Measured on kind with
+`test-strategies.sh` (four workers asking sharded entities):
 
-Errors come from a switch that removes the old pods while connections still reach them: deleting blue right
-after `activate`, or activating by flipping readiness (green turns ready, blue turns unready) instead of the
-selector. Then each node keeps routing to the old pods until its kube-proxy catches up, which takes the
-readiness probe's `periodSeconds` times its `failureThreshold`, plus the endpoint and kube-proxy updates.
-**Shorter probe intervals shorten that window but don't close it**: a request that a node routes during the
-window still fails. What closes it is draining:
+| `deploy` waited for | Requests | Failed | Service served only green |
+|---|---|---|---|
+| warm-up only | 15,057 | 20, all within 10 seconds after `activate` | 15 seconds after `activate` |
+| warm-up, then ready (the script today) | 23,151 and 22,890 (two runs) | 0 and 0 | at the first check after `activate` |
 
-- keep the old pods running until `verify` shows the Service no longer selects them (`retire` comes last);
+Blue keeps running and serving until `retire`, so a node whose proxy rules still point at blue for a moment
+after the switch still gets answers.
+
+When readiness itself switches the colors (the standby refuses traffic until it is activated, and one
+Service selects both), the cutover waits for readiness to propagate: each pod's readiness probe has to pass
+(`periodSeconds` times `successThreshold` for the new color, `periodSeconds` times `failureThreshold` for the
+old one), then the endpoint controller and every node's kube-proxy update. **Shorter probe intervals shorten
+that window but don't close it**: requests routed during it reach a pod that is about to leave or none at
+all. This mode was not measured here. Close the window with draining instead:
+
+- switch with the Service selector (or another routing change) while both colors are ready, and keep the old
+  pods running until `verify` shows the Service no longer selects them (`retire` comes last);
 - the `preStop` sleep (10 seconds in the example) keeps a terminating pod serving while the endpoint removal
   propagates;
 - `server.shutdown: graceful` finishes the requests the pod has already accepted.

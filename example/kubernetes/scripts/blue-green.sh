@@ -2,13 +2,14 @@
 # Blue-green: a second, separate Pekko cluster (green) runs the new image; the HTTP Service
 # switches to it in one step. The stages of a release, in order:
 #   blue-green.sh deploy <image>   1. start green beside blue (blue keeps serving) and wait until
-#                                     every green pod is warmed up (/actuator/health/warmup)
+#                                     every green pod is warmed up (/actuator/health/warmup) and ready
 #   blue-green.sh activate         2. point the HTTP Service at green
 #   blue-green.sh verify           3. wait until the Service's endpoints are exactly the green pods
 #   blue-green.sh retire           4. delete blue once green has served for a while
 #   blue-green.sh rollback         point the HTTP Service back at blue (until retire)
-# deploy waits for warm-up, not for `rollout status`: warm-up says that a pod joined its cluster,
-# which is what activation needs, and it does not depend on which color gets traffic.
+# deploy gates on warm-up, not on `rollout status`: warm-up says that a pod joined its cluster,
+# which is what activation needs, and it does not depend on which color gets traffic. It then also
+# waits for readiness, because here the Service selector, not readiness, switches the colors.
 # Green forms its own cluster (its discovery looks for app=spring-actor-green), so the versions
 # never exchange messages. Green gets a copy of each blue NetworkPolicy that selects
 # app=spring-actor-green instead, so remoting and management open only between pods of one color.
@@ -44,8 +45,8 @@ until_ok() {
 # Every pod of the green Deployment's replicas answers UP on /actuator/health/warmup.
 green_warm() {
     want=$(kubectl -n "$NS" get deploy "$GREEN" -o jsonpath='{.spec.replicas}')
-    pods=$(kubectl -n "$NS" get pods -l app="$GREEN" --field-selector=status.phase=Running \
-        -o jsonpath='{.items[*].metadata.name}')
+    pods=$(kubectl -n "$NS" get pods -l app="$GREEN" -o json | jq -r \
+        '.items[] | select(.status.phase == "Running" and .metadata.deletionTimestamp == null) | .metadata.name')
     [ "$(wc -w <<< "$pods")" -eq "$want" ] || return 1
     for pod in $pods; do
         kubectl -n "$NS" exec "$pod" -- curl -sf localhost:8080/actuator/health/warmup > /dev/null \
@@ -74,6 +75,9 @@ deploy)
         | jq --arg name "$GREEN" --arg image "$IMAGE" -f "$DIR/blue-green-deployment.jq" \
         | kubectl apply -f -
     until_ok "green to warm up" green_warm
+    # This example switches with the Service selector, and its readiness does not depend on the color:
+    # activating pods that are not ready yet would leave the Service without endpoints for a while.
+    kubectl -n "$NS" wait --for=condition=ready pod -l app="$GREEN" --timeout="${TIMEOUT}s" > /dev/null
     ;;
 activate)
     select_pods "{\"app\":\"$GREEN\"}"

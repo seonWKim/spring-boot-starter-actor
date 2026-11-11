@@ -333,15 +333,16 @@ scripts/canary.sh promote        # roll the main pods to v3 and remove the canar
 # scripts/canary.sh abort        # or remove the canary and keep v2
 
 # Blue-green: green is its own cluster on v4; blue keeps serving until activation
-scripts/blue-green.sh deploy spring-actor-chat:v4   # 1. start green, wait for /actuator/health/warmup
+scripts/blue-green.sh deploy spring-actor-chat:v4   # 1. start green, wait for /actuator/health/warmup, then ready
 scripts/blue-green.sh activate   # 2. the HTTP Service now selects the green pods
 scripts/blue-green.sh verify     # 3. wait until the Service's endpoints are only green pods
 # scripts/blue-green.sh rollback # switch back to blue
 scripts/blue-green.sh retire     # 4. delete blue
 ```
 
-`deploy` waits for the warm-up health group, not for `kubectl rollout status`: warm-up says the pod joined
-its cluster, and it does not depend on which color gets traffic. See
+`deploy` gates on the warm-up health group, not on `kubectl rollout status`: warm-up says the pod joined
+its cluster, and it does not depend on which color gets traffic. Then it waits for the green pods to be
+ready, because here the Service selector switches the colors. See
 [Deployments](../../mkdocs/docs/guides/operations/deployments.md#blue-green) for the stages.
 
 `scripts/test-strategies.sh` runs all three under load on the kind cluster from `setup-local.sh` and fails if any request failed:
