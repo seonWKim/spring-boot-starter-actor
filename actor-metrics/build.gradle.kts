@@ -10,7 +10,7 @@ val springBootVersion: String by project
 dependencies {
     implementation("net.bytebuddy:byte-buddy:${bytebuddyVersion}")
     implementation("net.bytebuddy:byte-buddy-agent:${bytebuddyVersion}")
-    implementation("org.slf4j:slf4j-api:2.0.17")
+    implementation("org.slf4j:slf4j-api:2.0.20")
 
     compileOnly("com.google.code.findbugs:jsr305:3.0.2")
     // Cluster meters read the starter's ClusterEvent records.
@@ -23,7 +23,7 @@ dependencies {
     compileOnly("org.apache.pekko:pekko-actor-typed_3:${pekkoVersion}")
 
     // Micrometer support - bundled in agent JAR for java -jar usage
-    implementation("io.micrometer:micrometer-core:1.11.0")
+    implementation("io.micrometer:micrometer-core:1.17.2")
 
     // Optional: Spring Boot auto-configuration and core (for SpringActorSystem bean when both on classpath)
     compileOnly(platform("org.springframework.boot:spring-boot-dependencies:${springBootVersion}"))
@@ -40,14 +40,14 @@ dependencies {
     testImplementation("org.apache.pekko:pekko-cluster-sharding-typed_3:${pekkoVersion}")
     testImplementation("org.apache.pekko:pekko-serialization-jackson_3:${pekkoVersion}")
 
-    testImplementation("org.junit.jupiter:junit-jupiter-api:5.10.2")
-    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.10.2")
+    testImplementation("org.junit.jupiter:junit-jupiter-api:6.1.3")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:6.1.3")
 
     // Micrometer for testing
-    testImplementation("io.micrometer:micrometer-core:1.11.0")
+    testImplementation("io.micrometer:micrometer-core:1.17.2")
 
     // Add SLF4J Simple binding for tests
-    testRuntimeOnly("org.slf4j:slf4j-simple:2.0.17")
+    testRuntimeOnly("org.slf4j:slf4j-simple:2.0.20")
 }
 
 // Create a fat JAR with all dependencies
