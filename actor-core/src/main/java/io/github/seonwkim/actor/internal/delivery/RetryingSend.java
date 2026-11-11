@@ -1,11 +1,14 @@
 package io.github.seonwkim.actor.internal.delivery;
 
 import io.github.seonwkim.actor.delivery.ReliableDeliveryException;
+import io.github.seonwkim.actor.delivery.ReliableDeliveryException.Reason;
 import io.github.seonwkim.actor.delivery.RetryPolicy;
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import javax.annotation.Nullable;
 import org.apache.pekko.actor.typed.RecipientRef;
 import org.apache.pekko.actor.typed.Scheduler;
@@ -13,7 +16,8 @@ import org.apache.pekko.actor.typed.javadsl.AskPattern;
 
 /**
  * One reliable send: asks {@code target} with a {@link ReliableEnvelope} until it acks, with the
- * backoff, attempts and deadline of a {@link RetryPolicy}. Every attempt carries the same key.
+ * attempts and deadline of a {@link RetryPolicy} and exponential backoff with full jitter. Every
+ * attempt carries the same key and message. A payload conflict ends the send at once.
  */
 final class RetryingSend {
 
@@ -46,43 +50,72 @@ final class RetryingSend {
             throw new IllegalArgumentException("idempotencyKey must not be blank");
         }
         RetryingSend send = new RetryingSend((RecipientRef<ReliableEnvelope>) target, message, key, policy, scheduler);
-        send.attempt(1, policy.initialBackoff());
+        send.attempt(1, policy.initialBackoff(), Reason.TIMEOUT);
         return send.result;
     }
 
-    private void attempt(int attempt, Duration backoff) {
+    private void attempt(int attempt, Duration backoff, Reason lastReason) {
         Duration remaining = Duration.ofNanos(deadlineNanos - System.nanoTime());
         if (remaining.isNegative() || remaining.isZero()) {
-            giveUp(attempt - 1, null);
+            giveUp(attempt - 1, lastReason, null);
             return;
         }
         Duration timeout = remaining.compareTo(policy.attemptTimeout()) < 0 ? remaining : policy.attemptTimeout();
+        long startNanos = System.nanoTime();
         AskPattern.<ReliableEnvelope, ReliableAck>ask(
                         target, replyTo -> new ReliableEnvelope(key, message, replyTo), timeout, scheduler)
-                .whenComplete((ack, failure) -> {
-                    if (failure == null) {
+                .whenComplete((reply, failure) -> {
+                    if (reply == ReliableAck.ACK) {
                         result.complete(null);
-                    } else if (attempt >= policy.maxAttempts()) {
-                        giveUp(attempt, failure);
-                    } else if (Duration.ofNanos(deadlineNanos - System.nanoTime())
-                                    .compareTo(backoff)
-                            <= 0) {
-                        giveUp(attempt, failure);
+                        return;
+                    }
+                    Reason reason = reply == ReliableAck.PAYLOAD_CONFLICT
+                            ? Reason.PAYLOAD_CONFLICT
+                            : reply == ReliableAck.STALE_GENERATION
+                                    ? Reason.STALE_GENERATION
+                                    : reasonFor(failure, Duration.ofNanos(System.nanoTime() - startNanos), timeout);
+                    Duration pause = jittered(backoff);
+                    if (!reason.isRetryable()
+                            || attempt >= policy.maxAttempts()
+                            || Duration.ofNanos(deadlineNanos - System.nanoTime())
+                                            .compareTo(pause)
+                                    <= 0) {
+                        giveUp(attempt, reason, failure);
                     } else {
-                        Duration next = backoff.multipliedBy(2);
-                        Duration capped = next.compareTo(policy.maxBackoff()) > 0 ? policy.maxBackoff() : next;
-                        CompletableFuture.delayedExecutor(backoff.toNanos(), TimeUnit.NANOSECONDS)
-                                .execute(() -> attempt(attempt + 1, capped));
+                        Duration next = nextBackoff(backoff, policy.maxBackoff());
+                        CompletableFuture.delayedExecutor(pause.toNanos(), TimeUnit.NANOSECONDS)
+                                .execute(() -> attempt(attempt + 1, next, reason));
                     }
                 });
     }
 
-    private void giveUp(int attempts, @Nullable Throwable lastFailure) {
-        result.completeExceptionally(new ReliableDeliveryException(
-                "Not acknowledged after " + attempts + " attempt(s) within " + policy.timeout() + " (idempotency key "
-                        + key + ", max attempts " + policy.maxAttempts() + ")",
-                key,
-                attempts,
-                lastFailure));
+    /**
+     * A timeout that came before the attempt's timeout did not wait for the receiver: the ask failed
+     * at once, as it does for a stopped actor. So did any other failure.
+     */
+    private static Reason reasonFor(@Nullable Throwable failure, Duration waited, Duration attemptTimeout) {
+        return failure instanceof TimeoutException && waited.compareTo(attemptTimeout.dividedBy(2)) >= 0
+                ? Reason.TIMEOUT
+                : Reason.UNAVAILABLE;
+    }
+
+    /** Twice {@code backoff}, at most {@code maxBackoff}. */
+    static Duration nextBackoff(Duration backoff, Duration maxBackoff) {
+        Duration next = backoff.multipliedBy(2);
+        return next.compareTo(maxBackoff) > 0 ? maxBackoff : next;
+    }
+
+    /** Full jitter: a random pause from zero to {@code backoff}. */
+    private static Duration jittered(Duration backoff) {
+        return Duration.ofNanos(ThreadLocalRandom.current().nextLong(backoff.toNanos() + 1));
+    }
+
+    private void giveUp(int attempts, Reason reason, @Nullable Throwable lastFailure) {
+        String what = reason == Reason.PAYLOAD_CONFLICT
+                ? "The receiver handled idempotency key " + key + " with a different payload"
+                : "Not acknowledged after " + attempts + " attempt(s) within " + policy.timeout() + " (idempotency key "
+                        + key + ", max attempts " + policy.maxAttempts() + ")";
+        result.completeExceptionally(
+                new ReliableDeliveryException(what + ": " + reason, key, attempts, reason, lastFailure));
     }
 }

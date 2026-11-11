@@ -2,6 +2,7 @@ package io.github.seonwkim.actor.delivery;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.github.seonwkim.actor.EnableActorSupport;
 import io.github.seonwkim.actor.SpringActorBehavior;
@@ -26,7 +27,8 @@ import org.springframework.context.annotation.Bean;
 
 /**
  * Reliable delivery to sharded entities on a one-node cluster. Every message is serialized, as
- * between nodes, so the envelope's serializer is part of what is tested.
+ * between nodes, so the envelope's serializer, its replies, and payload fingerprints of
+ * deserialized copies are part of what is tested.
  */
 class ShardedReliableDeliveryTest {
 
@@ -121,5 +123,20 @@ class ShardedReliableDeliveryTest {
                 .get(30, SECONDS);
 
         assertThat(entity.runs.get("dedupe-1")).hasValue(1);
+    }
+
+    @Test
+    void sameKeyWithAnotherPayloadToAnEntityIsAConflict() throws Exception {
+        sender.send("conflict-1", new OrderEntity.PlaceOrder("o-1"), "order-1")
+                .toCompletableFuture()
+                .get(30, SECONDS);
+
+        assertThatThrownBy(() -> sender.send("conflict-1", new OrderEntity.PlaceOrder("o-2"), "order-1")
+                        .toCompletableFuture()
+                        .get(30, SECONDS))
+                .cause()
+                .isInstanceOfSatisfying(ReliableDeliveryException.class, e -> assertThat(e.reason())
+                        .isEqualTo(ReliableDeliveryException.Reason.PAYLOAD_CONFLICT));
+        assertThat(entity.runs.get("conflict-1")).hasValue(1);
     }
 }

@@ -17,21 +17,24 @@ import org.apache.pekko.actor.typed.Scheduler;
 
 /**
  * {@link SpringReliableDelivery} on Pekko's ask: a {@link RetryingSend} per message, to an actor ref
- * or to a sharded entity ref (both are Pekko {@link RecipientRef}s).
+ * or to a sharded entity ref (both are Pekko {@link RecipientRef}s). Senders retry with
+ * {@code defaultRetry} unless they set their own policy.
  */
 public final class PekkoReliableDelivery implements SpringReliableDelivery {
 
     private final SpringActorSystem actorSystem;
+    private final RetryPolicy defaultRetry;
 
-    public PekkoReliableDelivery(SpringActorSystem actorSystem) {
+    public PekkoReliableDelivery(SpringActorSystem actorSystem, RetryPolicy defaultRetry) {
         this.actorSystem = actorSystem;
+        this.defaultRetry = Objects.requireNonNull(defaultRetry, "defaultRetry");
     }
 
     @Override
     public <T> ReliableSender.Builder<T> to(SpringActorRef<T> receiver) {
         Objects.requireNonNull(receiver, "receiver");
         return new ReliableSender.Builder<>() {
-            private RetryPolicy retry = RetryPolicy.defaults();
+            private RetryPolicy retry = defaultRetry;
 
             @Override
             public ReliableSender.Builder<T> withRetry(RetryPolicy retryPolicy) {
@@ -63,7 +66,7 @@ public final class PekkoReliableDelivery implements SpringReliableDelivery {
     public <T> ShardedReliableSender.Builder<T> toSharded(Class<? extends SpringShardedActor<T>> actorClass) {
         Objects.requireNonNull(actorClass, "actorClass");
         return new ShardedReliableSender.Builder<>() {
-            private RetryPolicy retry = RetryPolicy.defaults();
+            private RetryPolicy retry = defaultRetry;
 
             @Override
             public ShardedReliableSender.Builder<T> withRetry(RetryPolicy retryPolicy) {

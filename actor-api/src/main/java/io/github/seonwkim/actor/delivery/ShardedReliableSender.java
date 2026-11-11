@@ -15,14 +15,18 @@ public interface ShardedReliableSender<T> {
 
     /**
      * Sends {@code message} to entity {@code entityId} with {@code idempotencyKey}. Any send with the
-     * same key to that entity runs the handler once while the entity remembers the key.
+     * same key to that entity runs the handler once while the entity remembers the key. The same key
+     * with a different payload fails with {@link ReliableDeliveryException.Reason#PAYLOAD_CONFLICT}.
      */
     CompletionStage<Void> send(String entityId, T message, String idempotencyKey);
 
     /** Configures a sender. */
     interface Builder<T> {
 
-        /** How sends are retried. Defaults to {@link RetryPolicy#defaults()}. */
+        /**
+         * How sends are retried. Defaults to {@code spring.actor.delivery.retry.*}, which defaults
+         * to {@link RetryPolicy#defaults()}.
+         */
         Builder<T> withRetry(RetryPolicy retryPolicy);
 
         ShardedReliableSender<T> build();

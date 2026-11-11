@@ -1,14 +1,23 @@
 package io.github.seonwkim.actor.autoconfigure;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.typesafe.config.Config;
 import io.github.seonwkim.actor.SpringActorSystem;
+import io.github.seonwkim.actor.delivery.ReliableDeliveryException;
+import io.github.seonwkim.actor.delivery.SpringReliableDelivery;
+import io.github.seonwkim.actor.internal.PekkoActorRef;
 import io.github.seonwkim.actor.internal.delivery.ReliableConsumerModule;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import org.apache.pekko.actor.typed.ActorRef;
 import org.apache.pekko.actor.typed.ActorSystem;
+import org.apache.pekko.actor.typed.Props;
+import org.apache.pekko.actor.typed.javadsl.Behaviors;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -66,6 +75,29 @@ class ActorPropertiesTest {
                             .isEqualTo(Duration.ofSeconds(90));
                     assertThat(config.getInt(ReliableConsumerModule.MAX_KEYS_KEY))
                             .isEqualTo(500);
+                });
+    }
+
+    @Test
+    void retrySettingsReachTheReliableSenders() {
+        runner.withPropertyValues(
+                        "spring.actor.delivery.retry.max-attempts=2",
+                        "spring.actor.delivery.retry.attempt-timeout=100ms",
+                        "spring.actor.delivery.retry.initial-backoff=10ms")
+                .run(context -> {
+                    // Never acks, so each attempt times out.
+                    ActorSystem<?> system = context.getBean(SpringActorSystem.class).unwrap(ActorSystem.class);
+                    ActorRef<Object> silent = system.systemActorOf(Behaviors.ignore(), "never-acks", Props.empty());
+                    CompletableFuture<Void> send = context.getBean(SpringReliableDelivery.class)
+                            .to(new PekkoActorRef<>(silent))
+                            .build()
+                            .send("hello")
+                            .toCompletableFuture();
+
+                    assertThatThrownBy(() -> send.get(10, TimeUnit.SECONDS))
+                            .cause()
+                            .isInstanceOfSatisfying(ReliableDeliveryException.class, e -> assertThat(e.attempts())
+                                    .isEqualTo(2));
                 });
     }
 

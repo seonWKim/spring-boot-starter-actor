@@ -190,10 +190,15 @@ public class ActorConfiguration {
         return new PekkoReceptionist(actorSystem);
     }
 
-    /** Starts senders that deliver at least once (reliable delivery). */
+    /**
+     * Starts senders that deliver at least once (reliable delivery), retrying as
+     * {@code spring.actor.delivery.retry.*} says.
+     */
     @Bean
     @ConditionalOnMissingBean(SpringReliableDelivery.class)
-    public SpringReliableDelivery springReliableDelivery(SpringActorSystem actorSystem) {
-        return new PekkoReliableDelivery(actorSystem);
+    public SpringReliableDelivery springReliableDelivery(
+            SpringActorSystem actorSystem, ActorProperties actorProperties) {
+        return new PekkoReliableDelivery(
+                actorSystem, actorProperties.getDelivery().getRetry().toRetryPolicy());
     }
 }

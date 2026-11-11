@@ -6,15 +6,17 @@ import java.util.Objects;
 /**
  * How a reliable sender retries a message that was not acknowledged. Each attempt waits up to
  * {@code attemptTimeout} for the ack; the next attempt follows after a backoff that starts at
- * {@code initialBackoff} and doubles up to {@code maxBackoff}. The sender gives up after
- * {@code maxAttempts} attempts or when {@code timeout} has passed since the first, whichever comes
- * first.
+ * {@code initialBackoff} and doubles up to {@code maxBackoff}, with full jitter: the pause is random,
+ * from zero to the backoff. The sender gives up after {@code maxAttempts} attempts or when
+ * {@code timeout} has passed since the first, whichever comes first. Every attempt carries the same
+ * idempotency key and payload. A {@link ReliableDeliveryException.Reason#PAYLOAD_CONFLICT} is not
+ * retried.
  *
  * @param maxAttempts attempts in total, including the first; at least 1
  * @param timeout the time from the first attempt after which the sender gives up
  * @param attemptTimeout how long one attempt waits for the ack
  * @param initialBackoff the pause before the second attempt
- * @param maxBackoff the longest pause between attempts
+ * @param maxBackoff the longest backoff between attempts
  */
 public record RetryPolicy(
         int maxAttempts, Duration timeout, Duration attemptTimeout, Duration initialBackoff, Duration maxBackoff) {
