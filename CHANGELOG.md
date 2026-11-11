@@ -83,6 +83,12 @@
 
 ### Fixes
 
+- **Hardened CI workflows (#247).** Third-party actions (`softprops/action-gh-release`,
+  `graalvm/setup-graalvm`) are pinned to a commit SHA with the version in a comment. `publish.yml` passes its
+  `tag` input through the environment and rejects anything but `vMAJOR.MINOR.PATCH`
+  (`scripts/release/check-tag.sh`) before it uses it. Every workflow sets read-only `permissions:` at the
+  top, with write only on the jobs that push. `.github/dependabot.yml` opens one weekly pull request for
+  Gradle and one for GitHub Actions.
 - **The Kubernetes example serves Actuator on its own port (#246).** Actuator (health, metrics, info,
   prometheus) was on the application port 8080, which the NetworkPolicy opens to every source. It now runs on
   `management.server.port: 8081`: the probes, the ServiceMonitor, the PodMonitor, the scrape annotation and

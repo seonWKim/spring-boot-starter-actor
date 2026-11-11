@@ -16,6 +16,9 @@ on:
           # that never reached Maven Central (its deployment failed validation); moves its tag.
           - republish
 
+permissions:
+  contents: read
+
 jobs:
   bump-version:
     runs-on: ubuntu-latest
@@ -42,11 +45,13 @@ jobs:
 
       - name: 🔢 Calculate new version
         id: bump
+        env:
+          BUMP_TYPE: ${{ github.event.inputs.bumpType }}
         run: |
           current=${{ steps.get_version.outputs.version }}
           IFS='.' read -r MAJOR MINOR PATCH <<< "$current"
 
-          case "${{ github.event.inputs.bumpType }}" in
+          case "$BUMP_TYPE" in
             major)
               MAJOR=$((MAJOR + 1))
               MINOR=0
@@ -119,9 +124,11 @@ jobs:
           git push origin main
 
       - name: 🔖 Create Git tag v<version>
+        env:
+          BUMP_TYPE: ${{ github.event.inputs.bumpType }}
         run: |
           TAG_NAME="v${{ steps.bump.outputs.new_version }}"
-          if [ "${{ github.event.inputs.bumpType }}" = republish ]; then
+          if [ "$BUMP_TYPE" = republish ]; then
             echo "🏷 Moving tag $TAG_NAME to main's head"
             git tag -f $TAG_NAME
             git push -f origin $TAG_NAME
@@ -229,7 +236,7 @@ jobs:
         run: scripts/release/monitoring-assets.sh "${{ needs.bump-version.outputs.version }}" build/monitoring-assets
 
       - name: 📝 Create GitHub Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v0.1.15
         with:
           tag_name: ${{ needs.prepare.outputs.tag }}
           name: Release ${{ needs.prepare.outputs.tag }}

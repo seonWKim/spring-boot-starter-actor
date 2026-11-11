@@ -6,11 +6,13 @@ on:
       - main
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # mkdocs gh-deploy pushes the gh-pages branch
     steps:
       - uses: actions/checkout@v4
 

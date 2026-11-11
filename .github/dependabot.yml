@@ -1,0 +1,21 @@
+# Weekly dependency updates, one pull request per ecosystem: every Gradle library in one group, every
+# GitHub Action in another. Pinned actions (uses: owner/repo@<sha> # vX.Y.Z) get their SHA and comment updated.
+version: 2
+updates:
+  - package-ecosystem: gradle
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      gradle:
+        patterns:
+          - "*"
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        patterns:
+          - "*"
