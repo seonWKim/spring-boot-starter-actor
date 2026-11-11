@@ -127,7 +127,7 @@ public final class ReliableConsumerModule implements ModuleSupport {
      * its class keeps {@code Object}'s identity hash code, which differs for every copy (a message
      * from another node, or rebuilt by the caller), so it can't tell payloads apart.
      */
-    static @Nullable Integer fingerprint(Object message) {
+    private static @Nullable Integer fingerprint(Object message) {
         return VALUE_HASH_CODE.get(message.getClass()) ? message.hashCode() : null;
     }
 
