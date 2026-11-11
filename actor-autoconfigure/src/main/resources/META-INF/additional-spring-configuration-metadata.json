@@ -22,8 +22,14 @@
     {
       "name": "management.health.actor.enabled",
       "type": "java.lang.Boolean",
-      "description": "Whether to report the actor system and, in cluster mode, this node's cluster membership as Actuator health components (actorSystem, actorCluster).",
+      "description": "Whether to report the actor system and, in cluster mode, this node's cluster membership and warm-up as Actuator health components (actorSystem, actorCluster, actorWarmup and the warmup group).",
       "defaultValue": true
+    },
+    {
+      "name": "management.health.actor.warmup.min-members",
+      "type": "java.lang.Integer",
+      "description": "Up members the cluster must have before actorWarmup (and the warmup health group) reports UP. Set it to the number of replicas a new deployment must have joined before it is activated.",
+      "defaultValue": 1
     },
     {
       "name": "spring.actor.dispatchers.*.executor",
