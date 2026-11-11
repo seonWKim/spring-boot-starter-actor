@@ -10,7 +10,9 @@ import io.github.seonwkim.actor.SpringActorBehavior;
 import io.github.seonwkim.actor.SpringActorContext;
 import io.github.seonwkim.actor.SpringActorSystem;
 import io.github.seonwkim.actor.cluster.ClusterEvent;
+import io.github.seonwkim.actor.cluster.MemberStatus;
 import io.github.seonwkim.actor.fixture.TestShardedActor;
+import io.github.seonwkim.actor.internal.cluster.ClusterStateView;
 import io.github.seonwkim.actor.internal.shard.ShardedActorRegistry;
 import io.github.seonwkim.actor.internal.shard.ShardingStats;
 import io.github.seonwkim.actor.metrics.cluster.ClusterMeters;
@@ -99,13 +101,23 @@ class ClusterMetricsTest {
                     start("spring.actor.cluster.join-self=false", "spring.actor.cluster.seed-nodes=" + seed)) {
                 await().atMost(Duration.ofSeconds(20)).until(() -> gauge(first, "actor.cluster.members") == 2);
                 await().atMost(Duration.ofSeconds(5)).until(() -> events(first, "MemberUp") == upBefore + 1);
-                assertThat(gauge(second, "actor.cluster.leader")).isZero();
+                // Both nodes see both members Up, so they agree on the leader and the singleton host.
+                await().atMost(Duration.ofSeconds(20)).until(() -> bothUp(first) && bothUp(second));
+                // Pekko's leader is the member with the lowest address, and the OS picks the ports, so
+                // either node can lead. Exactly one does.
+                assertThat(gauge(first, "actor.cluster.leader") + gauge(second, "actor.cluster.leader"))
+                        .isEqualTo(1);
                 // The singletons run on the oldest member, which is the first node.
-                await().atMost(Duration.ofSeconds(5)).until(() -> gauge(second, "actor.cluster.members") == 2);
                 assertThat(gauge(first, "actor.cluster.singleton.host")).isEqualTo(1);
                 assertThat(gauge(second, "actor.cluster.singleton.host")).isZero();
             }
         }
+    }
+
+    private static boolean bothUp(ConfigurableApplicationContext context) {
+        List<ClusterStateView.Node> nodes =
+                ClusterStateView.of(context.getBean(SpringActorSystem.class)).nodes();
+        return nodes.size() == 2 && nodes.stream().allMatch(node -> node.status() == MemberStatus.UP);
     }
 
     @Test

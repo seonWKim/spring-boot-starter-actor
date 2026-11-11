@@ -83,6 +83,10 @@
 
 ### Fixes
 
+- **`ClusterMetricsTest` no longer flakes on the leader (#242).** It asserted that the node that joins later
+  is not the leader before both nodes saw each other Up. Pekko's leader is the member with the lowest address,
+  so once the cluster settled the later node led whenever the OS gave it the lower port. The test now waits
+  until both nodes see both members Up and asserts that exactly one of them leads.
 - **Blue-green pods stay inside the NetworkPolicy (#235).** In the Kubernetes example, `blue-green.sh deploy`
   labelled the green pods `app=spring-actor-green`, which no NetworkPolicy selected, so green's remoting and
   management ports were open to any pod and its egress was unrestricted. `deploy` now copies blue's
