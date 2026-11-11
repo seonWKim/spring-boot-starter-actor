@@ -66,6 +66,7 @@ class StoreDeploymentGenerationTest {
         StoreDeploymentGeneration green = node("green", Duration.ofSeconds(1), clock);
         green.activate("blue", 0, "deploy-1");
         assertThat(blue.isActive()).isTrue();
+        assertThat(green.isActive()).isFalse();
 
         green.activate("green", 1, "deploy-2");
 

@@ -32,6 +32,11 @@ dependencies {
 
 	implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
 	implementation("org.springframework.boot:spring-boot-starter-actuator")
+	// Blue-green activation (example/kubernetes): the active generation in Redis, and an authenticated
+	// generation endpoint. Off unless spring.actor.generation.color is set.
+	implementation(project(":actor-redis"))
+	implementation("org.springframework.boot:spring-boot-starter-data-redis")
+	implementation("org.springframework.boot:spring-boot-starter-security")
 	implementation("io.micrometer:micrometer-registry-prometheus")  // Brings micrometer-core transitively
 	implementation("com.fasterxml.jackson.core:jackson-databind")
 

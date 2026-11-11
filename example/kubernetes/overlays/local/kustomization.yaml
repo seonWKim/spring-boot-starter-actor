@@ -10,6 +10,9 @@ replicas:
 - name: spring-actor
   count: 3
 
+components:
+- ../../components/generation
+
 patchesStrategicMerge:
 - service-patch.yaml
 - deployment-patch.yaml

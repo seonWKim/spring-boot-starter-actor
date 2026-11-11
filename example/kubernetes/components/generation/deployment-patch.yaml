@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spring-actor
+spec:
+  template:
+    spec:
+      containers:
+      - name: spring-actor
+        env:
+        # This Deployment is the blue color; blue-green.sh deploy starts green with
+        # --spring.actor.generation.color=green.
+        - name: SPRING_ACTOR_GENERATION_COLOR
+          value: blue
+        - name: SPRING_ACTOR_GENERATION_STORE
+          value: redis
+        - name: SPRING_DATA_REDIS_HOST
+          value: redis
+        - name: MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE
+          value: health,prometheus,info,metrics,generation
+        # Activation is a write: off unless access is unrestricted, and it needs the DEPLOYER role.
+        - name: MANAGEMENT_ENDPOINT_GENERATION_ACCESS
+          value: unrestricted
+        - name: SPRING_SECURITY_USER_ROLES
+          value: DEPLOYER
+        - name: SPRING_SECURITY_USER_NAME
+          valueFrom:
+            secretKeyRef:
+              name: spring-actor-deployer
+              key: username
+        - name: SPRING_SECURITY_USER_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: spring-actor-deployer
+              key: password

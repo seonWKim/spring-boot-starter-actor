@@ -1,6 +1,5 @@
 package io.github.seonwkim.actor.autoconfigure.generation;
 
-import io.github.seonwkim.actor.generation.ActivationResult;
 import org.springframework.boot.actuate.endpoint.SecurityContext;
 import org.springframework.boot.actuate.endpoint.annotation.WriteOperation;
 import org.springframework.boot.actuate.endpoint.web.WebEndpointResponse;
@@ -9,7 +8,7 @@ import org.springframework.boot.actuate.endpoint.web.annotation.EndpointWebExten
 /**
  * The {@code generation} endpoint over HTTP: a rejected activation fails loudly, with {@code 409 Conflict}
  * for a mismatched epoch or a reused operation ID, and {@code 401 Unauthorized} without an authenticated
- * user. The body is the {@link ActivationResult} either way.
+ * user. The body is the {@link GenerationEndpoint.Activation} either way.
  */
 @EndpointWebExtension(endpoint = GenerationEndpoint.class)
 public class GenerationEndpointWebExtension {
@@ -21,9 +20,9 @@ public class GenerationEndpointWebExtension {
     }
 
     @WriteOperation
-    public WebEndpointResponse<ActivationResult> activate(
+    public WebEndpointResponse<GenerationEndpoint.Activation> activate(
             String color, long expectedEpoch, String operationId, SecurityContext securityContext) {
-        ActivationResult result = endpoint.activate(color, expectedEpoch, operationId, securityContext);
+        GenerationEndpoint.Activation result = endpoint.activate(color, expectedEpoch, operationId, securityContext);
         int status =
                 switch (result.outcome()) {
                     case ACTIVATED, ALREADY_ACTIVATED -> WebEndpointResponse.STATUS_OK;

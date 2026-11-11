@@ -27,7 +27,32 @@ public class GenerationEndpoint {
      * @param color this node's color
      * @param active the active generation, null before the first activation
      */
-    public record Generation(String deployment, String color, @Nullable ActiveGeneration active) {}
+    public record Generation(String deployment, String color, @Nullable Active active) {}
+
+    /**
+     * A generation as JSON. {@code activatedAt} is an ISO-8601 string: Actuator's own JSON mapper may not
+     * know {@code java.time} types.
+     */
+    public record Active(String color, long epoch, String operationId, String activatedAt) {
+
+        @Nullable static Active of(@Nullable ActiveGeneration generation) {
+            return generation == null
+                    ? null
+                    : new Active(
+                            generation.color(),
+                            generation.epoch(),
+                            generation.operationId(),
+                            generation.activatedAt().toString());
+        }
+    }
+
+    /** What an activation returns: the outcome and the generation it refers to (see {@link ActivationResult}). */
+    public record Activation(ActivationResult.Outcome outcome, @Nullable Active generation) {
+
+        static Activation of(ActivationResult result) {
+            return new Activation(result.outcome(), Active.of(result.generation()));
+        }
+    }
 
     private final StoreDeploymentGeneration generation;
 
@@ -41,20 +66,19 @@ public class GenerationEndpoint {
         return new Generation(
                 generation.deployment(),
                 generation.color(),
-                generation.activeNow().orElse(null));
+                Active.of(generation.activeNow().orElse(null)));
     }
 
     @WriteOperation
-    public ActivationResult activate(
-            String color, long expectedEpoch, String operationId, SecurityContext securityContext) {
+    public Activation activate(String color, long expectedEpoch, String operationId, SecurityContext securityContext) {
         Principal principal = securityContext.getPrincipal();
         if (principal == null) {
             ActivationResult rejected = new ActivationResult(
                     ActivationResult.Outcome.UNAUTHENTICATED,
                     generation.activeNow().orElse(null));
             generation.audit(color, expectedEpoch, operationId, null, rejected);
-            return rejected;
+            return Activation.of(rejected);
         }
-        return generation.activate(color, expectedEpoch, operationId, principal.getName());
+        return Activation.of(generation.activate(color, expectedEpoch, operationId, principal.getName()));
     }
 }

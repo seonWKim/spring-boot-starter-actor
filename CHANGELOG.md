@@ -15,6 +15,17 @@
 
 ### Features
 
+- **Blue-green activation with an epoch (#232).** With `spring.actor.generation.color` and
+  `spring.actor.generation.store` (`jdbc` or `redis`), the active color is a record in the shared store with
+  an epoch that only grows. `POST /actuator/generation` activates a color with a compare-and-set on the
+  expected epoch and an operation ID: a competing deploy gets `409`, a retried operation gets its first
+  result, and a request without an authenticated user gets `401`. Every attempt publishes an
+  `ActivationEvent`, a log line and the `actor.generation.activations` meter. `DeploymentGeneration` stamps
+  work with the epoch and refuses stale work with `StaleGenerationException`. New SPI: `GenerationStore`
+  (`JdbcGenerationStore`, the `actor_generation` table; `RedisGenerationStore`; `InMemoryGenerationStore`
+  and `GenerationStoreContract` in `actor-test`). The endpoint is read-only unless
+  `management.endpoint.generation.access=unrestricted`. The Kubernetes example's `blue-green.sh activate`
+  and `rollback` go through it.
 - **Warm-up health group (#231).** In cluster mode, `/actuator/health/warmup` (component `actorWarmup`) is
   `UP` once this node is an `Up` member, the cluster has `management.health.actor.warmup.min-members` `Up`
   members (default 1) and the `jdbc` or `redis` discovery store answers. It does not depend on traffic
