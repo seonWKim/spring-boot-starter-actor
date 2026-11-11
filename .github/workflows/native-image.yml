@@ -7,6 +7,9 @@ on:
   schedule:
     - cron: '0 3 * * 1'  # Mondays 03:00 UTC
 
+permissions:
+  contents: read
+
 jobs:
   simple-example:
     name: Simple example as a native image
@@ -17,7 +20,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: ☕ Set up GraalVM 21
-        uses: graalvm/setup-graalvm@v1
+        uses: graalvm/setup-graalvm@f70bc8032f90a104502824a54bcb94b6f01715bc # v1.6.8
         with:
           java-version: '21'
           distribution: 'graalvm'
