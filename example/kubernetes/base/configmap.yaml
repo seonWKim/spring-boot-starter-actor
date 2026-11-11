@@ -91,6 +91,11 @@ data:
               # Ready only while this pod is an Up cluster member.
               include: readinessState,actorCluster
       health:
+        actor:
+          warmup:
+            # /actuator/health/warmup is UP once this pod is an Up member of a cluster with at
+            # least 2 Up members. blue-green.sh deploy waits for it before activation.
+            min-members: 2
         readinessState:
           enabled: true
         livenessState:

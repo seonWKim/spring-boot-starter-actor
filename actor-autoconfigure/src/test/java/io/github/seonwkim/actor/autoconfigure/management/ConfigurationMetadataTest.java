@@ -71,6 +71,7 @@ class ConfigurationMetadataTest {
     @ValueSource(
             strings = {
                 "management.health.actor.enabled",
+                "management.health.actor.warmup.min-members",
                 "spring.actor.dispatchers.*.executor",
                 "spring.actor.dispatchers.*.virtual",
                 "spring.actor.dispatchers.*.throughput"

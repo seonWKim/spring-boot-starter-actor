@@ -87,18 +87,74 @@ the same restrictions as blue, and remoting (25520) and management (7626) open o
 color: blue and green cannot reach each other's cluster ports. A canary keeps `app=spring-actor`, so blue's
 policies cover it.
 
+### The release pipeline
+
+A blue-green release runs in four stages. Each one waits for a signal before the next starts:
+
+| Stage | Command | Waits for |
+|---|---|---|
+| 1. Warm up | `blue-green.sh deploy <image>` | every green pod answers `UP` on `/actuator/health/warmup`, then is ready |
+| 2. Activate | `blue-green.sh activate` | nothing: the HTTP Service's selector now picks the green pods |
+| 3. Verify | `blue-green.sh verify` | the Service's ready endpoints are exactly the green pods |
+| 4. Retire | `blue-green.sh retire` | run it once green has served for a while; it deletes blue |
+
 ```bash
 cd example/kubernetes
-scripts/blue-green.sh deploy spring-actor-chat:v4   # start green beside blue; blue keeps serving
-scripts/blue-green.sh switch                        # the HTTP Service now selects the green pods
-# scripts/blue-green.sh rollback                    # point the Service back at blue
-scripts/blue-green.sh finish                        # delete blue
+scripts/blue-green.sh deploy spring-actor-chat:v4   # start green beside blue and wait until it is warm
+scripts/blue-green.sh activate                      # the HTTP Service now selects the green pods
+scripts/blue-green.sh verify                        # wait until only green pods serve
+# scripts/blue-green.sh rollback                    # point the Service back at blue and wait for it
+scripts/blue-green.sh retire                        # delete blue
 ```
+
+The first stage gates on **warm-up**, not on `kubectl rollout status` or the Deployment's `Available`
+condition. Those follow traffic readiness, and in a pipeline where the standby color refuses traffic until it
+is activated they never come. The warm-up group says only that the pod can be activated:
+
+- the pod is an `Up` member of its cluster,
+- the cluster has at least `management.health.actor.warmup.min-members` `Up` members (the example sets 2),
+- and the discovery store answers, when the cluster forms through `jdbc` or `redis` discovery.
+
+It never depends on which color is active. The three probes stay apart: liveness says whether to restart the
+pod, readiness whether to send it traffic, and warm-up whether it can be activated (see
+[Health checks](production.md#warm-up)).
 
 In-memory state does not move: entities, singletons and topics start empty on green. Keep state that must
 survive the switch in a database or event journal both clusters read
 ([State in a Database](../data/state-in-a-database.md), [Event-Sourced Actors](../data/event-sourcing.md)).
-Until `finish`, `rollback` sends traffic back to blue, which still has its state.
+Until `retire`, `rollback` sends traffic back to blue, which still has its state.
+
+### Requests at the cutover
+
+In the example the Service selector switches the colors, and readiness does not depend on the color. So
+`deploy` waits for warm-up **and** then for the green pods to be ready. Warm-up alone is not enough there:
+a pod can be warm before its readiness probe first passes (the example's probe starts after 30 seconds),
+and a Service that selects only pods that are not ready yet has no endpoints. Measured on kind with
+`test-strategies.sh` (four workers asking sharded entities):
+
+| `deploy` waited for | Requests | Failed | Service served only green |
+|---|---|---|---|
+| warm-up only | 15,057 | 20, all within 10 seconds after `activate` | 15 seconds after `activate` |
+| warm-up, then ready (the script today) | 23,151 and 22,890 (two runs) | 0 and 0 | at the first check after `activate` |
+
+Blue keeps running and serving until `retire`, so a node whose proxy rules still point at blue for a moment
+after the switch still gets answers.
+
+When readiness itself switches the colors (the standby refuses traffic until it is activated, and one
+Service selects both), the cutover waits for readiness to propagate: each pod's readiness probe has to pass
+(`periodSeconds` times `successThreshold` for the new color, `periodSeconds` times `failureThreshold` for the
+old one), then the endpoint controller and every node's kube-proxy update. **Shorter probe intervals shorten
+that window but don't close it**: requests routed during it reach a pod that is about to leave or none at
+all. This mode was not measured here. Close the window with draining instead:
+
+- switch with the Service selector (or another routing change) while both colors are ready, and keep the old
+  pods running until `verify` shows the Service no longer selects them (`retire` comes last);
+- the `preStop` sleep (10 seconds in the example) keeps a terminating pod serving while the endpoint removal
+  propagates;
+- `server.shutdown: graceful` finishes the requests the pod has already accepted.
+
+`scripts/test-strategies.sh` prints, for the blue-green step, how long the Service took to serve only green
+and how many requests failed from activation on.
 
 ## Testing the strategies under load
 
@@ -115,7 +171,7 @@ scripts/test-strategies.sh
 ```
 
 It runs, in order: a rolling update to `v2` (120 seconds of load), a canary of `v3` that is then promoted
-(180 seconds), and a blue-green switch to `v4` (90 seconds). Each step's load runs four workers that ask
+(180 seconds), and a blue-green release of `v4` through the four stages above (90 seconds, then `retire`). Each step's load runs four workers that ask
 sharded entities (`/hello?message=hi&entityId=e<0-49>`).
 
 What it checks and what it does not:
@@ -196,7 +252,7 @@ readable by the new version (see [Event-Sourced Actors](../data/event-sourcing.m
 |---|---|
 | Rolling update | `kubectl rollout undo deployment/spring-actor -n spring-actor`: a rolling update in the other direction, so the same compatibility rules apply |
 | Canary | `scripts/canary.sh abort` removes the canary pods; the main pods were never changed |
-| Blue-green | `scripts/blue-green.sh rollback` until `finish`; blue still has its in-memory state |
+| Blue-green | `scripts/blue-green.sh rollback` until `retire`; blue still has its in-memory state |
 
 ## Related
 
