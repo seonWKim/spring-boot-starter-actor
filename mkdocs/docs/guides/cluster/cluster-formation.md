@@ -194,6 +194,56 @@ Bootstrap waits for `pekko.management.cluster.bootstrap.contact-point-discovery.
 With `join: discovery`, the split brain resolver defaults to `keep-majority`. To choose another strategy, or
 to keep singletons and shards on one node with a lease, see [Split Brain and Leases](split-brain-and-leases.md).
 
+## Securing the discovery store
+
+With `jdbc` or `redis` discovery, the store decides which hosts a new node contacts and joins: Bootstrap
+trusts every entry it reads. Leases in the same store ([Split Brain and Leases](split-brain-and-leases.md#leases))
+decide which node may run a singleton or a shard, or stays up after a split. So whoever can write
+`actor_peer`, `actor_lease` or the `actor:peer:` and `actor:lease:` keys can point new nodes at a host they
+control, or take a lease. Treat the store as part of the cluster's trust boundary: only the nodes write to it.
+
+Remoting (`25520`) accepts any connection unless you set up Pekko's TLS transport
+(`spring.actor.pekko.remote.artery.transport: tls-tcp` and its `ssl` settings), and the management port
+(`7626`) has no authentication. So the store's permissions and the network rules (only the cluster's nodes
+reach these ports) are the controls.
+
+**Redis.** Give the nodes a dedicated ACL user that can touch only the starter's keys and run only the
+commands the stores use:
+
+```text
+ACL SETUSER actor-store on >change-me resetkeys ~actor:peer:* ~actor:lease:* resetchannels -@all +@connection +time +scan +hgetall +get +set +del +eval +evalsha +hset +pexpire
+```
+
+- `HSET`, `PEXPIRE`, `GET` and `DEL` also run inside the stores' Lua scripts, and Redis checks a script's
+  commands against the same ACL.
+- Turn on TLS (`spring.data.redis.ssl.enabled: true`) and auth (`spring.data.redis.username`, `password`).
+- Don't share the Redis database with untrusted writers. `SCAN` lists key names of the whole database,
+  whatever the user's key patterns.
+
+**JDBC.** Give the nodes a database user with rights only on the two tables, and create the tables from your
+migrations with another user (`spring.actor.jdbc.initialize-schema: never`):
+
+```sql
+-- PostgreSQL
+CREATE ROLE actor_store LOGIN PASSWORD 'change-me';
+GRANT SELECT, INSERT, UPDATE, DELETE ON actor_peer, actor_lease TO actor_store;
+
+-- MySQL / MariaDB (orders is the schema)
+CREATE USER 'actor_store'@'%' IDENTIFIED BY 'change-me';
+GRANT SELECT, INSERT, UPDATE, DELETE ON orders.actor_peer TO 'actor_store'@'%';
+GRANT SELECT, INSERT, UPDATE, DELETE ON orders.actor_lease TO 'actor_store'@'%';
+```
+
+No user that untrusted code can reach (another service, a reporting tool, an admin console) should be able to
+write these tables.
+
+The built-in stores use the application's `DataSource` and `RedisConnectionFactory`, so these rights are the
+rights of the user the application connects as. If the application needs more rights on the same server,
+give the stores their own connection: declare `PeerRegistry` and `LeaseStore` beans built on a separate
+`DataSource` or `RedisConnectionFactory` (`new JdbcPeerRegistry(dataSource)`, `new JdbcLeaseStore(dataSource)`,
+`new RedisPeerRegistry(connectionFactory, ttl)`, `new RedisLeaseStore(connectionFactory)`) and set
+`discovery.method: custom` and `lease.store: custom` (see [Your own store](#your-own-store)).
+
 ## Related
 
 - [Split Brain and Leases](split-brain-and-leases.md): what happens when nodes lose each other

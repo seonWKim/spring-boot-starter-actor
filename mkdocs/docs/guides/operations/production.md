@@ -157,6 +157,9 @@ Go through this list before the first release of a clustered application.
       (`singleton.use-lease`, `sharding.use-lease`).
 - [ ] The network lets pods reach each other on the remoting port (`25520` by default) and the Pekko
       Management port. The [Kubernetes example](../../examples/kubernetes.md) lists the rules to ask for.
+- [ ] With `jdbc` or `redis` discovery or leases, only the nodes can write the store: a dedicated Redis
+      ACL user or database user, TLS and auth
+      ([Securing the discovery store](../cluster/cluster-formation.md#securing-the-discovery-store)).
 
 **Messages**
 
