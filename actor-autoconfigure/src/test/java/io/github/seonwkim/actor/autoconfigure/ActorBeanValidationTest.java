@@ -154,9 +154,9 @@ class ActorBeanValidationTest {
                         .getPropertyValues()
                         .add("configured", "by the bean definition"))
                 .run(context -> {
-            assertThat(context).hasNotFailed();
-            assertThat(output).doesNotContain("Actor bean 'wiredActor'");
-        });
+                    assertThat(context).hasNotFailed();
+                    assertThat(output).doesNotContain("Actor bean 'wiredActor'");
+                });
     }
 
     @Test

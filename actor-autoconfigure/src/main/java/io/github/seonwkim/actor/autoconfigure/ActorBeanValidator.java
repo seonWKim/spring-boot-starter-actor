@@ -93,8 +93,8 @@ final class ActorBeanValidator implements BeanPostProcessor, BeanFactoryAware {
             return bean;
         }
         if (mode == ActorProperties.Validation.Mode.FAIL) {
-            throw new IllegalStateException(String.join("\n", problems)
-                    + "\nSee " + GUIDE + ". spring.actor.validation.actor-beans=warn only logs these.");
+            throw new IllegalStateException(String.join("\n", problems) + "\nSee " + GUIDE
+                    + ". spring.actor.validation.actor-beans=warn only logs these.");
         }
         problems.forEach(problem -> log.warn("{} See {}", problem, GUIDE));
         return bean;
