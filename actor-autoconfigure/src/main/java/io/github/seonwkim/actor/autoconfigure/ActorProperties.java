@@ -72,6 +72,8 @@ public class ActorProperties {
 
     private final Delivery delivery = new Delivery();
 
+    private final Generation generation = new Generation();
+
     /**
      * Dispatchers that run on Spring Executor beans, by dispatcher name. An actor uses one with
      * withDispatcherFromConfig("<name>").
@@ -131,12 +133,90 @@ public class ActorProperties {
         return delivery;
     }
 
+    public Generation getGeneration() {
+        return generation;
+    }
+
     public Map<String, Dispatcher> getDispatchers() {
         return dispatchers;
     }
 
     public VirtualThreads getVirtualThreads() {
         return virtualThreads;
+    }
+
+    /**
+     * Blue-green activation and fencing (DeploymentGeneration and the generation Actuator endpoint).
+     * Applies when color is set.
+     */
+    public static class Generation {
+
+        /** Where the active generation is kept. */
+        public enum Store {
+            /** The actor_generation table on the application's DataSource (actor-jdbc). */
+            JDBC,
+            /** Hashes on the application's RedisConnectionFactory (actor-redis). */
+            REDIS,
+            /** The application's own GenerationStore bean. */
+            CUSTOM
+        }
+
+        /**
+         * This deployment's color, for example blue or green. Setting it turns blue-green activation
+         * on; each color runs with its own value.
+         */
+        @Nullable private String color;
+
+        /** Where the active generation is kept: jdbc, redis or custom (your GenerationStore bean). */
+        @Nullable private Store store;
+
+        /**
+         * Name of the record both colors share in the store. Defaults to the actor system name
+         * (spring.actor.name).
+         */
+        @Nullable private String name;
+
+        /**
+         * How long a read of the active generation is reused before the store is read again: the
+         * longest a node takes to see an activation made elsewhere. 0 reads the store every time.
+         */
+        private Duration refresh = Duration.ofSeconds(1);
+
+        @Nullable public String getColor() {
+            return color;
+        }
+
+        public void setColor(@Nullable String color) {
+            this.color = color;
+        }
+
+        @Nullable public Store getStore() {
+            return store;
+        }
+
+        public void setStore(@Nullable Store store) {
+            this.store = store;
+        }
+
+        @Nullable public String getName() {
+            return name;
+        }
+
+        public void setName(@Nullable String name) {
+            this.name = name;
+        }
+
+        public Duration getRefresh() {
+            return refresh;
+        }
+
+        public void setRefresh(Duration refresh) {
+            if (refresh.isNegative()) {
+                throw new IllegalArgumentException(
+                        "spring.actor.generation.refresh must not be negative, got " + refresh);
+            }
+            this.refresh = refresh;
+        }
     }
 
     /** Reliable delivery: its senders (SpringReliableDelivery) and receivers (ReliableDelivery.consumer). */

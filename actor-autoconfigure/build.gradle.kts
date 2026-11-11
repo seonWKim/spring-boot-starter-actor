@@ -54,6 +54,8 @@ dependencies {
     testImplementation("io.opentelemetry:opentelemetry-sdk-testing")
     testImplementation(project(":actor-metrics"))
     testImplementation(testFixtures(project(":actor-core")))
+    // InMemoryGenerationStore for the generation endpoint's tests.
+    testImplementation(project(":actor-test"))
     testImplementation("org.awaitility:awaitility")
     // spring.actor.cluster.join=discovery checks that Cluster Bootstrap is present.
     testRuntimeOnly("org.apache.pekko:pekko-management-cluster-bootstrap_3:${pekkoManagementVersion}")

@@ -12,3 +12,4 @@ io.github.seonwkim.actor.autoconfigure.metrics.ClusterMetricsConfiguration
 io.github.seonwkim.actor.autoconfigure.endpoint.ActorsEndpointConfiguration
 io.github.seonwkim.actor.autoconfigure.tracing.ActorTracingConfiguration
 io.github.seonwkim.actor.autoconfigure.streams.ActorStreamsConfiguration
+io.github.seonwkim.actor.autoconfigure.generation.GenerationConfiguration

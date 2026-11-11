@@ -4,10 +4,13 @@ import io.github.seonwkim.actor.autoconfigure.ActorConfiguration;
 import io.github.seonwkim.actor.autoconfigure.ActorProperties;
 import io.github.seonwkim.actor.autoconfigure.ConditionalOnActorEnabled;
 import io.github.seonwkim.actor.autoconfigure.SchemaScriptInitializer;
+import io.github.seonwkim.actor.jdbc.JdbcGenerationStore;
 import io.github.seonwkim.actor.jdbc.JdbcLeaseStore;
 import io.github.seonwkim.actor.jdbc.JdbcPeerRegistry;
+import io.github.seonwkim.actor.redis.RedisGenerationStore;
 import io.github.seonwkim.actor.redis.RedisLeaseStore;
 import io.github.seonwkim.actor.redis.RedisPeerRegistry;
+import io.github.seonwkim.actor.spi.GenerationStore;
 import io.github.seonwkim.actor.spi.LeaseStore;
 import io.github.seonwkim.actor.spi.PeerRegistry;
 import javax.sql.DataSource;
@@ -24,9 +27,10 @@ import org.springframework.data.redis.connection.RedisConnectionFactory;
 
 /**
  * The built-in stores of the SPIs: {@link PeerRegistry} for
- * {@code spring.actor.cluster.discovery.method} and {@link LeaseStore} for
- * {@code spring.actor.cluster.lease.store}, each jdbc or redis. An application's own bean of either
- * type replaces the built-in one. Each store applies only when its module ({@code actor-jdbc},
+ * {@code spring.actor.cluster.discovery.method}, {@link LeaseStore} for
+ * {@code spring.actor.cluster.lease.store} and {@link GenerationStore} for
+ * {@code spring.actor.generation.store}, each jdbc or redis. An application's own bean of any of these
+ * types replaces the built-in one. Each store applies only when its module ({@code actor-jdbc},
  * {@code actor-redis}) and the Spring library it uses are on the classpath.
  */
 @AutoConfiguration(
@@ -40,6 +44,7 @@ public class StoreConfiguration {
 
     private static final String DISCOVERY_METHOD = "spring.actor.cluster.discovery.method";
     private static final String LEASE_STORE = "spring.actor.cluster.lease.store";
+    private static final String GENERATION_STORE = "spring.actor.generation.store";
 
     /** The actor_peer and actor_lease tables on the application's DataSource. */
     @Configuration(proxyBeanMethods = false)
@@ -52,7 +57,7 @@ public class StoreConfiguration {
     @Conditional(Jdbc.Selected.class)
     static class Jdbc {
 
-        /** discovery.method or lease.store is jdbc. */
+        /** discovery.method, lease.store or generation.store is jdbc. */
         static class Selected extends AnyNestedCondition {
             Selected() {
                 super(ConfigurationPhase.REGISTER_BEAN);
@@ -63,6 +68,9 @@ public class StoreConfiguration {
 
             @ConditionalOnProperty(name = LEASE_STORE, havingValue = "jdbc")
             static class Lease {}
+
+            @ConditionalOnProperty(name = GENERATION_STORE, havingValue = "jdbc")
+            static class Generation {}
         }
 
         @Bean
@@ -78,6 +86,13 @@ public class StoreConfiguration {
         @ConditionalOnMissingBean(LeaseStore.class)
         JdbcLeaseStore jdbcLeaseStore(DataSource dataSource, ActorTableInitializer tableInitializer) {
             return new JdbcLeaseStore(dataSource);
+        }
+
+        @Bean
+        @ConditionalOnProperty(name = GENERATION_STORE, havingValue = "jdbc")
+        @ConditionalOnMissingBean(GenerationStore.class)
+        JdbcGenerationStore jdbcGenerationStore(DataSource dataSource, ActorTableInitializer tableInitializer) {
+            return new JdbcGenerationStore(dataSource);
         }
 
         @Bean
@@ -118,6 +133,13 @@ public class StoreConfiguration {
         @ConditionalOnMissingBean(LeaseStore.class)
         RedisLeaseStore redisLeaseStore(RedisConnectionFactory connectionFactory) {
             return new RedisLeaseStore(connectionFactory);
+        }
+
+        @Bean
+        @ConditionalOnProperty(name = GENERATION_STORE, havingValue = "redis")
+        @ConditionalOnMissingBean(GenerationStore.class)
+        RedisGenerationStore redisGenerationStore(RedisConnectionFactory connectionFactory) {
+            return new RedisGenerationStore(connectionFactory);
         }
     }
 }
