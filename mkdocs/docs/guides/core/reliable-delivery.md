@@ -75,8 +75,13 @@ handlers and its supervision stay as they are.
 
 - **Ack:** a reliable message is acknowledged when one of the actor's handlers returned. If the handler
   threw, or no handler matched the message, there is no ack and the sender retries.
-- **Deduplication:** the actor remembers the key of every message it handled. A message whose key it
-  remembers is acknowledged again without calling the handler.
+- **Deduplication:** the actor remembers the key of every message it handled, with a fingerprint of its
+  payload (its `hashCode`). A message whose key it remembers is acknowledged again without calling the
+  handler.
+- **Payload conflict:** the same key with a different payload is not a duplicate. The handler doesn't run,
+  and the send fails at once with `PAYLOAD_CONFLICT` (see [Outcomes](#outcomes)). Give reliable messages
+  value equality (records, data classes): a class that keeps `Object`'s `hashCode` has no fingerprint, so
+  its payloads aren't compared.
 - **How long:** keys are remembered for `spring.actor.delivery.idempotency-ttl` (default 10 minutes).
   One actor can override it: `ReliableDelivery.consumer(behavior, Duration.ofHours(1))`.
 - **How many:** at most `spring.actor.delivery.max-remembered-keys` keys per actor (default 10,000). Past
@@ -85,6 +90,41 @@ handlers and its supervision stay as they are.
 
 The behavior must come from `SpringActorBehavior.builder(...)`. Sharded entities wrap their behavior the
 same way, in their `create(SpringShardedActorContext)`.
+
+### Stale generation: not the owner yet, or anymore
+
+During a deployment a message can reach an actor that doesn't own its state: a new instance still loading
+it, or an old one that a newer generation replaced. The handler says so by throwing
+`StaleGenerationException`. The message is not acknowledged and its key is not remembered, the actor is not
+restarted, and the sender retries the same key and payload, which reaches the active owner once it is
+ready.
+
+=== "Java"
+
+    ```java
+    .onMessage(PlaceOrder.class, (ctx, msg) -> {
+        if (!ownership.isActive(msg.orderId())) {
+            throw new StaleGenerationException("order " + msg.orderId() + " is not active here");
+        }
+        orders.save(msg.orderId());
+        return SpringActorBehavior.same();
+    })
+    ```
+
+=== "Kotlin"
+
+    ```kotlin
+    .onMessage(PlaceOrder::class.java) { _, msg ->
+        if (!ownership.isActive(msg.orderId)) {
+            throw StaleGenerationException("order ${msg.orderId} is not active here")
+        }
+        orders.save(msg.orderId)
+        SpringActorBehavior.same()
+    }
+    ```
+
+`ownership` stands for your own check, such as a lease or an epoch in your database. For a plain `tell`,
+the exception is an ordinary failure for the actor's supervision.
 
 ## Sending to an actor
 
@@ -141,14 +181,19 @@ A sender holds no resources: build one per receiver and keep it, or build one pe
 
 ## Retries
 
-A send is retried with exponential backoff until it is acknowledged:
+A send is retried with exponential backoff and full jitter until it is acknowledged. Every attempt carries
+the same idempotency key and the same payload. The backoff doubles from `initialBackoff` up to
+`maxBackoff`, and the pause before the next attempt is random, from zero to the backoff, so senders that
+failed together don't retry together.
 
-| Setting | Default | |
-|---|---|---|
-| `maxAttempts` | 5 | attempts in total, including the first |
-| `timeout` | 30s | from the first attempt; no attempt starts after it |
-| `attemptTimeout` | 3s | how long one attempt waits for the ack |
-| `initialBackoff` / `maxBackoff` | 200ms / 5s | the pause before the next attempt doubles up to the maximum |
+| `RetryPolicy` | Property | Default | |
+|---|---|---|---|
+| `maxAttempts` | `spring.actor.delivery.retry.max-attempts` | 5 | attempts in total, including the first |
+| `timeout` | `spring.actor.delivery.retry.timeout` | 30s | from the first attempt; no attempt starts after it |
+| `attemptTimeout` | `spring.actor.delivery.retry.attempt-timeout` | 3s | how long one attempt waits for the ack |
+| `initialBackoff` / `maxBackoff` | `spring.actor.delivery.retry.initial-backoff` / `.max-backoff` | 200ms / 5s | the backoff doubles up to the maximum |
+
+The properties set the policy of every sender. One sender can set its own:
 
 === "Java"
 
@@ -174,9 +219,70 @@ A send is retried with exponential backoff until it is acknowledged:
         .build()
     ```
 
-When the attempts or the timeout run out, the stage fails with `ReliableDeliveryException`, which names
-the key and the number of attempts. The message may still have been handled (only the acks may have been
-lost): sending it again with the same key is safe within the receiver's TTL.
+## Outcomes
+
+A send that fails completes its stage with `ReliableDeliveryException`. Its `reason()` says why, and
+`reason().isRetryable()` whether sending again can succeed:
+
+| Reason | Retryable | When | Suggested HTTP response |
+|---|---|---|---|
+| `STALE_GENERATION` | yes | the handler threw `StaleGenerationException` on every attempt | 409 Conflict with `Retry-After` |
+| `TIMEOUT` | yes | the last attempt waited its `attemptTimeout` without an ack | 504 Gateway Timeout |
+| `UNAVAILABLE` | yes | the last attempt failed at once, for example because the actor is stopped | 503 Service Unavailable |
+| `PAYLOAD_CONFLICT` | no | the receiver handled the key with a different payload; not retried | 409 Conflict or 422 Unprocessable Entity |
+
+A retryable failure means the retry policy ran out. The message may still have been handled (only the acks
+may have been lost), so a client can send it again with the same key and payload: within the receiver's TTL
+it runs once. A payload conflict fails the same way every time: the client must not retry it, and should
+use a new key for a new payload.
+
+An application that sends from an HTTP handler can map the reasons once:
+
+=== "Java"
+
+    ```java
+    @RestControllerAdvice
+    public class ReliableDeliveryErrors {
+
+        @ExceptionHandler(ReliableDeliveryException.class)
+        public ResponseEntity<String> deliveryFailed(ReliableDeliveryException e) {
+            return switch (e.reason()) {
+                case STALE_GENERATION -> ResponseEntity.status(HttpStatus.CONFLICT)
+                        .header(HttpHeaders.RETRY_AFTER, "1")
+                        .body("Not ready yet, retry with the same key");
+                case TIMEOUT -> ResponseEntity.status(HttpStatus.GATEWAY_TIMEOUT).body("Timed out, retry");
+                case UNAVAILABLE -> ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body("Unavailable, retry");
+                case PAYLOAD_CONFLICT -> ResponseEntity.status(HttpStatus.CONFLICT)
+                        .body("Key " + e.idempotencyKey() + " was used for a different request");
+            };
+        }
+    }
+    ```
+
+=== "Kotlin"
+
+    ```kotlin
+    @RestControllerAdvice
+    class ReliableDeliveryErrors {
+
+        @ExceptionHandler(ReliableDeliveryException::class)
+        fun deliveryFailed(e: ReliableDeliveryException): ResponseEntity<String> =
+            when (e.reason()) {
+                ReliableDeliveryException.Reason.STALE_GENERATION -> ResponseEntity.status(HttpStatus.CONFLICT)
+                    .header(HttpHeaders.RETRY_AFTER, "1")
+                    .body("Not ready yet, retry with the same key")
+                ReliableDeliveryException.Reason.TIMEOUT ->
+                    ResponseEntity.status(HttpStatus.GATEWAY_TIMEOUT).body("Timed out, retry")
+                ReliableDeliveryException.Reason.UNAVAILABLE ->
+                    ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body("Unavailable, retry")
+                ReliableDeliveryException.Reason.PAYLOAD_CONFLICT -> ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body("Key ${e.idempotencyKey()} was used for a different request")
+            }
+    }
+    ```
+
+The exception reaches the handler when the controller returns the send's stage or waits for it, as
+`await()` does in Kotlin.
 
 ## Sending to sharded entities
 
@@ -216,7 +322,8 @@ Messages must implement `JsonSerializable` or `CborSerializable`, as for any mes
 
 ## Limits
 
-- **Dedupe memory is in the actor.** It is lost when the receiving actor restarts by its spawn supervision,
+- **Dedupe memory is in the actor.** So is the payload fingerprint: a conflict is found only while the key
+  is remembered. The memory is lost when the receiving actor restarts by its spawn supervision,
   stops, or (sharded) is passivated or moves to another node. After that, a retry or a re-send with the
   same key runs the handler again. Make handlers safe to run twice when that matters. A durable key store
   is a planned follow-up.
