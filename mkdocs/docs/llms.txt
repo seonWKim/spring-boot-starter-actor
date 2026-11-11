@@ -16,7 +16,7 @@ The full text of the Getting Started page and every guide, with code inlined, is
 
 - [Actors](https://seonwkim.github.io/actor-spring-boot-starter/guides/core/actors/): define actors as beans, actor ids, spawn/get/getOrSpawn/exists/stop, custom contexts, child actors
 - [Messaging](https://seonwkim.github.io/actor-spring-boot-starter/guides/core/messaging/): tell, ask with timeouts and `onTimeout`, replying, asking from inside an actor, message adapters
-- [Reliable Delivery](https://seonwkim.github.io/actor-spring-boot-starter/guides/core/reliable-delivery/): opt-in at-least-once delivery to actors and sharded entities: sender retries with backoff, receiver dedupes by idempotency key for a TTL; cost and limits
+- [Reliable Delivery](https://seonwkim.github.io/actor-spring-boot-starter/guides/core/reliable-delivery/): opt-in at-least-once delivery to actors and sharded entities: sender retries with backoff, receiver dedupes by idempotency key for a TTL; retryable vs permanent outcomes (stale generation, timeout, unavailable, payload conflict) and their HTTP mapping; cost and limits
 - [Supervision](https://seonwkim.github.io/actor-spring-boot-starter/guides/core/supervision/): stop/restart/resume strategies (default stop), limits, what a restart keeps, supervising children
 - [Behaviors, Timers and Watching](https://seonwkim.github.io/actor-spring-boot-starter/guides/core/behaviors/): the behavior builder, `withState`, signals, timers, watch, `pipeToSelf`, no stash
 - [Routers](https://seonwkim.github.io/actor-spring-boot-starter/guides/core/routers/): spread messages across a pool of worker actors; routing strategies

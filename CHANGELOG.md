@@ -15,6 +15,13 @@
 
 ### Features
 
+- **Retryable vs permanent delivery outcomes (#233).** A failed reliable send's `ReliableDeliveryException`
+  has a `reason()`: `STALE_GENERATION`, `TIMEOUT` and `UNAVAILABLE` are retryable, `PAYLOAD_CONFLICT` (the
+  same idempotency key with a different payload) is permanent and is not retried. A handler signals a stale
+  generation by throwing `StaleGenerationException`. Retries use full jitter, and
+  `spring.actor.delivery.retry.*` sets the default retry policy. The reliable delivery guide gives the HTTP
+  mapping. A message whose class keeps `Object`'s `hashCode` is not checked for conflicts. The
+  `ReliableDeliveryException` constructor without a reason is deprecated.
 - **Builder parity (#190).** The spawn builder takes `withDispatcher(DispatcherConfig)`, and the child
   builder takes `withBlockingDispatcher()`, `withDefaultDispatcher()`, `withDispatcherFromConfig(name)` and
   `withDispatcherSameAsParent()`. Topics get `createAsync()` and `getOrCreateAsync()`, which return a

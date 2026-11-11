@@ -9,6 +9,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.NotSerializableException;
 import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import javax.annotation.Nullable;
 import org.apache.pekko.actor.ExtendedActorSystem;
 import org.apache.pekko.actor.typed.ActorRef;
@@ -23,6 +24,8 @@ import org.apache.pekko.serialization.Serializers;
 /**
  * Writes reliable delivery's {@link ReliableEnvelope} and {@link ReliableAck} between nodes: the
  * key and the reply-to ref as strings, and the message inside with whatever serializer it is bound to.
+ * An ack is empty; another reply is its name, under its own manifest so a node that doesn't know it
+ * drops it (the sender then retries) rather than reading it as an ack.
  */
 public final class ReliableEnvelopeSerializer extends SerializerWithStringManifest {
 
@@ -30,6 +33,7 @@ public final class ReliableEnvelopeSerializer extends SerializerWithStringManife
     private static final int IDENTIFIER = 1_390_140;
     private static final String ENVELOPE = "E";
     private static final String ACK = "A";
+    private static final String REPLY = "R";
 
     private final ExtendedActorSystem system;
 
@@ -48,13 +52,16 @@ public final class ReliableEnvelopeSerializer extends SerializerWithStringManife
 
     @Override
     public String manifest(Object o) {
-        return o instanceof ReliableAck ? ACK : ENVELOPE;
+        if (o instanceof ReliableAck reply) {
+            return reply == ReliableAck.ACK ? ACK : REPLY;
+        }
+        return ENVELOPE;
     }
 
     @Override
     public byte[] toBinary(Object o) {
-        if (o instanceof ReliableAck) {
-            return new byte[0];
+        if (o instanceof ReliableAck reply) {
+            return reply == ReliableAck.ACK ? new byte[0] : reply.name().getBytes(StandardCharsets.UTF_8);
         }
         ReliableEnvelope envelope = (ReliableEnvelope) o;
         Object message = envelope.message();
@@ -80,7 +87,14 @@ public final class ReliableEnvelopeSerializer extends SerializerWithStringManife
     @Override
     public Object fromBinary(byte[] bytes, String manifest) throws NotSerializableException {
         if (ACK.equals(manifest)) {
-            return ReliableAck.INSTANCE;
+            return ReliableAck.ACK;
+        }
+        if (REPLY.equals(manifest)) {
+            try {
+                return ReliableAck.valueOf(new String(bytes, StandardCharsets.UTF_8));
+            } catch (IllegalArgumentException e) {
+                throw new NotSerializableException("Unknown reliable delivery reply: " + e.getMessage());
+            }
         }
         try {
             DataInputStream in = new DataInputStream(new ByteArrayInputStream(bytes));

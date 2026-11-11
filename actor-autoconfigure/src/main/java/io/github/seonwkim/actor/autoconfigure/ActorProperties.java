@@ -6,6 +6,7 @@ import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigUtil;
 import com.typesafe.config.ConfigValueType;
 import io.github.seonwkim.actor.ActorConstants;
+import io.github.seonwkim.actor.delivery.RetryPolicy;
 import io.github.seonwkim.actor.internal.SpringExecutorConfigurator;
 import io.github.seonwkim.actor.internal.delivery.ReliableConsumerModule;
 import java.time.Duration;
@@ -138,8 +139,14 @@ public class ActorProperties {
         return virtualThreads;
     }
 
-    /** Receivers of reliable delivery (ReliableDelivery.consumer). */
+    /** Reliable delivery: its senders (SpringReliableDelivery) and receivers (ReliableDelivery.consumer). */
     public static class Delivery {
+
+        private final Retry retry = new Retry();
+
+        public Retry getRetry() {
+            return retry;
+        }
 
         /**
          * How long a receiver remembers the idempotency key of a message it handled; a message with a
@@ -173,6 +180,85 @@ public class ActorProperties {
                         "spring.actor.delivery.max-remembered-keys must be at least 1, got " + maxRememberedKeys);
             }
             this.maxRememberedKeys = maxRememberedKeys;
+        }
+
+        /**
+         * How reliable senders retry, unless a sender sets its own RetryPolicy: exponential backoff
+         * with full jitter, every attempt with the same idempotency key and payload.
+         */
+        public static class Retry {
+
+            /** Attempts in total, including the first. Default 5. */
+            @Nullable private Integer maxAttempts;
+
+            /** Time from the first attempt after which the sender gives up. Default 30s. */
+            @Nullable private Duration timeout;
+
+            /** How long one attempt waits for the ack. Default 3s. */
+            @Nullable private Duration attemptTimeout;
+
+            /** The backoff before the second attempt; it doubles up to max-backoff. Default 200ms. */
+            @Nullable private Duration initialBackoff;
+
+            /** The longest backoff between attempts. Default 5s. */
+            @Nullable private Duration maxBackoff;
+
+            /** The policy: RetryPolicy.defaults() with the set values. */
+            public RetryPolicy toRetryPolicy() {
+                RetryPolicy policy = RetryPolicy.defaults();
+                if (maxAttempts != null) {
+                    policy = policy.withMaxAttempts(maxAttempts);
+                }
+                if (timeout != null) {
+                    policy = policy.withTimeout(timeout);
+                }
+                if (attemptTimeout != null) {
+                    policy = policy.withAttemptTimeout(attemptTimeout);
+                }
+                return policy.withBackoff(
+                        initialBackoff != null ? initialBackoff : policy.initialBackoff(),
+                        maxBackoff != null ? maxBackoff : policy.maxBackoff());
+            }
+
+            @Nullable public Integer getMaxAttempts() {
+                return maxAttempts;
+            }
+
+            public void setMaxAttempts(@Nullable Integer maxAttempts) {
+                this.maxAttempts = maxAttempts;
+            }
+
+            @Nullable public Duration getTimeout() {
+                return timeout;
+            }
+
+            public void setTimeout(@Nullable Duration timeout) {
+                this.timeout = timeout;
+            }
+
+            @Nullable public Duration getAttemptTimeout() {
+                return attemptTimeout;
+            }
+
+            public void setAttemptTimeout(@Nullable Duration attemptTimeout) {
+                this.attemptTimeout = attemptTimeout;
+            }
+
+            @Nullable public Duration getInitialBackoff() {
+                return initialBackoff;
+            }
+
+            public void setInitialBackoff(@Nullable Duration initialBackoff) {
+                this.initialBackoff = initialBackoff;
+            }
+
+            @Nullable public Duration getMaxBackoff() {
+                return maxBackoff;
+            }
+
+            public void setMaxBackoff(@Nullable Duration maxBackoff) {
+                this.maxBackoff = maxBackoff;
+            }
         }
     }
 

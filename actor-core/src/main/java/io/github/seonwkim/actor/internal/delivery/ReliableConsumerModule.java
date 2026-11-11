@@ -2,6 +2,7 @@ package io.github.seonwkim.actor.internal.delivery;
 
 import io.github.seonwkim.actor.SpringActorBehavior;
 import io.github.seonwkim.actor.delivery.ReliableDelivery;
+import io.github.seonwkim.actor.delivery.StaleGenerationException;
 import io.github.seonwkim.actor.internal.ModuleSupport;
 import io.github.seonwkim.actor.internal.PekkoBehaviors;
 import java.time.Duration;
@@ -13,7 +14,8 @@ import org.apache.pekko.actor.typed.javadsl.Behaviors;
 
 /**
  * Runs {@link ReliableDelivery#consumer}: the actor's behavior behind an interceptor that unwraps
- * {@link ReliableEnvelope}s, skips keys it remembers, and acks once a handler returned.
+ * {@link ReliableEnvelope}s, skips keys it remembers (or rejects them when the payload differs), and
+ * acks once a handler returned.
  *
  * <p>The actor's own supervision stays inside the behavior, where it may swallow a handler's
  * exception. So the interceptor doesn't ack because the behavior returned, but because a handler
@@ -57,7 +59,9 @@ public final class ReliableConsumerModule implements ModuleSupport {
     }
 
     /**
-     * The same behavior, with every message handler setting {@code outcome.handled} when it returns.
+     * The same behavior, with every message handler setting {@code outcome.handled} when it returns,
+     * and {@code outcome.stale} when it throws {@link StaleGenerationException} for a reliable
+     * message. That exception doesn't reach the actor's supervision, so the actor isn't restarted.
      * Rebuilt through the public builder, field by field of {@link SpringActorBehavior.Definition};
      * {@code ReliableConsumerRebuildTest} fails when the definition gains a field this doesn't copy.
      */
@@ -86,7 +90,16 @@ public final class ReliableConsumerModule implements ModuleSupport {
             SpringActorBehavior.MessageHandler<C, S, M> handler,
             HandlerOutcome outcome) {
         builder.onMessage(handler.type(), (state, message) -> {
-            SpringActorBehavior<C> next = handler.handler().apply(state, message);
+            SpringActorBehavior<C> next;
+            try {
+                next = handler.handler().apply(state, message);
+            } catch (StaleGenerationException e) {
+                if (!outcome.delivering) {
+                    throw e;
+                }
+                outcome.stale = true;
+                return SpringActorBehavior.same();
+            }
             outcome.handled = true;
             return next;
         });
@@ -97,10 +110,37 @@ public final class ReliableConsumerModule implements ModuleSupport {
         builder.onSignal(handler.type(), handler.handler());
     }
 
-    /** Whether a message handler returned for the message being delivered. Only the actor touches it. */
+    /**
+     * What the handlers did with the reliable message being delivered. Only the actor touches it.
+     */
     static final class HandlerOutcome {
+        /** A reliable message is being delivered. */
+        boolean delivering;
+        /** A message handler returned. */
         boolean handled;
+        /** A message handler threw {@link StaleGenerationException}. */
+        boolean stale;
     }
+
+    /**
+     * The payload's fingerprint, compared when a key comes again: its {@code hashCode}, or none when
+     * its class keeps {@code Object}'s identity hash code, which differs for every copy (a message
+     * from another node, or rebuilt by the caller), so it can't tell payloads apart.
+     */
+    private static @Nullable Integer fingerprint(Object message) {
+        return VALUE_HASH_CODE.get(message.getClass()) ? message.hashCode() : null;
+    }
+
+    private static final ClassValue<Boolean> VALUE_HASH_CODE = new ClassValue<>() {
+        @Override
+        protected Boolean computeValue(Class<?> type) {
+            try {
+                return type.getMethod("hashCode").getDeclaringClass() != Object.class;
+            } catch (NoSuchMethodException e) {
+                return false;
+            }
+        }
+    };
 
     private static final class DedupInterceptor extends BehaviorInterceptor<Object, Object> {
 
@@ -119,15 +159,32 @@ public final class ReliableConsumerModule implements ModuleSupport {
             if (!(msg instanceof ReliableEnvelope envelope)) {
                 return target.apply(ctx, msg);
             }
-            if (keys.contains(envelope.idempotencyKey())) {
-                envelope.replyTo().tell(ReliableAck.INSTANCE);
-                return Behaviors.same();
+            Integer fingerprint = fingerprint(envelope.message());
+            switch (keys.check(envelope.idempotencyKey(), fingerprint)) {
+                case DUPLICATE -> {
+                    envelope.replyTo().tell(ReliableAck.ACK);
+                    return Behaviors.same();
+                }
+                case CONFLICT -> {
+                    envelope.replyTo().tell(ReliableAck.PAYLOAD_CONFLICT);
+                    return Behaviors.same();
+                }
+                case NEW -> {}
             }
+            outcome.delivering = true;
             outcome.handled = false;
-            Behavior<Object> next = target.apply(ctx, envelope.message()); // throws: no ack, the sender retries
+            outcome.stale = false;
+            Behavior<Object> next;
+            try {
+                next = target.apply(ctx, envelope.message()); // throws: no ack, the sender retries
+            } finally {
+                outcome.delivering = false;
+            }
             if (outcome.handled) {
-                keys.remember(envelope.idempotencyKey());
-                envelope.replyTo().tell(ReliableAck.INSTANCE);
+                keys.remember(envelope.idempotencyKey(), fingerprint);
+                envelope.replyTo().tell(ReliableAck.ACK);
+            } else if (outcome.stale) {
+                envelope.replyTo().tell(ReliableAck.STALE_GENERATION);
             }
             return next;
         }
