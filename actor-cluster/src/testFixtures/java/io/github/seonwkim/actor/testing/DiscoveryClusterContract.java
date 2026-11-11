@@ -7,8 +7,6 @@ import io.github.seonwkim.actor.EnableActorSupport;
 import io.github.seonwkim.actor.SpringActorSystem;
 import io.github.seonwkim.actor.spi.Peer;
 import io.github.seonwkim.actor.spi.PeerRegistry;
-import java.io.IOException;
-import java.net.ServerSocket;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,7 +23,7 @@ import org.springframework.context.ConfigurableApplicationContext;
 /**
  * Nodes with {@code spring.actor.cluster.join=discovery} form a cluster through a
  * {@link PeerRegistry} store. A store module's test extends this class and gives the properties
- * that select its store; each node is a Spring context in this JVM on free ports.
+ * that select its store; each node is a Spring context in this JVM that binds its ports at 0.
  */
 public abstract class DiscoveryClusterContract {
 
@@ -59,8 +57,8 @@ public abstract class DiscoveryClusterContract {
                         "spring.actor.cluster.discovery.ttl=10s",
                         "spring.actor.shutdown.exit-process=false",
                         "spring.actor.pekko.management.http.hostname=127.0.0.1",
-                        // A picked port, not 0: the node registers this configured port as its contact point.
-                        "spring.actor.pekko.management.http.port=" + freePort(),
+                        // Port 0 too: the node registers the port its management server bound (#229).
+                        "spring.actor.pekko.management.http.port=0",
                         "spring.actor.pekko.management.cluster.bootstrap.contact-point-discovery.required-contact-point-nr=3",
                         "spring.actor.pekko.management.cluster.bootstrap.contact-point-discovery.interval=300ms",
                         "spring.actor.pekko.management.cluster.bootstrap.contact-point-discovery.stable-margin=1s",
@@ -115,13 +113,5 @@ public abstract class DiscoveryClusterContract {
 
         // The ttl (minutes here) has not passed: the entry is gone because the node deleted it.
         assertThat(registeredIds(staying)).containsExactly(stayingId);
-    }
-
-    private static int freePort() {
-        try (ServerSocket socket = new ServerSocket(0)) {
-            return socket.getLocalPort();
-        } catch (IOException e) {
-            throw new IllegalStateException(e);
-        }
     }
 }
