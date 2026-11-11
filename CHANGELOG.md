@@ -59,6 +59,9 @@
 
 ### Fixes
 
+- `spring.actor.pekko.management.http.port=0` works with Cluster Bootstrap: with `jdbc` or `redis` discovery
+  a node registers the port its Pekko Management server bound, not the configured one, and Bootstrap takes
+  the bound port as the node's own contact point. The JDBC and Redis discovery tests bind it at 0 (#229).
 - `ActorCluster` (actor-test) no longer races other processes for ports: every node binds port 0, node 1
   joins itself, and the others join it at the address it bound. Before, it picked free ports first and
   bound them later, and a port could be taken in between ("Address already in use") (#224).
