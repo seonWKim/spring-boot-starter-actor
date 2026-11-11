@@ -17,10 +17,10 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-webflux")
 	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
 	implementation("org.springframework.boot:spring-boot-starter-data-redis-reactive")
-	implementation("org.springdoc:springdoc-openapi-starter-webflux-ui:2.8.17")
+	implementation("org.springdoc:springdoc-openapi-starter-webflux-ui:3.2.0")
 
 	// MySQL
-	runtimeOnly("com.mysql:mysql-connector-j:8.0.33")
+	runtimeOnly("com.mysql:mysql-connector-j:26.10.0")
 
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
