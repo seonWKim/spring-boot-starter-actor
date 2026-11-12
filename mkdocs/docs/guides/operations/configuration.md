@@ -32,6 +32,7 @@ the key, for example `spring.actor.remote.port must be between 0 and 65535, got 
 
 | Key | Default | Sets Pekko key | Description |
 |---|---|---|---|
+| `spring.actor.enabled` | `true` | none | Whether the starter starts an actor system. `false` turns off every actor auto-configuration while the starter stays on the classpath. |
 | `spring.actor.name` | `system` | `pekko.name` | Name of the actor system. Letters, digits, `-` and `_`, starting with a letter or digit. Nodes of one cluster must use the same name. |
 | `spring.actor.provider` | `local` | `pekko.actor.provider` | How actors reach each other: `local` (one JVM), `remote` (reachable from other nodes, no cluster membership) or `cluster`. `remote` and `cluster` need `actor-spring-boot-starter-cluster`. |
 
@@ -121,6 +122,32 @@ See [What not to do in an actor bean](../core/actors.md#what-not-to-do-in-an-act
 | Key | Default | Description |
 |---|---|---|
 | `spring.actor.validation.actor-beans` | `warn` | What happens when an actor bean has a mutable instance field (neither `static`, `final` nor injected) or is a Spring AOP proxy: `warn` logs each problem, `fail` stops startup, `off` skips the checks. |
+
+## Reliable delivery
+
+See [Reliable Delivery](../core/reliable-delivery.md). A receiver can override `idempotency-ttl` in code, and a sender its whole `RetryPolicy`.
+
+| Key | Default | Sets Pekko key | Description |
+|---|---|---|---|
+| `spring.actor.delivery.idempotency-ttl` | `10m` | `spring-actor.delivery.idempotency-ttl` | How long a receiver remembers the idempotency key of a message it handled; a message with a remembered key is acknowledged again without running the handler. Must be positive. |
+| `spring.actor.delivery.max-remembered-keys` | `10000` | `spring-actor.delivery.max-remembered-keys` | The most keys one receiver remembers; past it, the oldest are forgotten first. At least `1`. |
+| `spring.actor.delivery.retry.max-attempts` | `5` | none | Attempts in total, including the first. |
+| `spring.actor.delivery.retry.timeout` | `30s` | none | Time from the first attempt after which a sender gives up; no attempt starts after it. |
+| `spring.actor.delivery.retry.attempt-timeout` | `3s` | none | How long one attempt waits for the ack. |
+| `spring.actor.delivery.retry.initial-backoff` | `200ms` | none | The backoff before the second attempt; it doubles up to `max-backoff`, with full jitter. |
+| `spring.actor.delivery.retry.max-backoff` | `5s` | none | The longest backoff between attempts. |
+
+## Blue-green generation
+
+See [The active generation](deployments.md#the-active-generation). Blue-green activation is on when
+`color` is set.
+
+| Key | Default | Description |
+|---|---|---|
+| `spring.actor.generation.color` | none | This deployment's color, for example `blue` or `green`. Setting it turns on blue-green activation, `DeploymentGeneration` and the `generation` Actuator endpoint; each color runs with its own value. |
+| `spring.actor.generation.store` | none | Where the active generation is kept: `jdbc` (the `actor_generation` table, needs `actor-jdbc`), `redis` (needs `actor-redis`) or `custom` (your `GenerationStore` bean). |
+| `spring.actor.generation.name` | `spring.actor.name` | Name of the record both colors share in the store. |
+| `spring.actor.generation.refresh` | `1s` | How long a read of the active generation is reused before the store is read again: the longest a node takes to see an activation made elsewhere. `0` reads the store every time. Must not be negative. |
 
 ## Shutdown
 
