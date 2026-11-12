@@ -1,0 +1,3671 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://seonwkim.github.io/actor-spring-boot-starter/contributing/spring-conventions/">
+      
+      
+        <link rel="prev" href="../">
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../logo.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.1">
+    
+    
+      
+        <title>Spring Conventions - actor-spring-boot-starter</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.fb2fffe2.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="green" data-md-color-accent="green">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#spring-conventions-how-this-starter-compares" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="actor-spring-boot-starter" class="md-header__button md-logo" aria-label="actor-spring-boot-starter" data-md-component="logo">
+      
+  <img src="../../logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            actor-spring-boot-starter
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Spring Conventions
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/seonWKim/actor-spring-boot-starter" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../.." class="md-tabs__link">
+          
+  
+  
+  Home
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../guides/core/actors/" class="md-tabs__link">
+          
+  
+  
+  Guides
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../examples/" class="md-tabs__link">
+          
+  
+  
+  Examples
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../" class="md-tabs__link">
+          
+  
+  
+  Contributing
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="actor-spring-boot-starter" class="md-nav__button md-logo" aria-label="actor-spring-boot-starter" data-md-component="logo">
+      
+  <img src="../../logo.png" alt="logo">
+
+    </a>
+    actor-spring-boot-starter
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/seonWKim/actor-spring-boot-starter" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Home
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Actor Spring Boot Starter
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../migrating-from-0x/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrating from 0.x
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_1" id="__nav_2_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Core
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/core/actors/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Actors
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/core/messaging/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Messaging
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/core/reliable-delivery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reliable Delivery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/core/supervision/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Supervision
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/core/behaviors/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Behaviors, Timers and Watching
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/core/routers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Routers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/core/pub-sub-topics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pub/Sub Topics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/core/receptionist/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Receptionist
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/core/dispatchers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dispatchers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/core/logging/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Logging
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_2" id="__nav_2_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cluster
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Cluster
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/cluster/sharded-actors/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sharded Actors
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/cluster/singletons/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Singletons
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/cluster/cluster-formation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cluster Formation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/cluster/split-brain-and-leases/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Split Brain and Leases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/cluster/replicated-data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Replicated Data
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_3" id="__nav_2_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Data
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/data/state-in-a-database/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    State in a Database
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/data/event-sourcing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Event-Sourced Actors
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/data/projections/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Projections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_4" id="__nav_2_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Streaming
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Streaming
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/streaming/reactor-streams/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reactor Streams
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/streaming/streaming-to-clients/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Streaming to Clients
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_5" id="__nav_2_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operations
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Operations
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/operations/production/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Running in Production
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/operations/monitoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Monitoring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/operations/deployments/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deployments
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/operations/configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_6" id="__nav_2_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    More
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    More
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/kotlin/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Kotlin
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/ai-agents/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI Agents
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Examples
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Examples
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/simple/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Simple
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/cluster/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cluster
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/synchronization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Synchronization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/chat/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chat
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/agent/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI Agent
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/persistence/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Persistence
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/metrics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Metrics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/logging/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Logging
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/virtual-threads/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Virtual Threads
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/kotlin/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Kotlin
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/kubernetes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Kubernetes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Contributing
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How to Contribute
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spring Conventions
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spring Conventions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#how-to-read-a-row" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How to read a row
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Summary
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-registration-and-activation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Registration and activation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Registration and activation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#row-1-auto-configuration-registration-boot-2-and-3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Row 1: Auto-configuration registration (Boot 2 and 3)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#row-2-enable-annotations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Row 2: @Enable* annotations
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-back-off-and-customization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Back-off and customization
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Back-off and customization">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#row-3-conditionalon-back-off" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Row 3: @ConditionalOn* back-off
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#row-4-customizer-beans" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Row 4: *Customizer beans
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-configuration-properties" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Configuration properties
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Configuration properties">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#row-5-configurationproperties-and-metadata" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Row 5: @ConfigurationProperties and metadata
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#row-6-property-namespace" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Row 6: Property namespace
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Lifecycle
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Lifecycle">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#row-7-smartlifecycle-phases-and-graceful-shutdown" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Row 7: SmartLifecycle phases and graceful shutdown
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-observability" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Observability
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Observability">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#row-8-micrometer-meters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Row 8: Micrometer meters
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#row-9-micrometer-observation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Row 9: Micrometer Observation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#row-10-actuator-health-indicator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Row 10: Actuator health indicator
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#row-11-actuator-endpoint" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Row 11: Actuator endpoint
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-testing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Testing
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Testing">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#row-12-test-artifact" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Row 12: Test artifact
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#row-13-test-slice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Row 13: Test slice
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-distribution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Distribution
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. Distribution">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#row-14-bom" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Row 14: BOM
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#row-15-native-image-hints" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Row 15: Native image hints
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#row-16-starter-and-auto-configure-module-split" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Row 16: Starter and auto-configure module split
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#row-17-optional-dependencies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Row 17: Optional dependencies
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-other-conventions-found" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Other conventions found
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="8. Other conventions found">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#row-18-global-onoff-switch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Row 18: Global on/off switch
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#row-19-registries-scoped-to-the-application-context" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Row 19: Registries scoped to the application context
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#row-20-starter-artifact-naming" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Row 20: Starter artifact naming
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#row-21-failureanalyzer-for-startup-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Row 21: FailureAnalyzer for startup errors
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#row-22-components-discovered-as-beans" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Row 22: Components discovered as beans
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#row-23-framework-events-as-applicationevent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Row 23: Framework events as ApplicationEvent
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#row-24-configuration-ordering" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Row 24: Configuration ordering
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#how-to-read-a-row" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How to read a row
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Summary
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-registration-and-activation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Registration and activation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Registration and activation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#row-1-auto-configuration-registration-boot-2-and-3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Row 1: Auto-configuration registration (Boot 2 and 3)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#row-2-enable-annotations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Row 2: @Enable* annotations
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-back-off-and-customization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Back-off and customization
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Back-off and customization">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#row-3-conditionalon-back-off" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Row 3: @ConditionalOn* back-off
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#row-4-customizer-beans" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Row 4: *Customizer beans
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-configuration-properties" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Configuration properties
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Configuration properties">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#row-5-configurationproperties-and-metadata" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Row 5: @ConfigurationProperties and metadata
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#row-6-property-namespace" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Row 6: Property namespace
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Lifecycle
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Lifecycle">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#row-7-smartlifecycle-phases-and-graceful-shutdown" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Row 7: SmartLifecycle phases and graceful shutdown
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-observability" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Observability
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Observability">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#row-8-micrometer-meters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Row 8: Micrometer meters
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#row-9-micrometer-observation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Row 9: Micrometer Observation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#row-10-actuator-health-indicator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Row 10: Actuator health indicator
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#row-11-actuator-endpoint" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Row 11: Actuator endpoint
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-testing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Testing
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Testing">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#row-12-test-artifact" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Row 12: Test artifact
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#row-13-test-slice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Row 13: Test slice
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-distribution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Distribution
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. Distribution">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#row-14-bom" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Row 14: BOM
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#row-15-native-image-hints" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Row 15: Native image hints
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#row-16-starter-and-auto-configure-module-split" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Row 16: Starter and auto-configure module split
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#row-17-optional-dependencies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Row 17: Optional dependencies
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-other-conventions-found" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Other conventions found
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="8. Other conventions found">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#row-18-global-onoff-switch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Row 18: Global on/off switch
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#row-19-registries-scoped-to-the-application-context" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Row 19: Registries scoped to the application context
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#row-20-starter-artifact-naming" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Row 20: Starter artifact naming
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#row-21-failureanalyzer-for-startup-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Row 21: FailureAnalyzer for startup errors
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#row-22-components-discovered-as-beans" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Row 22: Components discovered as beans
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#row-23-framework-events-as-applicationevent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Row 23: Framework events as ApplicationEvent
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#row-24-configuration-ordering" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Row 24: Configuration ordering
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="spring-conventions-how-this-starter-compares">Spring conventions: how this starter compares</h1>
+<p>This page compares the starter with the conventions Spring users already know from
+Spring Boot, Spring for Apache Kafka, Spring Data, Spring Cloud Stream, Micrometer,
+Resilience4j and Temporal. Each row says what we keep and what we change. Changes are proposed
+and tracked in <a href="https://github.com/seonWKim/actor-spring-boot-starter/issues">GitHub Issues</a>.</p>
+<div class="admonition note">
+<p class="admonition-title">Snapshot</p>
+<p>"This starter today" describes the 0.10.0 release (the last 0.x <code>main</code>), before the 1.0 refactor. The 1.0 changes are in the <a href="https://github.com/seonWKim/actor-spring-boot-starter/blob/main/CHANGELOG.md">changelog</a>. The core configuration is
+<a href="https://github.com/seonWKim/actor-spring-boot-starter/blob/14d6a9805e0ccab6a14ec90520cb182a8fde7b7b/core/src/main/java/io/github/seonwkim/core/ActorConfiguration.java"><code>ActorConfiguration</code></a>,
+which is imported by
+<a href="https://github.com/seonWKim/actor-spring-boot-starter/blob/14d6a9805e0ccab6a14ec90520cb182a8fde7b7b/core/src/main/java/io/github/seonwkim/core/EnableActorSupport.java"><code>@EnableActorSupport</code></a>.
+<code>core-boot3</code> is generated from <code>core</code> sources by the <code>syncAllBoot3Sources</code> Gradle task,
+so anything said about <code>core</code> also holds for <code>core-boot3</code>.</p>
+</div>
+<h2 id="how-to-read-a-row">How to read a row</h2>
+<p>Every row has four parts:</p>
+<ul>
+<li><strong>Reference libraries</strong>: how the named libraries do it.</li>
+<li><strong>This starter today</strong>: what the code does now.</li>
+<li><strong>Verdict</strong>: one of<ul>
+<li><strong>Keep</strong>: we already follow the convention, or we depart from it on purpose (the reason is given).</li>
+<li><strong>Change</strong>: we should follow the convention.</li>
+<li><strong>Tracked</strong>: the gap is already tracked by an open issue. The row links the issue.</li>
+</ul>
+</li>
+<li><strong>Source</strong>: a link to the official documentation of the reference.</li>
+</ul>
+<p>Rows 1 to 17 cover the eight topics of
+<a href="https://github.com/seonWKim/actor-spring-boot-starter/issues/105">issue #105</a>.
+Rows 18 to 24 are other conventions found in the same libraries that apply to this
+starter; each names the library it comes from.</p>
+<h2 id="summary">Summary</h2>
+<p>Issue links are in each row below.</p>
+<table>
+<thead>
+<tr>
+<th>Row</th>
+<th>Convention</th>
+<th>Verdict</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Auto-configuration registration (Boot 2 and 3)</td>
+<td>Change, done (#184)</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>@Enable*</code> annotations</td>
+<td>Change, done (#184)</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>@ConditionalOn*</code> back-off</td>
+<td>Change</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>*Customizer</code> beans</td>
+<td>Change</td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>@ConfigurationProperties</code> and metadata</td>
+<td>Tracked (#97)</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Property namespace</td>
+<td>Keep</td>
+</tr>
+<tr>
+<td>7</td>
+<td><code>SmartLifecycle</code> phases and graceful shutdown</td>
+<td>Tracked (#99)</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Micrometer meters</td>
+<td>Keep</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Micrometer Observation</td>
+<td>Change</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Actuator health indicator</td>
+<td>Tracked (#100)</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Actuator endpoint</td>
+<td>Change</td>
+</tr>
+<tr>
+<td>12</td>
+<td>Test artifact</td>
+<td>Change</td>
+</tr>
+<tr>
+<td>13</td>
+<td>Test slice</td>
+<td>Change</td>
+</tr>
+<tr>
+<td>14</td>
+<td>BOM</td>
+<td>Change</td>
+</tr>
+<tr>
+<td>15</td>
+<td>Native image hints</td>
+<td>Change</td>
+</tr>
+<tr>
+<td>16</td>
+<td>Starter and auto-configure module split</td>
+<td>Keep</td>
+</tr>
+<tr>
+<td>17</td>
+<td>Optional dependencies</td>
+<td>Keep</td>
+</tr>
+<tr>
+<td>18</td>
+<td>Global on/off switch (Spring Boot, Spring Cloud, Spring for Apache Kafka)</td>
+<td>Change</td>
+</tr>
+<tr>
+<td>19</td>
+<td>Registries scoped to the application context (Spring for Apache Kafka)</td>
+<td>Change</td>
+</tr>
+<tr>
+<td>20</td>
+<td>Starter artifact naming (Spring Boot)</td>
+<td>Change</td>
+</tr>
+<tr>
+<td>21</td>
+<td><code>FailureAnalyzer</code> for startup errors (Spring Boot)</td>
+<td>Change</td>
+</tr>
+<tr>
+<td>22</td>
+<td>Components discovered as beans (Spring for Apache Kafka, Spring Cloud Stream, Temporal)</td>
+<td>Keep</td>
+</tr>
+<tr>
+<td>23</td>
+<td>Framework events as <code>ApplicationEvent</code> (Spring for Apache Kafka)</td>
+<td>Keep</td>
+</tr>
+<tr>
+<td>24</td>
+<td>Configuration ordering with <code>@AutoConfiguration(after = ...)</code> (Spring Boot)</td>
+<td>Keep</td>
+</tr>
+</tbody>
+</table>
+<h2 id="1-registration-and-activation">1. Registration and activation</h2>
+<h3 id="row-1-auto-configuration-registration-boot-2-and-3">Row 1: Auto-configuration registration (Boot 2 and 3)</h3>
+<ul>
+<li><strong>Reference libraries</strong>: A Spring Boot starter registers its configuration classes so that adding the
+  dependency is enough. Boot 2.0 to 2.6 read
+  <code>org.springframework.boot.autoconfigure.EnableAutoConfiguration</code> keys in <code>META-INF/spring.factories</code>.
+  Boot 2.7 added <code>META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports</code>
+  and the <code>@AutoConfiguration</code> annotation (which also sets <code>proxyBeanMethods = false</code>). Boot 3.0 reads
+  only the <code>.imports</code> file. Spring for Apache Kafka, Spring Data, Resilience4j and Temporal all ship
+  their Boot integration this way: the Kafka and Spring Data auto-configurations live in Spring Boot
+  itself, <code>resilience4j-spring-boot2</code>/<code>-3</code> and <code>temporal-spring-boot-autoconfigure</code> list theirs in these files.</li>
+<li><strong>This starter today</strong>: <code>core</code> has no <code>src/main/resources</code> at all, so it has neither file. Nothing
+  starts until the app adds <code>@EnableActorSupport</code>. <code>ActorConfiguration</code> and
+  <code>PekkoManagementAutoConfiguration</code> are plain <code>@Configuration</code> classes. The <code>metrics</code> module has a
+  <code>spring.factories</code> entry only, so Boot 3 never loads <code>ActorMetricsAutoConfiguration</code> on its own.
+  The core tests pass without <code>@EnableActorSupport</code> only because the test application sits in the
+  <code>io.github.seonwkim.actor</code> package, and component scanning picks <code>ActorConfiguration</code> up.</li>
+<li><strong>Verdict</strong>: Change. Done in <a href="https://github.com/seonWKim/actor-spring-boot-starter/issues/184">#184</a>:
+  every actor configuration is an <code>@AutoConfiguration</code> listed in <code>actor-autoconfigure</code>'s
+  <code>AutoConfiguration.imports</code>, ordered with <code>@AutoConfiguration(after = ...)</code>.</li>
+<li><strong>Source</strong>: <a href="https://docs.spring.io/spring-boot/reference/features/developing-auto-configuration.html">Spring Boot: Creating your own auto-configuration</a>,
+  <a href="https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-2.7-Release-Notes">Spring Boot 2.7 release notes</a>,
+  <a href="https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-3.0-Migration-Guide">Spring Boot 3.0 migration guide</a>.</li>
+</ul>
+<h3 id="row-2-enable-annotations">Row 2: <code>@Enable*</code> annotations</h3>
+<ul>
+<li><strong>Reference libraries</strong>: In a Boot app the <code>@Enable*</code> annotation is optional, because the
+  auto-configuration applies it for you. Boot's Kafka auto-configuration adds <code>@EnableKafka</code> when the app
+  has not, so <code>@KafkaListener</code> works with the dependency alone. Boot enables Spring Data repositories for
+  you; <code>@EnableJpaRepositories</code> is needed only to change the scanned packages or the defaults.
+  Outside Boot (plain Spring Framework), the annotation remains the switch.</li>
+<li><strong>This starter today</strong>: <code>@EnableActorSupport</code> is required. It is the only way to import
+  <code>ActorConfiguration</code> and <code>PekkoManagementAutoConfiguration</code>.</li>
+<li><strong>Verdict</strong>: Change. The annotation stays and is
+  not deprecated; it becomes optional in a Boot app. Done in
+  <a href="https://github.com/seonWKim/actor-spring-boot-starter/issues/184">#184</a>: it is an
+  <code>@ImportAutoConfiguration</code> of the same list, so it adds nothing next to <code>@EnableAutoConfiguration</code>
+  and still starts the actor system where auto-configuration is off.</li>
+<li><strong>Source</strong>: <a href="https://docs.spring.io/spring-kafka/reference/kafka/receiving-messages/listener-annotation.html">Spring for Apache Kafka: <code>@KafkaListener</code> annotation</a>,
+  <a href="https://docs.spring.io/spring-boot/reference/messaging/kafka.html">Spring Boot: Apache Kafka support</a>,
+  <a href="https://docs.spring.io/spring-data/jpa/reference/repositories/create-instances.html">Spring Data JPA: Creating repository instances</a>.</li>
+</ul>
+<h2 id="2-back-off-and-customization">2. Back-off and customization</h2>
+<h3 id="row-3-conditionalon-back-off">Row 3: <code>@ConditionalOn*</code> back-off</h3>
+<ul>
+<li><strong>Reference libraries</strong>: Every bean an auto-configuration defines backs off when the user defines one
+  (<code>@ConditionalOnMissingBean</code>). Each class that touches an optional library is guarded with
+  <code>@ConditionalOnClass</code>, so it never loads when the library is absent. Boot's Kafka auto-configuration
+  backs off on <code>KafkaTemplate</code>, <code>ProducerFactory</code>, <code>ConsumerFactory</code> and the listener container
+  factory. Boot also asks that <code>BeanPostProcessor</code> <code>@Bean</code> methods be <code>static</code>, so the configuration class
+  is not created early.</li>
+<li><strong>This starter today</strong>: <code>actorProperties</code>, <code>rootGuardianSupplierWrapper</code>, <code>actorSystemBuilder</code>,
+  <code>actorSystem</code> and <code>topicManager</code> back off. <code>actorRegistrationBeanPostProcessor</code> and
+  <code>clusterShardingInitializer</code> do not, and the post-processor method is not <code>static</code>.
+  <code>PekkoManagementAutoConfiguration</code> is the only class with <code>@ConditionalOnClass</code>.</li>
+<li><strong>Verdict</strong>: Change.</li>
+<li><strong>Source</strong>: <a href="https://docs.spring.io/spring-boot/reference/features/developing-auto-configuration.html">Spring Boot: Condition annotations</a>,
+  <a href="https://docs.spring.io/spring-framework/reference/core/beans/java/bean-annotation.html">Spring Framework: <code>BeanPostProcessor</code> <code>@Bean</code> methods</a>.</li>
+</ul>
+<h3 id="row-4-customizer-beans">Row 4: <code>*Customizer</code> beans</h3>
+<ul>
+<li><strong>Reference libraries</strong>: Boot lets an app tweak a bean it builds without replacing it: the app
+  declares one or more <code>*Customizer</code> beans, and the auto-configuration applies them in <code>@Order</code> order
+  through an <code>ObjectProvider</code>. Examples: <code>RestTemplateCustomizer</code> and <code>Jackson2ObjectMapperBuilderCustomizer</code>
+  (Spring Boot); <code>DefaultKafkaProducerFactoryCustomizer</code> and <code>DefaultKafkaConsumerFactoryCustomizer</code>
+  (Boot's Kafka support); <code>CircuitBreakerConfigCustomizer</code> (Resilience4j); <code>TemporalOptionsCustomizer</code>
+  and <code>WorkerFactoryOptionsCustomizer</code> (Temporal); <code>MeterRegistryCustomizer</code> (Micrometer in Boot).</li>
+<li><strong>This starter today</strong>: There is no customizer type. To change one thing (for example a Pekko setting
+  computed at startup, or an extra root guardian behaviour) the app replaces the whole
+  <code>SpringActorSystemBuilder</code> or <code>RootGuardianSupplierWrapper</code> bean.</li>
+<li><strong>Verdict</strong>: Change.</li>
+<li><strong>Source</strong>: <a href="https://docs.spring.io/spring-boot/reference/messaging/kafka.html">Spring Boot: Apache Kafka support</a>,
+  <a href="https://resilience4j.readme.io/docs/getting-started-3">Resilience4j: Spring Boot 2 getting started</a>,
+  <a href="https://docs.temporal.io/develop/java/spring-boot-integration">Temporal: Spring Boot integration</a>,
+  <a href="https://docs.spring.io/spring-boot/reference/actuator/metrics.html">Spring Boot: Metrics customization</a>.</li>
+</ul>
+<h2 id="3-configuration-properties">3. Configuration properties</h2>
+<h3 id="row-5-configurationproperties-and-metadata">Row 5: <code>@ConfigurationProperties</code> and metadata</h3>
+<ul>
+<li><strong>Reference libraries</strong>: Properties bind to a typed <code>@ConfigurationProperties</code> class
+  (<code>KafkaProperties</code>, <code>DataSourceProperties</code>, <code>TemporalProperties</code>, Resilience4j's
+  <code>CircuitBreakerProperties</code>). The <code>spring-boot-configuration-processor</code> generates
+  <code>META-INF/spring-configuration-metadata.json</code>, so IDEs complete and document the keys, and deprecated
+  keys are marked.</li>
+<li><strong>This starter today</strong>: <code>ActorProperties</code> is a plain class that binds <code>spring.actor.*</code> into a
+  <code>Map&lt;String, Object&gt;</code> with the <code>Binder</code>. There is no metadata file.</li>
+<li><strong>Verdict</strong>: Tracked: <a href="https://github.com/seonWKim/actor-spring-boot-starter/issues/97">#97</a>. Not
+  re-specified here.</li>
+<li><strong>Source</strong>: <a href="https://docs.spring.io/spring-boot/reference/features/external-config.html">Spring Boot: Type-safe configuration properties</a>,
+  <a href="https://docs.spring.io/spring-boot/specification/configuration-metadata/index.html">Spring Boot: Configuration metadata</a>.</li>
+</ul>
+<h3 id="row-6-property-namespace">Row 6: Property namespace</h3>
+<ul>
+<li><strong>Reference libraries</strong>: Spring Boot asks third-party starters to keep their keys in their own
+  namespace and not to use <code>spring</code>, <code>server</code> or <code>management</code>. Resilience4j uses <code>resilience4j.*</code>.
+  Temporal's own starter uses <code>spring.temporal.*</code>, and Spring-team projects (Kafka, Cloud Stream) use
+  <code>spring.kafka.*</code> and <code>spring.cloud.stream.*</code>.</li>
+<li><strong>This starter today</strong>: All keys live under <code>spring.actor.*</code>, and <code>spring.actor.pekko.*</code> maps to the
+  Pekko configuration.</li>
+<li><strong>Verdict</strong>: Keep. Moving every key breaks every user's configuration, and Temporal shows that a
+  <code>spring.*</code> prefix is accepted in practice. If the typed properties work in
+  <a href="https://github.com/seonWKim/actor-spring-boot-starter/issues/97">#97</a> wants to revisit the prefix,
+  it should do so there, with deprecation metadata for the old keys.</li>
+<li><strong>Source</strong>: <a href="https://docs.spring.io/spring-boot/reference/features/developing-auto-configuration.html">Spring Boot: Creating your own starter, configuration keys</a>,
+  <a href="https://docs.temporal.io/develop/java/spring-boot-integration">Temporal: Spring Boot integration</a>.</li>
+</ul>
+<h2 id="4-lifecycle">4. Lifecycle</h2>
+<h3 id="row-7-smartlifecycle-phases-and-graceful-shutdown">Row 7: <code>SmartLifecycle</code> phases and graceful shutdown</h3>
+<ul>
+<li><strong>Reference libraries</strong>: Components that run work start and stop in a <code>SmartLifecycle</code> phase, not in
+  a constructor or <code>destroy()</code>. Spring for Apache Kafka's listener containers are <code>SmartLifecycle</code>
+  beans with <code>autoStartup</code> and a phase, and stop before the beans they use are destroyed. Boot's web
+  server graceful shutdown runs in its own phase with a bounded timeout
+  (<code>spring.lifecycle.timeout-per-shutdown-phase</code>).</li>
+<li><strong>This starter today</strong>: The Pekko actor system starts when the <code>actorSystem</code> bean is built.
+  <code>SpringActorSystem</code> implements <code>DisposableBean</code>, and <code>destroy()</code> calls <code>terminate()</code> and then waits on
+  <code>getWhenTerminated()</code> with no timeout.</li>
+<li><strong>Verdict</strong>: Tracked: <a href="https://github.com/seonWKim/actor-spring-boot-starter/issues/99">#99</a>. Not
+  re-specified here.</li>
+<li><strong>Source</strong>: <a href="https://docs.spring.io/spring-framework/reference/core/beans/factory-nature.html">Spring Framework: Startup and shutdown callbacks</a>,
+  <a href="https://docs.spring.io/spring-kafka/reference/kafka/receiving-messages/message-listener-container.html">Spring for Apache Kafka: Message listener containers</a>,
+  <a href="https://docs.spring.io/spring-boot/reference/web/graceful-shutdown.html">Spring Boot: Graceful shutdown</a>.</li>
+</ul>
+<h2 id="5-observability">5. Observability</h2>
+<h3 id="row-8-micrometer-meters">Row 8: Micrometer meters</h3>
+<ul>
+<li><strong>Reference libraries</strong>: Libraries register meters on the app's <code>MeterRegistry</code> bean, backed off
+  with <code>@ConditionalOnClass(MeterRegistry.class)</code> and <code>@ConditionalOnBean(MeterRegistry.class)</code>. Spring
+  for Apache Kafka binds client meters through <code>MicrometerConsumerListener</code>; Resilience4j ships
+  <code>resilience4j-micrometer</code>.</li>
+<li><strong>This starter today</strong>: The separate <code>metrics</code> module (an instrumentation agent) registers actor
+  meters on the <code>MeterRegistry</code> through <code>ActorMetricsAutoConfiguration</code>, guarded with
+  <code>@ConditionalOnClass</code>, <code>@ConditionalOnBean</code>, <code>@ConditionalOnMissingBean</code> and
+  <code>spring.actor.metrics.enabled</code>.</li>
+<li><strong>Verdict</strong>: Keep. Its missing Boot 3 registration file is part of
+  <a href="#row-1-auto-configuration-registration-boot-2-and-3">row 1</a>; this change does not touch the metrics module.</li>
+<li><strong>Source</strong>: <a href="https://docs.spring.io/spring-boot/reference/actuator/metrics.html">Spring Boot: Metrics</a>,
+  <a href="https://docs.spring.io/spring-kafka/reference/kafka/micrometer.html">Spring for Apache Kafka: Monitoring</a>.</li>
+</ul>
+<h3 id="row-9-micrometer-observation">Row 9: Micrometer Observation</h3>
+<ul>
+<li><strong>Reference libraries</strong>: Since Micrometer 1.10 and Boot 3, libraries instrument a unit of work once
+  with the Observation API, and Boot turns it into a timer and a trace span. Spring for Apache Kafka
+  enables it with <code>observationEnabled</code> on the template and the container (Boot properties
+  <code>spring.kafka.template.observation-enabled</code>, <code>spring.kafka.listener.observation-enabled</code>) and lets the
+  app plug in its own <code>ObservationConvention</code>.</li>
+<li><strong>This starter today</strong>: <code>tell</code> and <code>ask</code> create <code>actor.send</code> and <code>actor.receive</code> Observations when an
+  <code>ObservationRegistry</code> bean exists, and the trace crosses nodes. Actor spawn is not observed.</li>
+<li><strong>Verdict</strong>: Change.</li>
+<li><strong>Source</strong>: <a href="https://docs.micrometer.io/micrometer/reference/observation.html">Micrometer: Observation API</a>,
+  <a href="https://docs.spring.io/spring-kafka/reference/kafka/micrometer.html">Spring for Apache Kafka: Monitoring</a>.</li>
+</ul>
+<h3 id="row-10-actuator-health-indicator">Row 10: Actuator health indicator</h3>
+<ul>
+<li><strong>Reference libraries</strong>: A library with a remote dependency contributes a <code>HealthIndicator</code>
+  (Spring Data's Redis, Mongo and Cassandra indicators; the Spring Cloud Stream binders indicator),
+  enabled by <code>management.health.&lt;name&gt;.enabled</code>.</li>
+<li><strong>This starter today</strong>: No health indicator. Cluster membership is visible only through Pekko
+  Management HTTP when it is on the classpath.</li>
+<li><strong>Verdict</strong>: Tracked: <a href="https://github.com/seonWKim/actor-spring-boot-starter/issues/100">#100</a>. Not
+  re-specified here.</li>
+<li><strong>Source</strong>: <a href="https://docs.spring.io/spring-boot/reference/actuator/endpoints.html">Spring Boot: Actuator endpoints, health</a>.</li>
+</ul>
+<h3 id="row-11-actuator-endpoint">Row 11: Actuator endpoint</h3>
+<ul>
+<li><strong>Reference libraries</strong>: Libraries with runtime state expose a read-only Actuator <code>@Endpoint</code>:
+  Spring Cloud Stream's <code>bindings</code> and <code>channels</code> endpoints; Spring Integration's <code>integrationgraph</code>;
+  Resilience4j's <code>circuitbreakers</code> and <code>circuitbreakerevents</code>.</li>
+<li><strong>This starter today</strong>: No endpoint. Actor and shard state is available only through Pekko APIs.</li>
+<li><strong>Verdict</strong>: Change.</li>
+<li><strong>Source</strong>: <a href="https://docs.spring.io/spring-boot/reference/actuator/endpoints.html">Spring Boot: Implementing custom endpoints</a>,
+  <a href="https://docs.spring.io/spring-cloud-stream/reference/spring-cloud-stream/binding_visualization_control.html">Spring Cloud Stream: Binding visualization and control</a>,
+  <a href="https://resilience4j.readme.io/docs/getting-started-3">Resilience4j: Spring Boot 2 getting started</a>.</li>
+</ul>
+<h2 id="6-testing">6. Testing</h2>
+<h3 id="row-12-test-artifact">Row 12: Test artifact</h3>
+<ul>
+<li><strong>Reference libraries</strong>: Libraries publish a test artifact with a ready-made fixture:
+  <code>spring-kafka-test</code> with <code>@EmbeddedKafka</code> and <code>EmbeddedKafkaBroker</code>; <code>spring-cloud-stream-test-binder</code>
+  with <code>InputDestination</code> and <code>OutputDestination</code>; <code>temporal-testing</code> with <code>TestWorkflowEnvironment</code>, which
+  Temporal's starter wires in when <code>spring.temporal.test-server.enabled=true</code>.</li>
+<li><strong>This starter today</strong>: No test artifact. Users wire Pekko's <code>pekko-actor-testkit-typed</code> by hand, and
+  the core tests use <code>ActorTypeRegistry.clear()</code> to reset static state between contexts.</li>
+<li><strong>Verdict</strong>: Change.</li>
+<li><strong>Source</strong>: <a href="https://docs.spring.io/spring-kafka/reference/testing.html">Spring for Apache Kafka: Testing applications</a>,
+  <a href="https://docs.spring.io/spring-cloud-stream/reference/spring-cloud-stream/spring_integration_test_binder.html">Spring Cloud Stream: Testing</a>,
+  <a href="https://docs.temporal.io/develop/java/spring-boot-integration">Temporal: Spring Boot integration</a>,
+  <a href="https://pekko.apache.org/docs/pekko/current/typed/testing.html">Apache Pekko: Testing</a>.</li>
+</ul>
+<h3 id="row-13-test-slice">Row 13: Test slice</h3>
+<ul>
+<li><strong>Reference libraries</strong>: Boot test slices load one layer of the app and only the auto-configuration
+  it needs: <code>@DataJpaTest</code> (Spring Data), <code>@JsonTest</code>, <code>@WebMvcTest</code>. A library can ship its own slice with
+  <code>@ImportAutoConfiguration</code> and a <code>META-INF/spring/&lt;annotation&gt;.imports</code> file.</li>
+<li><strong>This starter today</strong>: No slice. A test that needs actors uses <code>@SpringBootTest</code> and loads the
+  whole application.</li>
+<li><strong>Verdict</strong>: Change.</li>
+<li><strong>Source</strong>: <a href="https://docs.spring.io/spring-boot/reference/testing/spring-boot-applications.html">Spring Boot: Testing Spring Boot applications, auto-configured tests</a>.</li>
+</ul>
+<h2 id="7-distribution">7. Distribution</h2>
+<h3 id="row-14-bom">Row 14: BOM</h3>
+<ul>
+<li><strong>Reference libraries</strong>: A project with more than one artifact publishes a bill of materials so
+  users pick one version: <code>spring-cloud-dependencies</code> (Spring Cloud Stream), <code>micrometer-bom</code>,
+  <code>resilience4j-bom</code>, <code>temporal-bom</code>, <code>spring-boot-dependencies</code>; Pekko itself ships <code>pekko-bom_&lt;scala&gt;</code>.</li>
+<li><strong>This starter today</strong>: Three published artifacts (<code>spring-boot-starter-actor</code>,
+  <code>spring-boot-starter-actor_3</code>, <code>spring-boot-starter-actor-metrics</code>) and no BOM. Users repeat the version
+  on each.</li>
+<li><strong>Verdict</strong>: Change.</li>
+<li><strong>Source</strong>: <a href="https://docs.spring.io/spring-boot/reference/using/build-systems.html">Spring Boot: Dependency management</a>,
+  <a href="https://docs.micrometer.io/micrometer/reference/installing.html">Micrometer: Installing</a>.</li>
+</ul>
+<h3 id="row-15-native-image-hints">Row 15: Native image hints</h3>
+<ul>
+<li><strong>Reference libraries</strong>: Boot 3 libraries that use reflection, resources or proxies register a
+  <code>RuntimeHintsRegistrar</code> in <code>META-INF/spring/aot.factories</code>, so GraalVM native images work. Spring for
+  Apache Kafka ships <code>KafkaRuntimeHints</code>.</li>
+<li><strong>This starter today</strong>: No hints. Pekko loads <code>reference.conf</code> resources and creates extensions,
+  serializers and actor classes by reflection, so a native image cannot start the actor system.</li>
+<li><strong>Verdict</strong>: Change.</li>
+<li><strong>Source</strong>: <a href="https://docs.spring.io/spring-framework/reference/core/aot.html">Spring Framework: Ahead of time optimizations, runtime hints</a>,
+  <a href="https://docs.spring.io/spring-boot/reference/packaging/native-image/index.html">Spring Boot: GraalVM native images</a>.</li>
+</ul>
+<h3 id="row-16-starter-and-auto-configure-module-split">Row 16: Starter and auto-configure module split</h3>
+<ul>
+<li><strong>Reference libraries</strong>: Spring Boot describes a starter as two modules, an <code>-autoconfigure</code> module
+  with the code and an empty <code>-starter</code> module with the dependencies, and allows one combined module when
+  there is no need to separate them. Temporal ships both
+  (<code>temporal-spring-boot-autoconfigure</code> and <code>temporal-spring-boot-starter</code>).</li>
+<li><strong>This starter today</strong>: One combined module per Boot line (<code>core</code>, <code>core-boot3</code>).</li>
+<li><strong>Verdict</strong>: Keep. Boot allows a combined module, and the starter has no optional feature large
+  enough to need a separate auto-configure jar.</li>
+<li><strong>Source</strong>: <a href="https://docs.spring.io/spring-boot/reference/features/developing-auto-configuration.html">Spring Boot: Creating your own starter</a>.</li>
+</ul>
+<h3 id="row-17-optional-dependencies">Row 17: Optional dependencies</h3>
+<ul>
+<li><strong>Reference libraries</strong>: Spring Boot asks auto-configure modules to declare the libraries they
+  configure as optional, so the app chooses them, and to guard the code that uses them with
+  <code>@ConditionalOnClass</code>.</li>
+<li><strong>This starter today</strong>: Pekko Management and Cluster Bootstrap are <code>compileOnly</code>, and
+  <code>PekkoManagementAutoConfiguration</code> is guarded by <code>@ConditionalOnClass</code> on their class names. The
+  metrics module declares Spring Boot <code>compileOnly</code>.</li>
+<li><strong>Verdict</strong>: Keep. The remaining guard gaps are in row 3.</li>
+<li><strong>Source</strong>: <a href="https://docs.spring.io/spring-boot/reference/features/developing-auto-configuration.html">Spring Boot: Creating your own starter</a>.</li>
+</ul>
+<h2 id="8-other-conventions-found">8. Other conventions found</h2>
+<h3 id="row-18-global-onoff-switch">Row 18: Global on/off switch</h3>
+<p>Source libraries: Spring Boot, Spring Cloud, Spring for Apache Kafka.</p>
+<ul>
+<li><strong>Reference libraries</strong>: A starter that starts something can be turned off with one property, without
+  removing the dependency: <code>spring.cloud.discovery.enabled</code> and <code>spring.cloud.config.enabled</code> (Spring
+  Cloud), <code>spring.jmx.enabled</code> (Spring Boot), <code>spring.kafka.listener.auto-startup</code> (Boot's Kafka support).</li>
+<li><strong>This starter today</strong>: <code>spring.actor.pekko.management.enabled</code> turns off Pekko Management and
+  <code>spring.actor.metrics.enabled</code> turns off metrics, but there is no switch for the actor system itself.</li>
+<li><strong>Verdict</strong>: Change.</li>
+<li><strong>Source</strong>: <a href="https://docs.spring.io/spring-boot/reference/features/developing-auto-configuration.html">Spring Boot: Condition annotations, property conditions</a>,
+  <a href="https://docs.spring.io/spring-cloud-commons/reference/spring-cloud-commons/common-abstractions.html">Spring Cloud Commons</a>.</li>
+</ul>
+<h3 id="row-19-registries-scoped-to-the-application-context">Row 19: Registries scoped to the application context</h3>
+<p>Source library: Spring for Apache Kafka.</p>
+<ul>
+<li><strong>Reference libraries</strong>: Spring for Apache Kafka keeps its listener endpoints in a
+  <code>KafkaListenerEndpointRegistry</code> bean, one per application context. The Spring TestContext framework
+  caches and reuses contexts, so several contexts can live in one JVM at once, and state kept in <code>static</code>
+  fields leaks between them.</li>
+<li><strong>This starter today</strong>: <code>ActorTypeRegistry</code> and <code>ShardedActorRegistry</code> keep actor factories in
+  <code>static</code> maps. Tests call <code>ActorTypeRegistry.clear()</code> to isolate contexts.</li>
+<li><strong>Verdict</strong>: Change.</li>
+<li><strong>Source</strong>: <a href="https://docs.spring.io/spring-kafka/reference/kafka/receiving-messages/kafkalistener-lifecycle.html">Spring for Apache Kafka: <code>@KafkaListener</code> lifecycle management</a>,
+  <a href="https://docs.spring.io/spring-framework/reference/testing/testcontext-framework/ctx-management/caching.html">Spring Framework: Context caching</a>.</li>
+</ul>
+<h3 id="row-20-starter-artifact-naming">Row 20: Starter artifact naming</h3>
+<p>Source library: Spring Boot.</p>
+<ul>
+<li><strong>Reference libraries</strong>: Spring Boot reserves the <code>spring-boot</code> prefix for its own modules and asks
+  third-party starters to put the project name first: <code>acme-spring-boot-starter</code>. Temporal follows it
+  (<code>temporal-spring-boot-starter</code>), as does Resilience4j (<code>resilience4j-spring-boot3</code>).</li>
+<li><strong>This starter today</strong>: The artifacts are <code>spring-boot-starter-actor</code>, <code>spring-boot-starter-actor_3</code>
+  and <code>spring-boot-starter-actor-metrics</code>, under the <code>io.github.seonwkim</code> group.</li>
+<li><strong>Verdict</strong>: Change. The 1.0 release renamed them to <code>actor-spring-boot-starter</code> and friends.</li>
+<li><strong>Source</strong>: <a href="https://docs.spring.io/spring-boot/reference/features/developing-auto-configuration.html">Spring Boot: Creating your own starter, naming</a>.</li>
+</ul>
+<h3 id="row-21-failureanalyzer-for-startup-errors">Row 21: <code>FailureAnalyzer</code> for startup errors</h3>
+<p>Source library: Spring Boot.</p>
+<ul>
+<li><strong>Reference libraries</strong>: Boot turns well-known startup failures into a short "Description / Action"
+  report with a <code>FailureAnalyzer</code> registered in <code>spring.factories</code> (for example "Port 8080 was already in
+  use", or a missing bean).</li>
+<li><strong>This starter today</strong>: A Pekko startup failure (remoting port already bound, a bad <code>spring.actor.pekko.*</code>
+  value, a missing seed node) reaches the user as a nested stack trace from the <code>actorSystem</code> bean.</li>
+<li><strong>Verdict</strong>: Change.</li>
+<li><strong>Source</strong>: <a href="https://docs.spring.io/spring-boot/how-to/application.html">Spring Boot: Create your own FailureAnalyzer</a>.</li>
+</ul>
+<h3 id="row-22-components-discovered-as-beans">Row 22: Components discovered as beans</h3>
+<p>Source libraries: Spring for Apache Kafka, Spring Cloud Stream, Temporal.</p>
+<ul>
+<li><strong>Reference libraries</strong>: The user's handlers are ordinary beans the library finds in the context:
+  <code>@KafkaListener</code> methods, <code>Function</code>/<code>Consumer</code> beans in Spring Cloud Stream, and workflow and activity
+  beans found by Temporal's <code>spring.temporal.workers-auto-discovery.packages</code>.</li>
+<li><strong>This starter today</strong>: Actors are <code>@Component</code> beans implementing <code>SpringActor</code> or
+  <code>SpringShardedActor</code>, found by a <code>BeanPostProcessor</code>. They get dependency injection like any bean.</li>
+<li><strong>Verdict</strong>: Keep.</li>
+<li><strong>Source</strong>: <a href="https://docs.spring.io/spring-kafka/reference/kafka/receiving-messages/listener-annotation.html">Spring for Apache Kafka: <code>@KafkaListener</code> annotation</a>,
+  <a href="https://docs.spring.io/spring-cloud-stream/reference/spring-cloud-stream/functional-binding-names.html">Spring Cloud Stream: Functional binding names</a>,
+  <a href="https://docs.temporal.io/develop/java/spring-boot-integration">Temporal: Spring Boot integration</a>.</li>
+</ul>
+<h3 id="row-23-framework-events-as-applicationevent">Row 23: Framework events as <code>ApplicationEvent</code></h3>
+<p>Source library: Spring for Apache Kafka.</p>
+<ul>
+<li><strong>Reference libraries</strong>: Spring for Apache Kafka publishes container state changes as Spring
+  application events (<code>ListenerContainerIdleEvent</code>, <code>ConsumerStartedEvent</code>, <code>ConsumerStoppedEvent</code>), so the
+  app reacts with <code>@EventListener</code>.</li>
+<li><strong>This starter today</strong>: In cluster mode, <code>SpringActorSystem</code> publishes Pekko cluster events through
+  the <code>ApplicationEventPublisher</code>.</li>
+<li><strong>Verdict</strong>: Keep.</li>
+<li><strong>Source</strong>: <a href="https://docs.spring.io/spring-kafka/reference/kafka/events.html">Spring for Apache Kafka: Application events</a>.</li>
+</ul>
+<h3 id="row-24-configuration-ordering">Row 24: Configuration ordering</h3>
+<p>Source library: Spring Boot.</p>
+<ul>
+<li><strong>Reference libraries</strong>: An auto-configuration that depends on another declares it with
+  <code>@AutoConfiguration(after = ...)</code> or <code>@AutoConfigureAfter</code>, never by relying on class names or scan order.</li>
+<li><strong>This starter today</strong>: <code>ActorMetricsAutoConfiguration</code> declares
+  <code>@AutoConfigureAfter(CompositeMeterRegistryAutoConfiguration.class)</code>. The core classes have no ordering
+  yet because they are not auto-configurations; row 1 adds the ordering they need.</li>
+<li><strong>Verdict</strong>: Keep. The core ordering is part of <a href="#row-1-auto-configuration-registration-boot-2-and-3">row 1</a>.</li>
+<li><strong>Source</strong>: <a href="https://docs.spring.io/spring-boot/reference/features/developing-auto-configuration.html">Spring Boot: Locating auto-configuration candidates</a>.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.tabs.link"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
+      
+    
+  </body>
+</html>

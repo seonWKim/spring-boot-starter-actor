@@ -1,0 +1,3622 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://seonwkim.github.io/actor-spring-boot-starter/guides/operations/monitoring/">
+      
+      
+        <link rel="prev" href="../production/">
+      
+      
+        <link rel="next" href="../deployments/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../logo.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.1">
+    
+    
+      
+        <title>Monitoring - actor-spring-boot-starter</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.57a0d79d.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.fb2fffe2.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="green" data-md-color-accent="green">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#monitoring" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="actor-spring-boot-starter" class="md-header__button md-logo" aria-label="actor-spring-boot-starter" data-md-component="logo">
+      
+  <img src="../../../logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            actor-spring-boot-starter
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Monitoring
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/seonWKim/actor-spring-boot-starter" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../.." class="md-tabs__link">
+          
+  
+  
+  Home
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../core/actors/" class="md-tabs__link">
+          
+  
+  
+  Guides
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../examples/" class="md-tabs__link">
+          
+  
+  
+  Examples
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../contributing/" class="md-tabs__link">
+          
+  
+  
+  Contributing
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="actor-spring-boot-starter" class="md-nav__button md-logo" aria-label="actor-spring-boot-starter" data-md-component="logo">
+      
+  <img src="../../../logo.png" alt="logo">
+
+    </a>
+    actor-spring-boot-starter
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/seonWKim/actor-spring-boot-starter" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Home
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Actor Spring Boot Starter
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../migrating-from-0x/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrating from 0.x
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_1" id="__nav_2_1_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Core
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../core/actors/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Actors
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../core/messaging/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Messaging
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../core/reliable-delivery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reliable Delivery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../core/supervision/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Supervision
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../core/behaviors/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Behaviors, Timers and Watching
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../core/routers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Routers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../core/pub-sub-topics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pub/Sub Topics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../core/receptionist/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Receptionist
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../core/dispatchers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dispatchers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../core/logging/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Logging
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_2" id="__nav_2_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cluster
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Cluster
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cluster/sharded-actors/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sharded Actors
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cluster/singletons/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Singletons
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cluster/cluster-formation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cluster Formation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cluster/split-brain-and-leases/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Split Brain and Leases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cluster/replicated-data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Replicated Data
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_3" id="__nav_2_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Data
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../data/state-in-a-database/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    State in a Database
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../data/event-sourcing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Event-Sourced Actors
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../data/projections/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Projections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_4" id="__nav_2_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Streaming
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Streaming
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../streaming/reactor-streams/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reactor Streams
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../streaming/streaming-to-clients/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Streaming to Clients
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2_5" id="__nav_2_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operations
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Operations
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../production/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Running in Production
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Monitoring
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Monitoring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Setup
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#actor-meters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Actor meters
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Actor meters">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#overhead" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overhead
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cluster-and-sharding-meters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cluster and sharding meters
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Cluster and sharding meters">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prometheus-names" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prometheus names
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-actors-endpoint" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The actors endpoint
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#health" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Health
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tracing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tracing
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#logs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Logs
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dashboard-and-alerts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dashboard and alerts
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Dashboard and alerts">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-actors-dashboard" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Actors dashboard
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#alert-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Alert rules
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#set-up-grafana" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Set up Grafana
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Set up Grafana">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#download-the-files-for-your-version" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Download the files for your version
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#provisioning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Provisioning
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#run-it-locally" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Run it locally
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#installing-on-kubernetes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Installing on Kubernetes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-optional-java-agent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The optional Java agent
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="The optional Java agent">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#agent-meters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Agent meters
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#agent-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Agent settings
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-the-agent-starts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How the agent starts
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Troubleshooting
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#related" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Related
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../deployments/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deployments
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_6" id="__nav_2_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    More
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    More
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kotlin/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Kotlin
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ai-agents/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI Agents
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Examples
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Examples
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../examples/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../examples/simple/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Simple
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../examples/cluster/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cluster
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../examples/synchronization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Synchronization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../examples/chat/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chat
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../examples/agent/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI Agent
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../examples/persistence/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Persistence
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../examples/metrics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Metrics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../examples/logging/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Logging
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../examples/virtual-threads/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Virtual Threads
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../examples/kotlin/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Kotlin
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../examples/kubernetes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Kubernetes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Contributing
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How to Contribute
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../contributing/spring-conventions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spring Conventions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Setup
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#actor-meters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Actor meters
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Actor meters">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#overhead" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overhead
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cluster-and-sharding-meters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cluster and sharding meters
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Cluster and sharding meters">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prometheus-names" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prometheus names
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-actors-endpoint" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The actors endpoint
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#health" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Health
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tracing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tracing
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#logs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Logs
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dashboard-and-alerts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dashboard and alerts
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Dashboard and alerts">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-actors-dashboard" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Actors dashboard
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#alert-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Alert rules
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#set-up-grafana" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Set up Grafana
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Set up Grafana">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#download-the-files-for-your-version" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Download the files for your version
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#provisioning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Provisioning
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#run-it-locally" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Run it locally
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#installing-on-kubernetes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Installing on Kubernetes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-optional-java-agent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The optional Java agent
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="The optional Java agent">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#agent-meters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Agent meters
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#agent-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Agent settings
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-the-agent-starts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How the agent starts
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Troubleshooting
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#related" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Related
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="monitoring">Monitoring</h1>
+<p>This guide covers how to see what your actors do in production: Micrometer meters for actors, mailboxes,
+dispatchers, the cluster and sharding; the read-only <code>actors</code> Actuator endpoint; traces that cross <code>tell</code>
+and <code>ask</code>; log lines with actor context; and a ready-made Grafana dashboard with Prometheus alerts.</p>
+<p>None of it needs a Java agent. An optional agent adds a few more meters (see
+<a href="#the-optional-java-agent">The optional Java agent</a>).</p>
+<h2 id="setup">Setup</h2>
+<p>Add <code>actor-metrics</code>, Actuator and a Micrometer registry (Prometheus here):</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">Gradle</label><label for="__tabbed_1_2">Maven</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">dependencies</span><span class="w"> </span><span class="o">{</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">    </span><span class="n">implementation</span><span class="w"> </span><span class="s1">'io.github.seonwkim:actor-metrics:1.0.0'</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">    </span><span class="n">implementation</span><span class="w"> </span><span class="s1">'org.springframework.boot:spring-boot-starter-actuator'</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">    </span><span class="n">implementation</span><span class="w"> </span><span class="s1">'io.micrometer:micrometer-registry-prometheus'</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="o">}</span>
+</code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nt">&lt;dependency&gt;</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">    </span><span class="nt">&lt;groupId&gt;</span>io.github.seonwkim<span class="nt">&lt;/groupId&gt;</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">    </span><span class="nt">&lt;artifactId&gt;</span>actor-metrics<span class="nt">&lt;/artifactId&gt;</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">    </span><span class="nt">&lt;version&gt;</span>1.0.0<span class="nt">&lt;/version&gt;</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="nt">&lt;/dependency&gt;</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="nt">&lt;dependency&gt;</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">    </span><span class="nt">&lt;groupId&gt;</span>org.springframework.boot<span class="nt">&lt;/groupId&gt;</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">    </span><span class="nt">&lt;artifactId&gt;</span>spring-boot-starter-actuator<span class="nt">&lt;/artifactId&gt;</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="nt">&lt;/dependency&gt;</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="nt">&lt;dependency&gt;</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">    </span><span class="nt">&lt;groupId&gt;</span>io.micrometer<span class="nt">&lt;/groupId&gt;</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">    </span><span class="nt">&lt;artifactId&gt;</span>micrometer-registry-prometheus<span class="nt">&lt;/artifactId&gt;</span>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="nt">&lt;/dependency&gt;</span>
+</code></pre></div>
+</div>
+</div>
+</div>
+<p>Expose the Prometheus endpoint:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nt">management</span><span class="p">:</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="nt">endpoints</span><span class="p">:</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span><span class="nt">web</span><span class="p">:</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">      </span><span class="nt">exposure</span><span class="p">:</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">        </span><span class="nt">include</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">health,info,metrics,prometheus</span>
+</code></pre></div>
+<p>That is all. With a <code>MeterRegistry</code> bean (Actuator registers one), every actor the starter spawns is
+metered. <code>spring.actor.metrics.enabled=false</code> turns every meter on this page off.</p>
+<h2 id="actor-meters">Actor meters</h2>
+<p>The actor system the starter builds records these from hooks it owns: a behavior interceptor, an
+instrumented default mailbox and the default dispatchers' executors.</p>
+<table>
+<thead>
+<tr>
+<th>Meter</th>
+<th>Type</th>
+<th>Tags</th>
+<th>What</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>actor.message.processed</code></td>
+<td>Counter</td>
+<td><code>actor.class</code>, <code>dispatcher</code>, <code>system</code></td>
+<td>Messages actors processed</td>
+</tr>
+<tr>
+<td><code>actor.message.processing.time</code></td>
+<td>Timer</td>
+<td><code>actor.class</code>, <code>dispatcher</code>, <code>system</code></td>
+<td>Time spent processing a message</td>
+</tr>
+<tr>
+<td><code>actor.message.failures</code></td>
+<td>Counter</td>
+<td><code>actor.class</code>, <code>dispatcher</code>, <code>system</code></td>
+<td>Messages whose processing threw</td>
+</tr>
+<tr>
+<td><code>actor.lifecycle.restarts</code></td>
+<td>Counter</td>
+<td><code>actor.class</code>, <code>dispatcher</code>, <code>system</code></td>
+<td>Restarts by supervision</td>
+</tr>
+<tr>
+<td><code>actor.lifecycle.active</code></td>
+<td>Gauge</td>
+<td><code>actor.class</code>, <code>dispatcher</code>, <code>system</code></td>
+<td>Actors running</td>
+</tr>
+<tr>
+<td><code>actor.mailbox.size</code></td>
+<td>Gauge</td>
+<td><code>actor.class</code>, <code>dispatcher</code>, <code>system</code></td>
+<td>Messages waiting in mailboxes</td>
+</tr>
+<tr>
+<td><code>actor.mailbox.time</code></td>
+<td>Timer</td>
+<td><code>actor.class</code>, <code>dispatcher</code>, <code>system</code></td>
+<td>Time a message waited in the mailbox</td>
+</tr>
+<tr>
+<td><code>actor.dispatcher.threads</code></td>
+<td>Gauge</td>
+<td><code>dispatcher</code>, <code>system</code></td>
+<td>Threads in the dispatcher's pool</td>
+</tr>
+<tr>
+<td><code>actor.dispatcher.threads.active</code></td>
+<td>Gauge</td>
+<td><code>dispatcher</code>, <code>system</code></td>
+<td>Threads running tasks</td>
+</tr>
+<tr>
+<td><code>actor.dispatcher.queued</code></td>
+<td>Gauge</td>
+<td><code>dispatcher</code>, <code>system</code></td>
+<td>Tasks waiting for a thread</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><code>actor.class</code> is the simple name of the actor's class (for a sharded actor, its <code>SpringShardedActor</code>
+  class), <code>dispatcher</code> the Pekko dispatcher id (<code>pekko.actor.default-dispatcher</code>), <code>system</code> the actor
+  system's name.</li>
+<li>Meters are per actor class, not per actor, so the series count does not grow with the number of actors:
+  10,000 entities of one class have the same series as one. A test spawns 10,000 actors and checks it.</li>
+<li><strong>Path tags</strong> are opt-in and capped: <code>spring.actor.metrics.path-tag-limit=50</code> adds <code>actor.path</code> to the
+  <code>actor.message.*</code> meters for the first 50 actor paths seen, and <code>actor.path=other</code> for every other actor.</li>
+</ul>
+<p>What is not covered:</p>
+<ul>
+<li>Mailbox meters and <code>actor.lifecycle.active</code> count actors on the default mailbox. An actor spawned with a
+  bounded or a configured mailbox keeps that mailbox and has only the <code>actor.message.*</code> and restart meters.</li>
+<li>Dispatcher meters cover the default and the blocking dispatcher (and dispatchers that inherit their
+  executor) on Pekko's fork-join or thread-pool executor. A dispatcher on a Spring <code>Executor</code> bean is
+  measured by Spring Boot's own executor metrics; one on virtual threads has no pool to measure.</li>
+<li>A behavior from <code>SpringActorBehavior.wrap</code> (a raw Pekko behavior) is metered outside its own supervision,
+  so its failures and restarts are not seen.</li>
+</ul>
+<h3 id="overhead">Overhead</h3>
+<p><code>ActorMetersBenchmark</code> (<code>./gradlew :actor-autoconfigure:actorMetersBenchmark</code>) sends bursts of 1,000,000
+tells to one actor in two actor systems side by side, one with the meters off and one with them on,
+alternating rounds. On an Apple M5 laptop with Java 21 and a <code>SimpleMeterRegistry</code> (the machine was busy
+with other builds, so treat the numbers as rough):</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>ns per message (median of 15 rounds)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>meters off</td>
+<td>126</td>
+</tr>
+<tr>
+<td>meters on</td>
+<td>379</td>
+</tr>
+<tr>
+<td>overhead</td>
+<td>about 250</td>
+</tr>
+</tbody>
+</table>
+<p>The cost per message is two timer updates (processing time and time in mailbox), four <code>System.nanoTime()</code>
+calls and one small object in the mailbox; <code>actor.message.processed</code> reads the processing timer's count and
+costs nothing. An actor that does real work (microseconds per message) pays a small fraction of that; one
+that only forwards messages pays about three times the bare cost. Run the benchmark on your hardware before
+relying on these numbers, and set <code>spring.actor.metrics.enabled=false</code> where the overhead matters more than
+the meters.</p>
+<h2 id="cluster-and-sharding-meters">Cluster and sharding meters</h2>
+<p>With <code>spring.actor.provider=cluster</code>, these meters are added too.</p>
+<table>
+<thead>
+<tr>
+<th>Meter</th>
+<th>Type</th>
+<th>Tags</th>
+<th>What</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>actor.cluster.members</code></td>
+<td>Gauge</td>
+<td>none</td>
+<td>Members this node sees</td>
+</tr>
+<tr>
+<td><code>actor.cluster.unreachable</code></td>
+<td>Gauge</td>
+<td>none</td>
+<td>Of them, how many are unreachable</td>
+</tr>
+<tr>
+<td><code>actor.cluster.leader</code></td>
+<td>Gauge</td>
+<td>none</td>
+<td><code>1</code> while this node is the leader, else <code>0</code>. Pekko's leader is the Up member with the lowest address, not the oldest</td>
+</tr>
+<tr>
+<td><code>actor.cluster.singleton.host</code></td>
+<td>Gauge</td>
+<td>none</td>
+<td><code>1</code> while this node runs the cluster singletons (it is the oldest member that is up and has <code>spring.actor.cluster.singleton.role</code>, if set), else <code>0</code></td>
+</tr>
+<tr>
+<td><code>actor.cluster.events</code></td>
+<td>Counter</td>
+<td><code>event</code></td>
+<td>Cluster events this node received after the application started: <code>MemberUp</code>, <code>MemberRemoved</code>, <code>UnreachableMember</code> and the other cluster event types. Every type has a series from the start, so a dashboard sees <code>0</code>, not a gap</td>
+</tr>
+<tr>
+<td><code>actor.sharding.regions</code></td>
+<td>Gauge</td>
+<td><code>type</code></td>
+<td>Shard regions that host the entity type in the cluster</td>
+</tr>
+<tr>
+<td><code>actor.sharding.shards</code></td>
+<td>Gauge</td>
+<td><code>type</code></td>
+<td>The entity type's shards on this node</td>
+</tr>
+<tr>
+<td><code>actor.sharding.entities</code></td>
+<td>Gauge</td>
+<td><code>type</code></td>
+<td>The entity type's running entities on this node</td>
+</tr>
+</tbody>
+</table>
+<p>The <code>actor.sharding.*</code> gauges ask every shard region in the cluster, so a scrape never waits for the
+answer: each read shows the answer to the previous read. Sum <code>actor.sharding.entities</code> over the nodes for
+the cluster total.</p>
+<p>Pekko reports no rebalance events, so there is no rebalance counter. A shard that moves shows up as
+<code>actor.sharding.shards</code> going down on one node and up on another.</p>
+<p>Alert on <code>actor.cluster.unreachable &gt; 0</code> for longer than the split brain resolver's <code>stable-after</code>, and on
+a <code>members</code> count below the replica count. The <a href="#dashboard-and-alerts">alert rules</a> do the first.</p>
+<h3 id="prometheus-names">Prometheus names</h3>
+<p>Micrometer's Prometheus registry turns the dots into underscores and adds a suffix per type:</p>
+<table>
+<thead>
+<tr>
+<th>Meter type</th>
+<th>Example</th>
+<th>Prometheus series</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Counter</td>
+<td><code>actor.message.processed</code></td>
+<td><code>actor_message_processed_total</code></td>
+</tr>
+<tr>
+<td>Timer</td>
+<td><code>actor.mailbox.time</code></td>
+<td><code>actor_mailbox_time_seconds_count</code>, <code>_seconds_sum</code>, <code>_seconds_max</code> (and <code>_seconds_bucket</code> with histograms on)</td>
+</tr>
+<tr>
+<td>Gauge</td>
+<td><code>actor.cluster.members</code></td>
+<td><code>actor_cluster_members</code></td>
+</tr>
+</tbody>
+</table>
+<p>Tags become labels the same way: <code>actor.class</code> is <code>actor_class</code>.</p>
+<h2 id="the-actors-endpoint">The <code>actors</code> endpoint</h2>
+<p>With Actuator on the classpath, cluster mode adds a read-only <code>actors</code> endpoint. Like every Actuator
+endpoint except <code>health</code>, it is not exposed over HTTP until you name it:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nt">management</span><span class="p">:</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nt">endpoints</span><span class="p">:</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">    </span><span class="nt">web</span><span class="p">:</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">      </span><span class="nt">exposure</span><span class="p">:</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">        </span><span class="nt">include</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">health,actors</span>
+</code></pre></div>
+<p><code>GET /actuator/actors</code> returns:</p>
+<ul>
+<li><code>node</code>: this node's address.</li>
+<li><code>cluster</code>: this node's view of the cluster: its own status (<code>selfStatus</code>), whether it is unreachable or
+  terminated, the member and unreachable counts, whether it is the <code>leader</code> and the <code>singletonHost</code>, and
+  <code>nodes</code>, each member oldest first with its <code>address</code>, <code>status</code>, <code>roles</code> and whether it is <code>reachable</code>.</li>
+<li><code>sharding</code>: for each sharded entity type, its <code>type</code>, the <code>regions</code> in the cluster, and the <code>shards</code> and
+  <code>entities</code> on this node.</li>
+</ul>
+<p>A read asks every shard region, so it can take up to 3 seconds.
+<code>management.endpoint.actors.access=none</code> turns the endpoint off.</p>
+<h2 id="health">Health</h2>
+<p>The <code>actorSystem</code> and <code>actorCluster</code> health components are described in
+<a href="../production/#health-checks">Running in Production</a>.</p>
+<h2 id="tracing">Tracing</h2>
+<p>With an <code>ObservationRegistry</code> bean (Spring Boot Actuator creates one) and a tracer such as
+<code>micrometer-tracing-bridge-otel</code> or <code>micrometer-tracing-bridge-brave</code>, the trace of the current request
+crosses <code>tell</code> and <code>ask</code>. Without an <code>ObservationRegistry</code>, messages are sent as they are and nothing is
+added.</p>
+<ul>
+<li>Sending a message in an observation (an HTTP request, another actor's message) creates an <code>actor.send</code>
+  span (<code>tell Order</code>, <code>ask GetBalance</code>). For <code>ask</code> it ends when the reply or the timeout arrives.</li>
+<li>The receiving actor handles the message inside an <code>actor.receive</code> span, a child of the send. Its log
+  lines carry <code>traceId</code> and <code>spanId</code> in the MDC, as Spring Boot's tracing sets them.</li>
+<li>Between nodes, sharded messages and messages to remote actors carry the W3C <code>traceparent</code> fields next to
+  the message, which keeps its own serializer (<code>JsonSerializable</code>, <code>CborSerializable</code>).</li>
+<li>Spans carry the low-cardinality tags <code>actor.operation</code> and <code>actor.message</code> (the message class); the
+  receive span also has the actor path as a high-cardinality tag.</li>
+</ul>
+<p>The trace is the observation current on the sending thread. A <code>tell</code> or <code>ask</code> from a <code>CompletionStage</code>
+callback (<code>getOrSpawn().thenCompose(actor -&gt; actor.ask(...))</code>) runs on an actor thread with no observation,
+so it starts no span. Get the handle first, then send from the request's thread, or carry the context into
+the callback with Micrometer's <code>ContextSnapshot</code>. In Kotlin, <code>awaitGetOrSpawn</code> followed by <code>awaitAsk</code> in a
+<code>suspend</code> function avoids the callback.</p>
+<p>Messages that <code>ask</code> replies are not traced: the caller is already in the trace. Messages sent through a
+plain <code>SpringActorRef</code> (a <code>replyTo</code>, a ref inside a message) are not traced either; handles from
+<code>SpringActorSystem</code>, <code>getSelf()</code>, children, the receptionist and sharding are.</p>
+<h2 id="logs">Logs</h2>
+<p>Actor log lines carry MDC values: the actor path and system, any static or per-message MDC you add, actor
+tags, and with tracing, <code>traceId</code> and <code>spanId</code>. <a href="../../core/logging/">Logging with MDC and Tags</a> shows how to
+add them and how to print them with Logback, also as JSON.</p>
+<h2 id="dashboard-and-alerts">Dashboard and alerts</h2>
+<p>The repository's <a href="https://github.com/seonWKim/actor-spring-boot-starter/tree/main/monitoring"><code>monitoring/</code></a>
+directory has a Grafana dashboard and Prometheus alert rules for the meters on this page, under their
+<a href="#prometheus-names">Prometheus names</a>. A test (<code>MonitoringFilesTest</code>) checks that every metric they query is
+a meter described on this page.</p>
+<h3 id="the-actors-dashboard">The Actors dashboard</h3>
+<p><code>monitoring/grafana/actor-dashboard.json</code>. <a href="#set-up-grafana">Set up Grafana</a> loads it; you can also import it
+by hand and pick your Prometheus data source. The variables <code>instance</code> and <code>system</code> filter by instance and actor system.</p>
+<table>
+<thead>
+<tr>
+<th>Row</th>
+<th>Panels</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Messages</td>
+<td>Messages processed per second, message failures per second, average and longest processing time (per actor class)</td>
+</tr>
+<tr>
+<td>Mailboxes and actors</td>
+<td>Messages waiting in mailboxes, average time in mailbox, running actors, restarts</td>
+</tr>
+<tr>
+<td>Dispatchers</td>
+<td>Pool threads, tasks waiting for a thread</td>
+</tr>
+<tr>
+<td>Cluster</td>
+<td>Members, unreachable, leader, singleton host, members by node, cluster events</td>
+</tr>
+<tr>
+<td>Sharding</td>
+<td>Entities by type, shards by node, shard regions</td>
+</tr>
+</tbody>
+</table>
+<h3 id="alert-rules">Alert rules</h3>
+<p><code>monitoring/prometheus/actor-alerts.yaml</code> is a <code>PrometheusRule</code> for the Prometheus Operator. Without the
+operator, its <code>spec</code> is a plain rules file:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>yq<span class="w"> </span><span class="s1">'.spec'</span><span class="w"> </span>monitoring/prometheus/actor-alerts.yaml<span class="w"> </span>&gt;<span class="w"> </span>actor-alerts.rules.yml
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Alert</th>
+<th>Fires when</th>
+<th>Severity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ActorClusterMemberUnreachable</code></td>
+<td>a member is unreachable for 5 minutes</td>
+<td>warning</td>
+</tr>
+<tr>
+<td><code>ActorClusterNoLeader</code></td>
+<td>no node is the leader for 5 minutes</td>
+<td>critical</td>
+</tr>
+<tr>
+<td><code>ActorClusterViewsDiffer</code></td>
+<td>nodes see different member counts for 10 minutes</td>
+<td>warning</td>
+</tr>
+<tr>
+<td><code>ActorClusterSingletonMissing</code></td>
+<td>no node runs the singletons for 5 minutes</td>
+<td>critical</td>
+</tr>
+<tr>
+<td><code>ActorMessageFailures</code></td>
+<td>an actor class keeps failing messages for 10 minutes</td>
+<td>warning</td>
+</tr>
+<tr>
+<td><code>ActorRestartsFrequent</code></td>
+<td>an actor class restarts more than 10 times in 15 minutes</td>
+<td>warning</td>
+</tr>
+<tr>
+<td><code>ActorMailboxBacklog</code></td>
+<td>more than 1,000 messages wait for an actor class on one instance for 10 minutes</td>
+<td>warning</td>
+</tr>
+<tr>
+<td><code>ActorMailboxWaitHigh</code></td>
+<td>messages wait more than a second on average for 10 minutes</td>
+<td>warning</td>
+</tr>
+<tr>
+<td><code>ActorDispatcherSaturated</code></td>
+<td>every thread of a dispatcher is busy and more than 100 tasks wait for 10 minutes</td>
+<td>warning</td>
+</tr>
+</tbody>
+</table>
+<p>The thresholds are starting points; tune them to your load. The rules group by <code>namespace</code>, the label the
+Prometheus Operator adds; with another setup, change it to the label that tells your applications apart.</p>
+<h3 id="set-up-grafana">Set up Grafana</h3>
+<h4 id="download-the-files-for-your-version">Download the files for your version</h4>
+<p>Use the files of the release you depend on: the dashboard on <code>main</code> may query meters a later release added.
+Each GitHub release attaches them, with the version in their names:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>https://github.com/seonWKim/actor-spring-boot-starter/releases/download/v&lt;version&gt;/actor-grafana-dashboard-&lt;version&gt;.json
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>https://github.com/seonWKim/actor-spring-boot-starter/releases/download/v&lt;version&gt;/actor-prometheus-alerts-&lt;version&gt;.yaml
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>https://github.com/seonWKim/actor-spring-boot-starter/releases/download/v&lt;version&gt;/actor-monitoring-&lt;version&gt;.zip
+</code></pre></div>
+<p>The dashboard carries the version as a <code>v&lt;version&gt;</code> tag and at the end of its description. The zip holds the
+<code>monitoring/</code> directory for that version: the dashboard, the alert rules, the provisioning files and <code>docker-compose.yml</code>.</p>
+<h4 id="provisioning">Provisioning</h4>
+<p>To load the dashboard into your own Grafana without clicks, copy the two provisioning files into Grafana's
+provisioning directory (<code>/etc/grafana/provisioning</code> by default) and the dashboard into the directory the
+dashboard provider reads:</p>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Goes to</th>
+<th>Change</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>monitoring/grafana/provisioning/datasources/prometheus.yaml</code></td>
+<td><code>provisioning/datasources/</code></td>
+<td><code>url</code>: your Prometheus. Skip the file if Grafana already has a default Prometheus data source</td>
+</tr>
+<tr>
+<td><code>monitoring/grafana/provisioning/dashboards/actor.yaml</code></td>
+<td><code>provisioning/dashboards/</code></td>
+<td><code>options.path</code> if you keep dashboards elsewhere</td>
+</tr>
+<tr>
+<td><code>monitoring/grafana/actor-dashboard.json</code></td>
+<td><code>/var/lib/grafana/dashboards/actor/</code> (the provider's <code>options.path</code>)</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>The dashboard's <strong>Data source</strong> variable starts on Grafana's default Prometheus data source.</p>
+<h4 id="run-it-locally">Run it locally</h4>
+<p>With your application running on port 8080 and exposing <code>/actuator/prometheus</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nb">cd</span><span class="w"> </span>monitoring<span class="w">                     </span><span class="c1"># or the unzipped actor-monitoring-&lt;version&gt;/</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>docker<span class="w"> </span>compose<span class="w"> </span>up<span class="w"> </span>-d
+</code></pre></div>
+<ul>
+<li>Grafana: <a href="http://localhost:3000">http://localhost:3000</a> (<code>admin</code> / <code>admin</code>), dashboard <strong>Actors</strong> in the <strong>Actors</strong> folder.</li>
+<li>Prometheus: <a href="http://localhost:9090">http://localhost:9090</a>, the alert rules under <em>Alerts</em>, the scrape target under <em>Status &gt; Targets</em>.</li>
+</ul>
+<p>Prometheus scrapes <code>host.docker.internal:8080/actuator/prometheus</code>. Set <code>ACTOR_TARGET</code> for another address:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nv">ACTOR_TARGET</span><span class="o">=</span>host.docker.internal:9000<span class="w"> </span>docker<span class="w"> </span>compose<span class="w"> </span>up<span class="w"> </span>-d
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>docker<span class="w"> </span>compose<span class="w"> </span>down<span class="w"> </span>-v<span class="w">            </span><span class="c1"># stop and remove the containers and the generated files</span>
+</code></pre></div>
+<p>The <code>setup</code> service writes the scrape target and turns <code>actor-alerts.yaml</code> into a plain rules file
+(its <code>spec</code>) before Prometheus starts. The cluster alerts group by <code>namespace</code>, which a local stack doesn't
+have, so they treat everything Prometheus scrapes as one group.</p>
+<h3 id="installing-on-kubernetes">Installing on Kubernetes</h3>
+<p>With the Prometheus Operator in the cluster (for example kube-prometheus-stack), the Kubernetes example
+installs both in one command:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nb">cd</span><span class="w"> </span>example/kubernetes
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>./scripts/monitoring.sh<span class="w">          </span><span class="c1"># apply; `render` prints the manifests, `delete` removes them</span>
+</code></pre></div>
+<p>It applies a ServiceMonitor that scrapes <code>/actuator/prometheus</code>, the <code>actor-alerts</code> PrometheusRule, and the
+dashboard as a ConfigMap labelled <code>grafana_dashboard: "1"</code>, which Grafana's dashboard sidecar loads. Your
+Prometheus must select them: kube-prometheus-stack selects rules and monitors by its release label unless
+you set <code>prometheus.prometheusSpec.ruleSelectorNilUsesHelmValues=false</code> and
+<code>serviceMonitorSelectorNilUsesHelmValues=false</code>, and its sidecar searches other namespaces only with
+<code>grafana.sidecar.dashboards.searchNamespace=ALL</code>.</p>
+<h2 id="the-optional-java-agent">The optional Java agent</h2>
+<p>The ByteBuddy agent in <code>actor-metrics</code> instruments Pekko internals for a few meters no public hook exposes
+(stash size, dead letters, unhandled messages, scheduled tasks, per-message-type tags). It breaks more easily
+with Pekko upgrades, so use it only when you need those.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>./gradlew<span class="w"> </span>:actor-metrics:agentJar
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>java<span class="w"> </span>-javaagent:actor-metrics-<span class="o">{</span>version<span class="o">}</span>-agent.jar<span class="w"> </span>-jar<span class="w"> </span>your-app.jar
+</code></pre></div>
+<p>With the agent attached, it records the message, mailbox and lifecycle meters below under the same names,
+and the hooks register only <code>actor.message.failures</code> and the <code>actor.dispatcher.*</code> meters: no meter is
+registered twice.</p>
+<h3 id="agent-meters">Agent meters</h3>
+<table>
+<thead>
+<tr>
+<th>Meter</th>
+<th>Type</th>
+<th>Tags</th>
+<th>What</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>actor.lifecycle.created</code></td>
+<td>Counter</td>
+<td><code>actor.class</code></td>
+<td>Actors created</td>
+</tr>
+<tr>
+<td><code>actor.lifecycle.terminated</code></td>
+<td>Counter</td>
+<td><code>actor.class</code></td>
+<td>Actors terminated</td>
+</tr>
+<tr>
+<td><code>actor.lifecycle.restarts</code></td>
+<td>Counter</td>
+<td><code>actor.class</code></td>
+<td>Supervision restarts</td>
+</tr>
+<tr>
+<td><code>actor.lifecycle.resumes</code></td>
+<td>Counter</td>
+<td><code>actor.class</code></td>
+<td>Supervision resumes</td>
+</tr>
+<tr>
+<td><code>actor.lifecycle.active</code></td>
+<td>Gauge</td>
+<td>none</td>
+<td>Currently active actors</td>
+</tr>
+<tr>
+<td><code>actor.mailbox.size</code></td>
+<td>Gauge</td>
+<td><code>actor.class</code></td>
+<td>Mailbox queue size</td>
+</tr>
+<tr>
+<td><code>actor.mailbox.size.max</code></td>
+<td>Gauge</td>
+<td><code>actor.class</code></td>
+<td>Peak mailbox size</td>
+</tr>
+<tr>
+<td><code>actor.mailbox.time</code></td>
+<td>Timer</td>
+<td><code>actor.class</code>, <code>message.type</code></td>
+<td>Time in mailbox</td>
+</tr>
+<tr>
+<td><code>actor.mailbox.overflow</code></td>
+<td>Counter</td>
+<td>none</td>
+<td>Bounded mailbox drops</td>
+</tr>
+<tr>
+<td><code>actor.message.processed</code></td>
+<td>Counter</td>
+<td><code>actor.class</code>, <code>message.type</code></td>
+<td>Messages processed</td>
+</tr>
+<tr>
+<td><code>actor.message.processing.time</code></td>
+<td>Timer</td>
+<td><code>actor.class</code>, <code>message.type</code></td>
+<td>Processing duration</td>
+</tr>
+<tr>
+<td><code>actor.stash.size</code></td>
+<td>Gauge</td>
+<td><code>actor.class</code></td>
+<td>Stashed messages</td>
+</tr>
+<tr>
+<td><code>system.dead-letters</code></td>
+<td>Counter</td>
+<td>none</td>
+<td>Undeliverable messages</td>
+</tr>
+<tr>
+<td><code>system.unhandled-messages</code></td>
+<td>Counter</td>
+<td>none</td>
+<td>Unhandled messages</td>
+</tr>
+<tr>
+<td><code>scheduler.tasks.scheduled</code></td>
+<td>Counter</td>
+<td>none</td>
+<td>Tasks via <code>scheduleOnce</code></td>
+</tr>
+</tbody>
+</table>
+<p>Typed actors use <code>actor.class=TypedActor</code>; use <code>message.type</code> to tell behaviors apart. The agent records
+no failure meter of its own: failures are <code>actor.message.failures</code>, which the hooks record with or without
+the agent.</p>
+<h3 id="agent-settings">Agent settings</h3>
+<p>The agent reads environment variables, not Spring keys: <code>ACTOR_METRICS_ENABLED</code>,
+<code>ACTOR_METRICS_INSTRUMENT_&lt;MODULE&gt;</code>, <code>ACTOR_METRICS_TAG_&lt;NAME&gt;</code> and <code>ACTOR_METRICS_SAMPLING_RATE</code>. The
+<a href="../configuration/#metrics-agent-environment-variables-actor_metrics_">Configuration Reference</a> describes
+each. Module ids: <code>actor-lifecycle</code>, <code>mailbox</code>, <code>message-processing</code>, <code>system</code>, <code>scheduler</code>, <code>stash</code>.</p>
+<p>To set tags or sampling in code, declare your own <code>MetricsRegistry</code> bean:</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="2:2"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><input id="__tabbed_2_2" name="__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="__tabbed_2_1">Java</label><label for="__tabbed_2_2">Kotlin</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">io.github.seonwkim.actor.metrics.core.MetricsConfiguration.SamplingConfig</span><span class="p">;</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">io.github.seonwkim.actor.metrics.core.MetricsRegistry</span><span class="p">;</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">io.github.seonwkim.actor.metrics.micrometer.MicrometerMetricsRegistryBuilder</span><span class="p">;</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="nd">@Configuration</span>
+<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">ActorMetricsConfig</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>
+<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="w">    </span><span class="nd">@Bean</span>
+<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="n">MetricsRegistry</span><span class="w"> </span><span class="nf">actorMetricsRegistry</span><span class="p">(</span><span class="n">MeterRegistry</span><span class="w"> </span><span class="n">meterRegistry</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">MicrometerMetricsRegistryBuilder</span><span class="p">.</span><span class="na">fromEnvironment</span><span class="p">(</span><span class="n">meterRegistry</span><span class="p">)</span>
+<a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a><span class="w">                </span><span class="p">.</span><span class="na">tag</span><span class="p">(</span><span class="s">"custom-tag"</span><span class="p">,</span><span class="w"> </span><span class="s">"value"</span><span class="p">)</span>
+<a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a><span class="w">                </span><span class="p">.</span><span class="na">sampling</span><span class="p">(</span><span class="n">SamplingConfig</span><span class="p">.</span><span class="na">rateBased</span><span class="p">(</span><span class="mf">0.1</span><span class="p">))</span>
+<a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a><span class="w">                </span><span class="p">.</span><span class="na">build</span><span class="p">();</span>
+<a id="__codelineno-10-14" name="__codelineno-10-14" href="#__codelineno-10-14"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-10-15" name="__codelineno-10-15" href="#__codelineno-10-15"></a><span class="p">}</span>
+</code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="k">import</span><span class="w"> </span><span class="nn">io.github.seonwkim.actor.metrics.core.MetricsConfiguration.SamplingConfig</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="k">import</span><span class="w"> </span><span class="nn">io.github.seonwkim.actor.metrics.core.MetricsRegistry</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="k">import</span><span class="w"> </span><span class="nn">io.github.seonwkim.actor.metrics.micrometer.MicrometerMetricsRegistryBuilder</span>
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="nd">@Configuration</span>
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="kd">class</span><span class="w"> </span><span class="nc">ActorMetricsConfig</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>
+<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="w">    </span><span class="nd">@Bean</span>
+<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="w">    </span><span class="kd">fun</span><span class="w"> </span><span class="nf">actorMetricsRegistry</span><span class="p">(</span><span class="n">meterRegistry</span><span class="p">:</span><span class="w"> </span><span class="n">MeterRegistry</span><span class="p">):</span><span class="w"> </span><span class="n">MetricsRegistry</span><span class="w"> </span><span class="o">=</span>
+<a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="w">        </span><span class="n">MicrometerMetricsRegistryBuilder</span><span class="p">.</span><span class="na">fromEnvironment</span><span class="p">(</span><span class="n">meterRegistry</span><span class="p">)</span>
+<a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a><span class="w">            </span><span class="p">.</span><span class="na">tag</span><span class="p">(</span><span class="s">"custom-tag"</span><span class="p">,</span><span class="w"> </span><span class="s">"value"</span><span class="p">)</span>
+<a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a><span class="w">            </span><span class="p">.</span><span class="na">sampling</span><span class="p">(</span><span class="n">SamplingConfig</span><span class="p">.</span><span class="na">rateBased</span><span class="p">(</span><span class="m">0.1</span><span class="p">))</span>
+<a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a><span class="w">            </span><span class="p">.</span><span class="na">build</span><span class="p">()</span>
+<a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a><span class="p">}</span>
+</code></pre></div>
+</div>
+</div>
+</div>
+<h3 id="how-the-agent-starts">How the agent starts</h3>
+<p>The agent must rewrite bytecode before Pekko classes load, but Micrometer only exists after Spring starts.
+So it starts in two steps:</p>
+<ol>
+<li><strong>JVM startup:</strong> <code>MetricsAgent.premain()</code> finds the modules through <code>ServiceLoader</code> and uses ByteBuddy to
+   instrument Pekko classes. No meters are recorded yet.</li>
+<li><strong>Spring context:</strong> the auto-configuration creates a <code>MetricsRegistry</code> with a Micrometer backend and
+   hands it to the agent. Meters start recording. The registry is created before the actor system bean.</li>
+</ol>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>What to check</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/actuator/prometheus</code> is 404</td>
+<td><code>prometheus</code> is in <code>management.endpoints.web.exposure.include</code> and <code>micrometer-registry-prometheus</code> is on the classpath.</td>
+</tr>
+<tr>
+<td>No <code>actor_*</code> series</td>
+<td><code>actor-metrics</code> is on the classpath and <code>spring.actor.metrics.enabled</code> is not <code>false</code>. Counters appear after the first message.</td>
+</tr>
+<tr>
+<td>No <code>actor_cluster_*</code> series</td>
+<td><code>spring.actor.provider</code> is <code>cluster</code>.</td>
+</tr>
+<tr>
+<td>No agent meters</td>
+<td>The log has <code>[MetricsAgent] Metrics agent installed successfully</code>, and <code>-javaagent</code> is on the command line.</td>
+</tr>
+<tr>
+<td>Agent jar missing</td>
+<td>Run <code>./gradlew :actor-metrics:agentJar</code>.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="related">Related</h2>
+<ul>
+<li><a href="../production/">Running in Production</a>: health checks and graceful shutdown</li>
+<li><a href="../configuration/#metrics">Configuration Reference</a>: the metrics keys</li>
+<li><a href="../../core/logging/">Logging with MDC and Tags</a></li>
+<li><a href="../../../examples/metrics/">Metrics example</a> and <a href="../../../examples/kubernetes/">Kubernetes example</a></li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.tabs.link"], "search": "../../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
+      
+    
+  </body>
+</html>

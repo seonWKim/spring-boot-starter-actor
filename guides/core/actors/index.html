@@ -1,0 +1,3748 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://seonwkim.github.io/actor-spring-boot-starter/guides/core/actors/">
+      
+      
+        <link rel="prev" href="../../../migrating-from-0x/">
+      
+      
+        <link rel="next" href="../messaging/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../logo.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.1">
+    
+    
+      
+        <title>Actors - actor-spring-boot-starter</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.57a0d79d.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.fb2fffe2.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="green" data-md-color-accent="green">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#actors" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="actor-spring-boot-starter" class="md-header__button md-logo" aria-label="actor-spring-boot-starter" data-md-component="logo">
+      
+  <img src="../../../logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            actor-spring-boot-starter
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Actors
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/seonWKim/actor-spring-boot-starter" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../.." class="md-tabs__link">
+          
+  
+  
+  Home
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="./" class="md-tabs__link">
+          
+  
+  
+  Guides
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../examples/" class="md-tabs__link">
+          
+  
+  
+  Examples
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../contributing/" class="md-tabs__link">
+          
+  
+  
+  Contributing
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="actor-spring-boot-starter" class="md-nav__button md-logo" aria-label="actor-spring-boot-starter" data-md-component="logo">
+      
+  <img src="../../../logo.png" alt="logo">
+
+    </a>
+    actor-spring-boot-starter
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/seonWKim/actor-spring-boot-starter" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Home
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Actor Spring Boot Starter
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../migrating-from-0x/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrating from 0.x
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_1" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2_1" id="__nav_2_1_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_1_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Core
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Actors
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Actors
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Setup
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#defining-an-actor" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Defining an actor
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#spring-dependency-injection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Spring dependency injection
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-not-to-do-in-an-actor-bean" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What not to do in an actor bean
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#actor-ids" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Actor ids
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#spawning-and-finding-actors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Spawning and finding actors
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Spawning and finding actors">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#getorspawn-the-usual-way" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        getOrSpawn: the usual way
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-spawn-builder-custom-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The spawn builder: custom settings
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#find-and-exists" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        find and exists
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#keeping-a-handle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Keeping a handle
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spawning-at-startup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Spawning at startup
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#custom-actor-context" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Custom actor context
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stopping-actors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stopping actors
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#child-actors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Child actors
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Child actors">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#enable-child-operations-on-the-parent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Enable child operations on the parent
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spawning-children-from-inside-the-parent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Spawning children from inside the parent
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#child-operations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Child operations
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pitfalls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pitfalls
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#related" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Related
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../messaging/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Messaging
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reliable-delivery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reliable Delivery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../supervision/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Supervision
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../behaviors/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Behaviors, Timers and Watching
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../routers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Routers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pub-sub-topics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pub/Sub Topics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../receptionist/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Receptionist
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dispatchers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dispatchers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../logging/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Logging
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_2" id="__nav_2_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cluster
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Cluster
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cluster/sharded-actors/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sharded Actors
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cluster/singletons/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Singletons
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cluster/cluster-formation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cluster Formation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cluster/split-brain-and-leases/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Split Brain and Leases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cluster/replicated-data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Replicated Data
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_3" id="__nav_2_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Data
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../data/state-in-a-database/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    State in a Database
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../data/event-sourcing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Event-Sourced Actors
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../data/projections/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Projections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_4" id="__nav_2_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Streaming
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Streaming
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../streaming/reactor-streams/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reactor Streams
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../streaming/streaming-to-clients/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Streaming to Clients
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_5" id="__nav_2_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operations
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Operations
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operations/production/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Running in Production
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operations/monitoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Monitoring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operations/deployments/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deployments
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operations/configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_6" id="__nav_2_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    More
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    More
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kotlin/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Kotlin
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ai-agents/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI Agents
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Examples
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Examples
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../examples/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../examples/simple/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Simple
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../examples/cluster/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cluster
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../examples/synchronization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Synchronization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../examples/chat/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chat
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../examples/agent/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI Agent
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../examples/persistence/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Persistence
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../examples/metrics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Metrics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../examples/logging/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Logging
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../examples/virtual-threads/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Virtual Threads
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../examples/kotlin/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Kotlin
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../examples/kubernetes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Kubernetes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Contributing
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How to Contribute
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../contributing/spring-conventions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spring Conventions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Setup
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#defining-an-actor" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Defining an actor
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#spring-dependency-injection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Spring dependency injection
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-not-to-do-in-an-actor-bean" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What not to do in an actor bean
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#actor-ids" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Actor ids
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#spawning-and-finding-actors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Spawning and finding actors
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Spawning and finding actors">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#getorspawn-the-usual-way" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        getOrSpawn: the usual way
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-spawn-builder-custom-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The spawn builder: custom settings
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#find-and-exists" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        find and exists
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#keeping-a-handle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Keeping a handle
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spawning-at-startup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Spawning at startup
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#custom-actor-context" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Custom actor context
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stopping-actors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stopping actors
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#child-actors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Child actors
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Child actors">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#enable-child-operations-on-the-parent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Enable child operations on the parent
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spawning-children-from-inside-the-parent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Spawning children from inside the parent
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#child-operations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Child operations
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pitfalls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pitfalls
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#related" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Related
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="actors">Actors</h1>
+<p>An actor is an object that owns some state and handles messages one at a time. Code outside the actor
+never touches that state: it sends a message, and the actor changes its state while it handles the
+message. Because only one message runs at a time, the actor needs no locks.</p>
+<p>Use an actor when something has state that many requests change at once (a counter, a chat room, an
+order, a session, an AI agent's conversation), when work should run in the background without blocking
+the caller, or when you want a failure to restart one small part of the system instead of the request.</p>
+<p>This page covers defining actors, Spring dependency injection, actor ids, spawning and finding actors,
+stopping them, and child actors. Sending messages is in <a href="../messaging/">Messaging</a>, failures in
+<a href="../supervision/">Supervision</a>, and the tools inside an actor (state, timers, watching) in
+<a href="../behaviors/">Behaviors</a>.</p>
+<h2 id="setup">Setup</h2>
+<p>Add <code>actor-spring-boot-starter</code> to your Spring Boot application, as shown in
+<a href="../../../getting-started/">Getting Started</a>. That starts one actor system for the Spring context and
+gives you a <code>SpringActorSystem</code> bean to inject. Nothing else is needed for the features on this page.</p>
+<h2 id="defining-an-actor">Defining an actor</h2>
+<p>An actor is a Spring bean that implements <code>SpringActor&lt;C&gt;</code>, where <code>C</code> is the type of the messages it
+accepts (its <em>commands</em>). It has one method, <code>create</code>, which returns the actor's behavior: which
+handler runs for which message.</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">Java</label><label for="__tabbed_1_2">Kotlin</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nd">@Component</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">GreeterActor</span><span class="w"> </span><span class="kd">implements</span><span class="w"> </span><span class="n">SpringActor</span><span class="o">&lt;</span><span class="n">GreeterActor</span><span class="p">.</span><span class="na">Command</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">    </span><span class="c1">// Every message this actor accepts implements Command.</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kd">interface</span> <span class="nc">Command</span><span class="w"> </span><span class="p">{}</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">    </span><span class="c1">// A message that expects no answer.</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kd">record</span> <span class="nc">LogVisit</span><span class="p">(</span><span class="n">String</span><span class="w"> </span><span class="n">name</span><span class="p">)</span><span class="w"> </span><span class="kd">implements</span><span class="w"> </span><span class="n">Command</span><span class="w"> </span><span class="p">{}</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="w">    </span><span class="c1">// A message that expects a String answer: it extends AskCommand&lt;String&gt;.</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kd">class</span> <span class="nc">Greet</span><span class="w"> </span><span class="kd">extends</span><span class="w"> </span><span class="n">AskCommand</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="kd">implements</span><span class="w"> </span><span class="n">Command</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">        </span><span class="kd">public</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">name</span><span class="p">;</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="w">        </span><span class="kd">public</span><span class="w"> </span><span class="nf">Greet</span><span class="p">(</span><span class="n">String</span><span class="w"> </span><span class="n">name</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="w">            </span><span class="k">this</span><span class="p">.</span><span class="na">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">name</span><span class="p">;</span>
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="w">        </span><span class="p">}</span>
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="w">    </span><span class="nd">@Override</span>
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="n">SpringActorBehavior</span><span class="o">&lt;</span><span class="n">Command</span><span class="o">&gt;</span><span class="w"> </span><span class="nf">create</span><span class="p">(</span><span class="n">SpringActorContext</span><span class="w"> </span><span class="n">actorContext</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">SpringActorBehavior</span><span class="p">.</span><span class="na">builder</span><span class="p">(</span><span class="n">Command</span><span class="p">.</span><span class="na">class</span><span class="p">,</span><span class="w"> </span><span class="n">actorContext</span><span class="p">)</span>
+<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a><span class="w">                </span><span class="p">.</span><span class="na">onMessage</span><span class="p">(</span><span class="n">LogVisit</span><span class="p">.</span><span class="na">class</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span><span class="w"> </span><span class="n">msg</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a><span class="w">                    </span><span class="n">ctx</span><span class="p">.</span><span class="na">getLog</span><span class="p">().</span><span class="na">info</span><span class="p">(</span><span class="s">"{} visited"</span><span class="p">,</span><span class="w"> </span><span class="n">msg</span><span class="p">.</span><span class="na">name</span><span class="p">());</span>
+<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a><span class="w">                    </span><span class="k">return</span><span class="w"> </span><span class="n">SpringActorBehavior</span><span class="p">.</span><span class="na">same</span><span class="p">();</span>
+<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a><span class="w">                </span><span class="p">})</span>
+<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a><span class="w">                </span><span class="p">.</span><span class="na">onMessage</span><span class="p">(</span><span class="n">Greet</span><span class="p">.</span><span class="na">class</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span><span class="w"> </span><span class="n">msg</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a><span class="w">                    </span><span class="n">msg</span><span class="p">.</span><span class="na">reply</span><span class="p">(</span><span class="s">"Hello, "</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">msg</span><span class="p">.</span><span class="na">name</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">"!"</span><span class="p">);</span>
+<a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a><span class="w">                    </span><span class="k">return</span><span class="w"> </span><span class="n">SpringActorBehavior</span><span class="p">.</span><span class="na">same</span><span class="p">();</span>
+<a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a><span class="w">                </span><span class="p">})</span>
+<a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a><span class="w">                </span><span class="p">.</span><span class="na">build</span><span class="p">();</span>
+<a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a><span class="p">}</span>
+</code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nd">@Component</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kd">class</span><span class="w"> </span><span class="nc">GreeterActor</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">SpringActor</span><span class="o">&lt;</span><span class="n">GreeterActor</span><span class="p">.</span><span class="na">Command</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">    </span><span class="c1">// Every message this actor accepts implements Command.</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">    </span><span class="kd">sealed</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="nc">Command</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">    </span><span class="c1">// A message that expects no answer.</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">    </span><span class="kd">data</span><span class="w"> </span><span class="kd">class</span><span class="w"> </span><span class="nc">LogVisit</span><span class="p">(</span><span class="kd">val</span><span class="w"> </span><span class="nv">name</span><span class="p">:</span><span class="w"> </span><span class="kt">String</span><span class="p">)</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">Command</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">    </span><span class="c1">// A message that expects a String answer: it extends AskCommand&lt;String&gt;.</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">    </span><span class="kd">class</span><span class="w"> </span><span class="nc">Greet</span><span class="p">(</span><span class="kd">val</span><span class="w"> </span><span class="nv">name</span><span class="p">:</span><span class="w"> </span><span class="kt">String</span><span class="p">)</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">AskCommand</span><span class="o">&lt;</span><span class="kt">String</span><span class="o">&gt;</span><span class="p">(),</span><span class="w"> </span><span class="n">Command</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="w">    </span><span class="kd">override</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">create</span><span class="p">(</span><span class="n">actorContext</span><span class="p">:</span><span class="w"> </span><span class="n">SpringActorContext</span><span class="p">):</span><span class="w"> </span><span class="n">SpringActorBehavior</span><span class="o">&lt;</span><span class="n">Command</span><span class="o">&gt;</span><span class="w"> </span><span class="o">=</span>
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="w">        </span><span class="n">behavior</span><span class="o">&lt;</span><span class="n">Command</span><span class="o">&gt;</span><span class="p">(</span><span class="n">actorContext</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="w">            </span><span class="n">onMessage</span><span class="o">&lt;</span><span class="n">LogVisit</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">msg</span><span class="w"> </span><span class="o">-&gt;</span>
+<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="w">                </span><span class="n">log</span><span class="p">.</span><span class="na">info</span><span class="p">(</span><span class="s">"{} visited"</span><span class="p">,</span><span class="w"> </span><span class="n">msg</span><span class="p">.</span><span class="na">name</span><span class="p">)</span>
+<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="w">                </span><span class="n">same</span><span class="p">()</span>
+<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="w">            </span><span class="p">}</span>
+<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="w">            </span><span class="n">onMessage</span><span class="o">&lt;</span><span class="n">Greet</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">msg</span><span class="w"> </span><span class="o">-&gt;</span>
+<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a><span class="w">                </span><span class="n">msg</span><span class="p">.</span><span class="na">reply</span><span class="p">(</span><span class="s">"Hello, </span><span class="si">${</span><span class="n">msg</span><span class="p">.</span><span class="na">name</span><span class="si">}</span><span class="s">!"</span><span class="p">)</span>
+<a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a><span class="w">                </span><span class="n">same</span><span class="p">()</span>
+<a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a><span class="w">            </span><span class="p">}</span>
+<a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a><span class="w">        </span><span class="p">}</span>
+<a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a><span class="p">}</span>
+</code></pre></div>
+</div>
+</div>
+</div>
+<p>What each part does:</p>
+<ul>
+<li><strong><code>@Component</code></strong> makes the class a Spring bean. The starter finds every bean that implements
+  <code>SpringActor</code> (or <code>SpringActorWithContext</code>) and registers it as an actor type. A <code>@Bean</code> method works too.</li>
+<li><strong><code>Command</code></strong> is the actor's message type. Each message is a class that implements it. Make messages
+  immutable: records or classes with <code>final</code> fields (<code>data class</code> / <code>val</code> in Kotlin).</li>
+<li><strong><code>AskCommand&lt;R&gt;</code></strong> marks a message that expects an answer of type <code>R</code>. The handler answers with
+  <code>msg.reply(value)</code>. See <a href="../messaging/#ask-request-and-reply">Messaging</a>.</li>
+<li><strong><code>create</code></strong> runs once each time an actor of this class is spawned. It gets the actor's context
+  (<code>actorContext.actorId()</code> is the id it was spawned with) and returns the behavior.</li>
+<li><strong><code>onMessage(Type, handler)</code></strong> registers a handler. The handler gets the behavior context (<code>ctx</code>: logger,
+  self reference, timers, children) and the message, and returns the next behavior. <code>same()</code> means "keep
+  handling messages this way". See <a href="../behaviors/">Behaviors</a> for the other return values and for keeping
+  state in the actor.</li>
+</ul>
+<p>In Kotlin, <code>behavior&lt;Command&gt;(actorContext) { ... }</code> comes from the <code>actor-kotlin</code> module and builds the
+same behavior with <code>SpringActorBehavior.builder</code>: <code>onMessage&lt;Greet&gt; { msg -&gt; ... }</code> is
+<code>.onMessage(Greet.class, (ctx, msg) -&gt; ...)</code>, and the handler runs with the behavior context as <code>this</code>,
+so <code>log</code> is <code>ctx.getLog()</code>. See the <a href="../../kotlin/#defining-an-actor">Kotlin guide</a>.</p>
+<h2 id="spring-dependency-injection">Spring dependency injection</h2>
+<p>Actors are ordinary Spring beans, so they get their dependencies through the constructor (or any other
+injection style):</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="2:2"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><input id="__tabbed_2_2" name="__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="__tabbed_2_1">Java</label><label for="__tabbed_2_2">Kotlin</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nd">@Component</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">OrderActor</span><span class="w"> </span><span class="kd">implements</span><span class="w"> </span><span class="n">SpringActor</span><span class="o">&lt;</span><span class="n">OrderActor</span><span class="p">.</span><span class="na">Command</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="n">OrderRepository</span><span class="w"> </span><span class="n">orderRepository</span><span class="p">;</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="nf">OrderActor</span><span class="p">(</span><span class="n">OrderRepository</span><span class="w"> </span><span class="n">orderRepository</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">        </span><span class="k">this</span><span class="p">.</span><span class="na">orderRepository</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">orderRepository</span><span class="p">;</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kd">interface</span> <span class="nc">Command</span><span class="w"> </span><span class="p">{}</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kd">record</span> <span class="nc">MarkPaid</span><span class="p">(</span><span class="kt">long</span><span class="w"> </span><span class="n">orderId</span><span class="p">)</span><span class="w"> </span><span class="kd">implements</span><span class="w"> </span><span class="n">Command</span><span class="w"> </span><span class="p">{}</span>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="w">    </span><span class="nd">@Override</span>
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="n">SpringActorBehavior</span><span class="o">&lt;</span><span class="n">Command</span><span class="o">&gt;</span><span class="w"> </span><span class="nf">create</span><span class="p">(</span><span class="n">SpringActorContext</span><span class="w"> </span><span class="n">actorContext</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">SpringActorBehavior</span><span class="p">.</span><span class="na">builder</span><span class="p">(</span><span class="n">Command</span><span class="p">.</span><span class="na">class</span><span class="p">,</span><span class="w"> </span><span class="n">actorContext</span><span class="p">)</span>
+<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a><span class="w">                </span><span class="p">.</span><span class="na">onMessage</span><span class="p">(</span><span class="n">MarkPaid</span><span class="p">.</span><span class="na">class</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span><span class="w"> </span><span class="n">msg</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a><span class="w">                    </span><span class="n">orderRepository</span><span class="p">.</span><span class="na">markPaid</span><span class="p">(</span><span class="n">msg</span><span class="p">.</span><span class="na">orderId</span><span class="p">());</span>
+<a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a><span class="w">                    </span><span class="k">return</span><span class="w"> </span><span class="n">SpringActorBehavior</span><span class="p">.</span><span class="na">same</span><span class="p">();</span>
+<a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a><span class="w">                </span><span class="p">})</span>
+<a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a><span class="w">                </span><span class="p">.</span><span class="na">build</span><span class="p">();</span>
+<a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-2-23" name="__codelineno-2-23" href="#__codelineno-2-23"></a><span class="p">}</span>
+</code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nd">@Component</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="kd">class</span><span class="w"> </span><span class="nc">OrderActor</span><span class="p">(</span><span class="kd">private</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">orderRepository</span><span class="p">:</span><span class="w"> </span><span class="n">OrderRepository</span><span class="p">)</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">SpringActor</span><span class="o">&lt;</span><span class="n">OrderActor</span><span class="p">.</span><span class="na">Command</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">    </span><span class="kd">sealed</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="nc">Command</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">    </span><span class="kd">data</span><span class="w"> </span><span class="kd">class</span><span class="w"> </span><span class="nc">MarkPaid</span><span class="p">(</span><span class="kd">val</span><span class="w"> </span><span class="nv">orderId</span><span class="p">:</span><span class="w"> </span><span class="kt">Long</span><span class="p">)</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">Command</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="w">    </span><span class="kd">override</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">create</span><span class="p">(</span><span class="n">actorContext</span><span class="p">:</span><span class="w"> </span><span class="n">SpringActorContext</span><span class="p">):</span><span class="w"> </span><span class="n">SpringActorBehavior</span><span class="o">&lt;</span><span class="n">Command</span><span class="o">&gt;</span><span class="w"> </span><span class="o">=</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="w">        </span><span class="n">behavior</span><span class="o">&lt;</span><span class="n">Command</span><span class="o">&gt;</span><span class="p">(</span><span class="n">actorContext</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="w">            </span><span class="n">onMessage</span><span class="o">&lt;</span><span class="n">MarkPaid</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">msg</span><span class="w"> </span><span class="o">-&gt;</span>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="w">                </span><span class="n">orderRepository</span><span class="p">.</span><span class="na">markPaid</span><span class="p">(</span><span class="n">msg</span><span class="p">.</span><span class="na">orderId</span><span class="p">)</span>
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="w">                </span><span class="n">same</span><span class="p">()</span>
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="w">            </span><span class="p">}</span>
+<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="w">        </span><span class="p">}</span>
+<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="p">}</span>
+</code></pre></div>
+</div>
+</div>
+</div>
+<p>Spring creates one <code>OrderActor</code> bean, and every actor spawned from that class calls <code>create</code> on that same
+bean. Keep injected services in <code>final</code> fields, and per-actor state in the behavior, as the next section
+shows.</p>
+<h2 id="what-not-to-do-in-an-actor-bean">What not to do in an actor bean</h2>
+<div class="admonition danger">
+<p class="admonition-title">Don't</p>
+<ul>
+<li><strong>Don't keep state in bean fields.</strong> A field of the bean is shared by every actor of the class and
+  changed from many threads at once, which breaks the "one message at a time, no locks" guarantee.
+  Keep per-actor state in the behavior: the state object of
+  <a href="../behaviors/#state-with-withstate"><code>withState</code></a>.</li>
+<li><strong>Don't block the default dispatcher.</strong> A JPA repository or a blocking HTTP client holds the thread
+  while it waits, and the default dispatcher's few threads run out. Spawn such actors with
+  <code>withBlockingDispatcher()</code> (see <a href="../dispatchers/">Dispatchers</a>), or call a non-blocking client and turn
+  its <code>CompletionStage</code> into a message with <a href="../behaviors/#futures-pipetoself"><code>pipeToSelf</code></a>.</li>
+<li><strong>Don't put proxy annotations on an actor bean.</strong> <code>@Transactional</code>, <code>@Async</code> or <code>@Cacheable</code> make
+  Spring wrap the bean in a proxy, but the handlers run in the behavior that <code>create</code> returns, not
+  through the proxy, so the advice never applies to them, and a transaction can't span messages
+  anyway. Put <code>@Transactional</code> on a separate service the handler calls.</li>
+</ul>
+</div>
+<div class="tabbed-set tabbed-alternate" data-tabs="3:2"><input checked="checked" id="__tabbed_3_1" name="__tabbed_3" type="radio" /><input id="__tabbed_3_2" name="__tabbed_3" type="radio" /><div class="tabbed-labels"><label for="__tabbed_3_1">Java</label><label for="__tabbed_3_2">Kotlin</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nd">@Service</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">PaymentService</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">    </span><span class="nd">@Transactional</span><span class="w">   </span><span class="c1">// on the service, not on the actor</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">markPaid</span><span class="p">(</span><span class="kt">long</span><span class="w"> </span><span class="n">orderId</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">        </span><span class="c1">// update the order and the ledger in one transaction</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="p">}</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="nd">@Component</span>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">OrderActor</span><span class="w"> </span><span class="kd">implements</span><span class="w"> </span><span class="n">SpringActor</span><span class="o">&lt;</span><span class="n">OrderActor</span><span class="p">.</span><span class="na">Command</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="n">PaymentService</span><span class="w"> </span><span class="n">payments</span><span class="p">;</span><span class="w">   </span><span class="c1">// wiring: injected and final</span>
+<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="w">    </span><span class="c1">// private int paidCount;                // don't: shared by every OrderActor</span>
+<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>
+<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="nf">OrderActor</span><span class="p">(</span><span class="n">PaymentService</span><span class="w"> </span><span class="n">payments</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a><span class="w">        </span><span class="k">this</span><span class="p">.</span><span class="na">payments</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">payments</span><span class="p">;</span>
+<a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a>
+<a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kd">interface</span> <span class="nc">Command</span><span class="w"> </span><span class="p">{}</span>
+<a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a>
+<a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kd">record</span> <span class="nc">MarkPaid</span><span class="p">(</span><span class="kt">long</span><span class="w"> </span><span class="n">orderId</span><span class="p">)</span><span class="w"> </span><span class="kd">implements</span><span class="w"> </span><span class="n">Command</span><span class="w"> </span><span class="p">{}</span>
+<a id="__codelineno-4-23" name="__codelineno-4-23" href="#__codelineno-4-23"></a>
+<a id="__codelineno-4-24" name="__codelineno-4-24" href="#__codelineno-4-24"></a><span class="w">    </span><span class="nd">@Override</span>
+<a id="__codelineno-4-25" name="__codelineno-4-25" href="#__codelineno-4-25"></a><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="n">SpringActorBehavior</span><span class="o">&lt;</span><span class="n">Command</span><span class="o">&gt;</span><span class="w"> </span><span class="nf">create</span><span class="p">(</span><span class="n">SpringActorContext</span><span class="w"> </span><span class="n">actorContext</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-4-26" name="__codelineno-4-26" href="#__codelineno-4-26"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">SpringActorBehavior</span><span class="p">.</span><span class="na">builder</span><span class="p">(</span><span class="n">Command</span><span class="p">.</span><span class="na">class</span><span class="p">,</span><span class="w"> </span><span class="n">actorContext</span><span class="p">)</span>
+<a id="__codelineno-4-27" name="__codelineno-4-27" href="#__codelineno-4-27"></a><span class="w">                </span><span class="p">.</span><span class="na">withState</span><span class="p">(</span><span class="n">ctx</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">Paid</span><span class="p">())</span><span class="w">   </span><span class="c1">// one per actor</span>
+<a id="__codelineno-4-28" name="__codelineno-4-28" href="#__codelineno-4-28"></a><span class="w">                </span><span class="p">.</span><span class="na">onMessage</span><span class="p">(</span><span class="n">MarkPaid</span><span class="p">.</span><span class="na">class</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">paid</span><span class="p">,</span><span class="w"> </span><span class="n">msg</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-4-29" name="__codelineno-4-29" href="#__codelineno-4-29"></a><span class="w">                    </span><span class="n">payments</span><span class="p">.</span><span class="na">markPaid</span><span class="p">(</span><span class="n">msg</span><span class="p">.</span><span class="na">orderId</span><span class="p">());</span><span class="w">   </span><span class="c1">// blocks: see the spawn below</span>
+<a id="__codelineno-4-30" name="__codelineno-4-30" href="#__codelineno-4-30"></a><span class="w">                    </span><span class="n">paid</span><span class="p">.</span><span class="na">count</span><span class="o">++</span><span class="p">;</span>
+<a id="__codelineno-4-31" name="__codelineno-4-31" href="#__codelineno-4-31"></a><span class="w">                    </span><span class="k">return</span><span class="w"> </span><span class="n">SpringActorBehavior</span><span class="p">.</span><span class="na">same</span><span class="p">();</span>
+<a id="__codelineno-4-32" name="__codelineno-4-32" href="#__codelineno-4-32"></a><span class="w">                </span><span class="p">})</span>
+<a id="__codelineno-4-33" name="__codelineno-4-33" href="#__codelineno-4-33"></a><span class="w">                </span><span class="p">.</span><span class="na">build</span><span class="p">();</span>
+<a id="__codelineno-4-34" name="__codelineno-4-34" href="#__codelineno-4-34"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-4-35" name="__codelineno-4-35" href="#__codelineno-4-35"></a>
+<a id="__codelineno-4-36" name="__codelineno-4-36" href="#__codelineno-4-36"></a><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kd">class</span> <span class="nc">Paid</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-4-37" name="__codelineno-4-37" href="#__codelineno-4-37"></a><span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">count</span><span class="p">;</span><span class="w">   </span><span class="c1">// only this actor's thread touches it</span>
+<a id="__codelineno-4-38" name="__codelineno-4-38" href="#__codelineno-4-38"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-4-39" name="__codelineno-4-39" href="#__codelineno-4-39"></a><span class="p">}</span>
+<a id="__codelineno-4-40" name="__codelineno-4-40" href="#__codelineno-4-40"></a>
+<a id="__codelineno-4-41" name="__codelineno-4-41" href="#__codelineno-4-41"></a><span class="c1">// The handler waits on the database, so the actor runs on the blocking dispatcher.</span>
+<a id="__codelineno-4-42" name="__codelineno-4-42" href="#__codelineno-4-42"></a><span class="n">actorSystem</span><span class="p">.</span><span class="na">actor</span><span class="p">(</span><span class="n">OrderActor</span><span class="p">.</span><span class="na">class</span><span class="p">).</span><span class="na">withId</span><span class="p">(</span><span class="s">"order-42"</span><span class="p">).</span><span class="na">withBlockingDispatcher</span><span class="p">().</span><span class="na">getOrSpawn</span><span class="p">();</span>
+</code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nd">@Service</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="kd">class</span><span class="w"> </span><span class="nc">PaymentService</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">    </span><span class="nd">@Transactional</span><span class="w">   </span><span class="c1">// on the service, not on the actor</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">    </span><span class="kd">fun</span><span class="w"> </span><span class="nf">markPaid</span><span class="p">(</span><span class="n">orderId</span><span class="p">:</span><span class="w"> </span><span class="kt">Long</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">        </span><span class="c1">// update the order and the ledger in one transaction</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="p">}</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="nd">@Component</span>
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="kd">class</span><span class="w"> </span><span class="nc">OrderActor</span><span class="p">(</span><span class="kd">private</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">payments</span><span class="p">:</span><span class="w"> </span><span class="n">PaymentService</span><span class="p">)</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">SpringActor</span><span class="o">&lt;</span><span class="n">OrderActor</span><span class="p">.</span><span class="na">Command</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="w">    </span><span class="c1">// private var paidCount = 0   // don't: shared by every OrderActor</span>
+<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>
+<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a><span class="w">    </span><span class="kd">sealed</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="nc">Command</span>
+<a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a>
+<a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a><span class="w">    </span><span class="kd">data</span><span class="w"> </span><span class="kd">class</span><span class="w"> </span><span class="nc">MarkPaid</span><span class="p">(</span><span class="kd">val</span><span class="w"> </span><span class="nv">orderId</span><span class="p">:</span><span class="w"> </span><span class="kt">Long</span><span class="p">)</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">Command</span>
+<a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a>
+<a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a><span class="w">    </span><span class="kd">override</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">create</span><span class="p">(</span><span class="n">actorContext</span><span class="p">:</span><span class="w"> </span><span class="n">SpringActorContext</span><span class="p">):</span><span class="w"> </span><span class="n">SpringActorBehavior</span><span class="o">&lt;</span><span class="n">Command</span><span class="o">&gt;</span><span class="w"> </span><span class="o">=</span>
+<a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a><span class="w">        </span><span class="n">behavior</span><span class="o">&lt;</span><span class="n">Command</span><span class="p">,</span><span class="w"> </span><span class="n">Paid</span><span class="o">&gt;</span><span class="p">(</span><span class="n">actorContext</span><span class="p">,</span><span class="w"> </span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Paid</span><span class="p">()</span><span class="w"> </span><span class="p">})</span><span class="w"> </span><span class="p">{</span><span class="w">   </span><span class="c1">// one per actor</span>
+<a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a><span class="w">            </span><span class="n">onMessage</span><span class="o">&lt;</span><span class="n">MarkPaid</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">msg</span><span class="w"> </span><span class="o">-&gt;</span>
+<a id="__codelineno-5-21" name="__codelineno-5-21" href="#__codelineno-5-21"></a><span class="w">                </span><span class="n">payments</span><span class="p">.</span><span class="na">markPaid</span><span class="p">(</span><span class="n">msg</span><span class="p">.</span><span class="na">orderId</span><span class="p">)</span><span class="w">   </span><span class="c1">// blocks: see the spawn below</span>
+<a id="__codelineno-5-22" name="__codelineno-5-22" href="#__codelineno-5-22"></a><span class="w">                </span><span class="n">count</span><span class="o">++</span>
+<a id="__codelineno-5-23" name="__codelineno-5-23" href="#__codelineno-5-23"></a><span class="w">                </span><span class="n">same</span><span class="p">()</span>
+<a id="__codelineno-5-24" name="__codelineno-5-24" href="#__codelineno-5-24"></a><span class="w">            </span><span class="p">}</span>
+<a id="__codelineno-5-25" name="__codelineno-5-25" href="#__codelineno-5-25"></a><span class="w">        </span><span class="p">}</span>
+<a id="__codelineno-5-26" name="__codelineno-5-26" href="#__codelineno-5-26"></a>
+<a id="__codelineno-5-27" name="__codelineno-5-27" href="#__codelineno-5-27"></a><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">class</span><span class="w"> </span><span class="nc">Paid</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-5-28" name="__codelineno-5-28" href="#__codelineno-5-28"></a><span class="w">        </span><span class="kd">var</span><span class="w"> </span><span class="nv">count</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0</span><span class="w">   </span><span class="c1">// only this actor's thread touches it</span>
+<a id="__codelineno-5-29" name="__codelineno-5-29" href="#__codelineno-5-29"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-5-30" name="__codelineno-5-30" href="#__codelineno-5-30"></a><span class="p">}</span>
+<a id="__codelineno-5-31" name="__codelineno-5-31" href="#__codelineno-5-31"></a>
+<a id="__codelineno-5-32" name="__codelineno-5-32" href="#__codelineno-5-32"></a><span class="c1">// The handler waits on the database, so the actor runs on the blocking dispatcher.</span>
+<a id="__codelineno-5-33" name="__codelineno-5-33" href="#__codelineno-5-33"></a><span class="n">actorSystem</span><span class="p">.</span><span class="na">actor</span><span class="o">&lt;</span><span class="n">OrderActor</span><span class="p">,</span><span class="w"> </span><span class="n">OrderActor</span><span class="p">.</span><span class="na">Command</span><span class="o">&gt;</span><span class="p">().</span><span class="na">withId</span><span class="p">(</span><span class="s">"order-42"</span><span class="p">).</span><span class="na">withBlockingDispatcher</span><span class="p">().</span><span class="na">getOrSpawn</span><span class="p">()</span>
+</code></pre></div>
+</div>
+</div>
+</div>
+<p>The starter checks the first and the last rule when it starts. For each actor bean (<code>SpringActor</code>,
+<code>SpringShardedActor</code>) it logs a warning for every instance field that is neither <code>static</code> nor <code>final</code>,
+superclasses included, and for a bean that is a Spring AOP proxy. Fields Spring injects are wiring, not
+state, and don't count: those annotated with <code>@Autowired</code>, <code>@Value</code>, <code>@Inject</code> or <code>@Resource</code>, those set
+through a setter with one of these annotations, and properties set on the bean definition. A <code>final</code>
+field that holds a mutable object (a <code>HashMap</code>, an <code>AtomicInteger</code>) is shared just the same, but the check
+can't tell it apart from a service, so it doesn't report it.</p>
+<table>
+<thead>
+<tr>
+<th><code>spring.actor.validation.actor-beans</code></th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>warn</code> (default)</td>
+<td>Logs one warning per problem, naming the bean, its class and the field</td>
+</tr>
+<tr>
+<td><code>fail</code></td>
+<td>Stops startup with an error that lists the problems</td>
+</tr>
+<tr>
+<td><code>off</code></td>
+<td>Doesn't check</td>
+</tr>
+</tbody>
+</table>
+<h2 id="actor-ids">Actor ids</h2>
+<p>Every actor has an id: the string you pass to <code>withId(...)</code> or <code>getOrSpawn(..., id)</code>. The starter names
+the actor <code>&lt;fully.qualified.ClassName&gt;:&lt;id&gt;</code>, so:</p>
+<ul>
+<li>An id is unique per actor class. <code>OrderActor</code> "42" and <code>InvoiceActor</code> "42" are two different actors.</li>
+<li>An id is unique within its parent. Top-level actors (spawned from <code>SpringActorSystem</code>) share one
+  parent on each node; a child's id only has to be unique among its parent's children.</li>
+<li>A plain actor lives on the node that spawned it. In cluster mode, <code>get</code> and <code>exists</code> on another node
+  don't see it. For one actor per id across the whole cluster, use
+  <a href="../../cluster/sharded-actors/">sharded actors</a>; for one actor per cluster, use
+  <a href="../../cluster/singletons/">cluster singletons</a>.</li>
+</ul>
+<p>Use ids that come from your domain, such as an order id or a user id, so any request can find its actor
+again.</p>
+<h2 id="spawning-and-finding-actors">Spawning and finding actors</h2>
+<p>Inject <code>SpringActorSystem</code> wherever you need an actor. Every call returns a <code>CompletionStage</code> (the Kotlin
+module adds <code>suspend</code> versions).</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>What it does</th>
+<th>Default timeout</th>
+<th>When it does not work out</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>getOrSpawn(Class, id)</code></td>
+<td>Returns the running actor, or spawns it with default settings</td>
+<td>3 s</td>
+<td>Fails if the spawn fails</td>
+</tr>
+<tr>
+<td><code>find(Class, id)</code></td>
+<td>Returns the running actor</td>
+<td>3 s</td>
+<td>Completes with an empty <code>Optional</code> when there is none; fails on timeout</td>
+</tr>
+<tr>
+<td><code>exists(Class, id)</code></td>
+<td>Says whether the actor runs</td>
+<td>3 s</td>
+<td>Completes with <code>false</code> when there is none; fails on timeout</td>
+</tr>
+<tr>
+<td><code>actor(Class)</code></td>
+<td>Starts a spawn builder for custom settings (see below)</td>
+<td>3 s</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>Each method has an overload with a <code>Duration timeout</code> as the last argument.</p>
+<h3 id="getorspawn-the-usual-way">getOrSpawn: the usual way</h3>
+<p><code>getOrSpawn</code> is the simplest way to use an actor. Call it on every request with the id from the request;
+the first call spawns the actor, later calls return it.</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="4:2"><input checked="checked" id="__tabbed_4_1" name="__tabbed_4" type="radio" /><input id="__tabbed_4_2" name="__tabbed_4" type="radio" /><div class="tabbed-labels"><label for="__tabbed_4_1">Java</label><label for="__tabbed_4_2">Kotlin</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nd">@Service</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">GreeterService</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="n">SpringActorSystem</span><span class="w"> </span><span class="n">actorSystem</span><span class="p">;</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="nf">GreeterService</span><span class="p">(</span><span class="n">SpringActorSystem</span><span class="w"> </span><span class="n">actorSystem</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="w">        </span><span class="k">this</span><span class="p">.</span><span class="na">actorSystem</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">actorSystem</span><span class="p">;</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="n">CompletionStage</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="nf">greet</span><span class="p">(</span><span class="n">String</span><span class="w"> </span><span class="n">name</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">actorSystem</span><span class="p">.</span><span class="na">getOrSpawn</span><span class="p">(</span><span class="n">GreeterActor</span><span class="p">.</span><span class="na">class</span><span class="p">,</span><span class="w"> </span><span class="s">"greeter"</span><span class="p">)</span>
+<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="w">                </span><span class="p">.</span><span class="na">thenCompose</span><span class="p">(</span><span class="n">greeter</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">greeter</span>
+<a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a><span class="w">                        </span><span class="p">.</span><span class="na">ask</span><span class="p">(</span><span class="k">new</span><span class="w"> </span><span class="n">GreeterActor</span><span class="p">.</span><span class="na">Greet</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
+<a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a><span class="w">                        </span><span class="p">.</span><span class="na">withTimeout</span><span class="p">(</span><span class="n">Duration</span><span class="p">.</span><span class="na">ofSeconds</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span>
+<a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a><span class="w">                        </span><span class="p">.</span><span class="na">execute</span><span class="p">());</span>
+<a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a><span class="p">}</span>
+</code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nd">@Service</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="kd">class</span><span class="w"> </span><span class="nc">GreeterService</span><span class="p">(</span><span class="kd">private</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">actorSystem</span><span class="p">:</span><span class="w"> </span><span class="n">SpringActorSystem</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">    </span><span class="c1">// A suspend function: call it from a coroutine or a suspend controller method.</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="w">    </span><span class="kd">suspend</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">greet</span><span class="p">(</span><span class="n">name</span><span class="p">:</span><span class="w"> </span><span class="kt">String</span><span class="p">):</span><span class="w"> </span><span class="kt">String</span><span class="w"> </span><span class="o">=</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="w">        </span><span class="n">actorSystem</span><span class="p">.</span><span class="na">awaitGetOrSpawn</span><span class="o">&lt;</span><span class="n">GreeterActor</span><span class="p">,</span><span class="w"> </span><span class="n">_</span><span class="o">&gt;</span><span class="p">(</span><span class="s">"greeter"</span><span class="p">)</span>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="w">            </span><span class="p">.</span><span class="na">awaitAsk</span><span class="p">(</span><span class="n">GreeterActor</span><span class="p">.</span><span class="na">Greet</span><span class="p">(</span><span class="n">name</span><span class="p">),</span><span class="w"> </span><span class="n">timeout</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">3.</span><span class="n">seconds</span><span class="p">)</span>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="p">}</span>
+</code></pre></div>
+</div>
+</div>
+</div>
+<p>In a WebFlux application, wrap the stage with <code>Mono.fromCompletionStage(...)</code> (Java) or use a
+<code>suspend</code> controller method (Kotlin).</p>
+<p><code>getOrSpawn</code> checks for the running actor and spawns it in one step, so callers that ask for the same
+<strong>new</strong> id at the same moment all get the same actor.</p>
+<h3 id="the-spawn-builder-custom-settings">The spawn builder: custom settings</h3>
+<p><code>actorSystem.actor(Class)</code> returns a builder. Set the id and any options, then end with <code>spawn()</code>,
+<code>getOrSpawn()</code> or <code>spawnAndWait()</code>:</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="5:2"><input checked="checked" id="__tabbed_5_1" name="__tabbed_5" type="radio" /><input id="__tabbed_5_2" name="__tabbed_5" type="radio" /><div class="tabbed-labels"><label for="__tabbed_5_1">Java</label><label for="__tabbed_5_2">Kotlin</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="n">CompletionStage</span><span class="o">&lt;</span><span class="n">SpringActorHandle</span><span class="o">&lt;</span><span class="n">OrderActor</span><span class="p">.</span><span class="na">Command</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">order</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">actorSystem</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">        </span><span class="p">.</span><span class="na">actor</span><span class="p">(</span><span class="n">OrderActor</span><span class="p">.</span><span class="na">class</span><span class="p">)</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">        </span><span class="p">.</span><span class="na">withId</span><span class="p">(</span><span class="s">"order-42"</span><span class="p">)</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="w">        </span><span class="p">.</span><span class="na">withBlockingDispatcher</span><span class="p">()</span><span class="w">                       </span><span class="c1">// it calls a JPA repository</span>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="w">        </span><span class="p">.</span><span class="na">withMailbox</span><span class="p">(</span><span class="n">MailboxConfig</span><span class="p">.</span><span class="na">bounded</span><span class="p">(</span><span class="mi">1_000</span><span class="p">))</span>
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="w">        </span><span class="p">.</span><span class="na">withSupervisionStrategy</span><span class="p">(</span><span class="n">SupervisionStrategy</span><span class="p">.</span><span class="na">restart</span><span class="p">().</span><span class="na">withLimit</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="n">Duration</span><span class="p">.</span><span class="na">ofMinutes</span><span class="p">(</span><span class="mi">1</span><span class="p">)))</span>
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="w">        </span><span class="p">.</span><span class="na">withTimeout</span><span class="p">(</span><span class="n">Duration</span><span class="p">.</span><span class="na">ofSeconds</span><span class="p">(</span><span class="mi">5</span><span class="p">))</span>
+<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="w">        </span><span class="p">.</span><span class="na">getOrSpawn</span><span class="p">();</span>
+</code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1">// In a suspend function</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="kd">val</span><span class="w"> </span><span class="nv">order</span><span class="p">:</span><span class="w"> </span><span class="n">SpringActorHandle</span><span class="o">&lt;</span><span class="n">OrderActor</span><span class="p">.</span><span class="na">Command</span><span class="o">&gt;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">actorSystem</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">    </span><span class="p">.</span><span class="na">actor</span><span class="o">&lt;</span><span class="n">OrderActor</span><span class="p">,</span><span class="w"> </span><span class="n">_</span><span class="o">&gt;</span><span class="p">()</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="w">    </span><span class="p">.</span><span class="na">withId</span><span class="p">(</span><span class="s">"order-42"</span><span class="p">)</span>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="w">    </span><span class="p">.</span><span class="na">withBlockingDispatcher</span><span class="p">()</span><span class="w">                       </span><span class="c1">// it calls a JPA repository</span>
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="w">    </span><span class="p">.</span><span class="na">withMailbox</span><span class="p">(</span><span class="n">MailboxConfig</span><span class="p">.</span><span class="na">bounded</span><span class="p">(</span><span class="m">1</span><span class="n">_000</span><span class="p">))</span>
+<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="w">    </span><span class="p">.</span><span class="na">withSupervisionStrategy</span><span class="p">(</span><span class="n">SupervisionStrategy</span><span class="p">.</span><span class="na">restart</span><span class="p">().</span><span class="na">withLimit</span><span class="p">(</span><span class="m">3</span><span class="p">,</span><span class="w"> </span><span class="m">1.</span><span class="n">minutes</span><span class="p">))</span>
+<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="w">    </span><span class="p">.</span><span class="na">withTimeout</span><span class="p">(</span><span class="m">5.</span><span class="n">seconds</span><span class="p">)</span>
+<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="w">    </span><span class="p">.</span><span class="na">awaitGetOrSpawn</span><span class="p">()</span>
+</code></pre></div>
+</div>
+</div>
+</div>
+<table>
+<thead>
+<tr>
+<th>Builder method</th>
+<th>What it sets</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>withId(String)</code></td>
+<td>The actor id. Required unless you pass a context.</td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>withContext(SpringActorContext)</code></td>
+<td>A custom context (see <a href="#custom-actor-context">Custom actor context</a>). Its <code>actorId()</code> is the id.</td>
+<td>a context holding the id</td>
+</tr>
+<tr>
+<td><code>withTimeout(Duration)</code></td>
+<td>How long to wait for the spawn</td>
+<td>3 s</td>
+</tr>
+<tr>
+<td><code>withSupervisionStrategy(...)</code></td>
+<td>What happens when a handler throws. See <a href="../supervision/">Supervision</a>.</td>
+<td>stop</td>
+</tr>
+<tr>
+<td><code>withDefaultDispatcher()</code>, <code>withBlockingDispatcher()</code>, <code>withDispatcherFromConfig(name)</code>, <code>withDispatcherSameAsParent()</code></td>
+<td>The thread pool. See <a href="../dispatchers/">Dispatchers</a>.</td>
+<td>default dispatcher</td>
+</tr>
+<tr>
+<td><code>withMailbox(MailboxConfig)</code></td>
+<td>The mailbox: <code>MailboxConfig.bounded(n)</code> or <code>MailboxConfig.fromConfig(name)</code>. See <a href="../dispatchers/#mailboxes">Mailboxes</a>.</td>
+<td>unbounded</td>
+</tr>
+<tr>
+<td><code>withTags(TagsConfig)</code></td>
+<td>Tags in the <code>pekkoTags</code> log field. See <a href="../logging/">Logging</a>.</td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>withMdc(MdcConfig)</code></td>
+<td>Fixed MDC values on every log line of the actor. See <a href="../logging/">Logging</a>.</td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>asClusterSingleton()</code></td>
+<td>One instance in the cluster. Cluster mode only. See <a href="../../cluster/singletons/">Singletons</a>.</td>
+<td>off</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Ending</th>
+<th>Returns</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>spawn()</code></td>
+<td><code>CompletionStage&lt;SpringActorHandle&lt;C&gt;&gt;</code></td>
+<td>Fails if an actor with this class and id already runs</td>
+</tr>
+<tr>
+<td><code>getOrSpawn()</code></td>
+<td><code>CompletionStage&lt;SpringActorHandle&lt;C&gt;&gt;</code></td>
+<td>Returns the running actor if there is one; the options apply only when it spawns</td>
+</tr>
+<tr>
+<td><code>spawnAndWait()</code></td>
+<td><code>SpringActorHandle&lt;C&gt;</code></td>
+<td>Blocks the calling thread until the actor runs</td>
+</tr>
+</tbody>
+</table>
+<p><code>actorSystem.getOrSpawn(Class, id)</code> is <code>actor(Class).withId(id).getOrSpawn()</code> with every option at its
+default.</p>
+<div class="admonition warning">
+<p class="admonition-title">Don't block where threads are shared</p>
+<p><code>spawnAndWait()</code> (and <code>.toCompletableFuture().join()</code> on any stage) blocks the calling thread. That is
+fine in a test or at startup, but not inside an actor's handler or a WebFlux pipeline: compose the
+stage instead, or use the <code>suspend</code> functions in Kotlin.</p>
+</div>
+<h3 id="find-and-exists">find and exists</h3>
+<p><code>find</code> returns a handle to a running actor and <code>exists</code> says whether one runs. Neither spawns anything.
+Use them when an absent actor means something to your code, for example "this order was never
+opened":</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="6:2"><input checked="checked" id="__tabbed_6_1" name="__tabbed_6" type="radio" /><input id="__tabbed_6_2" name="__tabbed_6" type="radio" /><div class="tabbed-labels"><label for="__tabbed_6_1">Java</label><label for="__tabbed_6_2">Kotlin</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="n">actorSystem</span><span class="p">.</span><span class="na">find</span><span class="p">(</span><span class="n">OrderActor</span><span class="p">.</span><span class="na">class</span><span class="p">,</span><span class="w"> </span><span class="s">"order-42"</span><span class="p">).</span><span class="na">thenAccept</span><span class="p">(</span><span class="n">order</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">order</span><span class="p">.</span><span class="na">ifPresentOrElse</span><span class="p">(</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">        </span><span class="n">o</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">o</span><span class="p">.</span><span class="na">tell</span><span class="p">(</span><span class="k">new</span><span class="w"> </span><span class="n">OrderActor</span><span class="p">.</span><span class="na">MarkPaid</span><span class="p">(</span><span class="mi">42</span><span class="p">)),</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">        </span><span class="p">()</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">log</span><span class="p">.</span><span class="na">info</span><span class="p">(</span><span class="s">"order-42 is not running"</span><span class="p">)));</span>
+</code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="c1">// In a suspend function</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="kd">val</span><span class="w"> </span><span class="nv">order</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">actorSystem</span><span class="p">.</span><span class="na">awaitGet</span><span class="o">&lt;</span><span class="n">OrderActor</span><span class="p">,</span><span class="w"> </span><span class="n">_</span><span class="o">&gt;</span><span class="p">(</span><span class="s">"order-42"</span><span class="p">)</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">order</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">    </span><span class="n">log</span><span class="p">.</span><span class="na">info</span><span class="p">(</span><span class="s">"order-42 is not running"</span><span class="p">)</span>
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="w">    </span><span class="n">order</span><span class="p">.</span><span class="na">tell</span><span class="p">(</span><span class="n">OrderActor</span><span class="p">.</span><span class="na">MarkPaid</span><span class="p">(</span><span class="m">42</span><span class="p">))</span>
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="p">}</span>
+</code></pre></div>
+</div>
+</div>
+</div>
+<p>Both look at the top-level actors of this node and at the <a href="../../cluster/singletons/">cluster singletons</a>
+this node spawned. When the actor system doesn't answer within the timeout (3 s by default), the stage
+fails with a <code>TimeoutException</code>; it never reports a running actor as missing.</p>
+<p><code>get(Class, id)</code>, which completes with <code>null</code> when no actor runs, is deprecated: use <code>find</code>.</p>
+<h3 id="keeping-a-handle">Keeping a handle</h3>
+<p>A <code>SpringActorHandle</code> stays valid for as long as the actor runs, and sending through it costs nothing
+extra. If a service talks to the same actor on every request, look it up once and keep the stage:</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="7:2"><input checked="checked" id="__tabbed_7_1" name="__tabbed_7" type="radio" /><input id="__tabbed_7_2" name="__tabbed_7" type="radio" /><div class="tabbed-labels"><label for="__tabbed_7_1">Java</label><label for="__tabbed_7_2">Kotlin</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="nd">@Service</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">CounterService</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="n">SpringActorSystem</span><span class="w"> </span><span class="n">actorSystem</span><span class="p">;</span>
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="n">AtomicReference</span><span class="o">&lt;</span><span class="n">CompletionStage</span><span class="o">&lt;</span><span class="n">SpringActorHandle</span><span class="o">&lt;</span><span class="n">CounterActor</span><span class="p">.</span><span class="na">Command</span><span class="o">&gt;&gt;&gt;</span><span class="w"> </span><span class="n">counter</span><span class="w"> </span><span class="o">=</span>
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="w">            </span><span class="k">new</span><span class="w"> </span><span class="n">AtomicReference</span><span class="o">&lt;&gt;</span><span class="p">();</span>
+<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>
+<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="nf">CounterService</span><span class="p">(</span><span class="n">SpringActorSystem</span><span class="w"> </span><span class="n">actorSystem</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a><span class="w">        </span><span class="k">this</span><span class="p">.</span><span class="na">actorSystem</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">actorSystem</span><span class="p">;</span>
+<a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a>
+<a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="n">CompletionStage</span><span class="o">&lt;</span><span class="n">SpringActorHandle</span><span class="o">&lt;</span><span class="n">CounterActor</span><span class="p">.</span><span class="na">Command</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="nf">counter</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">counter</span><span class="p">.</span><span class="na">updateAndGet</span><span class="p">(</span><span class="n">existing</span><span class="w"> </span><span class="o">-&gt;</span>
+<a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a><span class="w">                </span><span class="n">existing</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">null</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">existing</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">actorSystem</span><span class="p">.</span><span class="na">getOrSpawn</span><span class="p">(</span><span class="n">CounterActor</span><span class="p">.</span><span class="na">class</span><span class="p">,</span><span class="w"> </span><span class="s">"counter"</span><span class="p">));</span>
+<a id="__codelineno-12-14" name="__codelineno-12-14" href="#__codelineno-12-14"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-12-15" name="__codelineno-12-15" href="#__codelineno-12-15"></a>
+<a id="__codelineno-12-16" name="__codelineno-12-16" href="#__codelineno-12-16"></a><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="n">CompletionStage</span><span class="o">&lt;</span><span class="n">Long</span><span class="o">&gt;</span><span class="w"> </span><span class="nf">increment</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-12-17" name="__codelineno-12-17" href="#__codelineno-12-17"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">counter</span><span class="p">().</span><span class="na">thenCompose</span><span class="p">(</span><span class="n">c</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">c</span><span class="p">.</span><span class="na">ask</span><span class="p">(</span><span class="k">new</span><span class="w"> </span><span class="n">CounterActor</span><span class="p">.</span><span class="na">Increment</span><span class="p">()).</span><span class="na">execute</span><span class="p">());</span>
+<a id="__codelineno-12-18" name="__codelineno-12-18" href="#__codelineno-12-18"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-12-19" name="__codelineno-12-19" href="#__codelineno-12-19"></a><span class="p">}</span>
+</code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="nd">@Service</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="kd">class</span><span class="w"> </span><span class="nc">CounterService</span><span class="p">(</span><span class="kd">private</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">actorSystem</span><span class="p">:</span><span class="w"> </span><span class="n">SpringActorSystem</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="w">    </span><span class="c1">// Spawned on first use; later calls reuse the same handle.</span>
+<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">counter</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">AtomicReference</span><span class="o">&lt;</span><span class="n">CompletionStage</span><span class="o">&lt;</span><span class="n">SpringActorHandle</span><span class="o">&lt;</span><span class="n">CounterActor</span><span class="p">.</span><span class="na">Command</span><span class="o">&gt;&gt;&gt;</span><span class="p">()</span>
+<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>
+<a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">counter</span><span class="p">():</span><span class="w"> </span><span class="n">CompletionStage</span><span class="o">&lt;</span><span class="n">SpringActorHandle</span><span class="o">&lt;</span><span class="n">CounterActor</span><span class="p">.</span><span class="na">Command</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="o">=</span>
+<a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a><span class="w">        </span><span class="n">counter</span><span class="p">.</span><span class="na">updateAndGet</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">existing</span><span class="w"> </span><span class="o">-&gt;</span>
+<a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a><span class="w">            </span><span class="n">existing</span><span class="w"> </span><span class="o">?:</span><span class="w"> </span><span class="n">actorSystem</span><span class="p">.</span><span class="na">getOrSpawn</span><span class="p">(</span><span class="n">CounterActor</span><span class="o">::</span><span class="n">class</span><span class="p">.</span><span class="na">java</span><span class="p">,</span><span class="w"> </span><span class="s">"counter"</span><span class="p">)</span>
+<a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a><span class="w">        </span><span class="p">}</span>
+<a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a>
+<a id="__codelineno-13-12" name="__codelineno-13-12" href="#__codelineno-13-12"></a><span class="w">    </span><span class="kd">suspend</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">increment</span><span class="p">():</span><span class="w"> </span><span class="kt">Long</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">counter</span><span class="p">().</span><span class="na">await</span><span class="p">().</span><span class="na">awaitAsk</span><span class="p">(</span><span class="n">CounterActor</span><span class="p">.</span><span class="na">Increment</span><span class="p">())</span>
+<a id="__codelineno-13-13" name="__codelineno-13-13" href="#__codelineno-13-13"></a><span class="p">}</span>
+</code></pre></div>
+</div>
+</div>
+</div>
+<p>A kept handle points at one actor. If that actor stops, messages sent through the handle are lost (they
+go to dead letters). Keep handles only to actors that live as long as the service, or look the actor up
+again after it stops.</p>
+<h3 id="spawning-at-startup">Spawning at startup</h3>
+<p>A bean may spawn its actors in its constructor or in a <code>@PostConstruct</code> method, as the logging example's
+<code>OrderService</code> does. Spring may not have created the actor's bean yet at that point (beans are created in
+an order you don't control); the spawn then asks Spring for the actor bean first, so it gets created on the
+spot. Blocking with <code>spawnAndWait()</code> is fine there, since startup runs on Spring's own thread.</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="8:2"><input checked="checked" id="__tabbed_8_1" name="__tabbed_8" type="radio" /><input id="__tabbed_8_2" name="__tabbed_8" type="radio" /><div class="tabbed-labels"><label for="__tabbed_8_1">Java</label><label for="__tabbed_8_2">Kotlin</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="nd">@Service</span>
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">OrderService</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="n">SpringActorHandle</span><span class="o">&lt;</span><span class="n">OrderActor</span><span class="p">.</span><span class="na">Command</span><span class="o">&gt;</span><span class="w"> </span><span class="n">orders</span><span class="p">;</span>
+<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>
+<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="nf">OrderService</span><span class="p">(</span><span class="n">SpringActorSystem</span><span class="w"> </span><span class="n">actorSystem</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a><span class="w">        </span><span class="k">this</span><span class="p">.</span><span class="na">orders</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">actorSystem</span><span class="p">.</span><span class="na">actor</span><span class="p">(</span><span class="n">OrderActor</span><span class="p">.</span><span class="na">class</span><span class="p">).</span><span class="na">withId</span><span class="p">(</span><span class="s">"orders"</span><span class="p">).</span><span class="na">spawnAndWait</span><span class="p">();</span>
+<a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a><span class="p">}</span>
+</code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="nd">@Service</span>
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="kd">class</span><span class="w"> </span><span class="nc">OrderService</span><span class="p">(</span><span class="n">actorSystem</span><span class="p">:</span><span class="w"> </span><span class="n">SpringActorSystem</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">orders</span><span class="p">:</span><span class="w"> </span><span class="n">SpringActorHandle</span><span class="o">&lt;</span><span class="n">OrderActor</span><span class="p">.</span><span class="na">Command</span><span class="o">&gt;</span><span class="w"> </span><span class="o">=</span>
+<a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="w">        </span><span class="n">actorSystem</span><span class="p">.</span><span class="na">actor</span><span class="p">(</span><span class="n">OrderActor</span><span class="o">::</span><span class="n">class</span><span class="p">.</span><span class="na">java</span><span class="p">).</span><span class="na">withId</span><span class="p">(</span><span class="s">"orders"</span><span class="p">).</span><span class="na">spawnAndWait</span><span class="p">()</span>
+<a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a><span class="p">}</span>
+</code></pre></div>
+</div>
+</div>
+</div>
+<p>The actor class must be a bean of the same application context (for example annotated with
+<code>@Component</code>). If it isn't, the spawn fails with "No factory registered for class ...".</p>
+<h2 id="custom-actor-context">Custom actor context</h2>
+<p><code>SpringActor&lt;C&gt;</code> receives a plain <code>SpringActorContext</code>, which holds the actor id. To give an actor more
+than its id when it starts, define your own context class and implement <code>SpringActorWithContext&lt;C, CTX&gt;</code>
+instead:</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="9:2"><input checked="checked" id="__tabbed_9_1" name="__tabbed_9" type="radio" /><input id="__tabbed_9_2" name="__tabbed_9" type="radio" /><div class="tabbed-labels"><label for="__tabbed_9_1">Java</label><label for="__tabbed_9_2">Kotlin</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="nd">@Component</span>
+<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">ReportActor</span><span class="w"> </span><span class="kd">implements</span><span class="w"> </span><span class="n">SpringActorWithContext</span><span class="o">&lt;</span><span class="n">ReportActor</span><span class="p">.</span><span class="na">Command</span><span class="p">,</span><span class="w"> </span><span class="n">ReportActor</span><span class="p">.</span><span class="na">ReportContext</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>
+<a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kd">class</span> <span class="nc">ReportContext</span><span class="w"> </span><span class="kd">extends</span><span class="w"> </span><span class="n">SpringActorContext</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a><span class="w">        </span><span class="kd">private</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">reportId</span><span class="p">;</span>
+<a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a><span class="w">        </span><span class="kd">final</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">ownerEmail</span><span class="p">;</span>
+<a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a>
+<a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a><span class="w">        </span><span class="kd">public</span><span class="w"> </span><span class="nf">ReportContext</span><span class="p">(</span><span class="n">String</span><span class="w"> </span><span class="n">reportId</span><span class="p">,</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">ownerEmail</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-16-9" name="__codelineno-16-9" href="#__codelineno-16-9"></a><span class="w">            </span><span class="k">this</span><span class="p">.</span><span class="na">reportId</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">reportId</span><span class="p">;</span>
+<a id="__codelineno-16-10" name="__codelineno-16-10" href="#__codelineno-16-10"></a><span class="w">            </span><span class="k">this</span><span class="p">.</span><span class="na">ownerEmail</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ownerEmail</span><span class="p">;</span>
+<a id="__codelineno-16-11" name="__codelineno-16-11" href="#__codelineno-16-11"></a><span class="w">        </span><span class="p">}</span>
+<a id="__codelineno-16-12" name="__codelineno-16-12" href="#__codelineno-16-12"></a>
+<a id="__codelineno-16-13" name="__codelineno-16-13" href="#__codelineno-16-13"></a><span class="w">        </span><span class="nd">@Override</span>
+<a id="__codelineno-16-14" name="__codelineno-16-14" href="#__codelineno-16-14"></a><span class="w">        </span><span class="kd">public</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="nf">actorId</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-16-15" name="__codelineno-16-15" href="#__codelineno-16-15"></a><span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="n">reportId</span><span class="p">;</span>
+<a id="__codelineno-16-16" name="__codelineno-16-16" href="#__codelineno-16-16"></a><span class="w">        </span><span class="p">}</span>
+<a id="__codelineno-16-17" name="__codelineno-16-17" href="#__codelineno-16-17"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-16-18" name="__codelineno-16-18" href="#__codelineno-16-18"></a>
+<a id="__codelineno-16-19" name="__codelineno-16-19" href="#__codelineno-16-19"></a><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kd">interface</span> <span class="nc">Command</span><span class="w"> </span><span class="p">{}</span>
+<a id="__codelineno-16-20" name="__codelineno-16-20" href="#__codelineno-16-20"></a>
+<a id="__codelineno-16-21" name="__codelineno-16-21" href="#__codelineno-16-21"></a><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kd">record</span> <span class="nc">Build</span><span class="p">()</span><span class="w"> </span><span class="kd">implements</span><span class="w"> </span><span class="n">Command</span><span class="w"> </span><span class="p">{}</span>
+<a id="__codelineno-16-22" name="__codelineno-16-22" href="#__codelineno-16-22"></a>
+<a id="__codelineno-16-23" name="__codelineno-16-23" href="#__codelineno-16-23"></a><span class="w">    </span><span class="nd">@Override</span>
+<a id="__codelineno-16-24" name="__codelineno-16-24" href="#__codelineno-16-24"></a><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="n">SpringActorBehavior</span><span class="o">&lt;</span><span class="n">Command</span><span class="o">&gt;</span><span class="w"> </span><span class="nf">create</span><span class="p">(</span><span class="n">ReportContext</span><span class="w"> </span><span class="n">actorContext</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-16-25" name="__codelineno-16-25" href="#__codelineno-16-25"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">SpringActorBehavior</span><span class="p">.</span><span class="na">builder</span><span class="p">(</span><span class="n">Command</span><span class="p">.</span><span class="na">class</span><span class="p">,</span><span class="w"> </span><span class="n">actorContext</span><span class="p">)</span>
+<a id="__codelineno-16-26" name="__codelineno-16-26" href="#__codelineno-16-26"></a><span class="w">                </span><span class="p">.</span><span class="na">onMessage</span><span class="p">(</span><span class="n">Build</span><span class="p">.</span><span class="na">class</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span><span class="w"> </span><span class="n">msg</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-16-27" name="__codelineno-16-27" href="#__codelineno-16-27"></a><span class="w">                    </span><span class="n">ctx</span><span class="p">.</span><span class="na">getLog</span><span class="p">().</span><span class="na">info</span><span class="p">(</span><span class="s">"Building {} for {}"</span><span class="p">,</span><span class="w"> </span><span class="n">actorContext</span><span class="p">.</span><span class="na">actorId</span><span class="p">(),</span><span class="w"> </span><span class="n">actorContext</span><span class="p">.</span><span class="na">ownerEmail</span><span class="p">);</span>
+<a id="__codelineno-16-28" name="__codelineno-16-28" href="#__codelineno-16-28"></a><span class="w">                    </span><span class="k">return</span><span class="w"> </span><span class="n">SpringActorBehavior</span><span class="p">.</span><span class="na">same</span><span class="p">();</span>
+<a id="__codelineno-16-29" name="__codelineno-16-29" href="#__codelineno-16-29"></a><span class="w">                </span><span class="p">})</span>
+<a id="__codelineno-16-30" name="__codelineno-16-30" href="#__codelineno-16-30"></a><span class="w">                </span><span class="p">.</span><span class="na">build</span><span class="p">();</span>
+<a id="__codelineno-16-31" name="__codelineno-16-31" href="#__codelineno-16-31"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-16-32" name="__codelineno-16-32" href="#__codelineno-16-32"></a><span class="p">}</span>
+<a id="__codelineno-16-33" name="__codelineno-16-33" href="#__codelineno-16-33"></a>
+<a id="__codelineno-16-34" name="__codelineno-16-34" href="#__codelineno-16-34"></a><span class="c1">// Spawning it</span>
+<a id="__codelineno-16-35" name="__codelineno-16-35" href="#__codelineno-16-35"></a><span class="n">actorSystem</span><span class="p">.</span><span class="na">actor</span><span class="p">(</span><span class="n">ReportActor</span><span class="p">.</span><span class="na">class</span><span class="p">)</span>
+<a id="__codelineno-16-36" name="__codelineno-16-36" href="#__codelineno-16-36"></a><span class="w">        </span><span class="p">.</span><span class="na">withContext</span><span class="p">(</span><span class="k">new</span><span class="w"> </span><span class="n">ReportActor</span><span class="p">.</span><span class="na">ReportContext</span><span class="p">(</span><span class="s">"report-7"</span><span class="p">,</span><span class="w"> </span><span class="s">"kim@example.com"</span><span class="p">))</span>
+<a id="__codelineno-16-37" name="__codelineno-16-37" href="#__codelineno-16-37"></a><span class="w">        </span><span class="p">.</span><span class="na">getOrSpawn</span><span class="p">();</span>
+</code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="nd">@Component</span>
+<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="kd">class</span><span class="w"> </span><span class="nc">ReportActor</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">SpringActorWithContext</span><span class="o">&lt;</span><span class="n">ReportActor</span><span class="p">.</span><span class="na">Command</span><span class="p">,</span><span class="w"> </span><span class="n">ReportActor</span><span class="p">.</span><span class="na">ReportContext</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>
+<a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a><span class="w">    </span><span class="kd">class</span><span class="w"> </span><span class="nc">ReportContext</span><span class="p">(</span><span class="kd">private</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">reportId</span><span class="p">:</span><span class="w"> </span><span class="kt">String</span><span class="p">,</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">ownerEmail</span><span class="p">:</span><span class="w"> </span><span class="kt">String</span><span class="p">)</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">SpringActorContext</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a><span class="w">        </span><span class="kd">override</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">actorId</span><span class="p">():</span><span class="w"> </span><span class="kt">String</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">reportId</span>
+<a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-17-7" name="__codelineno-17-7" href="#__codelineno-17-7"></a>
+<a id="__codelineno-17-8" name="__codelineno-17-8" href="#__codelineno-17-8"></a><span class="w">    </span><span class="kd">sealed</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="nc">Command</span>
+<a id="__codelineno-17-9" name="__codelineno-17-9" href="#__codelineno-17-9"></a>
+<a id="__codelineno-17-10" name="__codelineno-17-10" href="#__codelineno-17-10"></a><span class="w">    </span><span class="kd">class</span><span class="w"> </span><span class="nc">Build</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">Command</span>
+<a id="__codelineno-17-11" name="__codelineno-17-11" href="#__codelineno-17-11"></a>
+<a id="__codelineno-17-12" name="__codelineno-17-12" href="#__codelineno-17-12"></a><span class="w">    </span><span class="kd">override</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">create</span><span class="p">(</span><span class="n">actorContext</span><span class="p">:</span><span class="w"> </span><span class="n">ReportContext</span><span class="p">):</span><span class="w"> </span><span class="n">SpringActorBehavior</span><span class="o">&lt;</span><span class="n">Command</span><span class="o">&gt;</span><span class="w"> </span><span class="o">=</span>
+<a id="__codelineno-17-13" name="__codelineno-17-13" href="#__codelineno-17-13"></a><span class="w">        </span><span class="n">behavior</span><span class="o">&lt;</span><span class="n">Command</span><span class="o">&gt;</span><span class="p">(</span><span class="n">actorContext</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-17-14" name="__codelineno-17-14" href="#__codelineno-17-14"></a><span class="w">            </span><span class="n">onMessage</span><span class="o">&lt;</span><span class="n">Build</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-17-15" name="__codelineno-17-15" href="#__codelineno-17-15"></a><span class="w">                </span><span class="n">log</span><span class="p">.</span><span class="na">info</span><span class="p">(</span><span class="s">"Building {} for {}"</span><span class="p">,</span><span class="w"> </span><span class="n">actorContext</span><span class="p">.</span><span class="na">actorId</span><span class="p">(),</span><span class="w"> </span><span class="n">actorContext</span><span class="p">.</span><span class="na">ownerEmail</span><span class="p">)</span>
+<a id="__codelineno-17-16" name="__codelineno-17-16" href="#__codelineno-17-16"></a><span class="w">                </span><span class="n">same</span><span class="p">()</span>
+<a id="__codelineno-17-17" name="__codelineno-17-17" href="#__codelineno-17-17"></a><span class="w">            </span><span class="p">}</span>
+<a id="__codelineno-17-18" name="__codelineno-17-18" href="#__codelineno-17-18"></a><span class="w">        </span><span class="p">}</span>
+<a id="__codelineno-17-19" name="__codelineno-17-19" href="#__codelineno-17-19"></a><span class="p">}</span>
+<a id="__codelineno-17-20" name="__codelineno-17-20" href="#__codelineno-17-20"></a>
+<a id="__codelineno-17-21" name="__codelineno-17-21" href="#__codelineno-17-21"></a><span class="c1">// Spawning it, in a suspend function</span>
+<a id="__codelineno-17-22" name="__codelineno-17-22" href="#__codelineno-17-22"></a><span class="n">actorSystem</span><span class="p">.</span><span class="na">actor</span><span class="o">&lt;</span><span class="n">ReportActor</span><span class="p">,</span><span class="w"> </span><span class="n">_</span><span class="o">&gt;</span><span class="p">()</span>
+<a id="__codelineno-17-23" name="__codelineno-17-23" href="#__codelineno-17-23"></a><span class="w">    </span><span class="p">.</span><span class="na">withContext</span><span class="p">(</span><span class="n">ReportActor</span><span class="p">.</span><span class="na">ReportContext</span><span class="p">(</span><span class="s">"report-7"</span><span class="p">,</span><span class="w"> </span><span class="s">"kim@example.com"</span><span class="p">))</span>
+<a id="__codelineno-17-24" name="__codelineno-17-24" href="#__codelineno-17-24"></a><span class="w">    </span><span class="p">.</span><span class="na">awaitGetOrSpawn</span><span class="p">()</span>
+</code></pre></div>
+</div>
+</div>
+</div>
+<p>Always spawn such an actor through the builder with <code>withContext(...)</code>. A spawn by id alone
+(<code>actorSystem.getOrSpawn(ReportActor.class, id)</code>, or <code>withId(...)</code> without <code>withContext</code>) can't build a
+<code>ReportContext</code>, so its stage fails with an <code>IllegalArgumentException</code> that names the context type and
+says to use <code>withContext(...)</code>. <code>find</code> and <code>exists</code> work as usual: they only need the id.</p>
+<h2 id="stopping-actors">Stopping actors</h2>
+<p>An actor runs until it is stopped. There are three ways to stop one:</p>
+<table>
+<thead>
+<tr>
+<th>From</th>
+<th>How</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Outside the actor</td>
+<td><code>handle.stop()</code></td>
+<td>The stop request goes into the mailbox, so messages sent before it are handled first.</td>
+</tr>
+<tr>
+<td>Inside the actor</td>
+<td>return <code>SpringActorBehavior.stopped()</code> from a handler</td>
+<td>Stops after the current message.</td>
+</tr>
+<tr>
+<td>A parent</td>
+<td><code>ctx.stop(childRef)</code> in the parent's handler</td>
+<td>Only for the parent's own children.</td>
+</tr>
+</tbody>
+</table>
+<p>When an actor stops, its <code>PostStop</code> signal handler runs (see <a href="../behaviors/#lifecycle-signals">Behaviors</a>),
+its children stop, and messages still in its mailbox are dropped. Stopping is final: to use the id again,
+spawn a new actor. Stopping takes a moment, so a spawn with the same id right after <code>stop()</code> can still
+find the name taken; <code>getOrSpawn</code> after the old actor is gone, or <a href="../behaviors/#watching-other-actors">watch</a>
+it and spawn on <code>ActorTerminated</code>.</p>
+<p>An idle actor is not stopped for you. If you create one actor per user or per order, stop it when its
+work is done (for example with a <a href="../behaviors/#timers">timer</a> that fires after some idle time), or use
+<a href="../../cluster/sharded-actors/">sharded actors</a>, which can passivate idle entities.</p>
+<h2 id="child-actors">Child actors</h2>
+<p>An actor can spawn its own actors, called children. Use children to split work under one owner: a
+<code>ParentSupervisor</code> with a worker per task, a chat room with an actor per connection. Children are tied
+to their parent:</p>
+<ul>
+<li>A child stops when its parent stops.</li>
+<li>The parent decides how each child is supervised (see <a href="../supervision/#supervising-children">Supervision</a>).</li>
+<li>A child's id only has to be unique among its parent's children.</li>
+</ul>
+<h3 id="enable-child-operations-on-the-parent">Enable child operations on the parent</h3>
+<p>Spawning, finding and checking children works through messages that the parent handles for you. They
+are turned on when the parent's command type extends <code>FrameworkCommand</code>:</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="10:2"><input checked="checked" id="__tabbed_10_1" name="__tabbed_10" type="radio" /><input id="__tabbed_10_2" name="__tabbed_10" type="radio" /><div class="tabbed-labels"><label for="__tabbed_10_1">Java</label><label for="__tabbed_10_2">Kotlin</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="kd">public</span><span class="w"> </span><span class="kd">interface</span> <span class="nc">Command</span><span class="w"> </span><span class="kd">extends</span><span class="w"> </span><span class="n">FrameworkCommand</span><span class="w"> </span><span class="p">{}</span>
+</code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="kd">sealed</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="nc">Command</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">FrameworkCommand</span>
+</code></pre></div>
+</div>
+</div>
+</div>
+<p>Without it, the parent ignores these requests, and every child operation fails with a timeout.</p>
+<h3 id="spawning-children-from-inside-the-parent">Spawning children from inside the parent</h3>
+<p>Inside a handler, <code>ctx.getSelf()</code> is a handle to the parent. Call <code>child(ChildClass)</code> on it to get a
+child builder. The spawn is a message to the parent itself, and the parent handles it after the current
+message. So <strong>never wait for it inside the handler</strong> (<code>spawnAndWait()</code> or <code>join()</code>): the parent would wait
+for a message it can't handle until it finishes waiting, and the spawn times out. Use <code>pipeToSelf</code> to
+get the result back as a message instead:</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="11:2"><input checked="checked" id="__tabbed_11_1" name="__tabbed_11" type="radio" /><input id="__tabbed_11_2" name="__tabbed_11" type="radio" /><div class="tabbed-labels"><label for="__tabbed_11_1">Java</label><label for="__tabbed_11_2">Kotlin</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="nd">@Component</span>
+<a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a><span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">DispatcherActor</span><span class="w"> </span><span class="kd">implements</span><span class="w"> </span><span class="n">SpringActor</span><span class="o">&lt;</span><span class="n">DispatcherActor</span><span class="p">.</span><span class="na">Command</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a>
+<a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kd">interface</span> <span class="nc">Command</span><span class="w"> </span><span class="kd">extends</span><span class="w"> </span><span class="n">FrameworkCommand</span><span class="w"> </span><span class="p">{}</span>
+<a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a>
+<a id="__codelineno-20-6" name="__codelineno-20-6" href="#__codelineno-20-6"></a><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kd">record</span> <span class="nc">Assign</span><span class="p">(</span><span class="n">String</span><span class="w"> </span><span class="n">workerId</span><span class="p">,</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">task</span><span class="p">)</span><span class="w"> </span><span class="kd">implements</span><span class="w"> </span><span class="n">Command</span><span class="w"> </span><span class="p">{}</span>
+<a id="__codelineno-20-7" name="__codelineno-20-7" href="#__codelineno-20-7"></a>
+<a id="__codelineno-20-8" name="__codelineno-20-8" href="#__codelineno-20-8"></a><span class="w">    </span><span class="c1">// The result of a child spawn, delivered back to this actor as a message.</span>
+<a id="__codelineno-20-9" name="__codelineno-20-9" href="#__codelineno-20-9"></a><span class="w">    </span><span class="kd">record</span> <span class="nc">WorkerReady</span><span class="p">(</span><span class="n">Assign</span><span class="w"> </span><span class="n">assign</span><span class="p">,</span><span class="w"> </span><span class="n">SpringActorHandle</span><span class="o">&lt;</span><span class="n">WorkerActor</span><span class="p">.</span><span class="na">Command</span><span class="o">&gt;</span><span class="w"> </span><span class="n">worker</span><span class="p">,</span><span class="w"> </span><span class="n">Throwable</span><span class="w"> </span><span class="n">error</span><span class="p">)</span>
+<a id="__codelineno-20-10" name="__codelineno-20-10" href="#__codelineno-20-10"></a><span class="w">            </span><span class="kd">implements</span><span class="w"> </span><span class="n">Command</span><span class="w"> </span><span class="p">{}</span>
+<a id="__codelineno-20-11" name="__codelineno-20-11" href="#__codelineno-20-11"></a>
+<a id="__codelineno-20-12" name="__codelineno-20-12" href="#__codelineno-20-12"></a><span class="w">    </span><span class="nd">@Override</span>
+<a id="__codelineno-20-13" name="__codelineno-20-13" href="#__codelineno-20-13"></a><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="n">SpringActorBehavior</span><span class="o">&lt;</span><span class="n">Command</span><span class="o">&gt;</span><span class="w"> </span><span class="nf">create</span><span class="p">(</span><span class="n">SpringActorContext</span><span class="w"> </span><span class="n">actorContext</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-20-14" name="__codelineno-20-14" href="#__codelineno-20-14"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">SpringActorBehavior</span><span class="p">.</span><span class="na">builder</span><span class="p">(</span><span class="n">Command</span><span class="p">.</span><span class="na">class</span><span class="p">,</span><span class="w"> </span><span class="n">actorContext</span><span class="p">)</span>
+<a id="__codelineno-20-15" name="__codelineno-20-15" href="#__codelineno-20-15"></a><span class="w">                </span><span class="p">.</span><span class="na">onMessage</span><span class="p">(</span><span class="n">Assign</span><span class="p">.</span><span class="na">class</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span><span class="w"> </span><span class="n">msg</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-20-16" name="__codelineno-20-16" href="#__codelineno-20-16"></a><span class="w">                    </span><span class="n">ctx</span><span class="p">.</span><span class="na">pipeToSelf</span><span class="p">(</span>
+<a id="__codelineno-20-17" name="__codelineno-20-17" href="#__codelineno-20-17"></a><span class="w">                            </span><span class="n">ctx</span><span class="p">.</span><span class="na">getSelf</span><span class="p">()</span>
+<a id="__codelineno-20-18" name="__codelineno-20-18" href="#__codelineno-20-18"></a><span class="w">                                    </span><span class="p">.</span><span class="na">child</span><span class="p">(</span><span class="n">WorkerActor</span><span class="p">.</span><span class="na">class</span><span class="p">)</span>
+<a id="__codelineno-20-19" name="__codelineno-20-19" href="#__codelineno-20-19"></a><span class="w">                                    </span><span class="p">.</span><span class="na">withId</span><span class="p">(</span><span class="n">msg</span><span class="p">.</span><span class="na">workerId</span><span class="p">())</span>
+<a id="__codelineno-20-20" name="__codelineno-20-20" href="#__codelineno-20-20"></a><span class="w">                                    </span><span class="p">.</span><span class="na">withSupervisionStrategy</span><span class="p">(</span><span class="n">SupervisionStrategy</span><span class="p">.</span><span class="na">restart</span><span class="p">())</span>
+<a id="__codelineno-20-21" name="__codelineno-20-21" href="#__codelineno-20-21"></a><span class="w">                                    </span><span class="p">.</span><span class="na">getOrSpawn</span><span class="p">(),</span>
+<a id="__codelineno-20-22" name="__codelineno-20-22" href="#__codelineno-20-22"></a><span class="w">                            </span><span class="p">(</span><span class="n">worker</span><span class="p">,</span><span class="w"> </span><span class="n">error</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">WorkerReady</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span><span class="w"> </span><span class="n">worker</span><span class="p">,</span><span class="w"> </span><span class="n">error</span><span class="p">));</span>
+<a id="__codelineno-20-23" name="__codelineno-20-23" href="#__codelineno-20-23"></a><span class="w">                    </span><span class="k">return</span><span class="w"> </span><span class="n">SpringActorBehavior</span><span class="p">.</span><span class="na">same</span><span class="p">();</span>
+<a id="__codelineno-20-24" name="__codelineno-20-24" href="#__codelineno-20-24"></a><span class="w">                </span><span class="p">})</span>
+<a id="__codelineno-20-25" name="__codelineno-20-25" href="#__codelineno-20-25"></a><span class="w">                </span><span class="p">.</span><span class="na">onMessage</span><span class="p">(</span><span class="n">WorkerReady</span><span class="p">.</span><span class="na">class</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span><span class="w"> </span><span class="n">msg</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-20-26" name="__codelineno-20-26" href="#__codelineno-20-26"></a><span class="w">                    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">msg</span><span class="p">.</span><span class="na">error</span><span class="p">()</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-20-27" name="__codelineno-20-27" href="#__codelineno-20-27"></a><span class="w">                        </span><span class="n">ctx</span><span class="p">.</span><span class="na">getLog</span><span class="p">().</span><span class="na">error</span><span class="p">(</span><span class="s">"Could not start worker {}"</span><span class="p">,</span><span class="w"> </span><span class="n">msg</span><span class="p">.</span><span class="na">assign</span><span class="p">().</span><span class="na">workerId</span><span class="p">(),</span><span class="w"> </span><span class="n">msg</span><span class="p">.</span><span class="na">error</span><span class="p">());</span>
+<a id="__codelineno-20-28" name="__codelineno-20-28" href="#__codelineno-20-28"></a><span class="w">                    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-20-29" name="__codelineno-20-29" href="#__codelineno-20-29"></a><span class="w">                        </span><span class="n">msg</span><span class="p">.</span><span class="na">worker</span><span class="p">().</span><span class="na">tell</span><span class="p">(</span><span class="k">new</span><span class="w"> </span><span class="n">WorkerActor</span><span class="p">.</span><span class="na">DoTask</span><span class="p">(</span><span class="n">msg</span><span class="p">.</span><span class="na">assign</span><span class="p">().</span><span class="na">task</span><span class="p">()));</span>
+<a id="__codelineno-20-30" name="__codelineno-20-30" href="#__codelineno-20-30"></a><span class="w">                    </span><span class="p">}</span>
+<a id="__codelineno-20-31" name="__codelineno-20-31" href="#__codelineno-20-31"></a><span class="w">                    </span><span class="k">return</span><span class="w"> </span><span class="n">SpringActorBehavior</span><span class="p">.</span><span class="na">same</span><span class="p">();</span>
+<a id="__codelineno-20-32" name="__codelineno-20-32" href="#__codelineno-20-32"></a><span class="w">                </span><span class="p">})</span>
+<a id="__codelineno-20-33" name="__codelineno-20-33" href="#__codelineno-20-33"></a><span class="w">                </span><span class="p">.</span><span class="na">build</span><span class="p">();</span>
+<a id="__codelineno-20-34" name="__codelineno-20-34" href="#__codelineno-20-34"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-20-35" name="__codelineno-20-35" href="#__codelineno-20-35"></a><span class="p">}</span>
+</code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="nd">@Component</span>
+<a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a><span class="kd">class</span><span class="w"> </span><span class="nc">DispatcherActor</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">SpringActor</span><span class="o">&lt;</span><span class="n">DispatcherActor</span><span class="p">.</span><span class="na">Command</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a>
+<a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a><span class="w">    </span><span class="kd">sealed</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="nc">Command</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">FrameworkCommand</span>
+<a id="__codelineno-21-5" name="__codelineno-21-5" href="#__codelineno-21-5"></a>
+<a id="__codelineno-21-6" name="__codelineno-21-6" href="#__codelineno-21-6"></a><span class="w">    </span><span class="kd">data</span><span class="w"> </span><span class="kd">class</span><span class="w"> </span><span class="nc">Assign</span><span class="p">(</span><span class="kd">val</span><span class="w"> </span><span class="nv">workerId</span><span class="p">:</span><span class="w"> </span><span class="kt">String</span><span class="p">,</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">task</span><span class="p">:</span><span class="w"> </span><span class="kt">String</span><span class="p">)</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">Command</span>
+<a id="__codelineno-21-7" name="__codelineno-21-7" href="#__codelineno-21-7"></a>
+<a id="__codelineno-21-8" name="__codelineno-21-8" href="#__codelineno-21-8"></a><span class="w">    </span><span class="c1">// The result of a child spawn, delivered back to this actor as a message.</span>
+<a id="__codelineno-21-9" name="__codelineno-21-9" href="#__codelineno-21-9"></a><span class="w">    </span><span class="kd">data</span><span class="w"> </span><span class="kd">class</span><span class="w"> </span><span class="nc">WorkerReady</span><span class="p">(</span>
+<a id="__codelineno-21-10" name="__codelineno-21-10" href="#__codelineno-21-10"></a><span class="w">        </span><span class="kd">val</span><span class="w"> </span><span class="nv">assign</span><span class="p">:</span><span class="w"> </span><span class="n">Assign</span><span class="p">,</span>
+<a id="__codelineno-21-11" name="__codelineno-21-11" href="#__codelineno-21-11"></a><span class="w">        </span><span class="kd">val</span><span class="w"> </span><span class="nv">worker</span><span class="p">:</span><span class="w"> </span><span class="n">SpringActorHandle</span><span class="o">&lt;</span><span class="n">WorkerActor</span><span class="p">.</span><span class="na">Command</span><span class="o">&gt;?</span><span class="p">,</span>
+<a id="__codelineno-21-12" name="__codelineno-21-12" href="#__codelineno-21-12"></a><span class="w">        </span><span class="kd">val</span><span class="w"> </span><span class="nv">error</span><span class="p">:</span><span class="w"> </span><span class="n">Throwable?</span><span class="p">,</span>
+<a id="__codelineno-21-13" name="__codelineno-21-13" href="#__codelineno-21-13"></a><span class="w">    </span><span class="p">)</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">Command</span>
+<a id="__codelineno-21-14" name="__codelineno-21-14" href="#__codelineno-21-14"></a>
+<a id="__codelineno-21-15" name="__codelineno-21-15" href="#__codelineno-21-15"></a><span class="w">    </span><span class="kd">override</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">create</span><span class="p">(</span><span class="n">actorContext</span><span class="p">:</span><span class="w"> </span><span class="n">SpringActorContext</span><span class="p">):</span><span class="w"> </span><span class="n">SpringActorBehavior</span><span class="o">&lt;</span><span class="n">Command</span><span class="o">&gt;</span><span class="w"> </span><span class="o">=</span>
+<a id="__codelineno-21-16" name="__codelineno-21-16" href="#__codelineno-21-16"></a><span class="w">        </span><span class="n">behavior</span><span class="o">&lt;</span><span class="n">Command</span><span class="o">&gt;</span><span class="p">(</span><span class="n">actorContext</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-21-17" name="__codelineno-21-17" href="#__codelineno-21-17"></a><span class="w">            </span><span class="n">onMessage</span><span class="o">&lt;</span><span class="n">Assign</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">msg</span><span class="w"> </span><span class="o">-&gt;</span>
+<a id="__codelineno-21-18" name="__codelineno-21-18" href="#__codelineno-21-18"></a><span class="w">                </span><span class="n">pipeToSelf</span><span class="p">(</span>
+<a id="__codelineno-21-19" name="__codelineno-21-19" href="#__codelineno-21-19"></a><span class="w">                    </span><span class="n">self</span><span class="p">.</span><span class="na">child</span><span class="o">&lt;</span><span class="n">WorkerActor</span><span class="p">,</span><span class="w"> </span><span class="n">_</span><span class="o">&gt;</span><span class="p">()</span>
+<a id="__codelineno-21-20" name="__codelineno-21-20" href="#__codelineno-21-20"></a><span class="w">                        </span><span class="p">.</span><span class="na">withId</span><span class="p">(</span><span class="n">msg</span><span class="p">.</span><span class="na">workerId</span><span class="p">)</span>
+<a id="__codelineno-21-21" name="__codelineno-21-21" href="#__codelineno-21-21"></a><span class="w">                        </span><span class="p">.</span><span class="na">withSupervisionStrategy</span><span class="p">(</span><span class="n">SupervisionStrategy</span><span class="p">.</span><span class="na">restart</span><span class="p">())</span>
+<a id="__codelineno-21-22" name="__codelineno-21-22" href="#__codelineno-21-22"></a><span class="w">                        </span><span class="p">.</span><span class="na">getOrSpawn</span><span class="p">(),</span>
+<a id="__codelineno-21-23" name="__codelineno-21-23" href="#__codelineno-21-23"></a><span class="w">                </span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">worker</span><span class="p">,</span><span class="w"> </span><span class="n">error</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">WorkerReady</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span><span class="w"> </span><span class="n">worker</span><span class="p">,</span><span class="w"> </span><span class="n">error</span><span class="p">)</span><span class="w"> </span><span class="p">}</span>
+<a id="__codelineno-21-24" name="__codelineno-21-24" href="#__codelineno-21-24"></a><span class="w">                </span><span class="n">same</span><span class="p">()</span>
+<a id="__codelineno-21-25" name="__codelineno-21-25" href="#__codelineno-21-25"></a><span class="w">            </span><span class="p">}</span>
+<a id="__codelineno-21-26" name="__codelineno-21-26" href="#__codelineno-21-26"></a><span class="w">            </span><span class="n">onMessage</span><span class="o">&lt;</span><span class="n">WorkerReady</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">msg</span><span class="w"> </span><span class="o">-&gt;</span>
+<a id="__codelineno-21-27" name="__codelineno-21-27" href="#__codelineno-21-27"></a><span class="w">                </span><span class="kd">val</span><span class="w"> </span><span class="nv">worker</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">msg</span><span class="p">.</span><span class="na">worker</span>
+<a id="__codelineno-21-28" name="__codelineno-21-28" href="#__codelineno-21-28"></a><span class="w">                </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">msg</span><span class="p">.</span><span class="na">error</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">null</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">worker</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-21-29" name="__codelineno-21-29" href="#__codelineno-21-29"></a><span class="w">                    </span><span class="n">log</span><span class="p">.</span><span class="na">error</span><span class="p">(</span><span class="s">"Could not start worker {}"</span><span class="p">,</span><span class="w"> </span><span class="n">msg</span><span class="p">.</span><span class="na">assign</span><span class="p">.</span><span class="na">workerId</span><span class="p">,</span><span class="w"> </span><span class="n">msg</span><span class="p">.</span><span class="na">error</span><span class="p">)</span>
+<a id="__codelineno-21-30" name="__codelineno-21-30" href="#__codelineno-21-30"></a><span class="w">                </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-21-31" name="__codelineno-21-31" href="#__codelineno-21-31"></a><span class="w">                    </span><span class="n">worker</span><span class="p">.</span><span class="na">tell</span><span class="p">(</span><span class="n">WorkerActor</span><span class="p">.</span><span class="na">DoTask</span><span class="p">(</span><span class="n">msg</span><span class="p">.</span><span class="na">assign</span><span class="p">.</span><span class="na">task</span><span class="p">))</span>
+<a id="__codelineno-21-32" name="__codelineno-21-32" href="#__codelineno-21-32"></a><span class="w">                </span><span class="p">}</span>
+<a id="__codelineno-21-33" name="__codelineno-21-33" href="#__codelineno-21-33"></a><span class="w">                </span><span class="n">same</span><span class="p">()</span>
+<a id="__codelineno-21-34" name="__codelineno-21-34" href="#__codelineno-21-34"></a><span class="w">            </span><span class="p">}</span>
+<a id="__codelineno-21-35" name="__codelineno-21-35" href="#__codelineno-21-35"></a><span class="w">        </span><span class="p">}</span>
+<a id="__codelineno-21-36" name="__codelineno-21-36" href="#__codelineno-21-36"></a><span class="p">}</span>
+</code></pre></div>
+</div>
+</div>
+</div>
+<p><code>WorkerActor</code> is an ordinary actor (<code>@Component</code>, <code>SpringActor&lt;WorkerActor.Command&gt;</code>). Children get
+Spring dependency injection like any other actor.</p>
+<p>You can also start children when the parent starts, in the <a href="../behaviors/#state-with-withstate"><code>withState</code></a>
+factory: call <code>spawn()</code> there and don't wait for the result.</p>
+<h3 id="child-operations">Child operations</h3>
+<p>The child builder (<code>handle.child(ChildClass)</code>) has the same shape as the spawn builder:</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>withId(id)</code> or <code>withContext(ctx)</code></td>
+<td>Required</td>
+</tr>
+<tr>
+<td><code>withSupervisionStrategy(strategy)</code></td>
+<td>How the parent handles the child's failures. Default: stop.</td>
+</tr>
+<tr>
+<td><code>withTimeout(duration)</code></td>
+<td>Default 3 s</td>
+</tr>
+<tr>
+<td><code>withDispatcher(DispatcherConfig)</code></td>
+<td><code>DispatcherConfig.blocking()</code>, <code>.sameAsParent()</code>, <code>.fromConfig(name)</code>, <code>.defaultDispatcher()</code></td>
+</tr>
+<tr>
+<td><code>withMailbox(MailboxConfig)</code>, <code>withTags(TagsConfig)</code>, <code>withMdc(MdcConfig)</code></td>
+<td>As for top-level actors</td>
+</tr>
+<tr>
+<td><code>spawn()</code></td>
+<td>Spawns the child. If a child with that class and id already runs, returns it and logs a deprecation warning: use <code>getOrSpawn()</code> for that. In 2.0 it fails, like a top-level <code>spawn()</code>.</td>
+</tr>
+<tr>
+<td><code>getOrSpawn()</code></td>
+<td>Returns the running child, or spawns it (in one step, so concurrent calls get the same child)</td>
+</tr>
+<tr>
+<td><code>spawnAndWait()</code></td>
+<td>Blocks until the child runs. Never call it inside the parent.</td>
+</tr>
+<tr>
+<td><code>get()</code></td>
+<td>Deprecated: use <code>handle.child(ChildClass, id).get()</code>, which returns an <code>Optional</code></td>
+</tr>
+<tr>
+<td><code>exists()</code></td>
+<td>Whether the child runs</td>
+</tr>
+</tbody>
+</table>
+<p>For lookups only, <code>handle.child(ChildClass, id)</code> returns a child reference whose <code>get()</code> completes with an
+<code>Optional</code>:</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="12:2"><input checked="checked" id="__tabbed_12_1" name="__tabbed_12" type="radio" /><input id="__tabbed_12_2" name="__tabbed_12" type="radio" /><div class="tabbed-labels"><label for="__tabbed_12_1">Java</label><label for="__tabbed_12_2">Kotlin</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="n">CompletionStage</span><span class="o">&lt;</span><span class="n">Optional</span><span class="o">&lt;</span><span class="n">SpringActorHandle</span><span class="o">&lt;</span><span class="n">WorkerActor</span><span class="p">.</span><span class="na">Command</span><span class="o">&gt;&gt;&gt;</span><span class="w"> </span><span class="n">worker</span><span class="w"> </span><span class="o">=</span>
+<a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a><span class="w">        </span><span class="n">dispatcher</span><span class="p">.</span><span class="na">child</span><span class="p">(</span><span class="n">WorkerActor</span><span class="p">.</span><span class="na">class</span><span class="p">,</span><span class="w"> </span><span class="s">"worker-1"</span><span class="p">).</span><span class="na">get</span><span class="p">();</span>
+<a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a><span class="n">CompletionStage</span><span class="o">&lt;</span><span class="n">Boolean</span><span class="o">&gt;</span><span class="w"> </span><span class="n">running</span><span class="w"> </span><span class="o">=</span>
+<a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a><span class="w">        </span><span class="n">dispatcher</span><span class="p">.</span><span class="na">child</span><span class="p">(</span><span class="n">WorkerActor</span><span class="p">.</span><span class="na">class</span><span class="p">,</span><span class="w"> </span><span class="s">"worker-1"</span><span class="p">).</span><span class="na">withTimeout</span><span class="p">(</span><span class="n">Duration</span><span class="p">.</span><span class="na">ofSeconds</span><span class="p">(</span><span class="mi">1</span><span class="p">)).</span><span class="na">exists</span><span class="p">();</span>
+</code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="c1">// In a suspend function</span>
+<a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a><span class="kd">val</span><span class="w"> </span><span class="nv">worker</span><span class="p">:</span><span class="w"> </span><span class="n">SpringActorHandle</span><span class="o">&lt;</span><span class="n">WorkerActor</span><span class="p">.</span><span class="na">Command</span><span class="o">&gt;?</span><span class="w"> </span><span class="o">=</span>
+<a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a><span class="w">    </span><span class="n">dispatcher</span><span class="p">.</span><span class="na">child</span><span class="o">&lt;</span><span class="n">WorkerActor</span><span class="p">,</span><span class="w"> </span><span class="n">_</span><span class="o">&gt;</span><span class="p">(</span><span class="s">"worker-1"</span><span class="p">).</span><span class="na">awaitGet</span><span class="p">()</span><span class="w">   </span><span class="c1">// null when it doesn't run</span>
+<a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a><span class="kd">val</span><span class="w"> </span><span class="nv">running</span><span class="p">:</span><span class="w"> </span><span class="kt">Boolean</span><span class="w"> </span><span class="o">=</span>
+<a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a><span class="w">    </span><span class="n">dispatcher</span><span class="p">.</span><span class="na">child</span><span class="o">&lt;</span><span class="n">WorkerActor</span><span class="p">,</span><span class="w"> </span><span class="n">_</span><span class="o">&gt;</span><span class="p">(</span><span class="s">"worker-1"</span><span class="p">).</span><span class="na">withTimeout</span><span class="p">(</span><span class="m">1.</span><span class="n">seconds</span><span class="p">).</span><span class="na">awaitExists</span><span class="p">()</span>
+</code></pre></div>
+</div>
+</div>
+</div>
+<p>These calls work from outside the parent too: any code with the parent's handle (here <code>dispatcher</code>) can
+spawn, find or check its children.</p>
+<p>Differences from top-level actors:</p>
+<ul>
+<li>One rule for a taken id: <code>spawn()</code> is for a new actor and <code>getOrSpawn()</code> reuses a running one. A
+  top-level <code>spawn()</code> fails when the id is taken. A child <code>spawn()</code> still returns the running child, with a
+  deprecation warning, until 2.0.</li>
+<li>A child can't be a cluster singleton.</li>
+<li>Dispatchers are set with <code>withDispatcher(DispatcherConfig...)</code> instead of the <code>with...Dispatcher()</code>
+  shortcuts.</li>
+</ul>
+<p>Inside the parent's handlers, <code>ctx.getChildren()</code> lists the running children and <code>ctx.stop(child)</code> stops
+one (see <a href="../behaviors/#the-behavior-context">Behaviors</a>).</p>
+<h2 id="pitfalls">Pitfalls</h2>
+<ul>
+<li><strong>State in bean fields.</strong> All actors of a class share the bean. Keep per-actor state in <code>withState</code>. See
+  <a href="#what-not-to-do-in-an-actor-bean">What not to do in an actor bean</a>.</li>
+<li><strong>Blocking inside an actor.</strong> Waiting on a future, <code>spawnAndWait()</code>, <code>Thread.sleep</code> or blocking I/O on
+  the default dispatcher holds a shared thread. Use <code>pipeToSelf</code>, or the blocking dispatcher for blocking I/O.</li>
+<li><strong>Child operations time out.</strong> The parent's command type doesn't extend <code>FrameworkCommand</code>, or the
+  parent is waiting inside a handler.</li>
+<li><strong>Second <code>spawn()</code> with the same id fails.</strong> Use <code>getOrSpawn()</code>, or check <code>exists</code> first.</li>
+<li><strong>Actors that are never stopped.</strong> One actor per request or per user, never stopped, grows memory
+  without bound.</li>
+</ul>
+<h2 id="related">Related</h2>
+<ul>
+<li><a href="../messaging/">Messaging</a>: tell, ask, replies and message adapters</li>
+<li><a href="../supervision/">Supervision</a>: what happens when a handler throws</li>
+<li><a href="../behaviors/">Behaviors</a>: state, timers, watching, lifecycle signals</li>
+<li><a href="../dispatchers/">Dispatchers</a>: thread pools and mailboxes</li>
+<li><a href="../../cluster/sharded-actors/">Sharded actors</a>: one actor per id across a cluster</li>
+<li><a href="../../kotlin/">Kotlin</a>: the <code>actor-kotlin</code> helpers used in the Kotlin tabs</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.tabs.link"], "search": "../../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
+      
+    
+  </body>
+</html>
