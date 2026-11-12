@@ -8,6 +8,12 @@
   to Pekko as raw configuration. The configuration reference now lists them, and also `spring.actor.enabled` and the
   `spring.actor.delivery.*` keys, which it was missing.
 
+### Dependencies
+
+- **actor-metrics: Micrometer 1.17.2 and SLF4J 2.0.20 (#252).** `actor-metrics` depends on `micrometer-core`
+  1.17.2 (was 1.11.0) and `slf4j-api` 2.0.20 (was 2.0.17), and its agent JAR bundles these versions. In a
+  Spring Boot application, Boot's dependency management still picks the versions.
+
 ## 1.1.0 (2026-11-12)
 
 ### Breaking changes
