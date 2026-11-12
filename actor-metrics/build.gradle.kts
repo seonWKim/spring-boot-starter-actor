@@ -42,6 +42,8 @@ dependencies {
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:6.1.3")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:6.1.3")
+    // Gradle 9 no longer puts a JUnit Platform launcher on the test classpath; this module has no Boot BOM to manage it.
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher:6.1.3")
 
     // Micrometer for testing
     testImplementation("io.micrometer:micrometer-core:1.17.2")
