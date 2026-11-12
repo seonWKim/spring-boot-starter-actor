@@ -156,14 +156,13 @@ class ActorPropertiesTest {
                         "spring.actor.generation.color=blue",
                         "spring.actor.generation.store=custom",
                         "spring.actor.generation.refresh=2s")
-                .run(context -> assertThat(pekkoConfig(context).hasPath("generation"))
-                        .isFalse());
+                .run(context ->
+                        assertThat(pekkoConfig(context).hasPath("generation")).isFalse());
     }
 
     @Test
     void everyTypedSettingIsATypedRoot() {
-        List<String> roots = Arrays.stream(
-                        BeanUtils.getPropertyDescriptors(ActorProperties.class))
+        List<String> roots = Arrays.stream(BeanUtils.getPropertyDescriptors(ActorProperties.class))
                 .map(PropertyDescriptor::getName)
                 .filter(name -> !name.equals("class"))
                 .map(name -> name.replaceAll("([A-Z])", "-$1").toLowerCase(Locale.ROOT))
