@@ -21,10 +21,14 @@ class HelloActor : SpringActor<HelloActor.Command> {
     sealed interface Command
 
     /** Asks for a greeting. */
-    class SayHello : AskCommand<String>(), Command
+    class SayHello :
+        AskCommand<String>(),
+        Command
 
     /** Replies, then fails, so the actor restarts (see the PreRestart handler). */
-    class TriggerFailure : AskCommand<String>(), Command
+    class TriggerFailure :
+        AskCommand<String>(),
+        Command
 
     override fun create(actorContext: SpringActorContext): SpringActorBehavior<Command> =
         actorBehavior<Command>(actorContext)

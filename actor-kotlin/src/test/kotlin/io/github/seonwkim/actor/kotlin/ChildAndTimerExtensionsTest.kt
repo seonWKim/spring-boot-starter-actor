@@ -37,7 +37,9 @@ class TimerActor : SpringActor<TimerActor.Command> {
 
     data object Tick : Command
 
-    class Get : AskCommand<Ticks>(), Command
+    class Get :
+        AskCommand<Ticks>(),
+        Command
 
     data class Ticks(
         val once: Int,
@@ -85,7 +87,11 @@ class ChildAndTimerExtensionsTest {
             assertThat(parent.child<EchoActor, _>("child").awaitGet()).isNull()
             assertThat(parent.child<EchoActor, _>("child").awaitExists()).isFalse()
 
-            parent.child<EchoActor, _>().withId("child").withTimeout(3.seconds).awaitSpawn()
+            parent
+                .child<EchoActor, _>()
+                .withId("child")
+                .withTimeout(3.seconds)
+                .awaitSpawn()
 
             val viaReference = parent.child<EchoActor, _>("child").withTimeout(3.seconds).awaitGet()
             assertThat(viaReference?.awaitAsk(EchoActor.Echo("reference"))).isEqualTo("reference")

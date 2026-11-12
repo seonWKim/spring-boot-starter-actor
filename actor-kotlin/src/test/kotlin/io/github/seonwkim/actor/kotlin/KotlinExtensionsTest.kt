@@ -28,13 +28,20 @@ open class KotlinExtensionsTestApplication
 class EchoActor : SpringActor<EchoActor.Command> {
     sealed interface Command
 
-    class Echo(val text: String) : AskCommand<String>(), Command
+    class Echo(
+        val text: String,
+    ) : AskCommand<String>(),
+        Command
 
     /** Never answered: the asker times out. */
-    class Ignored : AskCommand<String>(), Command
+    class Ignored :
+        AskCommand<String>(),
+        Command
 
     /** Its handler throws. */
-    class Fail : AskCommand<String>(), Command
+    class Fail :
+        AskCommand<String>(),
+        Command
 
     override fun create(actorContext: SpringActorContext): SpringActorBehavior<Command> =
         actorBehavior<Command>(actorContext)
@@ -108,7 +115,12 @@ class KotlinExtensionsTest {
             val id = newId()
             assertThat(actorSystem.awaitGet<EchoActor, _>(id)).isNull()
 
-            actorSystem.actor(EchoActor::class.java).withId(id).spawn().toCompletableFuture().get()
+            actorSystem
+                .actor(EchoActor::class.java)
+                .withId(id)
+                .spawn()
+                .toCompletableFuture()
+                .get()
 
             val found = actorSystem.awaitGet<EchoActor, _>(id)
             assertThat(found?.awaitAsk(EchoActor.Echo("found"))).isEqualTo("found")
