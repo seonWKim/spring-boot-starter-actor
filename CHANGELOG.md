@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Fixes
+
+- **`spring.actor.generation.*` stays out of the Pekko config (#254).** The `generation` keys were also passed
+  to Pekko as raw configuration. The configuration reference now lists them, and also `spring.actor.enabled` and the
+  `spring.actor.delivery.*` keys, which it was missing.
+
+## 1.1.0 (2026-11-12)
+
 ### Breaking changes
 
 - **One failure meter.** The metrics agent no longer records `actor.errors` (tag `error.type`). Failures are
