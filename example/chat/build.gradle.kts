@@ -41,7 +41,7 @@ dependencies {
 	implementation("com.fasterxml.jackson.core:jackson-databind")
 
 	// BlockHound for detecting blocking calls
-	implementation("io.projectreactor.tools:blockhound:1.0.13.RELEASE")
+	implementation("io.projectreactor.tools:blockhound:1.0.18.RELEASE")
 
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")

@@ -65,7 +65,9 @@ class CounterDslActor : SpringActor<CounterDslActor.Command> {
 
     class Fail : Command
 
-    class Get : AskCommand<Int>(), Command
+    class Get :
+        AskCommand<Int>(),
+        Command
 
     class Counter {
         var value = 0
