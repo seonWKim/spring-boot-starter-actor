@@ -888,6 +888,7 @@ public class ActorProperties {
             "persistence",
             "metrics",
             "delivery",
+            "generation",
             "validation");
 
     /**

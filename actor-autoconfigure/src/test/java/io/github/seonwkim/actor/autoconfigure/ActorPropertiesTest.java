@@ -9,8 +9,11 @@ import io.github.seonwkim.actor.delivery.ReliableDeliveryException;
 import io.github.seonwkim.actor.delivery.SpringReliableDelivery;
 import io.github.seonwkim.actor.internal.PekkoActorRef;
 import io.github.seonwkim.actor.internal.delivery.ReliableConsumerModule;
+import java.beans.PropertyDescriptor;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -22,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.beans.BeanUtils;
 import org.springframework.boot.context.annotation.UserConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.boot.test.system.CapturedOutput;
@@ -144,6 +148,27 @@ class ActorPropertiesTest {
                 new ActorProperties().toPekkoConfig(Map.of("metrics", Map.of("path-tag-limit", "3")), false);
 
         assertThat(config).doesNotContainKey("metrics");
+    }
+
+    @Test
+    void generationSettingsStayOutOfThePekkoConfig() {
+        runner.withPropertyValues(
+                        "spring.actor.generation.color=blue",
+                        "spring.actor.generation.store=custom",
+                        "spring.actor.generation.refresh=2s")
+                .run(context ->
+                        assertThat(pekkoConfig(context).hasPath("generation")).isFalse());
+    }
+
+    @Test
+    void everyTypedSettingIsATypedRoot() {
+        List<String> roots = Arrays.stream(BeanUtils.getPropertyDescriptors(ActorProperties.class))
+                .map(PropertyDescriptor::getName)
+                .filter(name -> !name.equals("class"))
+                .map(name -> name.replaceAll("([A-Z])", "-$1").toLowerCase(Locale.ROOT))
+                .toList();
+
+        assertThat(ActorProperties.TYPED_ROOTS).containsAll(roots);
     }
 
     @Test
